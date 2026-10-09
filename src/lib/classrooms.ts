@@ -24,12 +24,13 @@ export type RosterRow = { user_id: string; full_name: string; email: string | nu
 
 export const uuid = z.string().uuid();
 
-export async function getMyClassrooms(): Promise<ClassroomSummary[]> {
+// Cached per request: the app layout (sidebar) and the page both read it.
+export const getMyClassrooms = cache(async (): Promise<ClassroomSummary[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("my_classrooms");
   if (error) throw new Error(`Classrooms lookup failed: ${error.message}`);
   return (data ?? []) as ClassroomSummary[];
-}
+});
 
 // Null when the id is malformed or you can't see the classroom; both read as "not found".
 // Cached per request so the classroom layout and its tab page share one lookup.

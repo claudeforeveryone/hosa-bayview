@@ -29,38 +29,60 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 - [x] Classroom page with tabs: leaderboard, online, flashcards, tests, resources
 - [x] Members list with remove (trainer, exec)
 
+## Phase 2.5: App shell
+- [x] Desktop sidebar (logo, nav, your classrooms, join, new classroom), phone drawer + bottom nav
+- [x] Every section reachable from day one: Tests, Flashcards, Leaderboard, Join, Admin (execs) pages
+- [x] Credit: Joseph Leung x Kaden Li with hearts
+
+## Phase 2.6: Admin access
+- [x] Admin sign-up path: "Admin" on sign-up, chapter passcode (hashed, set by an exec) makes the account an executive
+- [x] Admin panel: overview counts, people list, role switch with confirm
+- [x] Settings page (name, password; members: claim admin; execs: set admin passcode)
+
 ## Phase 3: Testing
-- [ ] Migration: `tests`, `questions`, `question_keys`, `attempts`, `attempt_answers`, RPCs `start_attempt`, `submit_attempt`, `get_attempt_review`
-- [ ] `parse/questions.ts` + Vitest cases (messy pastes, `A)` vs `A.`, E options, explanations, missing answers)
-- [ ] Paste import with editable preview
-- [ ] Manual question CRUD with explanations
-- [ ] Take test: timed (countdown, auto-submit) and practice
-- [ ] Results page with correct answers + explanations; attempt history
+- [x] Migration 0013: `tests`, `questions`, `question_keys`, `attempts`, `attempt_answers`, RPCs (save/import/delete question, start/answer/submit attempt, attempt_sheet, classroom_tests, test_results)
+- [x] `parse/questions.ts` + Vitest cases (messy pastes, `A)` vs `A.`, E options, explanations, missing answers)
+- [ ] SQL checks for the tests RPCs (`supabase/tests/tests.sql`)
+- [ ] Question builder: type the question, the right answer, then the other choices (add/remove), explanation; edit/delete
+- [ ] Paste import (past BLC / competition questions) with editable preview
+- [ ] Take test: timed (countdown, auto-submit) and practice; shuffle questions and choices
+- [ ] Results page with correct answers + explanations; attempt history; trainer results
 
 ## Phase 4: Flashcards
-- [ ] Migration: `decks`, `cards`, `card_progress`, RLS
-- [ ] `parse/cards.ts` + tests
-- [ ] Deck CRUD, bulk paste, share toggle for trainee decks; add Decks to nav
-- [ ] Study mode: flip, shuffle, known / still learning, filter to still learning
+- [ ] Migration: `decks` (classroom decks by trainers; private trainee decks, shareable to a classroom or to people), `cards`, `card_reviews`
+- [ ] `parse/cards.ts` + tests; deck CRUD, bulk paste
+- [ ] Study mode: flip, shuffle, known / still learning
+- [ ] Match mode: match terms to definitions against the clock
 
-## Phase 5: Activity and leaderboards
-- [ ] Migration: `activity_minutes`, `presence`, `heartbeat` RPC, `leaderboard(period, classroom)` RPC
-- [ ] `useHeartbeat` hook (visible + not idle)
-- [ ] Global leaderboard on Home (metric + week/month/all)
-- [ ] Classroom leaderboard tab, who's online tab
+## Phase 5: Activity, Elo, leaderboards
+- [ ] Migration: `activity_minutes` (heartbeat, one row per user-minute), `presence`, streak days
+- [ ] Elo (the one score): starts at 100, grows from time spent + flashcards reviewed + questions done (accuracy counts), streaks multiply it
+- [ ] Home: club leaderboard by hours, toggle to flashcards reviewed / questions done / accuracy / Elo; "Members online N" top right
+- [ ] Classroom Leaderboard tab with the same toggles; who's online tab
 
-## Phase 6: Executive dashboard, files, links
-- [ ] Storage bucket `resources` + policies; `resources` table
-- [ ] Resources tab: add link, upload file (≤ 10 MB), signed download, delete
-- [ ] `/admin`: overview stats, users + role changer, all classrooms / tests / decks / resources; add Admin to nav
+## Phase 6: Members, profiles, career
+- [ ] Members directory: everyone in HOSA Bayview, with search
+- [ ] Profile page per member: Elo, streak, hours, cards, questions, accuracy by classroom/event. Keep it simple: plain stat rows, no charts or flourishes
+- [ ] Career section: every question you got right and wrong (with the answer), Elo history, your rank
+
+## Phase 6.5: Resources and attendance
+- [ ] Resources tab: links (and files), trainers add/edit/delete
+- [ ] Event breakdown: trainers set the % weight of each topic for the event, shown on the Resources tab
+- [ ] Attendance: trainers take and save attendance per session for their classroom; members see their own record
+- [ ] Admin tab (execs only): all attendance across classrooms, all classrooms/tests/decks/resources
 
 ## Phase 7: Polish and ship
 - [ ] Empty, loading, error states everywhere; a11y pass
-- [ ] Profile page (name, password, my stats)
-- [ ] `npm run seed` demo data
+- [ ] `npm run seed` demo data (local only)
 - [ ] README: setup, env vars, Supabase, Vercel, SMTP upgrade
-- [ ] Vercel project linked to GitHub, env vars, Supabase redirect URLs, live check
+- [ ] Live check on hosa-bayview.vercel.app
 
-## Phase 8 (later): Weekly email reminders
+## Phase 7.5: Chapter-wide (all events, not just MC)
+- [ ] Announcements per classroom and chapter-wide, written and edited by trainers / execs
+- [ ] Notifications in the app (new test, announcement, attendance)
+- [ ] BLC: run mock competitions online (timed test window, chapter ranking); execs can spin up as many as they want
+
+## Phase 8 (later): Weekly email updates
+- [ ] Weekly email = that week's announcements + your progress; trainers can edit before it sends
 - [ ] Email provider (Resend) + custom SMTP for Supabase auth
 - [ ] Vercel cron, weekly summary email per member, unsubscribe toggle on profile

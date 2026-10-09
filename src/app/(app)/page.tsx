@@ -148,8 +148,8 @@ export default async function HomePage() {
   // A trainee with nowhere to go yet only needs the code box.
   if (!rooms.length && !teach) {
     return (
-      <div className="grid grid-cols-1 gap-6">
-        <h1 className="sr-only">Home</h1>
+      <div className="grid grid-cols-1 gap-8">
+        <Hello name={first} role={profile.role} rooms={0} />
         <Join big />
       </div>
     );

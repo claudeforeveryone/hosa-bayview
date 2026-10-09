@@ -6,9 +6,10 @@ export function Field({
   name,
   error,
   hint,
+  id: idProp,
   ...input
 }: { label: string; name: string; error?: string; hint?: ReactNode } & ComponentProps<"input">) {
-  const id = `f-${name}`;
+  const id = idProp ?? `f-${name}`;
   const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
   return (
     <div className="grid gap-1.5">
@@ -41,9 +42,10 @@ export function TextArea({
   name,
   error,
   hint,
+  id: idProp,
   ...input
 }: { label: string; name: string; error?: string; hint?: ReactNode } & ComponentProps<"textarea">) {
-  const id = `f-${name}`;
+  const id = idProp ?? `f-${name}`;
   const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
   return (
     <div className="grid gap-1.5">

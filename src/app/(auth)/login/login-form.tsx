@@ -41,6 +41,9 @@ export function LoginForm({ next, notice }: { next: string; notice: string | nul
         <Link href="/forgot-password" className="text-ink-2 underline">
           Forgot password
         </Link>
+        <Link href="/signup?admin" className="text-ink-2 underline">
+          Admin sign-up
+        </Link>
       </div>
     </form>
   );

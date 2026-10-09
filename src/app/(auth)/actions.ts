@@ -70,7 +70,13 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
     })
     .safeParse({ full_name: form.get("full_name"), email: form.get("email"), password: form.get("password") });
   const values = { full_name: String(form.get("full_name") ?? ""), email: String(form.get("email") ?? "") };
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
+  const adminMode = form.get("admin") === "1";
+  const passcode = String(form.get("passcode") ?? "");
+  if (!parsed.success || (adminMode && !passcode)) {
+    const errors = parsed.success ? {} : fieldErrors(parsed.error);
+    if (adminMode && !passcode) errors.passcode = "Enter the admin passcode.";
+    return { fieldErrors: errors, values };
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -82,9 +88,36 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
     },
   });
   if (error) return { error: friendly(error.message), values };
-  if (!data.session) return { ok: "Check your email to confirm your account, then log in.", values };
+  if (!data.session) {
+    const next = passcode ? " Then enter the admin passcode in Settings." : "";
+    return { ok: `Check your email to confirm your account, then log in.${next}`, values };
+  }
+
+  // Admin sign-up: the account exists either way; a failed claim leaves it a member and says why.
+  if (passcode) {
+    const { data: granted, error: claimError } = await supabase.rpc("claim_admin", { code: passcode });
+    if (claimError) {
+      if (claimError.code !== "54000") console.error("[auth] claim_admin:", claimError.message);
+      redirect(`/settings?passcode=${claimError.code === "54000" ? "slow" : "retry"}`);
+    }
+    if (!granted) redirect("/settings?passcode=wrong");
+  }
 
   redirect("/");
+}
+
+export async function claimAdmin(_: AuthState, form: FormData): Promise<AuthState> {
+  const code = String(form.get("passcode") ?? "");
+  if (!code) return { fieldErrors: { passcode: "Enter the passcode." } };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("claim_admin", { code });
+  if (error) {
+    if (error.code === "54000") return { fieldErrors: { passcode: "Too many wrong passcodes. Try again in 10 minutes." } };
+    console.error("[auth] claim_admin:", error.message);
+    return { error: "Something went wrong. Try again." };
+  }
+  if (!data) return { fieldErrors: { passcode: "That passcode isn't right." } };
+  redirect("/admin");
 }
 
 export async function requestReset(_: AuthState, form: FormData): Promise<AuthState> {

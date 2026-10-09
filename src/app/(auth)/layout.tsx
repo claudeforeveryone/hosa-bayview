@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       </section>
       <section className="flex flex-col justify-end px-4 pt-10 pb-6 sm:px-8 lg:px-12 lg:pb-12">
         <div className="w-full max-w-[26rem]">{children}</div>
-        <Credit className="mt-12" />
+        <Credit className="mt-12 text-ink-2/80" />
       </section>
     </div>
   );

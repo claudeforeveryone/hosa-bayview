@@ -10,7 +10,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { login, signup, requestReset, updatePassword, logout } = await import("./actions");
+const { login, signup, claimAdmin, requestReset, updatePassword, logout } = await import("./actions");
 
 const form = (fields: Record<string, string>) => {
   const f = new FormData();
@@ -73,6 +73,61 @@ describe("signup", () => {
         options: expect.objectContaining({ emailRedirectTo: "https://hosa.example/auth/callback" }),
       }),
     );
+  });
+});
+
+describe("admin passcode", () => {
+  const withRpc = (result: { data: unknown; error: unknown }) => {
+    const rpc = vi.fn(async () => result);
+    Object.assign(client, { rpc });
+    return rpc;
+  };
+  const fields = { full_name: "Sam", email: "s@b.co", password: "longenough" };
+
+  it("makes an admin when the passcode is right", async () => {
+    const rpc = withRpc({ data: true, error: null });
+    expect(await redirectOf(signup({}, form({ ...fields, passcode: "chapter-code" })))).toBe("/");
+    expect(rpc).toHaveBeenCalledWith("claim_admin", { code: "chapter-code" });
+  });
+
+  it("keeps the account and says so when the passcode is wrong", async () => {
+    withRpc({ data: false, error: null });
+    expect(await redirectOf(signup({}, form({ ...fields, passcode: "nope" })))).toBe("/settings?passcode=wrong");
+  });
+
+  it("won't make a member account when admin mode has no passcode", async () => {
+    const state = await signup({}, form({ ...fields, admin: "1" }));
+    expect(state.fieldErrors?.passcode).toBe("Enter the admin passcode.");
+    expect(client.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it("tells email-confirm sign-ups where to enter the passcode", async () => {
+    client = mockSupabase({ session: null });
+    const state = await signup({}, form({ ...fields, admin: "1", passcode: "chapter-code" }));
+    expect(state.ok).toMatch(/passcode in Settings/);
+  });
+
+  it("separates a throttled or failed claim from a wrong passcode", async () => {
+    withRpc({ data: null, error: { code: "54000", message: "Too many" } });
+    expect(await redirectOf(signup({}, form({ ...fields, passcode: "x-code" })))).toBe("/settings?passcode=slow");
+    withRpc({ data: null, error: { code: "XX000", message: "boom" } });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await redirectOf(signup({}, form({ ...fields, passcode: "x-code" })))).toBe("/settings?passcode=retry");
+  });
+
+  it("skips the check for a normal sign-up", async () => {
+    const rpc = withRpc({ data: true, error: null });
+    await redirectOf(signup({}, form(fields)));
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("explains a wrong or throttled passcode in settings", async () => {
+    withRpc({ data: false, error: null });
+    expect((await claimAdmin({}, form({ passcode: "nope" }))).fieldErrors?.passcode).toBe("That passcode isn't right.");
+    withRpc({ data: null, error: { code: "54000", message: "Too many" } });
+    expect((await claimAdmin({}, form({ passcode: "nope" }))).fieldErrors?.passcode).toMatch(/Too many/);
+    withRpc({ data: true, error: null });
+    expect(await redirectOf(claimAdmin({}, form({ passcode: "chapter-code" })))).toBe("/admin");
   });
 });
 

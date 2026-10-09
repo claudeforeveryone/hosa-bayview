@@ -70,8 +70,17 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 - Logo top left, fairly big.
 - Minimal and flat: square corners everywhere, no shadows, gradients, glass, emoji, or icon-in-a-circle cards. No tell-tale AI template look. Hairline rules, tabular numerals for stats.
 - Mobile first; students mostly use phones.
-- Navigation: Home (global leaderboard + my classrooms), Classroom pages, Profile, Admin (executives only).
-- Tiny, low-contrast "made by J ♥" in the footer. Should not be noticeable.
+- Navigation: desktop navy sidebar (logo, Home, Tests, Flashcards, Leaderboard, Profile, Settings, Admin for execs, your classrooms, join, new classroom); phones get a logo bar, the same panel in a drawer, and a 5-item bottom bar. Every section is reachable from day one, never gated behind setup.
+- Footer credit: "Joseph Leung × Kaden Li" with a row of small hearts, low contrast (sidebar bottom on desktop, page foot on phones, auth pages).
+
+## Admins
+- Most people sign up as members (trainee). Admins (executives) either sign up via "Admin sign-up" with the chapter admin passcode, or enter it later in Settings. An executive sets/changes the passcode in Settings; only a bcrypt hash is stored (`private.settings.admin_passcode_hash`), 5 wrong tries per account per 10 min.
+- Executives change anyone's role from /admin. Planned admins: Joseph Leung, Kaden Li, Bernice Au, Jenna Bae.
+- Never create real accounts or handle real passwords on their behalf; they sign up themselves.
+
+## Chapter-wide features (all events, not just MC)
+- Announcements (trainers/execs write and edit), attendance, in-app notifications, weekly email updates trainers can edit.
+- BLC: mock competitions run online; execs can create as many as they want.
 
 ## Later
 - Weekly email reminders (Phase 8). Needs a real email provider (e.g. Resend) and a Vercel cron.
@@ -79,7 +88,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 ## Security notes
 - First executive: `private.settings.first_executive_email` promotes that address once, during its own sign-up (the auth server inserts the user, then confirms it in the same transaction while "Confirm email" is off), and only if no executive exists; the setting is then deleted. Confirming an older account later never promotes. With confirmation off, nothing proves who owns the inbox, so the owner must sign up with that address before anyone else. If "Confirm email" is on, promote the first executive by hand in the SQL editor.
 - Profiles are deleted only by deleting the auth user (admin API); the last executive can't be demoted or deleted.
-- DB checks: `supabase/tests/roles.sql` and `supabase/tests/classrooms.sql` (each runs in a rolled-back transaction, raises on failure). Unit tests: `npm test`.
+- DB checks: `supabase/tests/roles.sql`, `supabase/tests/classrooms.sql` and `supabase/tests/admin_passcode.sql` (each runs in a rolled-back transaction, raises on failure). Unit tests: `npm test`.
 - Threat model: users are vetted chapter members (selective HOSA application), not the open internet. Keep RLS and role checks strict, but skip anti-abuse work like IP throttling or multi-account brute-force defence. The per-account join-code limit (10 misses / 10 min) is enough; accepted by the owner.
 - Join codes are readable only through `my_classrooms`/`classroom_detail` (managers only); the column is not granted on the table.
 
