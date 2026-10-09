@@ -6,7 +6,6 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
 import { parseGrade } from "@/lib/profile";
-import { usernameKey } from "@/lib/username";
 import { SHORT_SESSION } from "@/lib/session-length";
 
 export type AuthState = {
@@ -84,14 +83,6 @@ export async function login(_: AuthState, form: FormData): Promise<AuthState> {
     email: identifier,
     remember: form.get("remember") === "on" ? "on" : "off",
   };
-  if (!identifier.includes("@"))
-    return usernameLogin(
-      identifier,
-      String(form.get("password") ?? ""),
-      values,
-      form,
-    );
-
   const parsed = z
     .object({ email, password: z.string().min(1, "Enter your password.") })
     .safeParse({
@@ -107,50 +98,6 @@ export async function login(_: AuthState, form: FormData): Promise<AuthState> {
   if (error) return { error: friendly(error.message), values };
 
   redirect(safeNext(form.get("next")));
-}
-
-// Executive usernames (the demo admins). Their password is the executive password, checked in the
-// database (demo_credentials). Works any time for the preset admin accounts.
-async function usernameLogin(
-  username: string,
-  password: string,
-  values: Record<string, string>,
-  form: FormData,
-): Promise<AuthState> {
-  const errors: Record<string, string> = {};
-  if (!username) errors.email = "Enter your email or username.";
-  if (!password) errors.password = "Enter your password.";
-  if (Object.keys(errors).length) return { fieldErrors: errors, values };
-
-  const wrong = { error: "That username and password don't match.", values };
-  const supabase = await createClient();
-  const { data: people } = await supabase.rpc("demo_logins");
-  const key = usernameKey(username);
-  const match = ((people ?? []) as { slug: string; full_name: string }[]).find(
-    (p) => usernameKey(p.slug) === key || usernameKey(p.full_name) === key,
-  );
-  if (!match) return wrong;
-
-  const { data, error } = await supabase
-    .rpc("demo_credentials", { p_slug: match.slug, p_password: password })
-    .maybeSingle<{ email: string; secret: string }>();
-  if (error) {
-    if (error.code === "54000")
-      return {
-        error: "Too many wrong passwords. Try again in 10 minutes.",
-        values,
-      };
-    console.error("[auth] username login:", error.message);
-    return { error: "Something went wrong. Try again.", values };
-  }
-  if (!data) return wrong;
-  await rememberChoice(form);
-  const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: data.email,
-    password: data.secret,
-  });
-  if (signInError) return { error: friendly(signInError.message), values };
-  redirect("/");
 }
 
 export async function signup(_: AuthState, form: FormData): Promise<AuthState> {

@@ -41,6 +41,9 @@ export function StartTest({
   const outOfAttempts = attemptsLeft === 0;
   const timedOut = outOfAttempts && Boolean(timeLimit);
   const practiceOut = outOfAttempts && !timeLimit;
+  // A capped timed test keeps its questions hidden until the scored runs are used, so practice can't preview it.
+  const practiceLocked =
+    Boolean(timeLimit) && attemptsLeft !== null && attemptsLeft > 0;
 
   return (
     <div className="grid gap-3">
@@ -62,7 +65,7 @@ export function StartTest({
             type="button"
             variant={timeLimit ? "line" : "solid"}
             onClick={() => go("practice")}
-            disabled={pending || practiceOut}
+            disabled={pending || practiceOut || practiceLocked}
           >
             <Play size={20} strokeWidth={1.75} aria-hidden />
             {pending && mode === "practice" ? "Starting" : "Practice"}
@@ -74,6 +77,11 @@ export function StartTest({
           {attemptsLeft === 0
             ? "No attempts left"
             : `${attemptsLeft} attempt${attemptsLeft === 1 ? "" : "s"} left`}
+        </p>
+      ) : null}
+      {allowPractice && practiceLocked ? (
+        <p className="text-[15px] text-ink-2">
+          Practice opens once you&apos;ve used your timed attempts.
         </p>
       ) : null}
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}

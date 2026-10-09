@@ -177,5 +177,32 @@ select pg_temp.as_user('00000000-0000-4000-8000-0000000000a3');
 select pg_temp.check('an open practice run stops taking answers once practice is off',
   pg_temp.fails(format($$select public.answer_question('%s', '00000000-0000-4000-8000-0000000000d1', 0)$$, pg_temp.get('p5')), 'Practice is off'));
 
+-- 0048: practice can't preview a capped timed test, and career() hides keys the test hides.
+reset role;
+insert into public.tests (id, classroom_id, title, time_limit_minutes, is_published, attempts_allowed) values
+  ('00000000-0000-4000-8000-0000000000c5', '00000000-0000-4000-8000-0000000000b1', 'Capped timed', 10, true, 1);
+insert into public.questions (id, test_id, position, prompt, options) values
+  ('00000000-0000-4000-8000-0000000000d7', '00000000-0000-4000-8000-0000000000c5', 1, 'Capped Q1', array['a', 'b']);
+insert into public.question_keys (question_id, correct_index, explanation) values
+  ('00000000-0000-4000-8000-0000000000d7', 1, 'B again');
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000a2');
+select pg_temp.check('practice is locked while timed attempts remain',
+  pg_temp.fails($$select public.start_attempt('00000000-0000-4000-8000-0000000000c5', 'practice')$$, 'Practice opens once'));
+select pg_temp.save('t5', public.start_attempt('00000000-0000-4000-8000-0000000000c5', 'timed'));
+select public.answer_question(pg_temp.get('t5'), '00000000-0000-4000-8000-0000000000d7', 0);
+select public.submit_attempt(pg_temp.get('t5'));
+select pg_temp.check('practice opens after the last timed attempt',
+  public.start_attempt('00000000-0000-4000-8000-0000000000c5', 'practice') is not null);
+select pg_temp.check('career hides the key and verdict on an answers-off test',
+  exists (select 1 from public.career('00000000-0000-4000-8000-0000000000a2', null) c
+          where c.test_title = 'Practice only' and c.correct_index is null and c.explanation is null and c.is_correct is null));
+select pg_temp.check('career shows the key on an answers-on test',
+  exists (select 1 from public.career('00000000-0000-4000-8000-0000000000a2', null) c
+          where c.test_title = 'Capped timed' and c.correct_index = 1 and c.explanation = 'B again'));
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000a1');
+select pg_temp.check('the trainer still sees keys on answers-off tests',
+  exists (select 1 from public.career('00000000-0000-4000-8000-0000000000a2', null) c
+          where c.test_title = 'Practice only' and c.correct_index = 2));
+
 select 'tests_teaching: all checks passed' as result;
 rollback;

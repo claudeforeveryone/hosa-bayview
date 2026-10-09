@@ -223,13 +223,13 @@ export function filterMembers<T extends { full_name: string }>(
   return q ? rows.filter((r) => r.full_name.toLowerCase().includes(q)) : rows;
 }
 
-export type CareerItem = { is_correct: boolean };
+export type CareerItem = { is_correct: boolean | null };
 export function filterCareer<T extends CareerItem>(
   rows: T[],
   result: Result,
 ): T[] {
   if (result === "right") return rows.filter((r) => r.is_correct);
-  if (result === "wrong") return rows.filter((r) => !r.is_correct);
+  if (result === "wrong") return rows.filter((r) => r.is_correct === false);
   return rows;
 }
 
