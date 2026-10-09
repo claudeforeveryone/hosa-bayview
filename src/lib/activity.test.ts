@@ -40,9 +40,9 @@ describe("parsing search params", () => {
 });
 
 describe("rankBoard", () => {
-  it("leaves out people with no activity", () => {
+  it("lists people with no activity yet, after those with some", () => {
     const ranked = rankBoard([row({ full_name: "Ana" }), row({ full_name: "Ben", minutes: 30 })], "hours");
-    expect(ranked.map((r) => r.full_name)).toEqual(["Ben"]);
+    expect(ranked.map((r) => r.full_name)).toEqual(["Ben", "Ana"]);
   });
 
   it("sorts the chosen metric highest first and gives ties a shared place", () => {

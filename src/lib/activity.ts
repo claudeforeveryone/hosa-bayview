@@ -20,7 +20,7 @@ export type Result = (typeof RESULTS)[number];
 
 // What the Elo score is made of. Shown under the club board so the number isn't a mystery.
 export const ELO_SUMMARY =
-  "Elo starts at 100. Each minute studied adds 0.5. Each flashcard counts 1 a day, each question 2 a day, and a question right adds 3 more (first answer of the day counts). A streak multiplies those gains by up to 1.6 (30 days).";
+  "Elo starts at 1200. Each minute studied adds 0.5. Each flashcard counts 1 a day, each question 2 a day, and a question right adds 3 more (first answer of the day counts). A streak multiplies those gains by up to 1.6 (30 days).";
 
 export type BoardRow = {
   user_id: string;
@@ -65,13 +65,10 @@ export function metricValue(row: BoardRow, metric: Metric): number | null {
   }
 }
 
-// Anyone with no study, review or answers yet isn't on the board.
-export const isActive = (row: BoardRow) => row.minutes > 0 || row.reviews > 0 || row.answered > 0;
-
-// Highest first; nulls (accuracy with no answers) last. Ties share a place (1, 1, 3).
+// Everyone in the chapter is listed, including people with nothing yet. Highest first; nulls (accuracy with no answers) last. Ties share a place (1, 1, 3).
 // Ties on the metric break by questions answered, then name.
 export function rankBoard(rows: BoardRow[], metric: Metric): RankedRow[] {
-  const sorted = rows.filter(isActive).sort((a, b) => {
+  const sorted = [...rows].sort((a, b) => {
     const av = metricValue(a, metric);
     const bv = metricValue(b, metric);
     if (av === null || bv === null) {

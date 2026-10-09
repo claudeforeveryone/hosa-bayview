@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
+import { usernameKey } from "@/lib/username";
 
 export type AuthState = {
   error?: string;
@@ -47,11 +48,14 @@ async function origin() {
 }
 
 export async function login(_: AuthState, form: FormData): Promise<AuthState> {
+  const identifier = String(form.get("email") ?? "").trim();
+  const values = { email: identifier };
+  if (!identifier.includes("@")) return usernameLogin(identifier, String(form.get("password") ?? ""), values);
+
   const parsed = z.object({ email, password: z.string().min(1, "Enter your password.") }).safeParse({
-    email: form.get("email"),
+    email: identifier,
     password: form.get("password"),
   });
-  const values = { email: String(form.get("email") ?? "") };
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
   const supabase = await createClient();
@@ -59,6 +63,37 @@ export async function login(_: AuthState, form: FormData): Promise<AuthState> {
   if (error) return { error: friendly(error.message), values };
 
   redirect(safeNext(form.get("next")));
+}
+
+// Executive usernames (the demo admins). Their password is the executive password, checked in the
+// database (demo_credentials); works only while an exec has demo sign-in switched on.
+async function usernameLogin(username: string, password: string, values: Record<string, string>): Promise<AuthState> {
+  const errors: Record<string, string> = {};
+  if (!username) errors.email = "Enter your email or username.";
+  if (!password) errors.password = "Enter your password.";
+  if (Object.keys(errors).length) return { fieldErrors: errors, values };
+
+  const wrong = { error: "That username and password don't match.", values };
+  const supabase = await createClient();
+  const { data: people } = await supabase.rpc("demo_logins");
+  const key = usernameKey(username);
+  const match = ((people ?? []) as { slug: string; full_name: string }[]).find(
+    (p) => usernameKey(p.slug) === key || usernameKey(p.full_name) === key,
+  );
+  if (!match) return wrong;
+
+  const { data, error } = await supabase
+    .rpc("demo_credentials", { p_slug: match.slug, p_password: password })
+    .maybeSingle<{ email: string; secret: string }>();
+  if (error) {
+    if (error.code === "54000") return { error: "Too many wrong passwords. Try again in 10 minutes.", values };
+    console.error("[auth] username login:", error.message);
+    return { error: "Something went wrong. Try again.", values };
+  }
+  if (!data) return wrong;
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email: data.email, password: data.secret });
+  if (signInError) return { error: friendly(signInError.message), values };
+  redirect("/");
 }
 
 export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
@@ -70,13 +105,7 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
     })
     .safeParse({ full_name: form.get("full_name"), email: form.get("email"), password: form.get("password") });
   const values = { full_name: String(form.get("full_name") ?? ""), email: String(form.get("email") ?? "") };
-  const adminMode = form.get("admin") === "1";
-  const passcode = String(form.get("passcode") ?? "");
-  if (!parsed.success || (adminMode && !passcode)) {
-    const errors = parsed.success ? {} : fieldErrors(parsed.error);
-    if (adminMode && !passcode) errors.passcode = "Enter the admin passcode.";
-    return { fieldErrors: errors, values };
-  }
+  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -88,41 +117,8 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
     },
   });
   if (error) return { error: friendly(error.message), values };
-  if (!data.session) {
-    const next = passcode ? " Then enter the admin passcode in Settings." : "";
-    return { ok: `Check your email to confirm your account, then log in.${next}`, values };
-  }
+  if (!data.session) return { ok: "Check your email to confirm your account, then log in.", values };
 
-  // Admin sign-up: the account exists either way; a failed claim leaves it a member and says why.
-  if (passcode) {
-    const { data: granted, error: claimError } = await supabase.rpc("claim_admin", { code: passcode });
-    if (claimError) {
-      if (claimError.code !== "54000") console.error("[auth] claim_admin:", claimError.message);
-      redirect(`/settings?passcode=${claimError.code === "54000" ? "slow" : "retry"}`);
-    }
-    if (!granted) redirect("/settings?passcode=wrong");
-  }
-
-  redirect("/");
-}
-
-// Demo sign-in: one tap on a name. Works only while an exec has demo sign-in switched on.
-export async function demoLogin(slug: string, _: AuthState, form: FormData): Promise<AuthState> {
-  if (!/^[a-z-]{1,40}$/.test(slug)) return { error: "That account doesn't exist." };
-  const password = String(form.get("password") ?? "");
-  if (!password) return { fieldErrors: { password: "Enter the executive password." } };
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .rpc("demo_credentials", { p_slug: slug, p_password: password })
-    .maybeSingle<{ email: string; secret: string }>();
-  if (error) {
-    if (error.code === "54000") return { error: "Too many wrong passwords. Try again in 10 minutes." };
-    console.error("[auth] demo:", error.message);
-    return { error: "Sign-in didn't work. Try again." };
-  }
-  if (!data) return { fieldErrors: { password: "That password isn't right." } };
-  const { error: signInError } = await supabase.auth.signInWithPassword({ email: data.email, password: data.secret });
-  if (signInError) return { error: friendly(signInError.message) };
   redirect("/");
 }
 

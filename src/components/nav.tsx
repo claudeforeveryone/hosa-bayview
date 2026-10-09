@@ -6,10 +6,8 @@ import { usePathname } from "next/navigation";
 import {
   ClipboardList,
   House,
-  KeyRound,
   Layers,
   Menu,
-  Plus,
   Settings,
   ShieldCheck,
   Trophy,
@@ -38,27 +36,86 @@ type Item = {
 };
 
 const ITEMS: Item[] = [
-  { href: "/", label: "Home", short: "Home", Icon: House, match: (p) => p === "/" },
-  { href: "/tests", label: "Tests", short: "Tests", Icon: ClipboardList, match: (p) => p.startsWith("/tests") },
-  { href: "/flashcards", label: "Flashcards", short: "Cards", Icon: Layers, match: (p) => p.startsWith("/flashcards") },
-  { href: "/leaderboard", label: "Leaderboard", short: "Board", Icon: Trophy, match: (p) => p.startsWith("/leaderboard") },
-  { href: "/members", label: "Members", short: "Members", Icon: Users, match: (p) => p.startsWith("/members"), more: true },
-  { href: "/profile", label: "Profile", short: "Profile", Icon: UserRound, match: (p) => p.startsWith("/profile") },
-  { href: "/settings", label: "Settings", short: "Settings", Icon: Settings, match: (p) => p.startsWith("/settings"), more: true },
-  { href: "/admin", label: "Admin", short: "Admin", Icon: ShieldCheck, match: (p) => p.startsWith("/admin"), exec: true },
+  {
+    href: "/",
+    label: "Home",
+    short: "Home",
+    Icon: House,
+    match: (p) => p === "/",
+  },
+  {
+    href: "/leaderboard",
+    label: "Leaderboard",
+    short: "Board",
+    Icon: Trophy,
+    match: (p) => p.startsWith("/leaderboard"),
+  },
+  {
+    href: "/tests",
+    label: "Tests",
+    short: "Tests",
+    Icon: ClipboardList,
+    match: (p) => p.startsWith("/tests"),
+  },
+  {
+    href: "/flashcards",
+    label: "Flashcards",
+    short: "Cards",
+    Icon: Layers,
+    match: (p) => p.startsWith("/flashcards"),
+  },
+  {
+    href: "/members",
+    label: "Members",
+    short: "Members",
+    Icon: Users,
+    match: (p) => p.startsWith("/members"),
+    more: true,
+  },
+  {
+    href: "/profile",
+    label: "Profile",
+    short: "Profile",
+    Icon: UserRound,
+    match: (p) => p.startsWith("/profile"),
+  },
+  {
+    href: "/settings",
+    label: "Settings",
+    short: "Settings",
+    Icon: Settings,
+    match: (p) => p.startsWith("/settings"),
+    more: true,
+  },
+  {
+    href: "/admin",
+    label: "Admin",
+    short: "Admin",
+    Icon: ShieldCheck,
+    match: (p) => p.startsWith("/admin"),
+    exec: true,
+  },
 ];
 
 function useItems(isExec: boolean) {
   const path = usePathname();
-  return { path, items: ITEMS.filter((i) => !i.exec || isExec).map((i) => ({ ...i, active: i.match(path) })) };
+  return {
+    path,
+    items: ITEMS.filter((i) => !i.exec || isExec).map((i) => ({
+      ...i,
+      active: i.match(path),
+    })),
+  };
 }
 
 const row = "step flex h-12 items-center gap-3 px-5 lg:px-6";
 const rowState = (active: boolean) =>
-  active ? "bg-on-field text-field" : "text-on-field-2 hover:bg-field-2 hover:text-on-field";
+  active
+    ? "bg-on-field text-field"
+    : "text-on-field-2 hover:bg-field-2 hover:text-on-field";
 
-// The whole app in one column: where to go, your rooms, and how to get into more.
-function PanelBody({ isExec, canTeach, rooms }: Props) {
+// The whole app in one column: where to go and the classrooms you are in.
+function PanelBody({ isExec, rooms }: Props) {
   const { path, items } = useItems(isExec);
   const roomsHeading = useId();
   return (
@@ -67,7 +124,11 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
         <ul>
           {items.map(({ href, label, Icon, active }) => (
             <li key={href}>
-              <Link href={href} aria-current={active ? "page" : undefined} className={`${row} ${rowState(active)}`}>
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`${row} ${rowState(active)}`}
+              >
                 <Icon size={22} strokeWidth={1.75} aria-hidden />
                 <span className="caps text-[19px]">{label}</span>
               </Link>
@@ -76,14 +137,18 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
         </ul>
       </nav>
 
-      <section aria-labelledby={roomsHeading} className="mt-8">
-        <h2 id={roomsHeading} className="caps mx-5 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6">
-          Classrooms
-        </h2>
-        {rooms.length ? (
+      {rooms.length ? (
+        <section aria-labelledby={roomsHeading} className="mt-8">
+          <h2
+            id={roomsHeading}
+            className="caps mx-5 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
+          >
+            Classrooms
+          </h2>
           <ul className="mt-1">
             {rooms.map((room) => {
-              const active = path === `/c/${room.id}` || path.startsWith(`/c/${room.id}/`);
+              const active =
+                path === `/c/${room.id}` || path.startsWith(`/c/${room.id}/`);
               return (
                 <li key={room.id}>
                   <Link
@@ -91,31 +156,19 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
                     aria-current={active ? "page" : undefined}
                     className={`${row} justify-between ${rowState(active)}`}
                   >
-                    <span className="truncate text-[17px] font-medium">{room.name}</span>
-                    <span className="num caps shrink-0 text-[13px] opacity-80">{formNumber("C", room.num)}</span>
+                    <span className="truncate text-[17px] font-medium">
+                      {room.name}
+                    </span>
+                    <span className="num caps shrink-0 text-[13px] opacity-80">
+                      {formNumber("C", room.num)}
+                    </span>
                   </Link>
                 </li>
               );
             })}
           </ul>
-        ) : null}
-        <ul className="mt-1">
-          <li>
-            <Link href="/join" aria-current={path === "/join" ? "page" : undefined} className={`${row} ${rowState(path === "/join")}`}>
-              <KeyRound size={20} strokeWidth={1.75} aria-hidden />
-              <span className="text-[16px]">Join with a code</span>
-            </Link>
-          </li>
-          {canTeach ? (
-            <li>
-              <Link href="/c/new" aria-current={path === "/c/new" ? "page" : undefined} className={`${row} ${rowState(path === "/c/new")}`}>
-                <Plus size={20} strokeWidth={1.75} aria-hidden />
-                <span className="text-[16px]">New classroom</span>
-              </Link>
-            </li>
-          ) : null}
-        </ul>
-      </section>
+        </section>
+      ) : null}
     </>
   );
 }
@@ -124,7 +177,11 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
 export function Sidebar(props: Props) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-[18rem] shrink-0 flex-col overflow-y-auto bg-field text-on-field lg:flex">
-      <Link href="/" aria-label="HOSA Bayview home" className="block px-6 pt-6 pb-8">
+      <Link
+        href="/"
+        aria-label="HOSA Bayview home"
+        className="block px-6 pt-6 pb-8"
+      >
         <Logo className="h-[136px]" />
       </Link>
       <PanelBody {...props} />
@@ -176,7 +233,8 @@ export function MobileBar(props: Props) {
         onClick={(e) => {
           // Backdrop taps and link taps both close it.
           const target = e.target as HTMLElement;
-          if (target === drawer.current || target.closest("a")) drawer.current?.close();
+          if (target === drawer.current || target.closest("a"))
+            drawer.current?.close();
         }}
         className="m-0 h-dvh max-h-none border-0 p-0 w-[min(20rem,86vw)] max-w-none overflow-y-auto bg-field text-on-field backdrop:bg-[#0f2440]/60"
       >
@@ -218,10 +276,18 @@ export function BottomNav({ isExec }: { isExec: boolean }) {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={`step flex h-16 flex-col items-center justify-center gap-1 border-t-[3px] ${
-                  active ? "border-you text-on-field" : "border-transparent text-on-field-2"
+                  active
+                    ? "border-you text-on-field"
+                    : "border-transparent text-on-field-2"
                 }`}
               >
-                <Icon size={24} strokeWidth={1.75} fill={active ? "currentColor" : "none"} fillOpacity={active ? 0.25 : 0} aria-hidden />
+                <Icon
+                  size={24}
+                  strokeWidth={1.75}
+                  fill={active ? "currentColor" : "none"}
+                  fillOpacity={active ? 0.25 : 0}
+                  aria-hidden
+                />
                 <span className="caps text-[13px] leading-none">{short}</span>
               </Link>
             </li>

@@ -14,11 +14,11 @@ export function LoginForm({ next, notice }: { next: string; notice: string | nul
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
       <input type="hidden" name="next" value={next} />
       <Field
-        label="Email"
+        label="Email or username"
         name="email"
-        type="email"
-        autoComplete="email"
-        inputMode="email"
+        autoComplete="username"
+        autoCapitalize="none"
+        spellCheck={false}
         required
         defaultValue={state.values?.email}
         error={state.fieldErrors?.email}
@@ -40,9 +40,6 @@ export function LoginForm({ next, notice }: { next: string; notice: string | nul
         </Link>
         <Link href="/forgot-password" className="text-ink-2 underline">
           Forgot password
-        </Link>
-        <Link href="/signup?admin" className="text-ink-2 underline">
-          Admin sign-up
         </Link>
       </div>
     </form>

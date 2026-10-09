@@ -30,16 +30,18 @@ type Props = {
 
 const toggleHref = (base: string, metric: Metric, period: Period) => `${base}?metric=${metric}&period=${period}`;
 
-// Segmented buttons as plain links, so the board works without client JavaScript and the URL is shareable.
-function Toggles({ label, items, current, make }: {
+// Plain links, so the board works without client JavaScript and the URL is shareable.
+// Measures read as tabs on a hairline; the period is a quieter text switch beside them.
+function Toggles({ label, items, current, make, quiet = false }: {
   label: string;
   items: { value: string; text: string }[];
   current: string;
   make: (value: string) => string;
+  quiet?: boolean;
 }) {
   return (
     <nav aria-label={label}>
-      <ul className="flex flex-wrap gap-2">
+      <ul className={`flex flex-wrap ${quiet ? "gap-x-4" : "gap-x-3.5 sm:gap-x-5"}`}>
         {items.map(({ value, text }) => {
           const on = value === current;
           return (
@@ -47,8 +49,10 @@ function Toggles({ label, items, current, make }: {
               <Link
                 href={make(value)}
                 aria-current={on ? "true" : undefined}
-                className={`caps step inline-flex h-11 items-center border px-3.5 text-[17px] ${
-                  on ? "border-ink bg-ink text-ground" : "border-rule-strong text-ink hover:bg-band"
+                className={`caps step inline-flex min-h-11 items-center ${
+                  quiet
+                    ? `text-[14px] ${on ? "text-ink" : "text-ink-2 hover:text-ink"}`
+                    : `-mb-px border-b-2 text-[14px] sm:text-[15px] ${on ? "border-ink text-ink" : "border-transparent text-ink-2 hover:text-ink"}`
                 }`}
               >
                 {text}
@@ -97,7 +101,7 @@ export function BoardView({ base, metric, period, rows, meId, empty, limit, more
   const since = periodSince(period, new Date());
   return (
     <div className="grid gap-5">
-      <div className="grid gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 border-b border-rule px-1 sm:px-3">
         <Toggles
           label="Measure"
           items={METRICS.map((m) => ({ value: m, text: METRIC_LABEL[m] }))}
@@ -109,6 +113,7 @@ export function BoardView({ base, metric, period, rows, meId, empty, limit, more
           items={PERIODS.map((p) => ({ value: p, text: PERIOD_LABEL[p] }))}
           current={period}
           make={(p) => toggleHref(base, metric, p as Period)}
+          quiet
         />
       </div>
       {since ? <p className="caps text-[15px] text-ink-2">Since {since}</p> : null}

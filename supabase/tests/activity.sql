@@ -164,9 +164,9 @@ select pg_temp.check('chapter board: b1 answered 3 right 2, 2 reviews',
   (select answered = 3 and correct = 2 and reviews = 2 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 select pg_temp.check('streak counts today for b1',
   (select streak = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
--- Chapter gains: 1 min x 0.5 + 2 reviews + 3 answered x 2 + 2 right x 3 = 14.5; streak 1 gives x1.02 => 114.79, rounds to 115.
-select pg_temp.check('elo in the board matches the formula (115)',
-  (select elo = 115 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+-- Chapter gains: 1 min x 0.5 + 2 reviews + 3 answered x 2 + 2 right x 3 = 14.5; streak 1 gives x1.02 => 1214.79, rounds to 1215.
+select pg_temp.check('elo in the board matches the formula (1215)',
+  (select elo = 1215 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
 -- Career: own answers; trainers see answers in their rooms; executives see all; trainees never see others'
 select pg_temp.check('career keeps every graded answer, repeats included (history, not score)',
@@ -211,13 +211,13 @@ select pg_temp.check('streak: a single old day has ended',
   private.streak_of('00000000-0000-4000-8000-0000000000b6') = 0);
 
 -- Elo formula ---------------------------------------------------------------------------
-select pg_temp.check('elo: base is 100', private.elo_score(0, 0, 0, 0, 0) = 100);
-select pg_temp.check('elo: 60 minutes is +30', private.elo_score(60, 0, 0, 0, 0) = 130);
-select pg_temp.check('elo: 10 reviews is +10', private.elo_score(0, 10, 0, 0, 0) = 110);
-select pg_temp.check('elo: 10 answered with 5 right is +35', private.elo_score(0, 0, 10, 5, 0) = 135);
-select pg_temp.check('elo: streak multiplies gains, not the base', private.elo_score(0, 0, 0, 0, 30) = 100);
-select pg_temp.check('elo: 30-day streak is x1.6 on gains', private.elo_score(100, 0, 0, 0, 30) = 180);
-select pg_temp.check('elo: streak above 30 is capped', private.elo_score(100, 0, 0, 0, 90) = 180);
+select pg_temp.check('elo: base is 1200', private.elo_score(0, 0, 0, 0, 0) = 1200);
+select pg_temp.check('elo: 60 minutes is +30', private.elo_score(60, 0, 0, 0, 0) = 1230);
+select pg_temp.check('elo: 10 reviews is +10', private.elo_score(0, 10, 0, 0, 0) = 1210);
+select pg_temp.check('elo: 10 answered with 5 right is +35', private.elo_score(0, 0, 10, 5, 0) = 1235);
+select pg_temp.check('elo: streak multiplies gains, not the base', private.elo_score(0, 0, 0, 0, 30) = 1200);
+select pg_temp.check('elo: 30-day streak is x1.6 on gains', private.elo_score(100, 0, 0, 0, 30) = 1280);
+select pg_temp.check('elo: streak above 30 is capped', private.elo_score(100, 0, 0, 0, 90) = 1280);
 
 -- Leftover rollback
 rollback;
