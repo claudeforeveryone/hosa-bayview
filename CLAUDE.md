@@ -82,3 +82,8 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 - DB checks: `supabase/tests/roles.sql` and `supabase/tests/classrooms.sql` (each runs in a rolled-back transaction, raises on failure). Unit tests: `npm test`.
 - Threat model: users are vetted chapter members (selective HOSA application), not the open internet. Keep RLS and role checks strict, but skip anti-abuse work like IP throttling or multi-account brute-force defence. The per-account join-code limit (10 misses / 10 min) is enough; accepted by the owner.
 - Join codes are readable only through `my_classrooms`/`classroom_detail` (managers only); the column is not granted on the table.
+
+## Deploy
+- Vercel project `hosa-bayview` on the chapter account (josephislockedin@gmail.com, Hobby), linked to GitHub `idontreallyknow-20/hosa-bayview`. Push to `main` deploys to https://hosa-bayview.vercel.app.
+- Env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (all envs), NEXT_PUBLIC_SITE_URL (production).
+- The old personal Vercel team (idontreallyknow-20's projects) is fair-use blocked; don't deploy there.

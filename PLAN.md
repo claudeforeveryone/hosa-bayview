@@ -19,7 +19,8 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 
 ## Phase 1.5: Brand and deploy pipeline
 - [x] Replace placeholder logo with the official Bayview HOSA logo (one alpha mask, tinted per theme)
-- [ ] Vercel project linked to GitHub with env vars; push to `main` deploys; Supabase redirect URLs for the Vercel domain
+- [x] Vercel project linked to GitHub with env vars; push to `main` deploys (hosa-bayview.vercel.app)
+- [ ] Supabase Site URL + redirect URLs for hosa-bayview.vercel.app (needed for password reset emails)
 
 ## Phase 2: Classrooms and join codes
 - [x] Migration: `classrooms`, `classroom_members`, `owns_classroom`, `is_member`, `can_view_classroom`, `join_classroom(code)` RPC, RLS
