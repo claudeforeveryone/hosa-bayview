@@ -10,7 +10,9 @@ import {
   formatStamp,
   weekLabel,
 } from "@/lib/attendance";
+import { AbsenceList } from "@/components/absence-list";
 import { requireRole } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { MemberSearch } from "./member-search";
 import {
   loadAttendanceOverview,
@@ -127,7 +129,11 @@ function WeekRow({ room, week }: { room: WeekStatus; week: string }) {
 
 export default async function AdminAttendancePage() {
   await requireRole("executive");
-  const { week, weekStatus, members, perfect, checkIn } =
+  // Demo executives can look but not warn (warn_member refuses them). Fails closed.
+  const supabase = await createClient();
+  const demo = await supabase.rpc("am_demo");
+  const canWarn = demo.data === false;
+  const { week, weekStatus, members, perfect, checkIn, absences } =
     await loadAttendanceOverview();
   const submitted = weekStatus.filter(
     (r) => r.state !== "Not submitted",
@@ -179,6 +185,23 @@ export default async function AdminAttendancePage() {
           title="Needs a check-in"
           rows={checkIn}
           empty="None right now."
+        />
+      </section>
+
+      <section aria-labelledby="absent-h" className="grid gap-6">
+        <div className="grid gap-2">
+          <h2 id="absent-h" className={heading}>
+            Most absences
+          </h2>
+          <p className="text-[16px] text-ink-2">
+            Meetings that have passed and were taken, across every classroom.
+            Excused doesn&apos;t count. Warn sends a note to their screen.
+          </p>
+        </div>
+        <AbsenceList
+          rows={absences.slice(0, 15)}
+          canWarn={canWarn}
+          empty="No absences yet."
         />
       </section>
 

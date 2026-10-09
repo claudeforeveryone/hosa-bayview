@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageTitle } from "@/components/page-title";
 import { requireRole, type Role } from "@/lib/auth";
+import { gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceSummary } from "./attendance-overview";
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: "Admin" };
 export default async function AdminPage() {
   const me = await requireRole("executive");
   const supabase = await createClient();
-  const [{ data, error }, rooms, tests, demo] = await Promise.all([
+  const [{ data, error }, rooms, tests, demo, exemptRes] = await Promise.all([
     supabase
       .from("profiles")
       .select(
@@ -23,7 +24,11 @@ export default async function AdminPage() {
     supabase.from("classrooms").select("id", { count: "exact", head: true }),
     supabase.from("tests").select("id", { count: "exact", head: true }),
     supabase.rpc("am_demo"),
+    supabase.rpc("gif_exempt_ids"),
   ]);
+  if (exemptRes.error)
+    throw new Error(`GIF limits lookup failed: ${exemptRes.error.message}`);
+  const exempt = new Set((exemptRes.data ?? []) as string[]);
   // Demo admins can look around, but don't see emails or get the moderation controls. Fails closed.
   const isDemo = demo.data !== false;
   if (error) throw new Error(`Members lookup failed: ${error.message}`);
@@ -37,6 +42,7 @@ export default async function AdminPage() {
     ...p,
     email: isDemo ? "" : p.email,
     avatar_src: p.avatar_path ? (sources.get(p.avatar_path) ?? null) : null,
+    gif_limit: gifLimitBytes(exempt.has(p.id)),
   }));
   const count = (r: Role) => people.filter((p) => p.role === r).length;
 
@@ -101,7 +107,7 @@ export default async function AdminPage() {
           isDemo={isDemo}
         />
       </section>
-      <AttendanceSummary />
+      <AttendanceSummary canWarn={!isDemo} />
       {isDemo ? null : <AdminLog now={now} />}
       {isDemo ? null : <ContentLists />}
     </div>

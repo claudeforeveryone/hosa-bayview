@@ -99,12 +99,14 @@ export function PictureSection({
   src,
   hasPicture,
   animated,
+  gifLimit,
 }: {
   userId: string;
   name: string;
   src: string | null;
   hasPicture: boolean;
   animated: boolean;
+  gifLimit: number;
 }) {
   return (
     <Section id="picture-h" title="Picture">
@@ -114,6 +116,7 @@ export function PictureSection({
         src={src}
         hasPicture={hasPicture}
         animated={animated}
+        gifLimit={gifLimit}
       />
     </Section>
   );

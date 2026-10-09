@@ -40,6 +40,8 @@ export type PersonRow = {
   avatar_path: string | null;
   // Signed URL for the picture, made on the server. Null when there is none (or it couldn't be signed).
   avatar_src: string | null;
+  // Largest GIF this person may upload, in bytes: 1 MB for executives, the bucket limit for the exempt.
+  gif_limit: number;
   grade: number | null;
   banned_until: string | null;
   ban_reason: string | null;
@@ -381,6 +383,7 @@ function PersonBody({
           src={person.avatar_src}
           hasPicture={person.avatar_path !== null}
           animated={person.role === "executive"}
+          gifLimit={person.gif_limit}
         />
       </Section>
 

@@ -3,7 +3,13 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireProfile } from "@/lib/auth";
-import { AVATAR_BUCKET, isAnimatedImage, isAvatarPath } from "@/lib/avatar";
+import {
+  AVATAR_BUCKET,
+  EXEC_GIF_MAX_BYTES,
+  gifLimitBytes,
+  isAnimatedImage,
+  isAvatarPath,
+} from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/server";
 
 export type PictureState = { error?: string; ok?: string };
@@ -40,6 +46,32 @@ export async function savePicture(
     if (readError) console.error("[picture] read:", readError.message);
     await supabase.storage.from(AVATAR_BUCKET).remove([path]);
     return { error: "That person is gone. Reload the page." };
+  }
+
+  // Size cap: 1 MB, or the bucket's 2 MB when both the picture's owner and the uploader are exempt. Storage
+  // can't always see the size when it checks permission, so the real size is checked here.
+  const me = await requireProfile();
+  const slash = path.indexOf("/");
+  const [{ data: listed }, { data: exemptIds }] = await Promise.all([
+    supabase.storage
+      .from(AVATAR_BUCKET)
+      .list(path.slice(0, slash), { search: path.slice(slash + 1), limit: 1 }),
+    supabase.rpc("gif_exempt_ids"),
+  ]);
+  const size = (
+    listed?.find((o) => o.name === path.slice(slash + 1))?.metadata as
+      { size?: number } | undefined
+  )?.size;
+  const exempt = new Set((exemptIds ?? []) as string[]);
+  const cap = gifLimitBytes(exempt.has(userId) && exempt.has(me.id));
+  if (typeof size !== "number" || size > cap) {
+    await supabase.storage.from(AVATAR_BUCKET).remove([path]);
+    return {
+      error:
+        typeof size !== "number"
+          ? "Couldn't save that. Try again."
+          : `Keep it under ${cap === EXEC_GIF_MAX_BYTES ? "1" : "2"} MB.`,
+    };
   }
 
   // Moving pictures are for executives. The name can't be trusted, so look at the bytes.

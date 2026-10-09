@@ -5,6 +5,7 @@ import { LookSection } from "@/components/appearance";
 import { Button } from "@/components/form";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
+import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -31,12 +32,19 @@ export default async function SettingsPage({
   const isExec = profile.role === "executive";
   let passcodeSet = false;
   let isDemo = false;
+  let gifLimit = AVATAR_MAX_BYTES;
   if (isExec) {
     const supabase = await createClient();
-    const [passcode, me] = await Promise.all([
+    const [passcode, me, exempt] = await Promise.all([
       supabase.rpc("admin_passcode_is_set"),
       supabase.rpc("am_demo"),
+      supabase.rpc("gif_exempt_ids"),
     ]);
+    if (exempt.error)
+      throw new Error(`GIF limits lookup failed: ${exempt.error.message}`);
+    gifLimit = gifLimitBytes(
+      ((exempt.data ?? []) as string[]).includes(profile.id),
+    );
     isDemo = me.data !== false;
     if (passcode.error)
       throw new Error(`Passcode lookup failed: ${passcode.error.message}`);
@@ -55,6 +63,7 @@ export default async function SettingsPage({
           src={picture ?? null}
           hasPicture={profile.avatar_path !== null}
           animated={isExec}
+          gifLimit={gifLimit}
         />
         <LookSection />
         <PasswordSection />

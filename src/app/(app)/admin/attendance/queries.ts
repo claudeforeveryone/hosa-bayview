@@ -6,11 +6,13 @@ import {
   fetchAllPages,
   isStatus,
   summarizeMembers,
+  torontoToday,
   type MarkRow,
   type Page,
   type Participation,
   type Status,
 } from "@/lib/attendance";
+import { absenceLeaders, type Meeting } from "@/lib/meetings";
 import { createClient } from "@/lib/supabase/server";
 
 type ClassroomDb = { id: string; name: string };
@@ -67,18 +69,28 @@ export const loadAttendanceOverview = cache(async () => {
           .order("user_id")
           .range(from, to) as unknown as Page<MarkDb>,
     ),
-    fetchAllPages<{ id: string; full_name: string }>(
+    fetchAllPages<{ id: string; full_name: string; role: string }>(
       (from, to) =>
         supabase
           .from("profiles")
-          .select("id, full_name")
+          .select("id, full_name, role")
           .order("id")
           .range(from, to) as unknown as Page<{
           id: string;
           full_name: string;
+          role: string;
         }>,
     ),
   ]);
+
+  const meetings = await fetchAllPages<Meeting>(
+    (from, to) =>
+      supabase
+        .from("chapter_meetings")
+        .select("id, meets_on, week_start, title, kind")
+        .order("meets_on")
+        .range(from, to) as unknown as Page<Meeting>,
+  );
 
   const cleanMarks: MarkRow[] = marks.flatMap((m) =>
     isStatus(m.status)
@@ -120,9 +132,26 @@ export const loadAttendanceOverview = cache(async () => {
     .map((m) => ({ ...m, name: names.get(m.user_id) || "Former member" }))
     .sort(compareParticipation);
 
+  // Most absences across every classroom, counting only meetings that have passed.
+  // Executives can't be warned (warn_member), so their rows carry no Warn button.
+  const executives = new Set(
+    profiles.filter((p) => p.role === "executive").map((p) => p.id),
+  );
+  const absences = absenceLeaders({
+    meetings,
+    sessions: sessions.map((s) => ({
+      session_id: s.id,
+      week_start: s.week_start,
+    })),
+    marks: cleanMarks,
+    names,
+    today: torontoToday(),
+  }).map((a) => ({ ...a, warnable: !executives.has(a.user_id) }));
+
   return {
     week,
     weekStatus,
+    absences,
     members,
     perfect: members.filter((m) => m.flag === "perfect"),
     checkIn: members.filter((m) => m.flag === "check-in"),

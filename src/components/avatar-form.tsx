@@ -8,7 +8,13 @@ import {
   savePicture,
   type PictureState,
 } from "@/app/(app)/picture-actions";
-import { AVATAR_BUCKET, checkAvatarFile, newAvatarPath } from "@/lib/avatar";
+import {
+  AVATAR_BUCKET,
+  AVATAR_MAX_BYTES,
+  checkAvatarFile,
+  EXEC_GIF_MAX_BYTES,
+  newAvatarPath,
+} from "@/lib/avatar";
 import { prepareAvatar } from "@/lib/avatar-image";
 import { createClient } from "@/lib/supabase/client";
 
@@ -21,6 +27,7 @@ export function AvatarForm({
   hasPicture,
   canRemove = true,
   animated = false,
+  gifLimit = AVATAR_MAX_BYTES,
 }: {
   userId: string;
   name: string;
@@ -28,6 +35,7 @@ export function AvatarForm({
   hasPicture: boolean;
   canRemove?: boolean;
   animated?: boolean; // the owner is an executive, so a GIF stays animated
+  gifLimit?: number; // bytes; executives get 1 MB unless exempt (see gifLimitBytes)
 }) {
   const inputId = useId();
   const [busy, setBusy] = useState<"upload" | "remove" | null>(null);
@@ -39,7 +47,7 @@ export function AvatarForm({
     e.target.value = "";
     if (!file) return;
     setResult(null);
-    const problem = checkAvatarFile(file, animated);
+    const problem = checkAvatarFile(file, animated, gifLimit);
     if (problem) {
       setLocalError(problem);
       return;
@@ -103,9 +111,11 @@ export function AvatarForm({
             className="w-full min-w-0 text-[16px] file:caps file:mr-4 file:h-12 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-5 file:text-[16px] file:text-ink hover:file:bg-band focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
           />
           <p id={`${inputId}-hint`} className="text-[15px] text-ink-2">
-            {animated
-              ? "Any photo, or a GIF up to 2 MB."
-              : "Any photo. Animated GIFs are for executives."}
+            {!animated
+              ? "Any photo. Animated GIFs are for executives."
+              : gifLimit <= EXEC_GIF_MAX_BYTES
+                ? "Any photo, or a GIF up to 1 MB."
+                : "Any photo, or an animated GIF."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">

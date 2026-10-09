@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { AbsenceList } from "@/components/absence-list";
 import { loadAttendanceOverview } from "./attendance/queries";
 
-// Compact admin summary: this week's submissions and the exceptions, with a link to the full view.
-export async function AttendanceSummary() {
-  const { weekStatus, perfect, checkIn } = await loadAttendanceOverview();
+// Compact admin summary: this week's submissions, the exceptions and the top few absences, with a link to the full view.
+export async function AttendanceSummary({ canWarn }: { canWarn: boolean }) {
+  const { weekStatus, perfect, checkIn, absences } =
+    await loadAttendanceOverview();
   const submitted = weekStatus.filter(
     (r) => r.state !== "Not submitted",
   ).length;
@@ -44,6 +46,22 @@ export async function AttendanceSummary() {
           </dd>
         </div>
       </dl>
+      <div className="grid gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h3 className="caps text-[17px] font-semibold">Most absences</h3>
+          <Link
+            href="/admin/attendance#absent-h"
+            className="caps text-[15px] underline underline-offset-4"
+          >
+            All absences
+          </Link>
+        </div>
+        <AbsenceList
+          rows={absences.slice(0, 5)}
+          canWarn={canWarn}
+          empty="No absences yet."
+        />
+      </div>
     </section>
   );
 }

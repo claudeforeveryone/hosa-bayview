@@ -36,7 +36,7 @@ with t(starts, ends, title, details) as (values
   ('2027-02-25', null, 'SLC briefing + training', ''),
   ('2027-03-01', '2027-03-03', 'SLC', ''),
   ('2027-03-01', '2027-03-07', 'Virtual SLC (NGL/ATC events)', ''),
-  ('2027-03-12', null, 'SLC debrief', ''),
+  ('2027-03-11', null, 'SLC debrief', 'Listed as "Thursday, March 12" on the timeline; the Thursday is Mar 11.'),
   ('2027-03-12', '2027-06-21', 'ILC prep', ''),
   ('2027-06-22', '2027-06-25', 'ILC', '')
 )

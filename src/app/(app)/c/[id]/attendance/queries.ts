@@ -7,6 +7,7 @@ import {
   type Page,
 } from "@/lib/attendance";
 import { uuid } from "@/lib/classrooms";
+import type { Meeting } from "@/lib/meetings";
 import { createClient } from "@/lib/supabase/server";
 
 // One submitted week. Names come from the RPC, so members see trainer names without profile access.
@@ -70,5 +71,27 @@ export const getClassroomMarks = cache(
         ? [{ session_id: r.session_id, user_id: r.user_id, status: r.status }]
         : [],
     );
+  },
+);
+
+// The chapter schedule, oldest first. Every signed-in member can read it.
+export const getMeetings = cache(async (): Promise<Meeting[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("chapter_meetings")
+    .select("id, meets_on, week_start, title, kind")
+    .order("meets_on");
+  if (error) throw new Error(`Meetings lookup failed: ${error.message}`);
+  return (data ?? []) as Meeting[];
+});
+
+// Each member's picture path, for roster pictures. The signed URLs come from avatarSources (server only).
+export const getPicturePaths = cache(
+  async (): Promise<Map<string, string | null>> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("member_details");
+    if (error) throw new Error(`Pictures lookup failed: ${error.message}`);
+    const rows = (data ?? []) as { user_id: string; avatar_path: string | null }[];
+    return new Map(rows.map((r) => [r.user_id, r.avatar_path]));
   },
 );

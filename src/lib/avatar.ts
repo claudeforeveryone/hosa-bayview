@@ -4,6 +4,13 @@
 
 export const AVATAR_SIZE = 256;
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+// Executives' GIFs are capped at 1 MB, except the two exempt executives (private.gif_size_exempt), who keep
+// the bucket's 2 MB limit. The database enforces this in the storage policy (0060).
+export const EXEC_GIF_MAX_BYTES = 1024 * 1024;
+
+// The GIF size limit for an executive's picture. Exempt executives keep the bucket limit.
+export const gifLimitBytes = (exempt: boolean): number =>
+  exempt ? AVATAR_MAX_BYTES : EXEC_GIF_MAX_BYTES;
 // Photos are shrunk to 256 px before upload, so the original only needs to be sane.
 const PHOTO_MAX_BYTES = 25 * 1024 * 1024;
 export const AVATAR_BUCKET = "avatars";
@@ -40,11 +47,15 @@ export function checkAvatarFile(
     size: number;
   },
   animated = true,
+  gifMax = AVATAR_MAX_BYTES,
 ): string | null {
   if (!file.type.startsWith("image/")) return "Pick a picture file.";
   if (file.size === 0) return "That file is empty.";
   if (file.type === "image/gif" && animated) {
-    if (file.size > AVATAR_MAX_BYTES) return "Keep the picture under 2 MB.";
+    if (file.size > gifMax)
+      return gifMax === EXEC_GIF_MAX_BYTES
+        ? "Keep the GIF under 1 MB."
+        : "Keep the picture under 2 MB.";
   } else if (file.size > PHOTO_MAX_BYTES)
     return "Keep the picture under 25 MB.";
   return null;
