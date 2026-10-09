@@ -96,7 +96,7 @@ describe("introScript", () => {
   it("marks the page and stamps the visit on a first load", () => {
     const { attrs, store } = runScript({ stored: null, now });
     expect(attrs.has("data-intro")).toBe(true);
-    expect(attrs.has("data-intro-wait")).toBe(true);
+    expect(attrs.has("data-intro-played")).toBe(true);
     expect(store.get(INTRO_KEY)).toBe(String(now));
   });
 
@@ -118,10 +118,10 @@ describe("introScript", () => {
     expect(runScript({ stored: null, webdriver: true }).attrs.size).toBe(0);
   });
 
-  it("a tap skips it, clears the banner hold and swallows its click", () => {
+  it("a tap skips it, keeps the banner still and swallows its click", () => {
     const page = runScript({ stored: null });
     page.listeners.pointerup(event("pointerup"));
-    expect(page.attrs.size).toBe(0);
+    expect([...page.attrs.keys()]).toEqual(["data-intro-played"]);
     expect(page.listeners.pointerup).toBeUndefined();
     expect(page.listeners.keydown).toBeUndefined();
     const click = event("click");
@@ -135,13 +135,13 @@ describe("introScript", () => {
     page.listeners.keydown(event("keydown", "Shift"));
     expect(page.attrs.has("data-intro")).toBe(true);
     page.listeners.keydown(event("keydown", "Enter"));
-    expect(page.attrs.size).toBe(0);
+    expect([...page.attrs.keys()]).toEqual(["data-intro-played"]);
     expect(page.listeners.click).toBeUndefined();
   });
 
-  it("the timers clear both marks", () => {
+  it("the timer ends the opener; the banner stays still for this page load", () => {
     const page = runScript({ stored: null });
     page.timers.forEach((f) => f());
-    expect(page.attrs.size).toBe(0);
+    expect([...page.attrs.keys()]).toEqual(["data-intro-played"]);
   });
 });
