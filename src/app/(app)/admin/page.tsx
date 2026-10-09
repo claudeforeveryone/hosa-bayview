@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageTitle } from "@/components/page-title";
 import { requireRole, type Profile, type Role } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { AttendanceOverview } from "./attendance-overview";
 import { RoleSwitch } from "./role-switch";
 
 export const metadata: Metadata = { title: "Admin" };
@@ -65,6 +66,7 @@ export default async function AdminPage() {
           ))}
         </ul>
       </section>
+      <AttendanceOverview people={people} />
     </div>
   );
 }
