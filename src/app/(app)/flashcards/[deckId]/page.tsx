@@ -9,6 +9,7 @@ import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { getCards, getDeck } from "@/lib/decks";
 import { formNumber } from "@/lib/join-code";
+import { UNTITLED_DECK, isUntitled } from "@/lib/untitled";
 import { deleteDeck, updateDeck } from "../actions";
 
 export async function generateMetadata({ params }: PageProps<"/flashcards/[deckId]">): Promise<Metadata> {
@@ -61,6 +62,7 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
           <DeckForm
             action={updateDeck.bind(null, deck.id)}
             initial={{ title: deck.title, description: deck.description }}
+            autoFocusTitle={cards.length === 0 && isUntitled(deck.title, UNTITLED_DECK)}
             submitLabel="Save deck"
             pendingLabel="Saving"
           />

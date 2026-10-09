@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { EmptyState } from "@/components/empty-state";
-import { DeckList, newDeckLink } from "@/components/deck-list";
+import { DeckList } from "@/components/deck-list";
+import { NewBlank } from "@/components/new-blank";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
 import { listDecks } from "@/lib/decks";
+import { UNTITLED_DECK } from "@/lib/untitled";
+import { createBlankDeck } from "./actions";
 
 export const metadata: Metadata = { title: "Flashcards" };
 
@@ -17,9 +19,9 @@ export default async function FlashcardsPage() {
     <div className="grid grid-cols-1 gap-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageTitle>Flashcards</PageTitle>
-        {newDeckLink("/flashcards/new")}
+        {decks.length ? <NewBlank action={createBlankDeck} variant="button" label="New deck" /> : null}
       </div>
-      {!decks.length ? <EmptyState title="No decks yet" /> : null}
+      {!decks.length ? <NewBlank action={createBlankDeck} variant="tile" label={UNTITLED_DECK} /> : null}
       {mine.length ? (
         <section className="grid gap-4" aria-labelledby="mine-heading">
           <h2 id="mine-heading" className="caps text-[17px] text-ink-2">Yours</h2>

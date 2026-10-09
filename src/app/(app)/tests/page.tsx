@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { NewBlank } from "@/components/new-blank";
 import { PageTitle } from "@/components/page-title";
+import { canTeach, requireProfile } from "@/lib/auth";
+import { getMyClassrooms } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
+import { UNTITLED_TEST } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
+import { createBlankTest } from "@/app/(app)/c/[id]/tests/actions";
 
 export const metadata: Metadata = { title: "Tests" };
 
@@ -20,6 +25,7 @@ type Row = {
 
 // Every test you can see across your classrooms. RLS decides which.
 export default async function TestsPage() {
+  const profile = await requireProfile();
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tests")
@@ -28,9 +34,31 @@ export default async function TestsPage() {
   if (error) throw new Error(`Tests lookup failed: ${error.message}`);
   const tests = (data ?? []) as unknown as Row[];
 
+  // Teachers can only add tests to classrooms they manage.
+  const teacher = canTeach(profile);
+  const managed = teacher
+    ? (await getMyClassrooms()).filter((r) => r.can_manage).map((r) => ({ id: r.id, name: r.name }))
+    : [];
+
+  const header = !teacher ? null : managed.length ? (
+    tests.length ? (
+      <NewBlank action={createBlankTest} variant="button" label="New test" classrooms={managed} />
+    ) : null
+  ) : (
+    <Link
+      href="/c/new"
+      className="caps step inline-flex h-11 shrink-0 items-center border border-ink px-4 text-[16px] hover:bg-band"
+    >
+      Make a classroom first
+    </Link>
+  );
+
   return (
     <div className="grid grid-cols-1 gap-8">
-      <PageTitle>Tests</PageTitle>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <PageTitle>Tests</PageTitle>
+        {header}
+      </div>
       {tests.length ? (
         <ul className="border-t border-rule">
           {tests.map((t) => (
@@ -44,7 +72,11 @@ export default async function TestsPage() {
                     {t.title}
                   </span>
                   <span className="block truncate text-[16px] text-ink-2">
-                    {[t.classrooms?.name, t.time_limit_minutes ? `${t.time_limit_minutes} min` : "Untimed", t.is_published ? null : "Draft"]
+                    {[
+                      t.classrooms?.name,
+                      t.time_limit_minutes ? `${t.time_limit_minutes} min` : "Untimed",
+                      t.is_published ? null : "Draft",
+                    ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
@@ -57,6 +89,8 @@ export default async function TestsPage() {
             </li>
           ))}
         </ul>
+      ) : teacher && managed.length ? (
+        <NewBlank action={createBlankTest} variant="tile" label={UNTITLED_TEST} classrooms={managed} />
       ) : (
         <EmptyState title="No tests yet" />
       )}

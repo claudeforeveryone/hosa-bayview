@@ -11,18 +11,30 @@ export function TestForm({
   initial,
   submitLabel,
   pendingLabel,
+  autoFocusTitle = false,
 }: {
   action: (state: FormState, form: FormData) => Promise<FormState>;
   initial?: Values;
   submitLabel: string;
   pendingLabel: string;
+  // A fresh blank test: put the cursor on the title, selected, so it can be renamed at once.
+  autoFocusTitle?: boolean;
 }) {
   const [state, action, pending] = useActionState<FormState, FormData>(serverAction, { values: initial });
   const v = state.values ?? initial;
   return (
     <form action={action} className="grid max-w-xl gap-5" noValidate>
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
-      <Field label="Title" name="title" required maxLength={120} defaultValue={v?.title} error={state.fieldErrors?.title} />
+      <Field
+        label="Title"
+        name="title"
+        required
+        maxLength={120}
+        defaultValue={v?.title}
+        error={state.fieldErrors?.title}
+        autoFocus={autoFocusTitle}
+        onFocus={autoFocusTitle ? (e) => e.currentTarget.select() : undefined}
+      />
       <Field
         label="Time limit (minutes)"
         name="time_limit"

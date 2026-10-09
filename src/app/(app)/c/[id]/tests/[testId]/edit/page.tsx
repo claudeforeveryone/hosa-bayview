@@ -10,6 +10,7 @@ import { TestPublish } from "@/components/test-publish";
 import { getClassroom } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
 import { getQuestions, getTest } from "@/lib/tests";
+import { UNTITLED_TEST, isUntitled } from "@/lib/untitled";
 import { deleteTest, updateTest } from "../../actions";
 
 export const metadata: Metadata = { title: "Edit test" };
@@ -60,6 +61,7 @@ export default async function EditTestPage({ params }: PageProps<"/c/[id]/tests/
           Details
         </h3>
         <TestForm
+          autoFocusTitle={!questions.length && isUntitled(test.title, UNTITLED_TEST)}
           action={updateTest.bind(null, test.id)}
           initial={{
             title: test.title,
