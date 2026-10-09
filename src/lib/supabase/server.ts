@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SHORT_SESSION, sessionCookieOptions } from "@/lib/session-length";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -15,8 +16,9 @@ export async function createClient() {
         setAll(cookiesToSet) {
           // Server Components can't write cookies; the proxy refreshes the session instead.
           try {
+            const short = cookieStore.get(SHORT_SESSION)?.value === "1";
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
+              cookieStore.set(name, value, sessionCookieOptions(options, short)),
             );
           } catch {}
         },

@@ -5,6 +5,7 @@ import { BoardView } from "@/components/board-view";
 import { HeroBanner } from "@/components/hero-banner";
 import { HonorRoll } from "@/components/honor-roll";
 import { canTeach, requireProfile, type Role } from "@/lib/auth";
+import { roleLabel } from "@/lib/role-label";
 import { getBoard, getHonorRoll, getOnline } from "@/lib/activity-data";
 import {
   formatCount,
@@ -18,20 +19,16 @@ import { getMyClassrooms, type ClassroomSummary } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-const ROLE = {
-  executive: "Executive",
-  trainer: "Trainer",
-  trainee: "Trainee",
-} satisfies Record<Role, string>;
-
 function Hello({
   name,
   role,
+  title,
   rooms,
   online,
 }: {
   name: string;
   role: Role;
+  title: string | null;
   rooms: number;
   online: number;
 }) {
@@ -42,7 +39,7 @@ function Hello({
           {name}
         </h1>
         <p className="caps text-[17px] text-ink-2">
-          {ROLE[role]}
+          {roleLabel(role, title)}
           {rooms ? ` · ${plural(rooms, "classroom")}` : ""}
         </p>
       </div>
@@ -284,6 +281,7 @@ export default async function HomePage(props: PageProps<"/">) {
         <Hello
           name={first}
           role={profile.role}
+          title={profile.title}
           rooms={0}
           online={online.length}
         />
@@ -318,6 +316,7 @@ export default async function HomePage(props: PageProps<"/">) {
       <Hello
         name={first}
         role={profile.role}
+        title={profile.title}
         rooms={rooms.length}
         online={online.length}
       />

@@ -8,16 +8,11 @@ import {
   getMemberStats,
   getRecentBonuses,
 } from "@/lib/activity-data";
-import { requireProfile, type Role } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
+import { roleLabel } from "@/lib/role-label";
 import { gradeLabel } from "@/lib/profile";
 
 export const metadata: Metadata = { title: "Member" };
-
-const ROLE_LABEL = {
-  executive: "Executive",
-  trainer: "Trainer",
-  trainee: "Trainee",
-} satisfies Record<Role, string>;
 
 // Any signed-in member can see another member's numbers. Emails never leave the database for this page.
 export default async function MemberPage(props: PageProps<"/members/[id]">) {
@@ -45,7 +40,7 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
             {stats.full_name || "Member"}
           </h1>
           <p className="caps text-[17px] text-ink-2">
-            {ROLE_LABEL[stats.role]}
+            {roleLabel(stats.role, detail?.title)}
             <span aria-hidden> · </span>
             <span className="normal-case">
               {gradeLabel(detail?.grade ?? null)}

@@ -1,12 +1,13 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
 import { parseGrade } from "@/lib/profile";
 import { usernameKey } from "@/lib/username";
+import { SHORT_SESSION } from "@/lib/session-length";
 
 export type AuthState = {
   error?: string;
@@ -63,14 +64,32 @@ async function origin() {
   return "http://localhost:3000";
 }
 
+// "Stay signed in" off: a browser-session marker, so the auth cookies written next carry no expiry. Not
+// httpOnly: the browser client reads it too when it refreshes the session. Applied only right before signing
+// in, so a typo'd attempt leaves the current session alone.
+async function rememberChoice(form: FormData) {
+  const store = await cookies();
+  if (form.get("remember") === "on") store.delete(SHORT_SESSION);
+  else
+    store.set(SHORT_SESSION, "1", {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+}
+
 export async function login(_: AuthState, form: FormData): Promise<AuthState> {
   const identifier = String(form.get("email") ?? "").trim();
-  const values = { email: identifier };
+  const values = {
+    email: identifier,
+    remember: form.get("remember") === "on" ? "on" : "off",
+  };
   if (!identifier.includes("@"))
     return usernameLogin(
       identifier,
       String(form.get("password") ?? ""),
       values,
+      form,
     );
 
   const parsed = z
@@ -82,6 +101,7 @@ export async function login(_: AuthState, form: FormData): Promise<AuthState> {
   if (!parsed.success)
     return { fieldErrors: fieldErrors(parsed.error), values };
 
+  await rememberChoice(form);
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: friendly(error.message), values };
@@ -95,6 +115,7 @@ async function usernameLogin(
   username: string,
   password: string,
   values: Record<string, string>,
+  form: FormData,
 ): Promise<AuthState> {
   const errors: Record<string, string> = {};
   if (!username) errors.email = "Enter your email or username.";
@@ -123,6 +144,7 @@ async function usernameLogin(
     return { error: "Something went wrong. Try again.", values };
   }
   if (!data) return wrong;
+  await rememberChoice(form);
   const { error: signInError } = await supabase.auth.signInWithPassword({
     email: data.email,
     password: data.secret,

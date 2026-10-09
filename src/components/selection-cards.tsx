@@ -12,6 +12,7 @@ import {
 import { saveSelectionCard } from "@/app/(app)/flashcards/actions";
 import { Button, Field, FormMessage, TextArea } from "@/components/form";
 import { cleanSelection, prefillCard } from "@/lib/selection";
+import { useBackdropClose } from "@/hooks/use-backdrop-close";
 
 export type DeckOption = { id: string; title: string };
 
@@ -30,6 +31,7 @@ export function SelectionCards({
 }) {
   const region = useRef<HTMLDivElement>(null);
   const sheet = useRef<HTMLDialogElement>(null);
+  const backdrop = useBackdropClose();
   const titleId = useId();
   const [picked, setPicked] = useState<string | null>(null);
   const [term, setTerm] = useState("");
@@ -112,6 +114,7 @@ export function SelectionCards({
       <dialog
         ref={sheet}
         aria-labelledby={titleId}
+        {...backdrop}
         className="m-auto w-[calc(100%-2rem)] max-w-lg border border-ink bg-ground p-0 text-ink backdrop:bg-ink/40"
       >
         <form

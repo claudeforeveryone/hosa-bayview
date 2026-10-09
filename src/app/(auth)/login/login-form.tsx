@@ -31,7 +31,16 @@ export function LoginForm({ next, notice }: { next: string; notice: string | nul
         required
         error={state.fieldErrors?.password}
       />
-      <Button type="submit" disabled={pending} className="mt-1 w-full">
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 self-start text-[16px]">
+        <input
+          type="checkbox"
+          name="remember"
+          defaultChecked={state.values?.remember !== "off"}
+          className="size-5 shrink-0 accent-[var(--ink)]"
+        />
+        Stay signed in
+      </label>
+      <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Logging in" : "Log in"}
       </Button>
       <div className="flex flex-wrap justify-between gap-x-6 gap-y-2 text-[16px]">

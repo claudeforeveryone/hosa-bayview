@@ -3,7 +3,15 @@ import { mockSupabase } from "@/test/supabase-mock";
 
 let client = mockSupabase();
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => client }));
-vi.mock("next/headers", () => ({ headers: async () => new Headers({ origin: "null" }) }));
+// A tiny cookie jar, so the "Stay signed in" choice can be read back.
+const jar = new Map<string, { value: string; options?: Record<string, unknown> }>();
+vi.mock("next/headers", () => ({
+  headers: async () => new Headers({ origin: "null" }),
+  cookies: async () => ({
+    set: (name: string, value: string, options?: Record<string, unknown>) => jar.set(name, { value, options }),
+    delete: (name: string) => jar.delete(name),
+  }),
+}));
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {
     throw Object.assign(new Error("NEXT_REDIRECT"), { to });
@@ -46,6 +54,24 @@ describe("login", () => {
     const state = await login({}, form({ email: "a@b.co", password: "x" }));
     expect(state.error).toBe("That email and password don't match.");
     expect(state.values?.email).toBe("a@b.co");
+  });
+
+  it("stay signed in off: marks the session short, with no expiry of its own", async () => {
+    jar.clear();
+    await redirectOf(login({}, form({ email: "a@b.co", password: "x" })));
+    const marker = jar.get("hosa-short-session");
+    expect(marker?.value).toBe("1");
+    expect(marker?.options?.maxAge).toBeUndefined();
+    expect(marker?.options?.expires).toBeUndefined();
+  });
+
+  it("stay signed in on: clears any short-session marker and keeps the choice after a failed try", async () => {
+    jar.set("hosa-short-session", { value: "1" });
+    await redirectOf(login({}, form({ email: "a@b.co", password: "x", remember: "on" })));
+    expect(jar.has("hosa-short-session")).toBe(false);
+    client = mockSupabase({ authError: { message: "Invalid login credentials" } });
+    const state = await login({}, form({ email: "a@b.co", password: "x", remember: "on" }));
+    expect(state.values?.remember).toBe("on");
   });
 });
 

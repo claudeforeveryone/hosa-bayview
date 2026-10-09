@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { routeGate } from "@/lib/route-gate";
 import { sessionState } from "@/lib/session-state";
+import { SHORT_SESSION, sessionCookieOptions } from "@/lib/session-length";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -17,8 +18,9 @@ export async function proxy(request: NextRequest) {
         setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
+          const short = request.cookies.get(SHORT_SESSION)?.value === "1";
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
+            response.cookies.set(name, value, sessionCookieOptions(options, short)),
           );
           Object.entries(headers ?? {}).forEach(([key, value]) =>
             response.headers.set(key, value),

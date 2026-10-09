@@ -17,10 +17,11 @@ export type Profile = {
   grade: number | null;
   banned_until: string | null;
   ban_reason: string | null;
+  title: string | null;
 };
 
 const PROFILE_COLUMNS =
-  "id, email, full_name, role, created_at, avatar_path, grade, banned_until, ban_reason";
+  "id, email, full_name, role, created_at, avatar_path, grade, banned_until, ban_reason, title";
 
 type Session =
   { signedIn: false } | { signedIn: true; profile: Profile | null };

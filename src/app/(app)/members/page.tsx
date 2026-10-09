@@ -6,16 +6,11 @@ import { PageTitle } from "@/components/page-title";
 import { SocialLinks } from "@/components/social-links";
 import { filterMembers, formatCount } from "@/lib/activity";
 import { getDirectory, getMemberDetails } from "@/lib/activity-data";
-import { requireProfile, type Role } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
+import { roleLabel } from "@/lib/role-label";
 import { GRADES, filterByGrade, gradeLabel, parseGrade } from "@/lib/profile";
 
 export const metadata: Metadata = { title: "Members" };
-
-const ROLE_LABEL = {
-  executive: "Executive",
-  trainer: "Trainer",
-  trainee: "Trainee",
-} satisfies Record<Role, string>;
 
 export default async function MembersPage(props: PageProps<"/members">) {
   const sp = await props.searchParams;
@@ -30,6 +25,7 @@ export default async function MembersPage(props: PageProps<"/members">) {
     ...m,
     grade: details.get(m.user_id)?.grade ?? null,
     avatar_url: details.get(m.user_id)?.avatar_url ?? null,
+    title: details.get(m.user_id)?.title ?? null,
   }));
   const rows = filterByGrade(filterMembers(withDetails, q), grade);
   // Keeps the search while switching grade, and the other way round.
@@ -118,7 +114,7 @@ export default async function MembersPage(props: PageProps<"/members">) {
                 </span>
                 <span className="grid shrink-0 justify-items-end gap-0.5">
                   <span className="caps text-[15px] text-ink-2">
-                    {ROLE_LABEL[member.role]}
+                    {roleLabel(member.role, member.title)}
                   </span>
                   {member.grade ? (
                     <span className="num text-[15px] text-ink-2">

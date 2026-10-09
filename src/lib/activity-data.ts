@@ -58,12 +58,14 @@ export type MemberDetail = {
   user_id: string;
   avatar_url: string | null;
   grade: number | null;
+  title: string | null;
 };
 
 type RawDetail = {
   user_id: string;
   avatar_path: string | null;
   grade: number | null;
+  title: string | null;
 };
 
 // Picture (a short-lived signed URL) and grade for every member, once per request. Pictures are decoration:
@@ -83,6 +85,7 @@ export const getMemberDetails = cache(async (): Promise<Map<string, MemberDetail
       {
         user_id: r.user_id,
         grade: r.grade,
+        title: r.title,
         avatar_url: r.avatar_path ? (sources.get(r.avatar_path) ?? null) : null,
       },
     ]),

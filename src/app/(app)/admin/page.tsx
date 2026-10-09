@@ -16,7 +16,7 @@ export default async function AdminPage() {
     supabase
       .from("profiles")
       .select(
-        "id, email, full_name, role, created_at, avatar_path, grade, banned_until, ban_reason",
+        "id, email, full_name, role, created_at, avatar_path, grade, banned_until, ban_reason, title",
       )
       .order("created_at"),
     supabase.from("classrooms").select("id", { count: "exact", head: true }),

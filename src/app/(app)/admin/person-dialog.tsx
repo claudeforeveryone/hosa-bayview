@@ -28,6 +28,8 @@ import {
   type ModState,
 } from "./moderation-actions";
 import { RoleSwitch } from "./role-switch";
+import { roleLabel } from "@/lib/role-label";
+import { useBackdropClose } from "@/hooks/use-backdrop-close";
 
 export type PersonRow = {
   id: string;
@@ -41,6 +43,7 @@ export type PersonRow = {
   grade: number | null;
   banned_until: string | null;
   ban_reason: string | null;
+  title: string | null;
 };
 
 export type WarningRow = {
@@ -50,11 +53,6 @@ export type WarningRow = {
   seen_at: string | null;
 };
 
-const ROLE_LABEL: Record<Role, string> = {
-  executive: "Executive",
-  trainer: "Trainer",
-  trainee: "Trainee",
-};
 const WHEN = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Toronto",
   year: "numeric",
@@ -353,7 +351,7 @@ function PersonBody({
             {person.full_name}
           </h2>
           <p className="mt-2 text-[16px] text-ink-2 [overflow-wrap:anywhere]">
-            {person.email} · {ROLE_LABEL[person.role]} ·{" "}
+            {person.email} · {roleLabel(person.role, person.title)} ·{" "}
             {gradeLabel(person.grade)}
           </p>
         </div>
@@ -466,6 +464,7 @@ export function PersonDialog({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const backdrop = useBackdropClose();
 
   useEffect(() => {
     const dialog = ref.current;
@@ -479,6 +478,7 @@ export function PersonDialog({
       ref={ref}
       aria-labelledby={titleId}
       onClose={onClose}
+      {...backdrop}
       className="m-auto w-[calc(100%-2rem)] max-w-[44rem] max-h-[90dvh] overflow-y-auto border border-ink bg-ground p-0 text-ink backdrop:bg-ink/50"
     >
       <span id={titleId} className="sr-only">

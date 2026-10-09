@@ -10,14 +10,9 @@ import { getCareer, getMemberStats } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
 import { avatarSources } from "@/lib/avatar-urls";
 import { gradeLabel } from "@/lib/profile";
+import { roleLabel } from "@/lib/role-label";
 
 export const metadata: Metadata = { title: "Profile" };
-
-const ROLE_LABEL = {
-  executive: "Executive",
-  trainer: "Trainer",
-  trainee: "Trainee",
-} as const;
 
 export default async function ProfilePage(props: PageProps<"/profile">) {
   const sp = await props.searchParams;
@@ -46,7 +41,7 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 border-y border-rule py-4">
         <dt className="caps text-ink-2">Role</dt>
-        <dd>{ROLE_LABEL[profile.role]}</dd>
+        <dd>{roleLabel(profile.role, profile.title)}</dd>
         <dt className="caps text-ink-2">Grade</dt>
         <dd>{gradeLabel(profile.grade)}</dd>
         <dt className="caps text-ink-2">Member since</dt>

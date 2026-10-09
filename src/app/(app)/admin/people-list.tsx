@@ -2,16 +2,10 @@
 
 import { useCallback, useState } from "react";
 import { Avatar } from "@/components/avatar";
-import type { Role } from "@/lib/auth";
 import { banStatus, banWhen } from "@/lib/moderation";
 import { gradeLabel } from "@/lib/profile";
 import { PersonDialog, type PersonRow, type WarningRow } from "./person-dialog";
-
-const ROLE_LABEL: Record<Role, string> = {
-  executive: "Exec",
-  trainer: "Trainer",
-  trainee: "Trainee",
-};
+import { roleLabel } from "@/lib/role-label";
 
 // Scannable list on a phone: picture, name, role and grade, then one Manage button. Everything else lives in the panel.
 export function PeopleList({
@@ -59,7 +53,7 @@ export function PeopleList({
                 </p>
                 <p className="truncate text-[15px] text-ink-2">
                   {isDemo ? null : <>{p.email} · </>}
-                  {ROLE_LABEL[p.role]} · {gradeLabel(p.grade)}
+                  {roleLabel(p.role, p.title, true)} · {gradeLabel(p.grade)}
                 </p>
                 {ban.banned || count ? (
                   <p className="caps text-[14px]">
