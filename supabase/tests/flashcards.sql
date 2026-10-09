@@ -87,7 +87,12 @@ select pg_temp.expect('reviews cannot be written for someone else',
 
 -- Owner: reads and edits their own deck, adds cards that continue the order.
 select pg_temp.as_admin();
+create temp table made (id uuid);
+grant insert, select on made to authenticated;
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000f2');
+-- The app creates decks with insert ... returning; the read policy must see the new row (0027).
+with d as (insert into public.decks (title) values ('Made here') returning id) insert into made select id from d;
+select pg_temp.check('insert returning gives the new deck back', (select count(*) from made) = 1);
 select pg_temp.check('owner reads the private deck', (select count(*) from public.decks where id = '00000000-0000-4000-8000-0000000000d1') = 1);
 select pg_temp.check('owner adds two cards', public.add_cards('00000000-0000-4000-8000-0000000000d1', '[{"term":"a","definition":"b"},{"term":"c","definition":"d"}]'::jsonb) = 2);
 select pg_temp.expect('owner cannot add a blank card',
