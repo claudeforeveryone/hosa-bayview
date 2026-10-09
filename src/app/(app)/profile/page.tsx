@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
-import { AvatarForm } from "@/components/avatar-form";
 import { Avatar } from "@/components/avatar";
 import { MemberCareer } from "@/components/member-career";
 import { MemberStatRows } from "@/components/member-stats";
@@ -70,20 +69,6 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
           <MemberStatRows stats={stats} />
         </section>
       ) : null}
-      <section aria-labelledby="picture-h" className="grid gap-4">
-        <h2
-          id="picture-h"
-          className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
-        >
-          Picture
-        </h2>
-        <AvatarForm
-          userId={profile.id}
-          name={profile.full_name}
-          src={picture}
-          hasPicture={profile.avatar_path !== null}
-        />
-      </section>
       <section aria-labelledby="career-h" className="grid gap-4">
         <h2
           id="career-h"

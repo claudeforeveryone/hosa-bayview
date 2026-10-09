@@ -101,8 +101,7 @@ export function AvatarForm({
             className="text-[16px] file:caps file:mr-4 file:h-12 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-5 file:text-[16px] file:text-ink hover:file:bg-band focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
           />
           <p id={`${inputId}-hint`} className="text-[15px] text-ink-2">
-            Photos are cropped square and shrunk to 256 px. GIFs stay animated.
-            Up to 2 MB.
+            Photo or GIF, up to 2 MB.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">

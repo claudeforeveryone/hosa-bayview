@@ -131,7 +131,7 @@ export function GradeSection({ grade }: { grade: number | null }) {
             name="grade"
             defaultValue={state.values?.grade ?? (grade ? String(grade) : "")}
             error={state.fieldErrors?.grade}
-            hint="Shown on your profile and in the members list. Only you can change it."
+            hint="Shown on your profile."
           >
             <option value="">No grade</option>
             {GRADES.map((g) => (
