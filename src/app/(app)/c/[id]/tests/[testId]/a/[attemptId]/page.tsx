@@ -1,20 +1,29 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { ReviewItem } from "@/components/review-item";
 import { StartTest } from "@/components/start-test";
 import { TakeTest } from "@/components/take-test";
+import type { DeckOption } from "@/components/selection-cards";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
-import { orderBy, permutation } from "@/lib/shuffle";
-import { getAttempt, getSheet, getTest } from "@/lib/tests";
+import { listDecks } from "@/lib/decks";
+import { attemptsLeft, scoredMode } from "@/lib/test-settings";
+import {
+  countAttempts,
+  getAttempt,
+  getAttemptQuestions,
+  getTest,
+  getTestFlags,
+} from "@/lib/tests";
 import { serverNow } from "@/lib/time";
 
 export const metadata: Metadata = { title: "Test" };
 
-const LETTERS = "ABCDE";
-
-export default async function AttemptPage({ params }: PageProps<"/c/[id]/tests/[testId]/a/[attemptId]">) {
+export default async function AttemptPage({
+  params,
+}: PageProps<"/c/[id]/tests/[testId]/a/[attemptId]">) {
   const { id, testId, attemptId } = await params;
   const [room, test, attempt, profile] = await Promise.all([
     getClassroom(id),
@@ -22,13 +31,37 @@ export default async function AttemptPage({ params }: PageProps<"/c/[id]/tests/[
     getAttempt(attemptId),
     requireProfile(),
   ]);
-  if (!room || !test || !attempt || test.classroom_id !== room.id || attempt.test_id !== test.id) notFound();
+  if (
+    !room ||
+    !test ||
+    !attempt ||
+    test.classroom_id !== room.id ||
+    attempt.test_id !== test.id
+  )
+    notFound();
   const mine = attempt.user_id === profile.id;
   // Trainers can look at finished attempts in their room, never one in progress.
   if (!mine && !attempt.submitted_at) notFound();
 
-  const sheet = await getSheet(attempt.id);
+  const sheet = await getAttemptQuestions(attempt.id);
   if (!sheet.length) notFound();
+
+  // Takers only: the decks they can add to, and their own Ask teacher flags on this test.
+  const decks: DeckOption[] = mine
+    ? (await listDecks())
+        .filter((d) => d.owner_id === profile.id)
+        .map((d) => ({ id: d.id, title: d.title }))
+    : [];
+  // getTestFlags returns every member's flags to trainers, so keep only this taker's own.
+  const flags = mine
+    ? (await getTestFlags(test.id)).filter((f) => f.user_id === profile.id)
+    : [];
+  const flagByQuestion = Object.fromEntries(
+    flags.map((f) => [
+      f.question_id,
+      { id: f.id, note: f.note, status: f.status, reply: f.reply },
+    ]),
+  );
 
   const back = (
     <Link
@@ -46,11 +79,14 @@ export default async function AttemptPage({ params }: PageProps<"/c/[id]/tests/[
         {back}
         <TakeTest
           key={attempt.id}
+          testId={test.id}
           attemptId={attempt.id}
           mode={attempt.mode}
           deadline={attempt.deadline}
           serverNow={serverNow()}
           rows={sheet}
+          decks={decks}
+          flags={flagByQuestion}
         />
       </div>
     );
@@ -58,70 +94,63 @@ export default async function AttemptPage({ params }: PageProps<"/c/[id]/tests/[
 
   const score = attempt.score ?? 0;
   const pct = attempt.total ? Math.round((score / attempt.total) * 100) : 0;
-  const ordered = orderBy(sheet, attempt.id, (r) => r.question_id);
+  const used = mine
+    ? await countAttempts(
+        test.id,
+        profile.id,
+        scoredMode(test.time_limit_minutes),
+      )
+    : 0;
+  const left = attemptsLeft(test.attempts_allowed, used);
 
   return (
     <div className="grid grid-cols-1 gap-10">
       <header className="grid gap-3">
         {back}
-        <p className="caps text-[16px] text-ink-2">{attempt.mode === "timed" ? "Timed" : "Practice"} · Done</p>
+        <p className="caps text-[16px] text-ink-2">
+          {attempt.mode === "timed" ? "Timed" : "Practice"} · Done
+        </p>
         <p className="num font-display text-[clamp(4rem,18vw,8rem)] leading-[0.85] font-bold">
           {score}/{attempt.total}
         </p>
         <p className="num caps text-[20px]">{pct}%</p>
         {mine ? (
           <div className="pt-2">
-            <StartTest classroomId={room.id} testId={test.id} timeLimit={test.time_limit_minutes} hasQuestions />
+            <StartTest
+              classroomId={room.id}
+              testId={test.id}
+              timeLimit={test.time_limit_minutes}
+              hasQuestions
+              allowPractice={test.allow_practice}
+              attemptsLeft={left}
+            />
           </div>
         ) : null}
       </header>
 
       <section aria-labelledby="review-h" className="grid gap-4">
-        <h2 id="review-h" className="font-display text-[28px] leading-none font-bold uppercase">
+        <h2
+          id="review-h"
+          className="font-display text-[28px] leading-none font-bold uppercase"
+        >
           Review
         </h2>
+        {mine && !test.show_answers ? (
+          <p className="text-ink-2">
+            The trainer has turned off the answers for this test.
+          </p>
+        ) : null}
         <ol className="border-t border-rule">
-          {ordered.map((q, n) => {
-            const choices = permutation(q.options.length, `${attempt.id}:${q.question_id}`);
-            const verdict = q.selected_index === null ? "Blank" : q.is_correct ? "Right" : "Wrong";
-            return (
-              <li key={q.question_id} className="grid gap-3 border-b border-rule py-5">
-                <div className="flex items-start gap-3">
-                  <span className="num w-8 shrink-0 font-display text-[22px] leading-tight font-semibold text-ink-2">{n + 1}</span>
-                  <div className="grid min-w-0 flex-1 gap-1">
-                    <p
-                      className={`caps text-[14px] ${verdict === "Right" ? "text-ok" : verdict === "Wrong" ? "text-danger" : "text-ink-2"}`}
-                    >
-                      {verdict}
-                    </p>
-                    <p className="text-[17px] whitespace-pre-line">{q.prompt}</p>
-                  </div>
-                </div>
-                <ul className="grid gap-1 pl-11">
-                  {choices.map((original, shown) => {
-                    const right = q.correct_index === original;
-                    const picked = q.selected_index === original;
-                    return (
-                      <li
-                        key={original}
-                        className={`flex items-start gap-2 px-2 py-1 text-[16px] ${
-                          right ? "bg-ok/15 font-medium" : picked ? "bg-danger/10" : "text-ink-2"
-                        }`}
-                      >
-                        <span className="num w-5 shrink-0 font-semibold">{LETTERS[shown]}</span>
-                        <span className="min-w-0 flex-1">{q.options[original]}</span>
-                        {right ? <Check size={18} strokeWidth={2.25} className="mt-0.5 shrink-0 text-ok" aria-label="Right answer" /> : null}
-                        {picked && !right ? (
-                          <X size={18} strokeWidth={2.25} className="mt-0.5 shrink-0 text-danger" aria-label={mine ? "Your answer" : "Their answer"} />
-                        ) : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-                {q.explanation ? <p className="pl-11 text-[15px] text-ink-2">{q.explanation}</p> : null}
-              </li>
-            );
-          })}
+          {sheet.map((q) => (
+            <ReviewItem
+              key={q.question_id}
+              q={q}
+              mine={mine}
+              testId={test.id}
+              decks={decks}
+              flag={flagByQuestion[q.question_id] ?? null}
+            />
+          ))}
         </ol>
       </section>
     </div>

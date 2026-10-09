@@ -7,12 +7,14 @@ import type { FormState } from "@/app/(app)/c/actions";
 import { canTeach, requireProfile } from "@/lib/auth";
 import { UNTITLED_TEST } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
+import { parseAttemptsAllowed, practiceRuleOk } from "@/lib/test-settings";
 
 const id = z.string().uuid();
 
 function fieldErrors(error: z.ZodError) {
   const out: Record<string, string> = {};
-  for (const issue of error.issues) out[String(issue.path[0])] ??= issue.message;
+  for (const issue of error.issues)
+    out[String(issue.path[0])] ??= issue.message;
   return out;
 }
 
@@ -22,47 +24,107 @@ function failed(where: string, message: string): FormState {
 }
 
 // Postgres raises plain-language 22023 messages from check_question; pass those through.
-function rpcError(where: string, error: { code?: string; message: string }): FormState {
+function rpcError(
+  where: string,
+  error: { code?: string; message: string },
+): FormState {
   if (error.code === "22023") return { error: `${error.message}.` };
-  if (error.code === "42501") return { error: "Only the trainer or an executive can edit this test." };
+  if (error.code === "42501")
+    return { error: "Only the trainer or an executive can edit this test." };
   return failed(where, error.message);
 }
 
-const testFields = z.object({
-  title: z.string().trim().min(1, "Give it a title.").max(120, "Keep the title under 120 characters."),
-  description: z.string().trim().max(1000, "Keep the description under 1000 characters."),
-  time_limit: z
-    .string()
-    .trim()
-    .refine((v) => v === "" || (/^\d+$/.test(v) && +v >= 1 && +v <= 300), "Use 1 to 300 minutes, or leave it blank."),
-});
+const testFields = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "Give it a title.")
+      .max(120, "Keep the title under 120 characters."),
+    description: z
+      .string()
+      .trim()
+      .max(1000, "Keep the description under 1000 characters."),
+    time_limit: z
+      .string()
+      .trim()
+      .refine(
+        (v) => v === "" || (/^\d+$/.test(v) && +v >= 1 && +v <= 300),
+        "Use 1 to 300 minutes, or leave it blank.",
+      ),
+    attempts_allowed: z.string().trim(),
+    shuffle_questions: z.string(),
+    shuffle_choices: z.string(),
+    allow_practice: z.string(),
+    show_answers: z.string(),
+  })
+  .superRefine((v, ctx) => {
+    const attempts = parseAttemptsAllowed(v.attempts_allowed);
+    if (!attempts.ok)
+      ctx.addIssue({
+        code: "custom",
+        path: ["attempts_allowed"],
+        message: attempts.error,
+      });
+    if (
+      !practiceRuleOk(
+        v.time_limit ? Number(v.time_limit) : null,
+        v.allow_practice === "on",
+      )
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["allow_practice"],
+        message: "Keep practice on, or set a time limit.",
+      });
+    }
+  });
 
 function readTest(form: FormData) {
   const values = {
     title: String(form.get("title") ?? ""),
     description: String(form.get("description") ?? "").replace(/\r\n?/g, "\n"),
     time_limit: String(form.get("time_limit") ?? ""),
+    attempts_allowed: String(form.get("attempts_allowed") ?? ""),
+    shuffle_questions: form.get("shuffle_questions") === "on" ? "on" : "",
+    shuffle_choices: form.get("shuffle_choices") === "on" ? "on" : "",
+    allow_practice: form.get("allow_practice") === "on" ? "on" : "",
+    show_answers: form.get("show_answers") === "on" ? "on" : "",
   };
   const parsed = testFields.safeParse(values);
+  const attempts = parseAttemptsAllowed(values.attempts_allowed);
   return {
     values,
     parsed,
-    row: parsed.success
-      ? {
-          title: parsed.data.title,
-          description: parsed.data.description,
-          time_limit_minutes: parsed.data.time_limit ? Number(parsed.data.time_limit) : null,
-        }
-      : null,
+    row:
+      parsed.success && attempts.ok
+        ? {
+            title: parsed.data.title,
+            description: parsed.data.description,
+            time_limit_minutes: parsed.data.time_limit
+              ? Number(parsed.data.time_limit)
+              : null,
+            shuffle_questions: parsed.data.shuffle_questions === "on",
+            shuffle_choices: parsed.data.shuffle_choices === "on",
+            allow_practice: parsed.data.allow_practice === "on",
+            show_answers: parsed.data.show_answers === "on",
+            attempts_allowed: attempts.value,
+          }
+        : null,
   };
 }
 
 // One tap from the classroom or Tests page: a blank draft, straight into its editor.
-export async function createBlankTest(_: FormState, form: FormData): Promise<FormState> {
+export async function createBlankTest(
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
   const profile = await requireProfile();
-  if (!canTeach(profile)) return { error: "Only trainers and executives can add tests." };
+  if (!canTeach(profile))
+    return { error: "Only trainers and executives can add tests." };
   const classroomId = String(form.get("classroom_id") ?? "");
-  if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist." };
+  if (!id.safeParse(classroomId).success)
+    return { error: "That classroom doesn't exist." };
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -77,29 +139,44 @@ export async function createBlankTest(_: FormState, form: FormData): Promise<For
     .select("id")
     .single();
   if (error) {
-    if (error.code === "42501") return { error: "Only the trainer or an executive can add tests here." };
+    if (error.code === "42501")
+      return { error: "Only the trainer or an executive can add tests here." };
     return failed("create", error.message);
   }
   redirect(`/c/${classroomId}/tests/${data.id}/edit`);
 }
 
-export async function updateTest(testId: string, _: FormState, form: FormData): Promise<FormState> {
+export async function updateTest(
+  testId: string,
+  _: FormState,
+  form: FormData,
+): Promise<FormState> {
   await requireProfile();
   const { values, parsed, row } = readTest(form);
-  if (!id.safeParse(testId).success) return { error: "That test doesn't exist.", values };
-  if (!parsed.success || !row) return { fieldErrors: fieldErrors(parsed.error!), values };
+  if (!id.safeParse(testId).success)
+    return { error: "That test doesn't exist.", values };
+  if (!parsed.success || !row)
+    return { fieldErrors: fieldErrors(parsed.error!), values };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("tests").update(row).eq("id", testId).select("id");
+  const { data, error } = await supabase
+    .from("tests")
+    .update(row)
+    .eq("id", testId)
+    .select("id");
   if (error) return { ...failed("update", error.message), values };
   if (!data?.length) return { error: "You can't edit this test.", values };
   refresh();
   return { ok: "Saved.", values };
 }
 
-export async function setPublished(testId: string, published: boolean): Promise<FormState> {
+export async function setPublished(
+  testId: string,
+  published: boolean,
+): Promise<FormState> {
   await requireProfile();
-  if (!id.safeParse(testId).success) return { error: "That test doesn't exist." };
+  if (!id.safeParse(testId).success)
+    return { error: "That test doesn't exist." };
   const supabase = await createClient();
   if (published) {
     const { count, error } = await supabase
@@ -109,36 +186,51 @@ export async function setPublished(testId: string, published: boolean): Promise<
     if (error) return failed("publish", error.message);
     if (!count) return { error: "Add at least one question first." };
   }
-  const { data, error } = await supabase.from("tests").update({ is_published: published }).eq("id", testId).select("id");
+  const { data, error } = await supabase
+    .from("tests")
+    .update({ is_published: published })
+    .eq("id", testId)
+    .select("id");
   if (error) return failed("publish", error.message);
   if (!data?.length) return { error: "You can't edit this test." };
   refresh();
-  return { ok: published ? "Posted. Members can take it now." : "Hidden from members." };
+  return {
+    ok: published ? "Posted. Members can take it now." : "Hidden from members.",
+  };
 }
 
-export async function deleteTest(classroomId: string, testId: string): Promise<FormState> {
+export async function deleteTest(
+  classroomId: string,
+  testId: string,
+): Promise<FormState> {
   await requireProfile();
-  if (!id.safeParse(testId).success || !id.safeParse(classroomId).success) return { error: "That test doesn't exist." };
+  if (!id.safeParse(testId).success || !id.safeParse(classroomId).success)
+    return { error: "That test doesn't exist." };
   const supabase = await createClient();
-  const { data, error } = await supabase.from("tests").delete().eq("id", testId).select("id");
+  const { data, error } = await supabase
+    .from("tests")
+    .delete()
+    .eq("id", testId)
+    .select("id");
   if (error) return failed("delete", error.message);
   if (!data?.length) return { error: "You can't delete this test." };
   redirect(`/c/${classroomId}/tests`);
 }
 
-const choice = z.string().trim().max(500, "Keep choices under 500 characters.");
 const questionFields = z.object({
-  prompt: z.string().trim().min(1, "Write the question.").max(2000, "Keep the question under 2000 characters."),
-  right: choice.min(1, "Write the right answer."),
-  others: z
-    .array(choice)
-    .transform((o) => o.filter(Boolean))
-    .pipe(z.array(z.string()).min(1, "Add at least one wrong choice.").max(4, "4 wrong choices at most.")),
-  explanation: z.string().trim().max(2000, "Keep the explanation under 2000 characters."),
+  prompt: z
+    .string()
+    .trim()
+    .min(1, "Write the question.")
+    .max(2000, "Keep the question under 2000 characters."),
+  explanation: z
+    .string()
+    .trim()
+    .max(2000, "Keep the explanation under 2000 characters."),
 });
 
-// The builder asks for the right answer and the wrong choices separately; it's stored first
-// and choices are shuffled per attempt when the test is taken.
+// The editor sends the choices in the order typed, and which one is right (its position).
+// Saved exactly as given, so the right answer is never always option A.
 export async function saveQuestion(
   testId: string,
   questionId: string | null,
@@ -146,31 +238,49 @@ export async function saveQuestion(
   form: FormData,
 ): Promise<FormState> {
   await requireProfile();
-  const clean = (v: FormDataEntryValue | null) => String(v ?? "").replace(/\r\n?/g, "\n");
-  const others = form.getAll("other").map(clean);
+  const clean = (v: FormDataEntryValue | null) =>
+    String(v ?? "").replace(/\r\n?/g, "\n");
+  const choices = form.getAll("choice").map(clean);
+  const correctRaw = clean(form.get("correct"));
   const values = {
     prompt: clean(form.get("prompt")),
-    right: clean(form.get("right")),
     explanation: clean(form.get("explanation")),
-    others: JSON.stringify(others),
+    choices: JSON.stringify(choices),
+    correct: correctRaw,
   };
-  if (!id.safeParse(testId).success || (questionId !== null && !id.safeParse(questionId).success)) {
+  if (
+    !id.safeParse(testId).success ||
+    (questionId !== null && !id.safeParse(questionId).success)
+  ) {
     return { error: "That question doesn't exist.", values };
   }
-  const parsed = questionFields.safeParse({ ...values, others });
-  if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
-  const options = [parsed.data.right, ...parsed.data.others];
-  if (new Set(options.map((o) => o.toLowerCase())).size !== options.length) {
-    return { fieldErrors: { others: "Two choices are the same." }, values };
-  }
+  const fields: Record<string, string> = {};
+  const parsed = questionFields.safeParse(values);
+  if (!parsed.success) Object.assign(fields, fieldErrors(parsed.error));
+
+  const trimmed = choices.map((c) => c.trim());
+  if (trimmed.length < 2) fields.choices = "Add at least two choices.";
+  else if (trimmed.length > 5) fields.choices = "5 choices at most.";
+  else if (trimmed.some((c) => c === ""))
+    fields.choices = "Fill in every choice, or remove it.";
+  else if (trimmed.some((c) => c.length > 500))
+    fields.choices = "Keep choices under 500 characters.";
+  else if (new Set(trimmed.map((o) => o.toLowerCase())).size !== trimmed.length)
+    fields.choices = "Two choices are the same.";
+
+  const correct = /^\d+$/.test(correctRaw) ? Number(correctRaw) : -1;
+  if (!fields.choices && (correct < 0 || correct >= trimmed.length))
+    fields.correct = "Mark the right answer.";
+  if (!parsed.success || Object.keys(fields).length)
+    return { fieldErrors: fields, values };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_question", {
     tid: testId,
     qid: questionId,
     prompt: parsed.data.prompt,
-    options,
-    correct: 0,
+    options: trimmed,
+    correct,
     explanation: parsed.data.explanation,
   });
   if (error) return { ...rpcError("save question", error), values };
@@ -180,7 +290,8 @@ export async function saveQuestion(
 
 export async function deleteQuestion(questionId: string): Promise<FormState> {
   await requireProfile();
-  if (!id.safeParse(questionId).success) return { error: "That question doesn't exist." };
+  if (!id.safeParse(questionId).success)
+    return { error: "That question doesn't exist." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_question", { qid: questionId });
   if (error) return rpcError("delete question", error);
@@ -195,26 +306,55 @@ const importItem = z.object({
   explanation: z.string().trim().max(2000),
 });
 
-export async function importQuestions(testId: string, items: unknown): Promise<FormState & { added?: number }> {
+export async function importQuestions(
+  testId: string,
+  items: unknown,
+): Promise<FormState & { added?: number }> {
   await requireProfile();
-  if (!id.safeParse(testId).success) return { error: "That test doesn't exist." };
-  const parsed = z.array(importItem).min(1, "Nothing to add.").max(300, "Add at most 300 questions at a time.").safeParse(items);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Fix the questions marked in red first." };
-  if (parsed.data.some((q) => q.correct >= q.options.length)) return { error: "Every question needs a right answer." };
+  if (!id.safeParse(testId).success)
+    return { error: "That test doesn't exist." };
+  const parsed = z
+    .array(importItem)
+    .min(1, "Nothing to add.")
+    .max(300, "Add at most 300 questions at a time.")
+    .safeParse(items);
+  if (!parsed.success)
+    return {
+      error:
+        parsed.error.issues[0]?.message ??
+        "Fix the questions marked in red first.",
+    };
+  if (parsed.data.some((q) => q.correct >= q.options.length))
+    return { error: "Every question needs a right answer." };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("import_questions", { tid: testId, items: parsed.data });
+  const { data, error } = await supabase.rpc("import_questions", {
+    tid: testId,
+    items: parsed.data,
+  });
   if (error) return rpcError("import", error);
   refresh();
-  return { ok: `Added ${data} question${data === 1 ? "" : "s"}.`, added: Number(data) };
+  return {
+    ok: `Added ${data} question${data === 1 ? "" : "s"}.`,
+    added: Number(data),
+  };
 }
 
-export async function startAttempt(classroomId: string, testId: string, mode: "timed" | "practice"): Promise<FormState> {
+export async function startAttempt(
+  classroomId: string,
+  testId: string,
+  mode: "timed" | "practice",
+): Promise<FormState> {
   await requireProfile();
-  if (!id.safeParse(testId).success || !id.safeParse(classroomId).success) return { error: "That test doesn't exist." };
-  if (mode !== "timed" && mode !== "practice") return { error: "Pick timed or practice." };
+  if (!id.safeParse(testId).success || !id.safeParse(classroomId).success)
+    return { error: "That test doesn't exist." };
+  if (mode !== "timed" && mode !== "practice")
+    return { error: "Pick timed or practice." };
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("start_attempt", { tid: testId, mode });
+  const { data, error } = await supabase.rpc("start_attempt", {
+    tid: testId,
+    mode,
+  });
   if (error) {
     if (error.code === "22023") return { error: `${error.message}.` };
     if (error.code === "42501") return { error: "You can't take this test." };
@@ -231,29 +371,100 @@ export type AnswerResult = {
   explanation?: string | null;
 };
 
-export async function answerQuestion(attemptId: string, questionId: string, selected: number): Promise<AnswerResult> {
+export async function answerQuestion(
+  attemptId: string,
+  questionId: string,
+  selected: number,
+): Promise<AnswerResult> {
   await requireProfile();
-  if (!id.safeParse(attemptId).success || !id.safeParse(questionId).success || !Number.isInteger(selected)) {
+  if (
+    !id.safeParse(attemptId).success ||
+    !id.safeParse(questionId).success ||
+    !Number.isInteger(selected)
+  ) {
     return { error: "That answer didn't save." };
   }
   const supabase = await createClient();
   const { data, error } = await supabase
     .rpc("answer_question", { aid: attemptId, qid: questionId, selected })
-    .single<{ selected_index: number | null; is_correct: boolean | null; correct_index: number | null; explanation: string | null }>();
+    .single<{
+      selected_index: number | null;
+      is_correct: boolean | null;
+      correct_index: number | null;
+      explanation: string | null;
+    }>();
   if (error) {
     if (error.code === "22023") return { error: `${error.message}.` };
     console.error("[tests:answer]", error.message);
-    return { error: "That answer didn't save. Check your connection and tap it again." };
+    return {
+      error: "That answer didn't save. Check your connection and tap it again.",
+    };
   }
   return data;
 }
 
 export async function submitAttempt(attemptId: string): Promise<FormState> {
   await requireProfile();
-  if (!id.safeParse(attemptId).success) return { error: "That attempt doesn't exist." };
+  if (!id.safeParse(attemptId).success)
+    return { error: "That attempt doesn't exist." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("submit_attempt", { aid: attemptId });
   if (error) return failed("submit", error.message);
   refresh();
   return { ok: "Submitted." };
+}
+
+export type FlagResult = { error?: string; id?: string };
+
+// Ask teacher from practice feedback or a finished review. The database checks the taker has answered the question.
+export async function askTeacher(
+  testId: string,
+  questionId: string,
+  note: string,
+): Promise<FlagResult> {
+  await requireProfile();
+  if (!id.safeParse(testId).success || !id.safeParse(questionId).success)
+    return { error: "That question doesn't exist." };
+  const clean = note.replace(/\r\n?/g, "\n").trim();
+  if (clean.length > 500)
+    return { error: "Keep the note under 500 characters." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("flag_question", {
+    qid: questionId,
+    note: clean,
+  });
+  if (error) {
+    if (error.code === "22023") return { error: `${error.message}.` };
+    if (error.code === "42501")
+      return { error: "You can't ask about this test." };
+    return failed("ask teacher", error.message);
+  }
+  return { id: String(data) };
+}
+
+// Trainers and executives mark a question answered, with an optional reply the member sees.
+export async function replyToFlag(
+  testId: string,
+  flagId: string,
+  reply: string,
+): Promise<FormState> {
+  await requireProfile();
+  if (!id.safeParse(testId).success || !id.safeParse(flagId).success)
+    return { error: "That question doesn't exist." };
+  const clean = reply.replace(/\r\n?/g, "\n").trim();
+  if (clean.length > 1000)
+    return { error: "Keep the reply under 1000 characters." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("answer_flag", {
+    fid: flagId,
+    reply: clean,
+  });
+  if (error) {
+    if (error.code === "22023") return { error: `${error.message}.` };
+    if (error.code === "42501")
+      return { error: "Only the trainer or an executive can reply." };
+    return failed("reply flag", error.message);
+  }
+  refresh();
+  return { ok: "Marked answered." };
 }
