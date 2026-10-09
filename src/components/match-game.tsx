@@ -12,7 +12,7 @@ const seconds = (ms: number) => (ms / 1000).toFixed(1);
 
 // A round is a subset of cards in orders derived from the seed and round number. Same inputs, same layout,
 // so the server render and the first client render match, and nothing random runs during render.
-function layoutFor(cards: StudyCard[], seed: string, round: number) {
+export function layoutFor(cards: StudyCard[], seed: string, round: number) {
   const key = `${seed}:${round}`;
   const subset = permutation(cards.length, `${key}:pick`)
     .slice(0, ROUND)
@@ -22,6 +22,11 @@ function layoutFor(cards: StudyCard[], seed: string, round: number) {
     terms: permutation(subset.length, `${key}:terms`).map((i) => subset[i]),
     defs: permutation(subset.length, `${key}:defs`).map((i) => subset[i]),
   };
+}
+
+// A term and a definition cell pair when their text is equal. Ids don't matter, so duplicate definitions all count.
+export function pairsWith(term: StudyCard, def: StudyCard): boolean {
+  return term.definition === def.definition;
 }
 
 // Each round is a fresh subset in fresh orders. The round component is keyed, so a new round is a clean mount.
@@ -75,7 +80,7 @@ function MatchRound({
     return () => clearTimeout(t);
   }, [flash]);
 
-  const definitionOf = (id: string) => layout.terms.find((c) => c.id === id)?.definition ?? "";
+  const termById = (id: string) => layout.terms.find((c) => c.id === id);
   const defById = (id: string) => layout.defs.find((c) => c.id === id);
 
   const tapTerm = (id: string, at: number) => {
@@ -95,7 +100,8 @@ function MatchRound({
       return;
     }
     const def = defById(id);
-    if (def && def.definition === definitionOf(picked)) {
+    const term = termById(picked);
+    if (def && term && pairsWith(term, def)) {
       const nextTerms = new Set(matchedTerms).add(picked);
       setMatchedTerms(nextTerms);
       setMatchedDefs((m) => new Set(m).add(id));

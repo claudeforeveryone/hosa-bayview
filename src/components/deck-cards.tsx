@@ -10,13 +10,17 @@ import { parseCards, MAX_CARDS_PER_PASTE } from "@/lib/parse/cards";
 
 const EXAMPLE = "Femur - longest bone in the body\nTibia: shin bone\nUlna\tforearm bone";
 
+// Keeps the Delete button short; the full term is still in the row above it.
+const shortTerm = (term: string) => (term.length > 32 ? `${term.slice(0, 31)}…` : term);
+
 // Card list for editors and viewers, with single add, bulk paste (previewed first), and edit/delete for editors.
 export function DeckCards({ deckId, cards, canEdit }: { deckId: string; cards: Card[]; canEdit: boolean }) {
   return (
-    <div className="grid gap-8">
+    // The wrapper never unmounts, so it can take focus after the last card is deleted.
+    <div id="deck-cards" tabIndex={-1} className="grid gap-8 outline-none">
       {canEdit ? <AddCards deckId={deckId} /> : null}
       {cards.length ? (
-        <ol id="deck-cards-list" tabIndex={-1} className="border-t border-rule">
+        <ol className="border-t border-rule">
           {cards.map((c) => (
             <CardRow key={c.id} card={c} canEdit={canEdit} />
           ))}
@@ -155,6 +159,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
       <li className="grid gap-3 border-b border-rule py-4">
         <form
           className="grid gap-3"
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData();
@@ -222,12 +227,12 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
           </Button>
           <ConfirmAction
             action={() => deleteCard(card.id)}
-            label="Delete"
+            label={`Delete ${shortTerm(card.term)}`}
             confirmLabel="Delete card"
             pendingLabel="Deleting"
             question="Delete this card?"
             compact
-            focusAfter="deck-cards-list"
+            focusAfter="deck-cards"
           />
         </div>
       ) : null}
