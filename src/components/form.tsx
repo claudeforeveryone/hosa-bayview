@@ -36,6 +36,41 @@ export function Field({
   );
 }
 
+export function TextArea({
+  label,
+  name,
+  error,
+  hint,
+  ...input
+}: { label: string; name: string; error?: string; hint?: ReactNode } & ComponentProps<"textarea">) {
+  const id = `f-${name}`;
+  const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
+  return (
+    <div className="grid gap-1.5">
+      <label htmlFor={id} className="text-[15px] font-medium">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        name={name}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        className="step min-h-28 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
+        {...input}
+      />
+      {error ? (
+        <p id={`${id}-err`} className="text-[15px] text-danger">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="text-[15px] text-ink-2">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function Button({
   variant = "solid",
   className = "",

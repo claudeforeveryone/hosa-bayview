@@ -7,19 +7,23 @@ export function Panel({
   rail,
   tone = "ground",
   label,
+  size = "full",
   className = "",
 }: {
   children: ReactNode;
   rail?: ReactNode;
   tone?: "ground" | "field";
   label: string;
+  // "auto" for secondary panels further down the feed that shouldn't claim a whole screen.
+  size?: "full" | "auto";
   className?: string;
 }) {
   const toneClass = tone === "field" ? "bg-field text-on-field" : "border-y border-rule";
+  const sizeClass = size === "full" ? "min-h-[calc(100dvh-13rem)] lg:min-h-[28rem]" : "";
   return (
     <section
       aria-label={label}
-      className={`relative flex min-h-[calc(100dvh-13rem)] snap-start flex-col justify-end lg:min-h-[28rem] ${toneClass} ${className}`}
+      className={`relative flex snap-start flex-col justify-end ${sizeClass} ${toneClass} ${className}`}
     >
       <div className="flex items-end gap-4 px-4 py-6 sm:px-8 lg:px-10 lg:py-10">
         <div className="min-w-0 flex-1">{children}</div>

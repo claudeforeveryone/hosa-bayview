@@ -79,4 +79,6 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 ## Security notes
 - First executive: `private.settings.first_executive_email` promotes that address once, during its own sign-up (the auth server inserts the user, then confirms it in the same transaction while "Confirm email" is off), and only if no executive exists; the setting is then deleted. Confirming an older account later never promotes. With confirmation off, nothing proves who owns the inbox, so the owner must sign up with that address before anyone else. If "Confirm email" is on, promote the first executive by hand in the SQL editor.
 - Profiles are deleted only by deleting the auth user (admin API); the last executive can't be demoted or deleted.
-- DB checks: `supabase/tests/roles.sql` (runs in a rolled-back transaction, raises on failure). Unit tests: `npm test`.
+- DB checks: `supabase/tests/roles.sql` and `supabase/tests/classrooms.sql` (each runs in a rolled-back transaction, raises on failure). Unit tests: `npm test`.
+- Threat model: users are vetted chapter members (selective HOSA application), not the open internet. Keep RLS and role checks strict, but skip anti-abuse work like IP throttling or multi-account brute-force defence. The per-account join-code limit (10 misses / 10 min) is enough; accepted by the owner.
+- Join codes are readable only through `my_classrooms`/`classroom_detail` (managers only); the column is not granted on the table.

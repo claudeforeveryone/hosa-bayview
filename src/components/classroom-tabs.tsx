@@ -1,0 +1,57 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
+
+const TABS = [
+  { slug: "", label: "Board" },
+  { slug: "online", label: "Online" },
+  { slug: "flashcards", label: "Flashcards" },
+  { slug: "tests", label: "Tests" },
+  { slug: "resources", label: "Resources" },
+  { slug: "members", label: "Members" },
+];
+
+// Condensed caps tabs; the active one gets the maroon rule. Scrolls sideways on phones.
+export function ClassroomTabs({ id, canManage }: { id: string; canManage: boolean }) {
+  const path = usePathname();
+  const base = `/c/${id}`;
+  const tabs = canManage ? [...TABS, { slug: "settings", label: "Settings" }] : TABS;
+  const nav = useRef<HTMLElement>(null);
+
+  // On phones the strip scrolls; keep the current tab on screen.
+  useEffect(() => {
+    const strip = nav.current;
+    const tab = strip?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!strip || !tab) return;
+    const left = tab.offsetLeft - strip.offsetLeft;
+    if (left < strip.scrollLeft || left + tab.offsetWidth > strip.scrollLeft + strip.clientWidth) {
+      strip.scrollLeft = left - 16;
+    }
+  }, [path]);
+
+  return (
+    <nav ref={nav} aria-label="Classroom" className="-mx-4 overflow-x-auto [scrollbar-width:none] sm:mx-0 [&::-webkit-scrollbar]:hidden">
+      <ul className="flex w-max min-w-full border-b border-rule px-4 sm:px-0">
+        {tabs.map(({ slug, label }) => {
+          const href = slug ? `${base}/${slug}` : base;
+          const active = slug ? path === href || path.startsWith(`${href}/`) : path === base;
+          return (
+            <li key={label}>
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`caps step -mb-px block border-b-[3px] px-3 py-3 text-[18px] sm:px-4 ${
+                  active ? "border-you text-ink" : "border-transparent text-ink-2 hover:text-ink"
+                }`}
+              >
+                {label}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}

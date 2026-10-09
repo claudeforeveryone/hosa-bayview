@@ -22,11 +22,11 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 - [ ] Vercel project linked to GitHub with env vars; push to `main` deploys; Supabase redirect URLs for the Vercel domain
 
 ## Phase 2: Classrooms and join codes
-- [ ] Migration: `classrooms`, `classroom_members`, `owns_classroom`, `is_member`, `can_view_classroom`, `join_classroom(code)` RPC, RLS
-- [ ] Create / edit / delete classroom (trainer, exec), regenerate code
-- [ ] Join by code on Home
-- [ ] Classroom page with tabs: leaderboard, online, flashcards, tests, resources
-- [ ] Members list with remove (trainer, exec)
+- [x] Migration: `classrooms`, `classroom_members`, `owns_classroom`, `is_member`, `can_view_classroom`, `join_classroom(code)` RPC, RLS
+- [x] Create / edit / delete classroom (trainer, exec), regenerate code
+- [x] Join by code on Home
+- [x] Classroom page with tabs: leaderboard, online, flashcards, tests, resources
+- [x] Members list with remove (trainer, exec)
 
 ## Phase 3: Testing
 - [ ] Migration: `tests`, `questions`, `question_keys`, `attempts`, `attempt_answers`, RPCs `start_attempt`, `submit_attempt`, `get_attempt_review`

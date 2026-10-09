@@ -1,0 +1,50 @@
+import "server-only";
+import { cache } from "react";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import type { Role } from "@/lib/auth";
+
+export type ClassroomSummary = {
+  id: string;
+  num: number;
+  name: string;
+  event: string;
+  description: string;
+  owner_name: string | null;
+  member_count: number;
+  is_owner: boolean;
+  can_manage: boolean;
+  join_code: string | null;
+  created_at: string;
+};
+
+export type ClassroomDetail = ClassroomSummary & { owner_id: string | null; is_member: boolean };
+
+export type RosterRow = { user_id: string; full_name: string; email: string | null; role: Role; joined_at: string };
+
+export const uuid = z.string().uuid();
+
+export async function getMyClassrooms(): Promise<ClassroomSummary[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("my_classrooms");
+  if (error) throw new Error(`Classrooms lookup failed: ${error.message}`);
+  return (data ?? []) as ClassroomSummary[];
+}
+
+// Null when the id is malformed or you can't see the classroom; both read as "not found".
+// Cached per request so the classroom layout and its tab page share one lookup.
+export const getClassroom = cache(async (id: string): Promise<ClassroomDetail | null> => {
+  if (!uuid.safeParse(id).success) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("classroom_detail", { cid: id }).maybeSingle();
+  if (error) throw new Error(`Classroom lookup failed: ${error.message}`);
+  return (data as ClassroomDetail | null) ?? null;
+});
+
+export async function getRoster(id: string): Promise<RosterRow[]> {
+  if (!uuid.safeParse(id).success) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("classroom_roster", { cid: id });
+  if (error) throw new Error(`Roster lookup failed: ${error.message}`);
+  return (data ?? []) as RosterRow[];
+}

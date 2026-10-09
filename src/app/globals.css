@@ -16,6 +16,7 @@
   --field: #1e3d62;
   --on-field: #e8f2fa;
   --on-field-2: #b4cbe0;
+  --on-field-danger: #ffb4b4;
   --you: #7a1f2b;
   --on-you: #f7ecee;
   --danger: #9b1c1c;
@@ -33,6 +34,7 @@
   --field: #0f2440;
   --on-field: #e8f2fa;
   --on-field-2: #a9c1d8;
+  --on-field-danger: #ffb4b4;
   --you: #8e2a37;
   --on-you: #f7ecee;
   --danger: #ffb4b4;
@@ -49,6 +51,7 @@
   --color-field: var(--field);
   --color-on-field: var(--on-field);
   --color-on-field-2: var(--on-field-2);
+  --color-on-field-danger: var(--on-field-danger);
   --color-you: var(--you);
   --color-on-you: var(--on-you);
   --color-danger: var(--danger);
