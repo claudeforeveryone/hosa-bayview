@@ -85,11 +85,6 @@ function MatchRound({
   const { total } = layout;
   const finished = finishedMs !== null;
 
-  // A finished match is a flashcards roll, once a day on the server.
-  useEffect(() => {
-    if (finished) void rollLuckyBonus("flashcards");
-  }, [finished]);
-
   // Times come from the tap events (same clock as performance.now), so start and finish are read at the tap itself.
   useEffect(() => {
     if (startedAt === null || finished) return;
@@ -136,9 +131,11 @@ function MatchRound({
         setFinishedMs(ms);
         setSaved({ status: "saving" });
         record(total, ms)
-          .then((r) =>
-            setSaved("error" in r ? { status: "error", message: r.error } : { status: "saved", outcome: r.outcome }),
-          )
+          .then((r) => {
+            setSaved("error" in r ? { status: "error", message: r.error } : { status: "saved", outcome: r.outcome });
+            // A finished match is a flashcards roll, once the result is saved (the server checks for it).
+            if (!("error" in r)) void rollLuckyBonus("flashcards");
+          })
           .catch(() =>
             setSaved({
               status: "error",

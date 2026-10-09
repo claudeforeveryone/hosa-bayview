@@ -42,15 +42,11 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
     (done ? doneRef.current : cardRef.current)?.focus();
   }, [index, done]);
 
-  // A finished round is a flashcards roll. The server allows one a day, so repeat rounds pay nothing.
-  useEffect(() => {
-    if (done && cards.length) void rollLuckyBonus("flashcards");
-  }, [done, cards.length]);
-
   if (!cards.length) return null;
 
   const mark = (known: boolean) => {
     const id = card.id;
+    const last = index + 1 >= order.length;
     moved.current = true;
     setError(null);
     setTally((t) => ({ known: t.known + (known ? 1 : 0), learning: t.learning + (known ? 0 : 1) }));
@@ -59,6 +55,8 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
     start(async () => {
       const result = await recordReview(id, known);
       if (result.error) setError("That mark didn't save. Check your connection.");
+      // A finished round is a flashcards roll, once the last review is saved (the server checks for it).
+      else if (last) void rollLuckyBonus("flashcards");
     });
   };
 
