@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
 import { PageTitle } from "@/components/page-title";
+import { SocialLinks } from "@/components/social-links";
 import { filterMembers, formatCount } from "@/lib/activity";
 import { getDirectory, getMemberDetails } from "@/lib/activity-data";
 import { requireProfile, type Role } from "@/lib/auth";
@@ -42,9 +43,12 @@ export default async function MembersPage(props: PageProps<"/members">) {
 
   return (
     <div className="grid grid-cols-1 gap-8">
-      <PageTitle meta={`${formatCount(all.length)} in HOSA Bayview`}>
-        Members
-      </PageTitle>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <PageTitle meta={`${formatCount(all.length)} in HOSA Bayview`}>
+          Members
+        </PageTitle>
+        <SocialLinks />
+      </div>
       <form role="search" method="get" action="/members" className="flex gap-3">
         <label htmlFor="member-search" className="sr-only">
           Search by name
