@@ -1,4 +1,4 @@
--- Demo sign-in checks (migrations 0020, 0021). One transaction, rolled back; raises on the first failure.
+-- Demo sign-in checks (migrations 0020, 0021, 0025). One transaction, rolled back; raises on the first failure.
 begin;
 
 create function pg_temp.as_user(uid uuid) returns void language plpgsql as $$
@@ -31,11 +31,15 @@ insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, aud, 
   ('00000000-0000-4000-8000-0000000000d2', 'demo.member@example.com', '{"full_name":"Some Member"}', now(), 'authenticated', 'authenticated');
 update public.profiles set role = 'executive' where id = '00000000-0000-4000-8000-0000000000d1';
 update private.settings set value = 'on' where key = 'demo_login';
+-- Throwaway exec password for this run only (rolled back with everything else).
+insert into private.settings (key, value) values ('demo_password_hash', extensions.crypt('test-only-pass', extensions.gen_salt('bf', 4)))
+on conflict (key) do update set value = excluded.value;
 
 -- Signed out: the login page sees the three demo admins and can fetch credentials.
 set local role anon;
 select pg_temp.check('three demo admins listed', (select count(*) from public.demo_logins()) = 3);
-select pg_temp.check('credentials available while on', exists (select 1 from public.demo_credentials('kaden-li')));
+select pg_temp.check('credentials need the exec password', not exists (select 1 from public.demo_credentials('kaden-li', 'wrong')));
+select pg_temp.check('credentials with the right password', exists (select 1 from public.demo_credentials('kaden-li', 'test-only-pass')));
 select pg_temp.expect('anon cannot read demo table', $q$select * from private.demo_accounts$q$, '42501');
 reset role;
 
@@ -57,7 +61,7 @@ select public.set_demo_login(false);
 select pg_temp.as_admin();
 set local role anon;
 select pg_temp.check('list empty when off', not exists (select 1 from public.demo_logins()));
-select pg_temp.check('no credentials when off', not exists (select 1 from public.demo_credentials('kaden-li')));
+select pg_temp.check('no credentials when off', not exists (select 1 from public.demo_credentials('kaden-li', 'test-only-pass')));
 reset role;
 select pg_temp.check('password rotated',
   (select u.encrypted_password from auth.users u join old_secret o on o.user_id = u.id)

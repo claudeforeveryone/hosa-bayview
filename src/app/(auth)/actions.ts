@@ -107,17 +107,20 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
 }
 
 // Demo sign-in: one tap on a name. Works only while an exec has demo sign-in switched on.
-export async function demoLogin(slug: string): Promise<AuthState> {
-  if (!/^[a-z-]{1,40}$/.test(slug)) return { error: "That demo account doesn't exist." };
+export async function demoLogin(slug: string, _: AuthState, form: FormData): Promise<AuthState> {
+  if (!/^[a-z-]{1,40}$/.test(slug)) return { error: "That account doesn't exist." };
+  const password = String(form.get("password") ?? "");
+  if (!password) return { fieldErrors: { password: "Enter the executive password." } };
   const supabase = await createClient();
   const { data, error } = await supabase
-    .rpc("demo_credentials", { p_slug: slug })
+    .rpc("demo_credentials", { p_slug: slug, p_password: password })
     .maybeSingle<{ email: string; secret: string }>();
   if (error) {
+    if (error.code === "54000") return { error: "Too many wrong passwords. Try again in 10 minutes." };
     console.error("[auth] demo:", error.message);
-    return { error: "Demo sign-in didn't work. Try again." };
+    return { error: "Sign-in didn't work. Try again." };
   }
-  if (!data) return { error: "Demo sign-in is off." };
+  if (!data) return { fieldErrors: { password: "That password isn't right." } };
   const { error: signInError } = await supabase.auth.signInWithPassword({ email: data.email, password: data.secret });
   if (signInError) return { error: friendly(signInError.message) };
   redirect("/");
