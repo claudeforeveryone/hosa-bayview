@@ -98,11 +98,13 @@ export function PictureSection({
   name,
   src,
   hasPicture,
+  animated,
 }: {
   userId: string;
   name: string;
   src: string | null;
   hasPicture: boolean;
+  animated: boolean;
 }) {
   return (
     <Section id="picture-h" title="Picture">
@@ -111,6 +113,7 @@ export function PictureSection({
         name={name}
         src={src}
         hasPicture={hasPicture}
+        animated={animated}
       />
     </Section>
   );

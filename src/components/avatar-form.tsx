@@ -20,12 +20,14 @@ export function AvatarForm({
   src,
   hasPicture,
   canRemove = true,
+  animated = false,
 }: {
   userId: string;
   name: string;
   src: string | null;
   hasPicture: boolean;
   canRemove?: boolean;
+  animated?: boolean; // the owner is an executive, so a GIF stays animated
 }) {
   const inputId = useId();
   const [busy, setBusy] = useState<"upload" | "remove" | null>(null);
@@ -37,7 +39,7 @@ export function AvatarForm({
     e.target.value = "";
     if (!file) return;
     setResult(null);
-    const problem = checkAvatarFile(file);
+    const problem = checkAvatarFile(file, animated);
     if (problem) {
       setLocalError(problem);
       return;
@@ -45,7 +47,7 @@ export function AvatarForm({
     setLocalError(null);
     setBusy("upload");
     try {
-      const prepared = await prepareAvatar(file);
+      const prepared = await prepareAvatar(file, animated);
       const objectPath = newAvatarPath(
         userId,
         crypto.randomUUID(),
@@ -101,7 +103,9 @@ export function AvatarForm({
             className="w-full min-w-0 text-[16px] file:caps file:mr-4 file:h-12 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-5 file:text-[16px] file:text-ink hover:file:bg-band focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
           />
           <p id={`${inputId}-hint`} className="text-[15px] text-ink-2">
-            Any photo, or a GIF up to 2 MB.
+            {animated
+              ? "Any photo, or a GIF up to 2 MB."
+              : "Any photo. Animated GIFs are for executives."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-4">

@@ -164,7 +164,7 @@ describe("week helpers", () => {
   });
 
   it("labels a week with its Monday", () => {
-    expect(weekLabel("2026-10-05")).toBe("Week of Mon Oct 5");
+    expect(weekLabel("2026-10-05")).toBe("Meeting Thu Oct 8");
   });
 });
 

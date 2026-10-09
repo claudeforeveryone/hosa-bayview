@@ -1,5 +1,5 @@
 // Browser only: turn a picked photo into a 256px square, centre-cropped, WebP (JPEG where WebP can't be encoded).
-// GIFs skip the canvas: a canvas keeps one frame, so the file goes up exactly as picked and stays animated.
+// An executive's GIF skips the canvas so it stays animated; anyone else's goes through it and keeps one frame.
 import { AVATAR_SIZE, squareCrop, type AvatarExt } from "@/lib/avatar";
 
 export type PreparedAvatar = {
@@ -18,8 +18,11 @@ function encode(
   );
 }
 
-export async function prepareAvatar(file: File): Promise<PreparedAvatar> {
-  if (file.type === "image/gif") {
+export async function prepareAvatar(
+  file: File,
+  animated = true,
+): Promise<PreparedAvatar> {
+  if (file.type === "image/gif" && animated) {
     return { blob: file, mime: "image/gif", ext: "gif" };
   }
   const bitmap = await createImageBitmap(file);

@@ -9,6 +9,7 @@ import {
   type MarkRow,
   type Page,
   type Participation,
+  type Status,
 } from "@/lib/attendance";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,6 +29,8 @@ export type WeekStatus = {
   state: "Submitted" | "Edited" | "Not submitted";
   submitted_at: string | null;
   updated_at: string | null;
+  // The roll as taken this week, by name. Empty until submitted.
+  roll: { user_id: string; name: string; status: Status }[];
 };
 
 export type MemberRow = Participation & { name: string };
@@ -77,6 +80,12 @@ export const loadAttendanceOverview = cache(async () => {
     ),
   ]);
 
+  const cleanMarks: MarkRow[] = marks.flatMap((m) =>
+    isStatus(m.status)
+      ? [{ session_id: m.session_id, user_id: m.user_id, status: m.status }]
+      : [],
+  );
+  const names = new Map(profiles.map((p) => [p.id, p.full_name]));
   const week = currentWeek();
   const thisWeek = sessions.filter((s) => s.week_start === week);
   const weekStatus: WeekStatus[] = classrooms
@@ -88,6 +97,16 @@ export const loadAttendanceOverview = cache(async () => {
         state: !s ? "Not submitted" : s.updated_at ? "Edited" : "Submitted",
         submitted_at: s?.submitted_at ?? null,
         updated_at: s?.updated_at ?? null,
+        roll: s
+          ? cleanMarks
+              .filter((m) => m.session_id === s.id)
+              .map((m) => ({
+                user_id: m.user_id,
+                name: names.get(m.user_id) || "Former member",
+                status: m.status,
+              }))
+              .sort((a, b) => a.name.localeCompare(b.name))
+          : [],
       };
     })
     // Rooms still to submit come first.
@@ -97,12 +116,6 @@ export const loadAttendanceOverview = cache(async () => {
           Number(b.state !== "Not submitted") || a.name.localeCompare(b.name),
     );
 
-  const cleanMarks: MarkRow[] = marks.flatMap((m) =>
-    isStatus(m.status)
-      ? [{ session_id: m.session_id, user_id: m.user_id, status: m.status }]
-      : [],
-  );
-  const names = new Map(profiles.map((p) => [p.id, p.full_name]));
   const members: MemberRow[] = summarizeMembers(cleanMarks)
     .map((m) => ({ ...m, name: names.get(m.user_id) || "Former member" }))
     .sort(compareParticipation);

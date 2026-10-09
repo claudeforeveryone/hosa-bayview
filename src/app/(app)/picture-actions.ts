@@ -3,7 +3,7 @@
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { requireProfile } from "@/lib/auth";
-import { AVATAR_BUCKET, isAvatarPath } from "@/lib/avatar";
+import { AVATAR_BUCKET, isAnimatedImage, isAvatarPath } from "@/lib/avatar";
 import { createClient } from "@/lib/supabase/server";
 
 export type PictureState = { error?: string; ok?: string };
@@ -33,13 +33,36 @@ export async function savePicture(
   const supabase = await createClient();
   const { data: current, error: readError } = await supabase
     .from("profiles")
-    .select("avatar_path")
+    .select("avatar_path, role")
     .eq("id", userId)
     .maybeSingle();
   if (readError || !current) {
     if (readError) console.error("[picture] read:", readError.message);
     await supabase.storage.from(AVATAR_BUCKET).remove([path]);
     return { error: "That person is gone. Reload the page." };
+  }
+
+  // Moving pictures are for executives. The name can't be trusted, so look at the bytes.
+  if (current.role !== "executive") {
+    const { data: file, error: fileError } = await supabase.storage
+      .from(AVATAR_BUCKET)
+      .download(path);
+    const animated =
+      !fileError && file
+        ? isAnimatedImage(new Uint8Array(await file.arrayBuffer()))
+        : null;
+    if (animated !== false) {
+      if (fileError) console.error("[picture] check:", fileError.message);
+      const { error: removeError } = await supabase.storage
+        .from(AVATAR_BUCKET)
+        .remove([path]);
+      if (removeError) console.error("[picture] drop:", removeError.message);
+      return {
+        error: animated
+          ? "Animated pictures are for executives."
+          : "Couldn't save that. Try again.",
+      };
+    }
   }
 
   const { data, error } = await supabase

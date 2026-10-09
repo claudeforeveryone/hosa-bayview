@@ -32,16 +32,21 @@ export function newAvatarPath(
 }
 
 // Null when the file can be used, otherwise a short message for the member.
-// Static pictures are resized in the browser; GIFs go up as they are, so they must fit the limit as they are.
-export function checkAvatarFile(file: {
-  type: string;
-  size: number;
-}): string | null {
+// Static pictures are resized in the browser; animated GIFs (executives only) go up as they are, so they must
+// fit the limit as they are. Anyone else's GIF is resized to a still like a photo.
+export function checkAvatarFile(
+  file: {
+    type: string;
+    size: number;
+  },
+  animated = true,
+): string | null {
   if (!file.type.startsWith("image/")) return "Pick a picture file.";
   if (file.size === 0) return "That file is empty.";
-  if (file.type === "image/gif") {
+  if (file.type === "image/gif" && animated) {
     if (file.size > AVATAR_MAX_BYTES) return "Keep the picture under 2 MB.";
-  } else if (file.size > PHOTO_MAX_BYTES) return "Keep the picture under 25 MB.";
+  } else if (file.size > PHOTO_MAX_BYTES)
+    return "Keep the picture under 25 MB.";
   return null;
 }
 
@@ -56,4 +61,31 @@ export function squareCrop(
     sy: Math.floor((height - side) / 2),
     side,
   };
+}
+
+// True when the bytes are a moving picture, whatever the file is called: any GIF, a WebP with its animation
+// flag, an animated PNG, or an AVIF image sequence. Stills from the browser are always WebP or JPEG, so only executives' GIFs pass.
+export function isAnimatedImage(bytes: Uint8Array): boolean {
+  const ascii = (at: number, len: number) =>
+    String.fromCharCode(...bytes.subarray(at, at + len));
+  if (ascii(0, 4) === "GIF8") return true;
+  if (ascii(4, 4) === "ftyp") return ascii(8, 4) === "avis";
+  if (ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP")
+    return ascii(12, 4) === "VP8X" && (bytes[20] & 0x02) !== 0;
+  if (bytes[0] === 0x89 && ascii(1, 3) === "PNG") {
+    // Walk the chunks: an acTL chunk before the image data makes it animated.
+    for (let at = 8; at + 8 <= bytes.length;) {
+      const len =
+        ((bytes[at] << 24) |
+          (bytes[at + 1] << 16) |
+          (bytes[at + 2] << 8) |
+          bytes[at + 3]) >>>
+        0;
+      const type = ascii(at + 4, 4);
+      if (type === "acTL") return true;
+      if (type === "IDAT" || type === "IEND") return false;
+      at += 12 + len;
+    }
+  }
+  return false;
 }

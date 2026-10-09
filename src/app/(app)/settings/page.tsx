@@ -54,6 +54,7 @@ export default async function SettingsPage({
           name={profile.full_name}
           src={picture ?? null}
           hasPicture={profile.avatar_path !== null}
+          animated={isExec}
         />
         <LookSection />
         <PasswordSection />

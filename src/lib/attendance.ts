@@ -1,5 +1,6 @@
 // Pure attendance helpers: statuses, weeks, rates, exceptions. Safe on client and server.
-// Weeks start on Monday and are named by that Monday's date (YYYY-MM-DD). The chapter runs on Toronto time.
+// Weeks start on Monday and are stored by that Monday's date (YYYY-MM-DD). The chapter meets on Thursdays, so
+// each week is shown as its Thursday meeting. The chapter runs on Toronto time.
 
 export const STATUSES = ["present", "late", "absent", "excused"] as const;
 export type Status = (typeof STATUSES)[number];
@@ -97,9 +98,10 @@ export function recentWeeks(
   return out;
 }
 
-// "Week of Mon Oct 5"
+// The week's Thursday meeting: "Meeting Thu Oct 8".
+export const MEETING_OFFSET_DAYS = 3;
 export function weekLabel(weekStart: string): string {
-  const d = new Date(`${weekStart}T00:00:00Z`);
+  const d = new Date(`${addDays(weekStart, MEETING_OFFSET_DAYS)}T00:00:00Z`);
   const wd = d.toLocaleDateString("en-CA", {
     timeZone: "UTC",
     weekday: "short",
@@ -109,7 +111,7 @@ export function weekLabel(weekStart: string): string {
     month: "short",
     day: "numeric",
   });
-  return `Week of ${wd} ${md}`;
+  return `Meeting ${wd} ${md}`;
 }
 
 // "Oct 5, 7:14 p.m." in Toronto time, for submitted and edited stamps.

@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
 import { EmptyState } from "@/components/empty-state";
-import { formatStamp, weekLabel } from "@/lib/attendance";
+import {
+  STATUSES,
+  STATUS_LABEL,
+  countStatuses,
+  formatStamp,
+  weekLabel,
+} from "@/lib/attendance";
 import { requireRole } from "@/lib/auth";
 import { MemberSearch } from "./member-search";
-import { loadAttendanceOverview, type MemberRow } from "./queries";
+import {
+  loadAttendanceOverview,
+  type MemberRow,
+  type WeekStatus,
+} from "./queries";
 
 export const metadata: Metadata = { title: "Attendance" };
 
@@ -47,6 +58,73 @@ function Callouts({
   );
 }
 
+// One classroom's week. Submitted ones open in place to show the roll as it was taken.
+function WeekRow({ room, week }: { room: WeekStatus; week: string }) {
+  if (room.state === "Not submitted")
+    return (
+      <li className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule px-1 py-4 sm:px-3">
+        <span className="min-w-0 truncate text-[18px] font-medium">
+          {room.name}
+        </span>
+        <span className="caps text-[15px] text-danger">Not submitted</span>
+      </li>
+    );
+  const counts = countStatuses(room.roll.map((r) => r.status));
+  return (
+    <li className="border-b border-rule">
+      <details className="group">
+        <summary className="step grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-4 px-1 py-4 hover:bg-band sm:px-3 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0 truncate text-[18px] font-medium">
+            {room.name}
+          </span>
+          <span className="caps text-[15px] text-ink-2">
+            {room.state} ·{" "}
+            {formatStamp(room.updated_at ?? room.submitted_at ?? "")}
+          </span>
+          <ChevronDown
+            size={18}
+            strokeWidth={2}
+            aria-hidden
+            className="self-center text-ink-2 group-open:rotate-180 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)]"
+          />
+        </summary>
+        <div className="grid gap-4 px-1 pt-1 pb-6 sm:px-3">
+          <p className="caps num text-[15px] text-ink-2">
+            {STATUSES.map((st) => `${counts[st]} ${STATUS_LABEL[st]}`).join(
+              " · ",
+            )}
+          </p>
+          {room.roll.length ? (
+            <ul className="border-t border-rule">
+              {room.roll.map((m) => (
+                <li
+                  key={m.user_id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule py-2.5"
+                >
+                  <span className="min-w-0 truncate text-[17px]">{m.name}</span>
+                  <span
+                    className={`caps text-[15px] ${m.status === "absent" ? "text-danger" : m.status === "excused" ? "text-ink-2" : ""}`}
+                  >
+                    {STATUS_LABEL[m.status]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[16px] text-ink-2">No one marked.</p>
+          )}
+          <Link
+            href={`/c/${room.classroom_id}/attendance?week=${week}`}
+            className="caps justify-self-start text-[15px] underline underline-offset-4"
+          >
+            Open the sheet
+          </Link>
+        </div>
+      </details>
+    </li>
+  );
+}
+
 export default async function AdminAttendancePage() {
   await requireRole("executive");
   const { week, weekStatus, members, perfect, checkIn } =
@@ -82,21 +160,7 @@ export default async function AdminAttendancePage() {
         ) : (
           <ul className="border-t border-rule">
             {weekStatus.map((r) => (
-              <li
-                key={r.classroom_id}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule px-1 py-4 sm:px-3"
-              >
-                <span className="min-w-0 truncate text-[18px] font-medium">
-                  {r.name}
-                </span>
-                <span
-                  className={`caps text-[15px] ${r.state === "Not submitted" ? "text-danger" : "text-ink-2"}`}
-                >
-                  {r.state === "Not submitted"
-                    ? "Not submitted"
-                    : `${r.state} · ${formatStamp(r.updated_at ?? r.submitted_at ?? "")}`}
-                </span>
-              </li>
+              <WeekRow key={r.classroom_id} room={r} week={week} />
             ))}
           </ul>
         )}

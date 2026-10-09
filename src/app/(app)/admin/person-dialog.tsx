@@ -380,6 +380,7 @@ function PersonBody({
           name={person.full_name}
           src={person.avatar_src}
           hasPicture={person.avatar_path !== null}
+          animated={person.role === "executive"}
         />
       </Section>
 
