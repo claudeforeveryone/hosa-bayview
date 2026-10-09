@@ -48,8 +48,9 @@ export type CareerRow = CareerItem & {
   prompt: string;
   options: string[];
   selected_index: number;
-  correct_index: number;
-  explanation: string;
+  // Null when the test hides answers from this viewer.
+  correct_index: number | null;
+  explanation: string | null;
 };
 
 const num = (v: number | string | null) => (v === null ? null : Number(v));

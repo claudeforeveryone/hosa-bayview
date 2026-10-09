@@ -10,7 +10,8 @@ const RESULT_LABEL: Record<Result, string> = { all: "All", right: "Right", wrong
 export function MemberCareer({ rows, result, basePath }: { rows: CareerRow[]; result: Result; basePath: string }) {
   const shown = filterCareer(rows, result);
   const rightCount = rows.filter((r) => r.is_correct).length;
-  const counts: Record<Result, number> = { all: rows.length, right: rightCount, wrong: rows.length - rightCount };
+  const wrongCount = rows.filter((r) => r.is_correct === false).length;
+  const counts: Record<Result, number> = { all: rows.length, right: rightCount, wrong: wrongCount };
   return (
     <div className="grid gap-5">
       <nav aria-label="Result">
@@ -38,9 +39,13 @@ export function MemberCareer({ rows, result, basePath }: { rows: CareerRow[]; re
           {shown.map((item, i) => (
             <li key={`${item.answered_at}-${i}`} className="grid gap-2 border-b border-rule py-4">
               <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[15px] text-ink-2">
-                <span className={`caps text-[16px] ${item.is_correct ? "text-ok" : "text-danger"}`}>
-                  {item.is_correct ? "Right" : "Wrong"}
-                </span>
+                {item.is_correct === null ? (
+                  <span className="caps text-[16px]">Answers hidden</span>
+                ) : (
+                  <span className={`caps text-[16px] ${item.is_correct ? "text-ok" : "text-danger"}`}>
+                    {item.is_correct ? "Right" : "Wrong"}
+                  </span>
+                )}
                 <span>{item.test_title}</span>
                 <span className="num">
                   {new Date(item.answered_at).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" })}
@@ -51,7 +56,7 @@ export function MemberCareer({ rows, result, basePath }: { rows: CareerRow[]; re
                 <span className="text-ink-2">Picked: </span>
                 {item.options[item.selected_index]}
               </p>
-              {item.is_correct ? null : (
+              {item.is_correct !== false || item.correct_index === null ? null : (
                 <p className="text-[16px]">
                   <span className="text-ink-2">Right answer: </span>
                   {item.options[item.correct_index]}

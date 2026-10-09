@@ -102,38 +102,6 @@ describe("signup", () => {
   });
 });
 
-describe("username login", () => {
-  const people = [{ slug: "kaden-li", full_name: "Kaden Li" }];
-  // demo_logins is awaited directly; demo_credentials goes through maybeSingle.
-  const withRpc = (creds: { data: unknown; error: unknown }) => {
-    const rpc = vi.fn((name: string) => {
-      const res = name === "demo_logins" ? { data: people, error: null } : creds;
-      return Object.assign(Promise.resolve(res), { maybeSingle: async () => res });
-    });
-    Object.assign(client, { rpc });
-    return rpc;
-  };
-
-  it("signs in by username however it's typed", async () => {
-    const rpc = withRpc({ data: { email: "demo.kaden@example.com", secret: "s" }, error: null });
-    expect(await redirectOf(login({}, form({ email: "KadenLi", password: "exec-pass" })))).toBe("/");
-    expect(rpc).toHaveBeenCalledWith("demo_credentials", { p_slug: "kaden-li", p_password: "exec-pass" });
-    expect(client.auth.signInWithPassword).toHaveBeenCalledWith({ email: "demo.kaden@example.com", password: "s" });
-  });
-
-  it("says nothing about which half was wrong", async () => {
-    withRpc({ data: null, error: null });
-    expect((await login({}, form({ email: "Kaden Li", password: "nope" }))).error).toBe("That username and password don't match.");
-    expect((await login({}, form({ email: "Nobody", password: "nope" }))).error).toBe("That username and password don't match.");
-    expect(client.auth.signInWithPassword).not.toHaveBeenCalled();
-  });
-
-  it("explains the lockout", async () => {
-    withRpc({ data: null, error: { code: "54000", message: "Too many" } });
-    expect((await login({}, form({ email: "kaden.li", password: "x" }))).error).toMatch(/Too many wrong passwords/);
-  });
-});
-
 describe("admin passcode", () => {
   const withRpc = (result: { data: unknown; error: unknown }) => {
     const rpc = vi.fn(async () => result);

@@ -14,9 +14,10 @@ export function LoginForm({ next, notice }: { next: string; notice: string | nul
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
       <input type="hidden" name="next" value={next} />
       <Field
-        label="Email or username"
+        label="Email"
         name="email"
-        autoComplete="username"
+        type="email"
+        autoComplete="email"
         autoCapitalize="none"
         spellCheck={false}
         required

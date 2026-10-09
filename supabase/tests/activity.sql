@@ -298,8 +298,11 @@ select pg_temp.check('first visit roll pays 0, 5 to 25, or the 50 jackpot',
   (select v = 0 or v = 50 or (v between 5 and 25) from (select current_setting('act.visit1')::int as v) x));
 select pg_temp.check('repeat rolls the same day pay nothing (visit x2, test x1)',
   current_setting('act.visit2')::int = 0 and current_setting('act.visit3')::int = 0 and current_setting('act.test2')::int = 0);
-select pg_temp.check('one roll row per reason per day (b7: 3 rows)',
-  (select count(*) = 3 from public.elo_rolls where user_id = '00000000-0000-4000-8000-0000000000b7' and day = private.local_day(now())));
+-- Since 0043 test and flashcard rolls only count after that work was done today, so b7 (no work today) keeps
+-- just the visit roll.
+select pg_temp.check('one roll row per reason per day, and only rolls that were earned (b7: visit only)',
+  (select array_agg(reason order by reason) = array['visit'] from public.elo_rolls
+   where user_id = '00000000-0000-4000-8000-0000000000b7' and day = private.local_day(now())));
 select pg_temp.check('bonus rows match the paid rolls (b7)',
   (select count(*) = ((current_setting('act.visit1')::int > 0)::int + (current_setting('act.test1')::int > 0)::int + (current_setting('act.flash1')::int > 0)::int)
      from public.elo_bonuses where user_id = '00000000-0000-4000-8000-0000000000b7'));

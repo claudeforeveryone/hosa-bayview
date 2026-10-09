@@ -32,7 +32,7 @@ export type Result = (typeof RESULTS)[number];
 
 // What the Elo score is made of. Shown under the club board so the number isn't a mystery.
 export const ELO_SUMMARY =
-  "Everyone starts at 1200. A flashcard is 1 Elo, a question 2, and 3 more when it's right. Each card or question counts once a day. Each day you sign in adds 5. A study streak boosts study gains, up to 1.6× at 30 days. Lucky bonuses land at random.";
+  "Everyone starts at 1200. A flashcard is 1 Elo, a question 2, and 3 more when it's right. Each card or question counts once a day, up to 100 cards a day. Each day you sign in adds 5. A study streak boosts study gains, up to 1.6× at 30 days. Lucky bonuses land at random.";
 
 export type BoardRow = {
   user_id: string;
@@ -223,13 +223,13 @@ export function filterMembers<T extends { full_name: string }>(
   return q ? rows.filter((r) => r.full_name.toLowerCase().includes(q)) : rows;
 }
 
-export type CareerItem = { is_correct: boolean };
+export type CareerItem = { is_correct: boolean | null };
 export function filterCareer<T extends CareerItem>(
   rows: T[],
   result: Result,
 ): T[] {
   if (result === "right") return rows.filter((r) => r.is_correct);
-  if (result === "wrong") return rows.filter((r) => !r.is_correct);
+  if (result === "wrong") return rows.filter((r) => r.is_correct === false);
   return rows;
 }
 

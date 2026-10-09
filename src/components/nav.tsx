@@ -4,10 +4,12 @@ import { useEffect, useId, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ArrowRight,
   ClipboardList,
   House,
   Layers,
   Menu,
+  Plus,
   Settings,
   ShieldCheck,
   Trophy,
@@ -115,7 +117,7 @@ const rowState = (active: boolean) =>
     : "text-on-field-2 hover:bg-field-2 hover:text-on-field";
 
 // The whole app in one column: where to go and the classrooms you are in.
-function PanelBody({ isExec, rooms }: Props) {
+function PanelBody({ isExec, canTeach, rooms }: Props) {
   const { path, items } = useItems(isExec);
   const roomsHeading = useId();
   return (
@@ -137,38 +139,58 @@ function PanelBody({ isExec, rooms }: Props) {
         </ul>
       </nav>
 
-      {rooms.length ? (
-        <section aria-labelledby={roomsHeading} className="mt-8">
-          <h2
-            id={roomsHeading}
-            className="caps mx-5 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
-          >
-            Classrooms
-          </h2>
-          <ul className="mt-1">
-            {rooms.map((room) => {
-              const active =
-                path === `/c/${room.id}` || path.startsWith(`/c/${room.id}/`);
-              return (
-                <li key={room.id}>
-                  <Link
-                    href={`/c/${room.id}`}
-                    aria-current={active ? "page" : undefined}
-                    className={`${row} justify-between ${rowState(active)}`}
-                  >
-                    <span className="truncate text-[17px] font-medium">
-                      {room.name}
-                    </span>
-                    <span className="num caps shrink-0 text-[13px] opacity-80">
-                      {formNumber("C", room.num)}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : null}
+      <section aria-labelledby={roomsHeading} className="mt-8">
+        <h2
+          id={roomsHeading}
+          className="caps mx-5 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
+        >
+          Classrooms
+        </h2>
+        <ul className="mt-1">
+          {rooms.map((room) => {
+            const active =
+              path === `/c/${room.id}` || path.startsWith(`/c/${room.id}/`);
+            return (
+              <li key={room.id}>
+                <Link
+                  href={`/c/${room.id}`}
+                  aria-current={active ? "page" : undefined}
+                  className={`${row} justify-between ${rowState(active)}`}
+                >
+                  <span className="truncate text-[17px] font-medium">
+                    {room.name}
+                  </span>
+                  <span className="num caps shrink-0 text-[13px] opacity-80">
+                    {formNumber("C", room.num)}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+          <li>
+            <Link
+              href="/join"
+              aria-current={path === "/join" ? "page" : undefined}
+              className={`${row} ${rowState(path === "/join")}`}
+            >
+              <ArrowRight size={20} strokeWidth={1.75} aria-hidden />
+              <span className="text-[17px] font-medium">Join with a code</span>
+            </Link>
+          </li>
+          {canTeach ? (
+            <li>
+              <Link
+                href="/c/new"
+                aria-current={path === "/c/new" ? "page" : undefined}
+                className={`${row} ${rowState(path === "/c/new")}`}
+              >
+                <Plus size={20} strokeWidth={1.75} aria-hidden />
+                <span className="text-[17px] font-medium">New classroom</span>
+              </Link>
+            </li>
+          ) : null}
+        </ul>
+      </section>
     </>
   );
 }

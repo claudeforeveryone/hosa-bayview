@@ -7,6 +7,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => client }));
 
 const { GET: callback } = await import("./callback/route");
 const { GET: signout } = await import("./signout/route");
+const { GET: confirm } = await import("./confirm/route");
 
 const req = (path: string) => new NextRequest(`http://localhost:3000${path}`);
 const location = (res: Response) => res.headers.get("location");
@@ -39,6 +40,29 @@ describe("/auth/callback", () => {
     client = mockSupabase({ authError: { message: "expired" } });
     expect(location(await callback(req("/auth/callback?code=bad")))).toBe("http://localhost:3000/login?link=expired");
     expect(location(await callback(req("/auth/callback")))).toBe("http://localhost:3000/login?link=expired");
+  });
+});
+
+describe("/auth/confirm", () => {
+  beforeEach(() => {
+    client = mockSupabase();
+  });
+
+  it("verifies a recovery token and opens the new-password form", async () => {
+    const res = await confirm(req("/auth/confirm?token_hash=h&type=recovery&next=//evil.com"));
+    expect(client.auth.verifyOtp).toHaveBeenCalledWith({ type: "recovery", token_hash: "h" });
+    expect(location(res)).toBe("http://localhost:3000/reset-password");
+  });
+
+  it("refuses other link types and missing tokens", async () => {
+    expect(location(await confirm(req("/auth/confirm?token_hash=h&type=magiclink")))).toBe("http://localhost:3000/login?link=expired");
+    expect(location(await confirm(req("/auth/confirm?type=recovery")))).toBe("http://localhost:3000/login?link=expired");
+    expect(client.auth.verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it("sends expired links to login", async () => {
+    client = mockSupabase({ authError: { message: "expired" } });
+    expect(location(await confirm(req("/auth/confirm?token_hash=h&type=recovery")))).toBe("http://localhost:3000/login?link=expired");
   });
 });
 

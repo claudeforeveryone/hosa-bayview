@@ -33,6 +33,20 @@ export default async function TestsPage() {
   if (error) throw new Error(`Tests lookup failed: ${error.message}`);
   const tests = (data ?? []) as unknown as Row[];
 
+  // Your best finished run per test, so the list shows what's left to do. RLS keeps it to your own attempts.
+  const { data: mine } = await supabase
+    .from("attempts")
+    .select("test_id, score, total")
+    .eq("user_id", profile.id)
+    .not("submitted_at", "is", null);
+  const best = new Map<string, { score: number; total: number }>();
+  for (const a of (mine ?? []) as { test_id: string; score: number | null; total: number }[]) {
+    const prev = best.get(a.test_id);
+    const score = a.score ?? 0;
+    if (!prev || score / Math.max(a.total, 1) > prev.score / Math.max(prev.total, 1))
+      best.set(a.test_id, { score, total: a.total });
+  }
+
   // Teachers can only add tests to classrooms they manage.
   const teacher = canTeach(profile);
   const managed = teacher
@@ -63,7 +77,7 @@ export default async function TestsPage() {
           {tests.map((t) => (
             <li key={t.id} className="border-b border-rule">
               <Link
-                href={`/c/${t.classroom_id}/tests`}
+                href={`/c/${t.classroom_id}/tests/${t.id}`}
                 className="step grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-1 py-4 hover:bg-band sm:px-3"
               >
                 <span className="min-w-0">
@@ -75,13 +89,20 @@ export default async function TestsPage() {
                       t.classrooms?.name,
                       t.time_limit_minutes ? `${t.time_limit_minutes} min` : "Untimed",
                       t.is_published ? null : "Draft",
+                      best.has(t.id) ? "Done" : null,
                     ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
                 </span>
-                <span className="flex items-center gap-2 text-ink-2">
-                  <span className="num caps text-[15px]">{formNumber("T", t.num)}</span>
+                <span className="flex items-center gap-3 text-ink-2">
+                  {best.has(t.id) ? (
+                    <span className="num caps text-[16px] text-ink">
+                      {best.get(t.id)!.score}/{best.get(t.id)!.total}
+                    </span>
+                  ) : (
+                    <span className="num caps text-[15px]">{formNumber("T", t.num)}</span>
+                  )}
                   <ChevronRight size={22} strokeWidth={1.75} aria-hidden />
                 </span>
               </Link>
@@ -91,7 +112,16 @@ export default async function TestsPage() {
       ) : teacher && managed.length ? (
         <NewBlank action={createBlankTest} variant="tile" label="New test" classrooms={managed} />
       ) : (
-        <EmptyState title="No tests yet" />
+        <EmptyState
+          title="No tests yet"
+          action={
+            <Link href="/join" className="caps step text-[17px] underline underline-offset-4">
+              Join a classroom
+            </Link>
+          }
+        >
+          Tests show up here once you&apos;re in a classroom that has some.
+        </EmptyState>
       )}
     </div>
   );

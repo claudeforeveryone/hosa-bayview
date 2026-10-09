@@ -1,12 +1,14 @@
 import { BoardView } from "@/components/board-view";
-import { parsePeriod, rankBoard } from "@/lib/activity";
+import { parseMetric, parsePeriod, rankBoard } from "@/lib/activity";
 import { getBoard } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
 
-// The classroom's board: ranked by Elo only, with the period switch. Gained in the period, total for all time.
+// The classroom's board: only this room's questions, cards and time count, so it ranks work done here.
+// Defaults to questions answered; every measure is one tap away.
 export default async function BoardTab(props: PageProps<"/c/[id]">) {
   const { id } = await props.params;
   const sp = await props.searchParams;
+  const metric = sp.metric ? parseMetric(sp.metric) : "answered";
   const period = parsePeriod(sp.period);
   const [me, board] = await Promise.all([
     requireProfile(),
@@ -15,10 +17,9 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
   return (
     <BoardView
       base={`/c/${id}`}
-      metric="elo"
-      metrics={["elo"]}
+      metric={metric}
       period={period}
-      rows={rankBoard(board, "elo", period)}
+      rows={rankBoard(board, metric, period)}
       meId={me.id}
       empty="No one's on the board yet"
     />
