@@ -10,6 +10,13 @@ import {
 import type { Role } from "@/lib/auth";
 import { uuid } from "@/lib/classrooms";
 import { avatarSources } from "@/lib/avatar-urls";
+import type { LuckyReason } from "@/lib/lucky";
+
+export type BonusRow = {
+  amount: number;
+  reason: LuckyReason | string;
+  created_at: string;
+};
 
 // Reads from the activity RPCs in migrations 0017 and 0030. The database decides who may see what; these just call and map.
 
@@ -178,4 +185,13 @@ export async function getCareer(userId: string): Promise<CareerRow[]> {
   });
   if (error) throw new Error(`Career lookup failed: ${error.message}`);
   return (data ?? []) as CareerRow[];
+}
+
+// Last five lucky bonuses for one member, newest first. Empty for a bad id or no bonuses.
+export async function getRecentBonuses(userId: string): Promise<BonusRow[]> {
+  if (!uuid.safeParse(userId).success) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("recent_bonuses", { uid: userId });
+  if (error) throw new Error(`Bonus lookup failed: ${error.message}`);
+  return ((data ?? []) as BonusRow[]).map((r) => ({ ...r, amount: Number(r.amount) }));
 }

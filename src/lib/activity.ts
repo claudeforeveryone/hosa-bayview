@@ -1,5 +1,5 @@
 // Pure helpers for activity, Elo, leaderboards and the honor roll. No database or server imports, so they test directly.
-// The numbers themselves come from migrations 0017 and 0030; this file only ranks, filters and formats them.
+// The numbers themselves come from migrations 0017, 0030 and 0036; this file only ranks, filters and formats them.
 
 export const PERIODS = ["today", "week", "month", "all"] as const;
 export type Period = (typeof PERIODS)[number];
@@ -31,7 +31,7 @@ export type Result = (typeof RESULTS)[number];
 
 // What the Elo score is made of. Shown under the club board so the number isn't a mystery.
 export const ELO_SUMMARY =
-  "Everyone starts at 1200. Gain 0.5 a minute studied, 1 a flashcard, 2 a question and 3 more when it's right. Each card or question counts once a day. Each day you sign in adds 5. A study streak boosts study gains, up to 1.6× at 30 days.";
+  "Everyone starts at 1200. A flashcard is 1 Elo, a question 2, and 3 more when it's right. Each card or question counts once a day. Each day you sign in adds 5. A study streak boosts study gains, up to 1.6× at 30 days. Lucky bonuses land at random.";
 
 export type BoardRow = {
   user_id: string;

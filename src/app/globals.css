@@ -430,3 +430,66 @@
 @media (prefers-reduced-motion: reduce) {
   .intro { display: none; }
 }
+
+/* Lucky bonus: a band slams in, the number pops, pieces burst out. Transform and opacity only, in hard steps.
+   Reduced motion gets a plain fade of the band and nothing moves. */
+@keyframes lucky-slam {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes lucky-pop {
+  0% {
+    transform: scale(0.5);
+  }
+  45% {
+    transform: scale(1.12);
+  }
+  70% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes lucky-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1);
+    opacity: 0;
+  }
+}
+@keyframes lucky-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.lucky-band,
+.lucky-num {
+  animation: lucky-fade 200ms linear both;
+}
+.lucky-piece {
+  animation: lucky-burst 1200ms steps(6, end) both;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lucky-band {
+    animation: lucky-slam 240ms steps(4, end) both;
+  }
+  .lucky-num {
+    animation: lucky-pop 1200ms steps(6, end) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lucky-piece {
+    display: none;
+  }
+}

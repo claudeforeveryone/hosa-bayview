@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { recordReview } from "@/app/(app)/flashcards/actions";
 import { Button } from "@/components/form";
+import { rollLuckyBonus } from "@/lib/lucky-client";
 import { permutation } from "@/lib/shuffle";
 
 export type StudyCard = { id: string; term: string; definition: string };
@@ -40,6 +41,11 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
     moved.current = false;
     (done ? doneRef.current : cardRef.current)?.focus();
   }, [index, done]);
+
+  // A finished round is a flashcards roll. The server allows one a day, so repeat rounds pay nothing.
+  useEffect(() => {
+    if (done && cards.length) void rollLuckyBonus("flashcards");
+  }, [done, cards.length]);
 
   if (!cards.length) return null;
 

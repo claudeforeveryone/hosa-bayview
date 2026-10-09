@@ -6,6 +6,7 @@ import type { MatchResult } from "@/app/(app)/flashcards/actions";
 import { Button } from "@/components/form";
 import type { StudyCard } from "@/components/study-session";
 import { STANDARD_ROUND, formatMatchTime, matchNote, type MatchOutcome } from "@/lib/match-times";
+import { rollLuckyBonus } from "@/lib/lucky-client";
 import { permutation } from "@/lib/shuffle";
 
 const ROUND = STANDARD_ROUND;
@@ -83,6 +84,11 @@ function MatchRound({
 
   const { total } = layout;
   const finished = finishedMs !== null;
+
+  // A finished match is a flashcards roll, once a day on the server.
+  useEffect(() => {
+    if (finished) void rollLuckyBonus("flashcards");
+  }, [finished]);
 
   // Times come from the tap events (same clock as performance.now), so start and finish are read at the tap itself.
   useEffect(() => {

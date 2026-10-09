@@ -35,7 +35,9 @@ insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, aud, 
   ('00000000-0000-4000-8000-0000000000b3', 'act.trainer@example.com', '{"full_name":"Act Trainer"}', now(), 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-0000000000b4', 'act.exec@example.com', '{"full_name":"Act Exec"}', now(), 'authenticated', 'authenticated'),
   ('00000000-0000-4000-8000-0000000000b5', 'act.trainer2@example.com', '{"full_name":"Act Trainer Two"}', now(), 'authenticated', 'authenticated'),
-  ('00000000-0000-4000-8000-0000000000b6', 'act.idle@example.com', '{"full_name":"Act Idle"}', now(), 'authenticated', 'authenticated');
+  ('00000000-0000-4000-8000-0000000000b6', 'act.idle@example.com', '{"full_name":"Act Idle"}', now(), 'authenticated', 'authenticated'),
+  ('00000000-0000-4000-8000-0000000000b7', 'act.lucky@example.com', '{"full_name":"Act Lucky"}', now(), 'authenticated', 'authenticated'),
+  ('00000000-0000-4000-8000-0000000000b8', 'act.bonus@example.com', '{"full_name":"Act Bonus"}', now(), 'authenticated', 'authenticated');
 update public.profiles set role = 'trainer' where id in ('00000000-0000-4000-8000-0000000000b3', '00000000-0000-4000-8000-0000000000b5');
 update public.profiles set role = 'executive' where id = '00000000-0000-4000-8000-0000000000b4';
 
@@ -168,10 +170,10 @@ select pg_temp.check('chapter board: b1 answered 3 right 2, 2 reviews',
   (select answered = 3 and correct = 2 and reviews = 2 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 select pg_temp.check('streak counts today for b1',
   (select streak = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
--- Activity gains: 1 min x 0.5 + 2 reviews + 3 answered x 2 + 2 right x 3 = 14.5; streak 1 gives x1.02 => 14.79, rounds to 15.
--- Plus 5 for today's sign-in: 1200 + 15 + 5 = 1220. Everything happened today, so the gain is 20 too.
-select pg_temp.check('elo in the board matches the formula (1220, gain 20)',
-  (select elo = 1220 and gain = 20 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+-- Study gains: 2 reviews + 3 answered x 2 + 2 right x 3 = 14 (minutes do not count); streak 1 gives x1.02 => 14.28, rounds to 14.
+-- Plus 5 for today's sign-in: 1200 + 14 + 5 = 1219. Everything happened today, so the gain is 19 too.
+select pg_temp.check('elo in the board matches the formula (1219, gain 19)',
+  (select elo = 1219 and gain = 19 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
 -- Career: own answers; trainers see answers in their rooms; executives see all; trainees never see others'
 select pg_temp.check('career keeps every graded answer, repeats included (history, not score)',
@@ -199,8 +201,8 @@ select pg_temp.check('executive sees all answers',
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
 select pg_temp.check('profile stats visible to another member, with a rank',
   (select count(*) = 1 and bool_and(rank >= 1) from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
-select pg_temp.check('profile shows sign-in streak (1, today) and all-time elo 1220',
-  (select sign_in_streak = 1 and elo = 1220 from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
+select pg_temp.check('profile shows sign-in streak (1, today) and all-time elo 1219',
+  (select sign_in_streak = 1 and elo = 1219 from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
 select pg_temp.check('profile for a missing member is empty',
   (select count(*) from public.member_stats('00000000-0000-4000-8000-0000000000ff')) = 0);
 select pg_temp.check('directory lists members by name',
@@ -231,18 +233,20 @@ select pg_temp.check('sign-in streak: three days running (b6)',
 select pg_temp.check('sign-in streak: none for a member who never signed in (b5)',
   private.sign_in_streak('00000000-0000-4000-8000-0000000000b5') = 0);
 
--- Elo gained by period: b4 has activity and sign-ins only on past days, so today's gain is zero.
--- All time: 2 minutes x 0.5 x 1.04 (streak 2) rounds to 1, plus 2 sign-ins x 5 = 11. Total elo is all-time in every period.
+-- Elo gained by period: b4 has minutes and sign-ins only on past days, so today's gain is zero.
+-- All time: 2 sign-ins x 5 = 10. The two minutes rows add nothing: time no longer counts. Total elo is all-time in every period.
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
-select pg_temp.check('gain today leaves out past days (b4 gains 0 today, elo still 1211)',
-  (select gain = 0 and elo = 1211 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
-select pg_temp.check('gain all time counts every day (b4 gains 11)',
-  (select gain = 11 and elo = 1211 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
-select pg_temp.check('gain today for b1 is today activity plus today sign-in (20, elo 1220)',
-  (select gain = 20 and elo = 1220 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
-select pg_temp.check('week and month gains for b1 are 20 (all of it is this week)',
-  (select bool_and(gain = 20) from public.leaderboard('week', null) where user_id = '00000000-0000-4000-8000-0000000000b1')
-  and (select bool_and(gain = 20) from public.leaderboard('month', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+select pg_temp.check('gain today leaves out past days (b4 gains 0 today, elo 1210)',
+  (select gain = 0 and elo = 1210 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
+select pg_temp.check('gain all time counts every day, minutes excluded (b4 gains 10)',
+  (select gain = 10 and elo = 1210 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
+select pg_temp.check('gain today for b1 is today activity plus today sign-in (19, elo 1219)',
+  (select gain = 19 and elo = 1219 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+select pg_temp.check('week and month gains for b1 are 19 (all of it is this week)',
+  (select bool_and(gain = 19) from public.leaderboard('week', null) where user_id = '00000000-0000-4000-8000-0000000000b1')
+  and (select bool_and(gain = 19) from public.leaderboard('month', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+select pg_temp.check('hours stat still reported on the board (b1 has 1 minute)',
+  (select minutes = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
 -- Honor roll: 3+ day sign-in streaks. b6 qualifies, b4 (2 days) and b1 (today only) do not.
 select pg_temp.check('honor roll lists a 3-day streak (b6)',
@@ -256,19 +260,78 @@ select pg_temp.expect('honor roll needs a signed-in user', 'select * from public
 select pg_temp.check('today starts at Toronto midnight, within the last day',
   private.period_start('today') between now() - interval '1 day' and now());
 
+-- Lucky bonuses for b8 (manual rows, so the sums are exact). Newest first: 25 now, 10 / 10 / 10 a few seconds
+-- back, 50 two days ago, 5 three days ago. Total 110; today 55; the old two are outside today.
+insert into public.elo_bonuses (user_id, amount, reason, created_at) values
+  ('00000000-0000-4000-8000-0000000000b8', 25, 'visit', now()),
+  ('00000000-0000-4000-8000-0000000000b8', 10, 'test', now() - interval '1 second'),
+  ('00000000-0000-4000-8000-0000000000b8', 10, 'flashcards', now() - interval '2 seconds'),
+  ('00000000-0000-4000-8000-0000000000b8', 10, 'visit', now() - interval '3 seconds'),
+  ('00000000-0000-4000-8000-0000000000b8', 50, 'test', now() - interval '2 days'),
+  ('00000000-0000-4000-8000-0000000000b8', 5, 'flashcards', now() - interval '3 days');
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
+select pg_temp.check('bonuses count toward all-time elo (b8: 1200 + 110)',
+  (select elo = 1310 and gain = 110 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b8'));
+select pg_temp.check('bonuses count toward today gain, old ones leave out (b8: 55)',
+  (select gain = 55 and elo = 1310 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b8'));
+select pg_temp.check('member profile elo includes bonuses (b8 1310)',
+  (select elo = 1310 from public.member_stats('00000000-0000-4000-8000-0000000000b8')));
+select pg_temp.check('recent bonuses: five rows, newest first (b8)',
+  (select count(*) = 5 from public.recent_bonuses('00000000-0000-4000-8000-0000000000b8'))
+  and (select amount = 25 from public.recent_bonuses('00000000-0000-4000-8000-0000000000b8') limit 1)
+  and not exists (select 1 from public.recent_bonuses('00000000-0000-4000-8000-0000000000b8') where amount = 5));
+select pg_temp.check('recent bonuses are empty for a member with none (b5)',
+  (select count(*) = 0 from public.recent_bonuses('00000000-0000-4000-8000-0000000000b5')));
+
+-- Roll rules: a real roll for b7 (random, so only the rules are checked). Each reason rolls once a day.
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000b7');
+select set_config('act.visit1', public.roll_lucky_bonus('visit')::text, true);
+select set_config('act.visit2', public.roll_lucky_bonus('visit')::text, true);
+select set_config('act.visit3', public.roll_lucky_bonus('visit')::text, true);
+select set_config('act.test1', public.roll_lucky_bonus('test')::text, true);
+select set_config('act.test2', public.roll_lucky_bonus('test')::text, true);
+select set_config('act.flash1', public.roll_lucky_bonus('flashcards')::text, true);
+select pg_temp.expect('roll refuses an unknown reason', 'select public.roll_lucky_bonus(''year'')', '22023');
+select pg_temp.as_admin();
+select pg_temp.expect('roll needs a signed-in user', 'select public.roll_lucky_bonus(''visit'')', '42501');
+select pg_temp.check('first visit roll pays 0, 5 to 25, or the 50 jackpot',
+  (select v = 0 or v = 50 or (v between 5 and 25) from (select current_setting('act.visit1')::int as v) x));
+select pg_temp.check('repeat rolls the same day pay nothing (visit x2, test x1)',
+  current_setting('act.visit2')::int = 0 and current_setting('act.visit3')::int = 0 and current_setting('act.test2')::int = 0);
+select pg_temp.check('one roll row per reason per day (b7: 3 rows)',
+  (select count(*) = 3 from public.elo_rolls where user_id = '00000000-0000-4000-8000-0000000000b7' and day = private.local_day(now())));
+select pg_temp.check('bonus rows match the paid rolls (b7)',
+  (select count(*) = ((current_setting('act.visit1')::int > 0)::int + (current_setting('act.test1')::int > 0)::int + (current_setting('act.flash1')::int > 0)::int)
+     from public.elo_bonuses where user_id = '00000000-0000-4000-8000-0000000000b7'));
+select pg_temp.check('bonus rows for b7 stay in range (5 to 25, or 50)',
+  not exists (select 1 from public.elo_bonuses where user_id = '00000000-0000-4000-8000-0000000000b7' and amount not in (50) and amount not between 5 and 25));
+select pg_temp.expect('bonus amounts are checked at the table', $$insert into public.elo_bonuses (user_id, amount, reason) values ('00000000-0000-4000-8000-0000000000b7', 51, 'visit')$$, '23514');
+select pg_temp.expect('bonus reason is checked at the table', $$insert into public.elo_bonuses (user_id, amount, reason) values ('00000000-0000-4000-8000-0000000000b7', 5, 'bogus')$$, '23514');
+
+-- The odds and amounts come from one pure function, so they test without randomness.
+select pg_temp.check('lucky: no win (roll 0.5) pays nothing', private.lucky_amount(0.5, 0, 0) = 0);
+select pg_temp.check('lucky: 0.2 is the first losing roll', private.lucky_amount(0.2, 0, 0) = 0);
+select pg_temp.check('lucky: smallest win is 5', private.lucky_amount(0.199, 0.5, 0) = 5);
+select pg_temp.check('lucky: largest win is 25', private.lucky_amount(0.1, 0.5, 0.999999) = 25);
+select pg_temp.check('lucky: middle win is 15', private.lucky_amount(0.1, 0.5, 0.5) = 15);
+select pg_temp.check('lucky: jackpot pays 50 (1 in 50 of wins)', private.lucky_amount(0.1, 0.0199, 0) = 50);
+select pg_temp.check('lucky: 0.02 is not the jackpot', private.lucky_amount(0.1, 0.02, 0) = 5);
+
 -- Elo formula ---------------------------------------------------------------------------
--- Gains: 0.5 a minute, 1 a review, 2 a question, 3 more when right, times the streak multiplier (max x1.6 at 30 days).
--- Sign-ins: +5 each, added after the multiplier. Everyone starts at 1200.
+-- Gains: 1 a review, 2 a question, 3 more when right, times the streak multiplier (max x1.6 at 30 days).
+-- Sign-ins: +5 each, added after the multiplier. Lucky bonuses: flat. Minutes do not count. Everyone starts at 1200.
 select pg_temp.check('elo: base is 1200', private.elo_score(0, 0, 0, 0, 0, 0) = 1200);
-select pg_temp.check('elo: 60 minutes is +30', private.elo_score(60, 0, 0, 0, 0, 0) = 1230);
-select pg_temp.check('elo: 10 reviews is +10', private.elo_score(0, 10, 0, 0, 0, 0) = 1210);
-select pg_temp.check('elo: 10 answered with 5 right is +35', private.elo_score(0, 0, 10, 5, 0, 0) = 1235);
-select pg_temp.check('elo: streak multiplies gains, not the base', private.elo_score(0, 0, 0, 0, 30, 0) = 1200);
-select pg_temp.check('elo: 30-day streak is x1.6 on gains', private.elo_score(100, 0, 0, 0, 30, 0) = 1280);
-select pg_temp.check('elo: streak above 30 is capped', private.elo_score(100, 0, 0, 0, 90, 0) = 1280);
-select pg_temp.check('elo: each sign-in day is +5', private.elo_score(0, 0, 0, 0, 0, 3) = 1215);
-select pg_temp.check('elo: sign-ins are not multiplied by the streak', private.elo_score(100, 0, 0, 0, 30, 1) = 1285);
-select pg_temp.check('elo gain is the score minus the base', private.elo_gain(100, 0, 0, 0, 30, 1) = 85);
+select pg_temp.check('elo: 10 reviews is +10', private.elo_score(10, 0, 0, 0, 0, 0) = 1210);
+select pg_temp.check('elo: 10 answered with 5 right is +35', private.elo_score(0, 10, 5, 0, 0, 0) = 1235);
+select pg_temp.check('elo: streak multiplies gains, not the base', private.elo_score(0, 0, 0, 30, 0, 0) = 1200);
+select pg_temp.check('elo: 30-day streak is x1.6 on gains', private.elo_score(100, 0, 0, 30, 0, 0) = 1360);
+select pg_temp.check('elo: streak above 30 is capped', private.elo_score(100, 0, 0, 90, 0, 0) = 1360);
+select pg_temp.check('elo: each sign-in day is +5', private.elo_score(0, 0, 0, 0, 3, 0) = 1215);
+select pg_temp.check('elo: sign-ins are not multiplied by the streak', private.elo_score(100, 0, 0, 30, 1, 0) = 1365);
+select pg_temp.check('elo: lucky bonus is added flat', private.elo_score(0, 0, 0, 0, 0, 25) = 1225);
+select pg_temp.check('elo: lucky bonus is not multiplied by the streak', private.elo_score(100, 0, 0, 30, 0, 25) = 1385);
+select pg_temp.check('elo: jackpot adds 50', private.elo_score(0, 0, 0, 0, 0, 50) = 1250);
+select pg_temp.check('elo gain is the score minus the base', private.elo_gain(100, 0, 0, 30, 1, 0) = 165);
 
 -- Leftover rollback
 rollback;

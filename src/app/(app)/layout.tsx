@@ -1,5 +1,6 @@
 import { BottomNav, MobileBar, Sidebar } from "@/components/nav";
 import { Credit } from "@/components/credit";
+import { LuckyBonus } from "@/components/lucky-bonus";
 import { OnlineHeartbeat } from "@/components/online-heartbeat";
 import { WarningBanner } from "@/components/warning-banner";
 import { canTeach, requireProfile } from "@/lib/auth";
@@ -63,6 +64,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       </div>
       <BottomNav isExec={nav.isExec} />
       <OnlineHeartbeat />
+      <LuckyBonus />
     </div>
   );
 }

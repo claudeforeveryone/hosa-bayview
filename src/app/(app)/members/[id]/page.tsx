@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Avatar } from "@/components/avatar";
-import { MemberStatRows } from "@/components/member-stats";
-import { getMemberDetails, getMemberStats } from "@/lib/activity-data";
+import { MemberStatRows, RecentBonuses } from "@/components/member-stats";
+import {
+  getMemberDetails,
+  getMemberStats,
+  getRecentBonuses,
+} from "@/lib/activity-data";
 import { requireProfile, type Role } from "@/lib/auth";
 import { gradeLabel } from "@/lib/profile";
 
@@ -24,6 +28,8 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
     getMemberDetails(),
   ]);
   if (!stats) notFound();
+  // A failed bonus lookup leaves the line out rather than failing the profile.
+  const bonuses = await getRecentBonuses(id).catch(() => []);
   const detail = details.get(stats.user_id);
 
   return (
@@ -48,6 +54,7 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
         </div>
       </header>
       <MemberStatRows stats={stats} />
+      <RecentBonuses rows={bonuses} />
       <Link
         href="/members"
         className="caps step justify-self-start text-[17px] underline underline-offset-4"

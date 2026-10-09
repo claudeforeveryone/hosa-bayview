@@ -10,6 +10,7 @@ import {
 import { AskTeacher, type FlagState } from "@/components/ask-teacher";
 import { Button, FormMessage } from "@/components/form";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
+import { rollLuckyBonus } from "@/lib/lucky-client";
 import type { AttemptQuestion } from "@/lib/tests";
 
 type Answer = {
@@ -95,7 +96,10 @@ export function TakeTest({
       if (r.error) {
         submitted.current = false;
         setError(r.error);
-      } else router.refresh();
+      } else {
+        void rollLuckyBonus("test");
+        router.refresh();
+      }
     });
   }, [attemptId, router]);
 
