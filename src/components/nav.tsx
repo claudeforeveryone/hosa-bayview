@@ -27,6 +27,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Credit } from "@/components/credit";
 import { formNumber } from "@/lib/join-code";
+import { BLC_ENABLED } from "@/lib/features";
 
 export type NavRoom = { id: string; num: number; name: string };
 type Props = {
@@ -150,7 +151,9 @@ function useItems(isExec: boolean) {
   const path = usePathname();
   return {
     path,
-    items: ITEMS.filter((i) => !i.exec || isExec).map((i) => ({
+    items: ITEMS.filter(
+      (i) => (!i.exec || isExec) && (BLC_ENABLED || i.href !== "/blc"),
+    ).map((i) => ({
       ...i,
       active: i.match(path),
     })),

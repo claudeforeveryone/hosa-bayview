@@ -6,6 +6,7 @@ import { formNumber } from "@/lib/join-code";
 import { createClient } from "@/lib/supabase/server";
 import { formatWhen, timeAgo } from "@/lib/when";
 import { adminDelete } from "./content-actions";
+import { BLC_ENABLED } from "@/lib/features";
 
 const heading =
   "font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase";
@@ -233,7 +234,11 @@ export async function ContentLists() {
           {R.map((r) => (
             <Row
               key={r.id}
-              href={r.kind === "competition" ? `/blc/${r.id}` : `/c/${r.id}`}
+              href={
+                r.kind === "competition" && BLC_ENABLED
+                  ? `/blc/${r.id}`
+                  : `/c/${r.id}`
+              }
               title={r.name}
               meta={[
                 formNumber("C", r.num),

@@ -8,6 +8,7 @@ import { getClassroom } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
 import { createClient } from "@/lib/supabase/server";
 import { regenerateCode } from "../actions";
+import { BLC_ENABLED } from "@/lib/features";
 
 export async function generateMetadata({
   params,
@@ -61,7 +62,7 @@ export default async function ClassroomLayout({
             </span>
           </div>
           <p className="text-[17px] text-on-field-2">{meta}</p>
-          {isCompetition ? (
+          {isCompetition && BLC_ENABLED ? (
             <Link
               href={`/blc/${room.id}`}
               className="caps step inline-flex min-h-11 w-fit items-center text-[17px] text-on-field-2 underline hover:text-on-field"
