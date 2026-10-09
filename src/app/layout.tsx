@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed, Montserrat } from "next/font/google";
+import { IntroBanner } from "@/components/intro-banner";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -36,9 +37,6 @@ export const viewport: Viewport = {
 // Resolves the theme before first paint so there's no flash.
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){}})()`;
 
-// The logo intro plays on the first page load of a browser session only.
-const introScript = `(function(){try{if(sessionStorage.getItem('intro')){document.documentElement.dataset.intro='done'}else{sessionStorage.setItem('intro','1')}}catch(e){document.documentElement.dataset.intro='done'}})()`;
-
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -48,9 +46,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <script dangerouslySetInnerHTML={{ __html: introScript }} />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <IntroBanner />
+      </body>
     </html>
   );
 }

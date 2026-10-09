@@ -138,177 +138,295 @@
   }
 }
 
-/* Brand mark: tiger + "Shatter every limit" (src/components/brand-mark.tsx).
-   Sizes come from --bw, the tiger's width. */
-.brand {
-  display: inline-flex;
-  font-family: var(--font-montserrat), var(--font-barlow), sans-serif;
-  line-height: 1;
-  text-transform: uppercase;
-}
-.brand-stack {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: calc(var(--bw) * 0.07);
-  --b1: calc(var(--bw) * 0.19);
-  --b2: calc(var(--bw) * 0.12);
-  --b3: calc(var(--bw) * 0.075);
-}
-.brand-row {
-  flex-direction: row;
-  align-items: center;
-  gap: calc(var(--bw) * 0.16);
-  --b1: calc(var(--bw) * 0.3);
-  --b2: calc(var(--bw) * 0.19);
-  --b3: calc(var(--bw) * 0.13);
-}
-.brand-tiger {
+/* Classic logo (src/components/classic-logo.tsx): official art as a mask plus a live season. */
+.classic-logo {
   position: relative;
-  display: block;
-  flex-shrink: 0;
-  width: var(--bw);
-  aspect-ratio: 676 / 432;
-  overflow: hidden;
-  background: currentColor;
-  mask: url(/brand/tiger-mask.png) center / contain no-repeat;
-  -webkit-mask: url(/brand/tiger-mask.png) center / contain no-repeat;
+  display: inline-block;
+  vertical-align: top;
+  aspect-ratio: 793 / 746;
+  container-type: inline-size;
 }
-/* A light band that crosses the tiger; the tiger's mask clips it to the artwork. */
-.brand-glint {
+.classic-art {
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  mask: url(/brand/classic.png) center / contain no-repeat;
+  -webkit-mask: url(/brand/classic.png) center / contain no-repeat;
+}
+.classic-season {
+  position: absolute;
+  left: 43.1%;
+  top: 80.9%;
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 4.25cqw;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* Opening banner (src/components/intro-banner.tsx). Every full page load: rolls down like a
+   blind hinged at the top, the classic logo breaks apart in 3D, "Shatter every limit" flips
+   in letter by letter, then it rolls back up. ~3.9s total; tap or Escape skips. */
+.intro {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 60;
+  height: clamp(17rem, 56vh, 34rem);
+  perspective: 1400px;
+  perspective-origin: 50% 0%;
+  pointer-events: none;
+  animation: intro-life 3900ms linear both;
+}
+.intro-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: var(--on-field);
+  background:
+    radial-gradient(120% 90% at 30% 35%, color-mix(in srgb, var(--field-2) 85%, white 15%) 0%, var(--field) 55%, color-mix(in srgb, var(--field) 70%, black 30%) 100%);
+  transform-origin: 50% 0%;
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.55);
+  animation: intro-roll 3900ms both;
+}
+/* Fine scan lines give the field some texture without adding colour. */
+.intro-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.035) 0 1px, transparent 1px 4px);
+  pointer-events: none;
+}
+/* The bottom edge of the blind. */
+.intro-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: color-mix(in srgb, var(--on-field) 35%, transparent);
+}
+.intro-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 3.5rem);
+  padding: 1.5rem clamp(1rem, 5vw, 4rem) 2rem;
+  transform-style: preserve-3d;
+  perspective: 900px;
+}
+.intro-stage {
+  position: relative;
+  flex-shrink: 0;
+  width: clamp(9.5rem, 30vw, 22rem);
+  aspect-ratio: 793 / 746;
+  container-type: inline-size;
+  transform-style: preserve-3d;
+  animation: intro-stage 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.intro-layer {
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+.intro-triangle { -webkit-mask-image: url(/brand/layer-triangle.png); mask-image: url(/brand/layer-triangle.png); }
+.intro-word { -webkit-mask-image: url(/brand/layer-word.png); mask-image: url(/brand/layer-word.png); }
+.intro-tiger {
+  -webkit-mask-image: url(/brand/layer-tiger.png);
+  mask-image: url(/brand/layer-tiger.png);
+  overflow: hidden;
+  animation: intro-tiger 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.intro-shard {
+  animation: intro-shard 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation-delay: var(--d, 0ms);
+  will-change: transform, opacity;
+}
+.intro-season-old {
+  position: absolute;
+  left: 43.1%;
+  top: 80.9%;
+  font-family: var(--font-montserrat), sans-serif;
+  font-size: 4.25cqw;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  animation: intro-season-old 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.intro-glint {
   position: absolute;
   inset: -10% auto -10% 0;
-  width: 45%;
+  width: 40%;
   background: linear-gradient(100deg, transparent 0%, rgb(255 255 255 / 0.95) 50%, transparent 100%);
   opacity: 0;
+  animation: intro-glint 3900ms cubic-bezier(0.77, 0, 0.175, 1) both;
 }
-.brand-words {
+/* The moment of impact: a white bloom at the point the shards leave from. */
+.intro-flash {
+  position: absolute;
+  left: 62%;
+  top: 46%;
+  width: 70%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.95) 0%, rgb(255 255 255 / 0.35) 30%, transparent 65%);
+  opacity: 0;
+  pointer-events: none;
+  animation: intro-flash 3900ms ease-out both;
+}
+.intro-words {
   position: relative;
   display: grid;
   justify-items: start;
-  gap: 0.18em;
-  overflow: hidden;
-  padding-right: 0.35em;
+  gap: 0.12em;
+  font-family: var(--font-montserrat), sans-serif;
+  text-transform: uppercase;
+  line-height: 0.95;
+  transform-style: preserve-3d;
 }
-.brand-l1 {
-  position: relative;
-  font-size: var(--b1);
+.intro-line {
+  display: block;
+  white-space: nowrap;
+  transform-style: preserve-3d;
+}
+.intro-line-1 {
+  font-size: clamp(2.4rem, 8.4vw, 7rem);
   font-weight: 800;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
-.brand-l2 {
-  font-size: var(--b2);
+.intro-line-2 {
+  font-size: clamp(1.45rem, 5vw, 4.2rem);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
 }
-.brand-year {
-  margin-top: 0.25em;
-  font-size: var(--b3);
+.intro-char {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  backface-visibility: hidden;
+  animation: intro-char 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  animation-delay: calc(var(--i) * 32ms);
+}
+.intro-space {
+  width: 0.3em;
+}
+.intro-season {
+  margin-top: 0.6em;
+  font-size: clamp(0.8rem, 1.6vw, 1.25rem);
   font-weight: 500;
-  letter-spacing: 0.2em;
-  opacity: 0.75;
+  letter-spacing: 0.32em;
+  opacity: 0;
+  animation: intro-season 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-/* The bright leading edge of the sweep. Rests off to the left, invisible. */
-.brand-scan {
+.intro-scan {
   position: absolute;
-  inset: 0;
+  inset: -6% -4%;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent 0%, transparent 88%, rgb(255 255 255 / 0.9) 97%, transparent 100%);
-  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent 0%, transparent 86%, rgb(255 255 255 / 0.85) 96%, transparent 100%);
   opacity: 0;
+  animation: intro-scan 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-/* Slivers that break off "Shatter" as the sweep lands. */
-.brand-shards {
-  position: absolute;
-  top: 0;
-  right: -0.15em;
-  bottom: 0;
-  width: 0.5em;
-}
-.brand-shards i {
-  position: absolute;
-  left: 0;
-  width: 0.42em;
-  height: 0.07em;
-  min-height: 1.5px;
-  background: currentColor;
-  opacity: 0;
-}
-.brand-shards i:nth-child(1) { top: 18%; --r: -14deg; --d: 0.55em; }
-.brand-shards i:nth-child(2) { top: 48%; --r: 6deg; --d: 0.8em; }
-.brand-shards i:nth-child(3) { top: 76%; --r: 18deg; --d: 0.45em; }
 
-@media (prefers-reduced-motion: no-preference) {
-  html:not([data-intro="done"]) .brand-tiger {
-    animation: brand-tiger-in 720ms cubic-bezier(0.23, 1, 0.32, 1) both;
+@media (max-width: 40rem) {
+  .intro {
+    height: clamp(20rem, 66vh, 30rem);
   }
-  html:not([data-intro="done"]) .brand-glint {
-    animation: brand-glint 950ms cubic-bezier(0.77, 0, 0.175, 1) 380ms both;
+  .intro-scene {
+    flex-direction: column;
+    gap: 0.9rem;
   }
-  html:not([data-intro="done"]) .brand-l1 {
-    animation: brand-wipe 640ms cubic-bezier(0.23, 1, 0.32, 1) 260ms both;
+  .intro-stage {
+    width: min(52vw, 13rem, 24vh);
   }
-  html:not([data-intro="done"]) .brand-l2 {
-    animation: brand-wipe 640ms cubic-bezier(0.23, 1, 0.32, 1) 380ms both;
+  .intro-words {
+    justify-items: center;
+    text-align: center;
   }
-  html:not([data-intro="done"]) .brand-year {
-    animation: brand-rise 480ms cubic-bezier(0.23, 1, 0.32, 1) 860ms both;
+  .intro-line-1 {
+    font-size: clamp(2.2rem, 13vw, 3.6rem);
   }
-  html:not([data-intro="done"]) .brand-scan {
-    animation: brand-scan 760ms cubic-bezier(0.23, 1, 0.32, 1) 260ms both;
-  }
-  html:not([data-intro="done"]) .brand-shards i {
-    animation: brand-shard 560ms cubic-bezier(0.23, 1, 0.32, 1) 700ms both;
-  }
-  html:not([data-intro="done"]) .brand-shards i:nth-child(2) { animation-delay: 740ms; }
-  html:not([data-intro="done"]) .brand-shards i:nth-child(3) { animation-delay: 780ms; }
-}
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-intro="done"]) .brand {
-    animation: brand-fade 300ms ease both;
+  .intro-line-2 {
+    font-size: clamp(1.3rem, 7.6vw, 2.2rem);
   }
 }
 
-@keyframes brand-tiger-in {
-  from {
+/* Timeline as percentages of 3900ms:
+   0-17% roll down · 26-40% shatter · 34-52% words flip in · 52-82% hold · 84-100% roll up. */
+@keyframes intro-life {
+  0%, 99% { visibility: visible; }
+  100% { visibility: hidden; }
+}
+@keyframes intro-roll {
+  0% { transform: rotateX(-96deg); opacity: 0.4; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  13% { transform: rotateX(7deg); opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  18% { transform: rotateX(0deg); }
+  84% { transform: rotateX(0deg); opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  100% { transform: rotateX(-96deg); opacity: 0; }
+}
+@keyframes intro-stage {
+  0% { transform: rotateY(-26deg) rotateX(10deg) translateZ(-60px); }
+  26% { transform: rotateY(-14deg) rotateX(5deg) translateZ(0); }
+  40% { transform: rotateY(-4deg) rotateX(2deg) translateZ(20px); }
+  84% { transform: rotateY(3deg) rotateX(0deg) translateZ(20px); }
+  100% { transform: rotateY(6deg) rotateX(0deg) translateZ(0); }
+}
+@keyframes intro-tiger {
+  0% { transform: translateZ(40px); }
+  26% { transform: translateZ(40px) scale(1); }
+  30% { transform: translateZ(60px) scale(1.04); }
+  44% { transform: translateZ(70px) translateY(-6%) scale(1.06); }
+  100% { transform: translateZ(70px) translateY(-6%) scale(1.06); }
+}
+@keyframes intro-shard {
+  0%, 26% { transform: translateZ(40px); opacity: 1; }
+  27% { transform: translate3d(calc(var(--tx) * 0.04), calc(var(--ty) * 0.04), 50px); opacity: 1; }
+  48% {
+    transform: translate3d(var(--tx), var(--ty), var(--tz)) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz));
     opacity: 0;
-    transform: translateX(-30%) skewX(-14deg) scale(0.96);
-    filter: blur(6px);
   }
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
+  100% {
+    transform: translate3d(var(--tx), var(--ty), var(--tz)) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz));
+    opacity: 0;
   }
 }
-@keyframes brand-glint {
-  0% { transform: translateX(-110%); opacity: 1; }
-  85% { opacity: 1; }
-  100% { transform: translateX(240%); opacity: 0; }
+@keyframes intro-season-old {
+  0%, 26% { transform: translateZ(40px); opacity: 1; }
+  40%, 100% { transform: translate3d(-30%, 90%, 180px) rotateX(70deg); opacity: 0; }
 }
-@keyframes brand-wipe {
-  from {
-    clip-path: inset(0 100% 0 0);
-    transform: translateX(-14%) skewX(-12deg);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-    transform: none;
-  }
+@keyframes intro-flash {
+  0%, 25% { opacity: 0; transform: scale(0.4); }
+  27% { opacity: 1; transform: scale(0.9); }
+  40%, 100% { opacity: 0; transform: scale(1.5); }
 }
-@keyframes brand-scan {
-  0% { transform: translateX(-100%); opacity: 1; }
-  80% { opacity: 1; }
-  100% { transform: translateX(8%); opacity: 0; }
+@keyframes intro-glint {
+  0%, 50% { transform: translateX(-110%); opacity: 0; }
+  51% { opacity: 1; }
+  70% { transform: translateX(260%); opacity: 1; }
+  71%, 100% { transform: translateX(260%); opacity: 0; }
 }
-@keyframes brand-shard {
-  0% { opacity: 1; transform: translateX(0) rotate(var(--r)); }
-  100% { opacity: 0; transform: translateX(var(--d)) rotate(var(--r)) scaleX(0.4); }
+@keyframes intro-char {
+  0%, 34% { transform: perspective(500px) rotateY(-95deg) translateX(-0.4em) translateZ(-60px); opacity: 0; }
+  46%, 100% { transform: none; opacity: 1; }
 }
-@keyframes brand-rise {
-  from { opacity: 0; transform: translateY(40%); }
-  to { opacity: 0.75; transform: none; }
+@keyframes intro-season {
+  0%, 48% { transform: translateY(70%); opacity: 0; letter-spacing: 0.6em; }
+  58%, 100% { transform: none; opacity: 0.8; letter-spacing: 0.32em; }
 }
-@keyframes brand-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes intro-scan {
+  0%, 34% { transform: translateX(-100%); opacity: 0; }
+  35% { opacity: 1; }
+  54% { transform: translateX(10%); opacity: 1; }
+  56%, 100% { transform: translateX(10%); opacity: 0; }
+}
+
+/* Reduced motion: no banner. The logo in the nav is already on the page. */
+@media (prefers-reduced-motion: reduce) {
+  .intro { display: none; }
 }

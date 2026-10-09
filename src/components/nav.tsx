@@ -16,7 +16,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { BrandMark } from "@/components/brand-mark";
+import { ClassicLogo } from "@/components/classic-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Credit } from "@/components/credit";
 import { formNumber } from "@/lib/join-code";
@@ -182,7 +182,7 @@ export function Sidebar(props: Props) {
         aria-label="HOSA Bayview home"
         className="block px-6 pt-6 pb-8"
       >
-        <BrandMark width="168px" />
+        <ClassicLogo className="h-[136px]" />
       </Link>
       <PanelBody {...props} />
       <div className="mt-auto flex items-end justify-between gap-3 border-t border-on-field-2/40 px-6 pt-4 pb-5">
@@ -213,7 +213,7 @@ export function MobileBar(props: Props) {
   return (
     <header className="flex items-start justify-between gap-4 px-4 pt-3 lg:hidden">
       <Link href="/" aria-label="HOSA Bayview home" className="text-ink">
-        <BrandMark layout="row" width="72px" />
+        <ClassicLogo className="h-[96px]" />
       </Link>
       <div className="flex items-center">
         <ThemeToggle className="text-ink" />
@@ -240,7 +240,7 @@ export function MobileBar(props: Props) {
       >
         <div className="flex min-h-full flex-col">
           <div className="flex items-start justify-between px-5 pt-3 pb-6">
-            <BrandMark layout="row" width="64px" />
+            <ClassicLogo className="h-[80px]" />
             <button
               type="button"
               onClick={() => drawer.current?.close()}
