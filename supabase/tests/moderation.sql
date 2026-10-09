@@ -126,7 +126,8 @@ select pg_temp.expect('banned trainee cannot save the breakdown', $q$select publ
 select pg_temp.expect('banned trainee cannot take attendance', $q$select public.save_attendance_week(gen_random_uuid(), date '2026-10-05', '', '[]'::jsonb)$q$, '42501');
 select pg_temp.as_admin();
 
--- Demo executives: can look around, can't moderate anyone or change others' pictures.
+-- Look-around demo executives (full_access off): can't moderate anyone or change others' pictures.
+update private.demo_accounts set full_access = false where slug = 'kaden-li';
 select pg_temp.as_user((select user_id from private.demo_accounts where slug = 'kaden-li'));
 select pg_temp.check('demo is an executive', private.is_executive() and private.is_demo());
 select pg_temp.expect('demo cannot warn', $q$select public.warn_member('00000000-0000-4000-8000-0000000000a1', 'hi')$q$, '42501');
@@ -135,6 +136,15 @@ select pg_temp.expect('demo cannot unban', $q$select public.unban_member('000000
 select pg_temp.expect('demo cannot remove', $q$select public.remove_member('00000000-0000-4000-8000-0000000000a1')$q$, '42501');
 select pg_temp.expect('demo cannot change another picture', $q$update public.profiles set avatar_path = '00000000-0000-4000-8000-0000000000a1/44444444-4444-4444-8444-444444444444.webp' where id = '00000000-0000-4000-8000-0000000000a1'$q$, '42501');
 select pg_temp.expect('demo cannot upload another folder', $q$insert into storage.objects (bucket_id, name) values ('avatars', '00000000-0000-4000-8000-0000000000a1/55555555-5555-4555-8555-555555555555.webp')$q$, '42501');
+select pg_temp.as_admin();
+-- With full access (0047) the same account is a plain executive and can moderate.
+update private.demo_accounts set full_access = true where slug = 'kaden-li';
+select pg_temp.as_user((select user_id from private.demo_accounts where slug = 'kaden-li'));
+select pg_temp.check('full-access preset is not demo', private.is_executive() and not private.is_demo() and not public.am_demo());
+select public.warn_member('00000000-0000-4000-8000-0000000000a1', 'full access check');
+update public.profiles set role = 'trainer' where id = '00000000-0000-4000-8000-0000000000a1';
+select pg_temp.check('full-access preset changed a role', (select role from public.profiles where id = '00000000-0000-4000-8000-0000000000a1') = 'trainer');
+update public.profiles set role = 'trainee' where id = '00000000-0000-4000-8000-0000000000a1';
 select pg_temp.as_admin();
 
 -- Avatar storage: own folder for everyone, any folder for real execs.

@@ -31,6 +31,9 @@ insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, aud, 
   ('00000000-0000-4000-8000-0000000000d2', 'demo.member@example.com', '{"full_name":"Some Member"}', now(), 'authenticated', 'authenticated');
 update public.profiles set role = 'executive' where id = '00000000-0000-4000-8000-0000000000d1';
 update private.settings set value = 'on' where key = 'demo_login';
+select pg_temp.check('0047 gave all three presets full access', (select count(*) from private.demo_accounts where full_access) = 3);
+-- The restrictions below are for look-around accounts; since 0047 the presets have full access, so turn it off here.
+update private.demo_accounts set full_access = false;
 -- Throwaway exec password for this run only (rolled back with everything else).
 insert into private.settings (key, value) values ('demo_password_hash', extensions.crypt('test-only-pass', extensions.gen_salt('bf', 4)))
 on conflict (key) do update set value = excluded.value;
