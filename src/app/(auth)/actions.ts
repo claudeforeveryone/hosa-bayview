@@ -83,6 +83,15 @@ export async function login(_: AuthState, form: FormData): Promise<AuthState> {
     email: identifier,
     remember: form.get("remember") === "on" ? "on" : "off",
   };
+  // The old shared admin usernames (like "KadenLi") are gone; everyone signs in with their own email now.
+  if (identifier && !identifier.includes("@"))
+    return {
+      fieldErrors: {
+        email:
+          "Usernames don't work anymore. Log in with the email you signed up with. Admins keep admin on that account.",
+      },
+      values,
+    };
   const parsed = z
     .object({ email, password: z.string().min(1, "Enter your password.") })
     .safeParse({
