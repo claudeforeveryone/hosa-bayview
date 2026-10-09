@@ -21,7 +21,11 @@ export default async function MatchPage({ params }: PageProps<"/flashcards/[deck
         </h1>
       </header>
       {cards.length ? (
-        <MatchGame deckId={deck.id} cards={cards.map((c) => ({ id: c.id, term: c.term, definition: c.definition }))} />
+        <MatchGame
+          deckId={deck.id}
+          cards={cards.map((c) => ({ id: c.id, term: c.term, definition: c.definition }))}
+          seed={crypto.randomUUID()}
+        />
       ) : (
         <EmptyState title="No cards yet" />
       )}

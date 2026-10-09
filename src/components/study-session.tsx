@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { recordReview } from "@/app/(app)/flashcards/actions";
 import { Button } from "@/components/form";
+import { permutation } from "@/lib/shuffle";
 
 export type StudyCard = { id: string; term: string; definition: string };
 
-// Shuffle into a new order (Fisher-Yates on a copy).
+// Shuffle into a new order (Fisher-Yates on a copy). Only runs in event handlers, never during render.
 function shuffled<T>(items: T[]): T[] {
   const out = [...items];
   for (let i = out.length - 1; i > 0; i--) {
@@ -18,21 +19,33 @@ function shuffled<T>(items: T[]): T[] {
 }
 
 // Flip a card, then mark it known or still learning. Each mark writes one private review row.
-export function StudySession({ deckId, cards, label }: { deckId: string; cards: StudyCard[]; label: string }) {
-  const [order, setOrder] = useState<StudyCard[]>(() => shuffled(cards));
+// The first order comes from a seed the server sent, so the server render and the first client render match.
+export function StudySession({ deckId, cards, label, seed }: { deckId: string; cards: StudyCard[]; label: string; seed: string }) {
+  const [order, setOrder] = useState<StudyCard[]>(() => permutation(cards.length, seed).map((i) => cards[i]));
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [tally, setTally] = useState({ known: 0, learning: 0 });
   const [error, setError] = useState<string | null>(null);
   const [, start] = useTransition();
-
-  if (!cards.length) return null;
+  const cardRef = useRef<HTMLButtonElement>(null);
+  const doneRef = useRef<HTMLParagraphElement>(null);
+  const moved = useRef(false);
 
   const done = index >= order.length;
   const card = order[index];
 
+  // After a mark the old button is gone, so move focus to the next card (or the round summary).
+  useEffect(() => {
+    if (!moved.current) return;
+    moved.current = false;
+    (done ? doneRef.current : cardRef.current)?.focus();
+  }, [index, done]);
+
+  if (!cards.length) return null;
+
   const mark = (known: boolean) => {
     const id = card.id;
+    moved.current = true;
     setError(null);
     setTally((t) => ({ known: t.known + (known ? 1 : 0), learning: t.learning + (known ? 0 : 1) }));
     setFlipped(false);
@@ -54,7 +67,9 @@ export function StudySession({ deckId, cards, label }: { deckId: string; cards: 
   if (done) {
     return (
       <div className="grid max-w-xl gap-6">
-        <p className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-semibold uppercase">Round done</p>
+        <p ref={doneRef} tabIndex={-1} className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-semibold uppercase outline-none">
+          Round done
+        </p>
         <p className="num text-[18px]">
           Know it: {tally.known} · Still learning: {tally.learning}
         </p>
@@ -84,6 +99,7 @@ export function StudySession({ deckId, cards, label }: { deckId: string; cards: 
       </div>
 
       <button
+        ref={cardRef}
         type="button"
         onClick={() => setFlipped((f) => !f)}
         aria-label={flipped ? `Definition: ${card.definition}. Tap to show the term.` : `Term: ${card.term}. Tap to show the definition.`}

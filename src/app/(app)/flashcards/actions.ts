@@ -88,6 +88,7 @@ export async function setShared(deckId: string, shared: boolean): Promise<FormSt
   const { data, error } = await supabase.from("decks").update({ is_shared: shared }).eq("id", deckId).select("id");
   if (error) {
     if (error.code === "23514") return { error: "Pick a classroom to share this deck to first." };
+    if (error.code === "42501") return { error: "You can't share this deck to that classroom." };
     return failed("share", error.message);
   }
   if (!data?.length) return { error: "You can't change sharing on this deck." };
@@ -107,8 +108,16 @@ export async function deleteDeck(deckId: string): Promise<FormState> {
 }
 
 const cardItem = z.object({
-  term: z.string().trim().min(1).max(TERM_MAX),
-  definition: z.string().trim().min(1).max(DEFINITION_MAX),
+  term: z
+    .string()
+    .trim()
+    .min(1, "Write the term.")
+    .max(TERM_MAX, `Keep the term under ${TERM_MAX} characters.`),
+  definition: z
+    .string()
+    .trim()
+    .min(1, "Write the definition.")
+    .max(DEFINITION_MAX, `Keep the definition under ${DEFINITION_MAX} characters.`),
 });
 
 // Adds cards from the paste preview or the single-card form. Items are already parsed on the client.

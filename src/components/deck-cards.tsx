@@ -10,10 +10,14 @@ import { parseCards, MAX_CARDS_PER_PASTE } from "@/lib/parse/cards";
 
 const EXAMPLE = "Femur - longest bone in the body\nTibia: shin bone\nUlna\tforearm bone";
 
+// Keeps the Delete button short; the full term is still in the row above it.
+const shortTerm = (term: string) => (term.length > 32 ? `${term.slice(0, 31)}…` : term);
+
 // Card list for editors and viewers, with single add, bulk paste (previewed first), and edit/delete for editors.
 export function DeckCards({ deckId, cards, canEdit }: { deckId: string; cards: Card[]; canEdit: boolean }) {
   return (
-    <div className="grid gap-8">
+    // The wrapper never unmounts, so it can take focus after the last card is deleted.
+    <div id="deck-cards" tabIndex={-1} className="grid gap-8 outline-none">
       {canEdit ? <AddCards deckId={deckId} /> : null}
       {cards.length ? (
         <ol className="border-t border-rule">
@@ -155,6 +159,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
       <li className="grid gap-3 border-b border-rule py-4">
         <form
           className="grid gap-3"
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
             const fd = new FormData();
@@ -172,6 +177,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             maxLength={500}
+            required
             className="step h-12 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink"
           />
           <textarea
@@ -179,6 +185,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             value={definition}
             onChange={(e) => setDefinition(e.target.value)}
             maxLength={2000}
+            required
             rows={2}
             className="step border border-rule-strong bg-transparent px-3 py-2 text-[17px] outline-none focus:border-ink"
           />
@@ -187,7 +194,18 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             <Button type="submit" disabled={pending}>
               {pending ? "Saving" : "Save"}
             </Button>
-            <Button type="button" variant="line" onClick={() => setEditing(false)} disabled={pending}>
+            <Button
+              type="button"
+              variant="line"
+              disabled={pending}
+              onClick={() => {
+                // Back to the saved card, not whatever was typed.
+                setTerm(card.term);
+                setDefinition(card.definition);
+                setState({});
+                setEditing(false);
+              }}
+            >
               Cancel
             </Button>
           </div>
@@ -203,17 +221,18 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
         <span className="break-words text-ink-2">{card.definition}</span>
       </div>
       {canEdit ? (
-        <div className="flex flex-wrap items-start gap-3">
-          <Button variant="line" className="h-10 px-4 text-[15px]" onClick={() => setEditing(true)}>
+        <div role="group" aria-label={`Card: ${card.term}`} className="flex flex-wrap items-start gap-3">
+          <Button variant="line" className="h-10 px-4 text-[15px]" aria-label={`Edit ${card.term}`} onClick={() => setEditing(true)}>
             Edit
           </Button>
           <ConfirmAction
             action={() => deleteCard(card.id)}
-            label="Delete"
+            label={`Delete ${shortTerm(card.term)}`}
             confirmLabel="Delete card"
             pendingLabel="Deleting"
             question="Delete this card?"
             compact
+            focusAfter="deck-cards"
           />
         </div>
       ) : null}

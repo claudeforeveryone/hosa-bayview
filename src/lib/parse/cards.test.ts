@@ -56,4 +56,28 @@ describe("parseCards", () => {
     expect(items).toEqual([]);
     expect(errors.map((e) => e.line)).toEqual([1, 2]);
   });
+
+  it("does not split times or ratios on a colon with no space after it", () => {
+    const { items, errors } = parseCards("Lunch 9:30 am\nRatio 3:1\nNote:yes");
+    expect(items).toEqual([]);
+    expect(errors.map((e) => e.line)).toEqual([1, 2, 3]);
+  });
+
+  it("splits on a colon that is followed by a time or ratio", () => {
+    expect(parseCards("Start: 9:30 am\nRatio: 3:1").items).toEqual([
+      { line: 1, term: "Start", definition: "9:30 am" },
+      { line: 2, term: "Ratio", definition: "3:1" },
+    ]);
+  });
+
+  it("splits on a colon at the end of a line only as far as the definition, which is then empty", () => {
+    expect(parseCards("Femur:").errors).toEqual([{ line: 1, text: "Femur:", message: "The definition is empty." }]);
+  });
+
+  it("prefers a tab, then a spaced dash, then a colon", () => {
+    expect(parseCards("A: b\tc").items).toEqual([{ line: 1, term: "A: b", definition: "c" }]);
+    expect(parseCards("Ratio: 1 part - 2 parts").items).toEqual([
+      { line: 1, term: "Ratio: 1 part", definition: "2 parts" },
+    ]);
+  });
 });

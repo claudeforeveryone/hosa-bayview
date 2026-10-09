@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { DeckList } from "@/components/deck-list";
 import { EmptyState } from "@/components/empty-state";
+import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { listDecks } from "@/lib/decks";
 
 export default async function FlashcardsTab({ params }: PageProps<"/c/[id]/flashcards">) {
   const { id } = await params;
+  const profile = await requireProfile();
   const room = await getClassroom(id);
   if (!room) notFound();
   const decks = await listDecks(room.id);
@@ -27,7 +29,7 @@ export default async function FlashcardsTab({ params }: PageProps<"/c/[id]/flash
   return (
     <div className="grid grid-cols-1 gap-4">
       <div className="flex justify-end">{newDeck}</div>
-      <DeckList decks={decks} />
+      <DeckList decks={decks} viewerId={profile.id} />
     </div>
   );
 }

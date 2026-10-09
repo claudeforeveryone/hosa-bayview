@@ -26,7 +26,8 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
   if (!deck) notFound();
   const [cards, room] = await Promise.all([getCards(deck.id), deck.classroom_id ? getClassroom(deck.classroom_id) : null]);
   const canEdit = deck.owner_id === profile.id || profile.role === "executive" || Boolean(room?.can_manage);
-  const scope = room ? (deck.is_shared ? `Shared with ${room.name}` : `Only you · ${room.name}`) : "Only you";
+  const privacy = deck.owner_id === profile.id ? "Only you" : "Private";
+  const scope = room ? (deck.is_shared ? `Shared with ${room.name}` : `${privacy} · ${room.name}`) : privacy;
   const count = `${cards.length} card${cards.length === 1 ? "" : "s"}`;
 
   return (

@@ -1,9 +1,9 @@
-// Bulk paste for flashcards. One card per line, split on the first separator found:
-//   term<TAB>definition
-//   term - definition   (also en dash –)
-//   term — definition   (em dash)
-//   term: definition
-// Every non-blank line comes back: good ones as items, bad ones as errors the preview can show.
+// Bulk paste for flashcards. One card per line, split on the first separator the line has, in this order:
+//   term<TAB>definition           (spreadsheet paste)
+//   term - definition             (also en dash – and em dash —, spaces on both sides)
+//   term: definition              (colon with a space or the end of the line after it)
+// Times like 9:30 and ratios like 3:1 are not split. Every non-blank line comes back:
+// good ones as items, bad ones as errors the preview can show.
 
 export type ParsedCard = { line: number; term: string; definition: string };
 export type CardError = { line: number; text: string; message: string };
@@ -16,18 +16,16 @@ export const MAX_CARDS_PER_PASTE = 300;
 const SEPARATORS: RegExp[] = [
   /\t/, // tab (spreadsheet paste)
   /\s[—–-]\s/, // spaced em dash, en dash or hyphen
-  /:\s*/, // colon
+  /:(?=\s|$)/, // colon followed by whitespace or the end of the line
 ];
 
-// The earliest separator wins, so "Time: 3 - 4 pm" splits at the colon.
+// The first separator type that appears wins; within it, the first occurrence splits.
 function split(line: string): [string, string] | null {
-  let best: RegExpExecArray | null = null;
   for (const sep of SEPARATORS) {
     const m = sep.exec(line);
-    if (m && (!best || m.index < best.index)) best = m;
+    if (m) return [line.slice(0, m.index), line.slice(m.index + m[0].length)];
   }
-  if (!best) return null;
-  return [line.slice(0, best.index), line.slice(best.index + best[0].length)];
+  return null;
 }
 
 export function parseCards(text: string): ParsedCards {
