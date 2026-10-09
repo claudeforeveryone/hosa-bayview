@@ -15,7 +15,9 @@ import { deleteTest, updateTest } from "../../actions";
 
 export const metadata: Metadata = { title: "Edit test" };
 
-export default async function EditTestPage({ params }: PageProps<"/c/[id]/tests/[testId]/edit">) {
+export default async function EditTestPage({
+  params,
+}: PageProps<"/c/[id]/tests/[testId]/edit">) {
   const { id, testId } = await params;
   const [room, test] = await Promise.all([getClassroom(id), getTest(testId)]);
   if (!room || !test || test.classroom_id !== room.id) notFound();
@@ -36,48 +38,87 @@ export default async function EditTestPage({ params }: PageProps<"/c/[id]/tests/
           {test.title}
         </h2>
         <p className="caps text-[16px] text-ink-2">
-          {formNumber("T", test.num)} · {questions.length} question{questions.length === 1 ? "" : "s"} ·{" "}
+          {formNumber("T", test.num)} · {questions.length} question
+          {questions.length === 1 ? "" : "s"} ·{" "}
           {test.is_published ? "Posted" : "Draft"}
         </p>
         <TestPublish testId={test.id} published={test.is_published} />
       </header>
 
       <section aria-labelledby="questions-h" className="grid gap-5">
-        <h3 id="questions-h" tabIndex={-1} className="font-display text-[28px] leading-none font-bold uppercase">
+        <h3
+          id="questions-h"
+          tabIndex={-1}
+          className="font-display text-[28px] leading-none font-bold uppercase"
+        >
           Questions
         </h3>
-        {questions.length ? <QuestionList testId={test.id} questions={questions} /> : null}
+        {questions.length ? (
+          <QuestionList testId={test.id} questions={questions} />
+        ) : null}
       </section>
 
-      <section aria-labelledby="add-h" className="grid max-w-2xl gap-5 bg-band px-4 py-6 sm:px-6">
-        <h3 id="add-h" className="font-display text-[28px] leading-none font-bold uppercase">
+      <section
+        aria-labelledby="add-h"
+        className="grid max-w-2xl gap-5 bg-band px-4 py-6 sm:px-6"
+      >
+        <h3
+          id="add-h"
+          className="font-display text-[28px] leading-none font-bold uppercase"
+        >
           Add questions
         </h3>
         <AddQuestions testId={test.id} />
       </section>
 
-      <section aria-labelledby="details-h" className="grid gap-5 border-t border-rule pt-8">
-        <h3 id="details-h" className="font-display text-[28px] leading-none font-bold uppercase">
+      <section
+        aria-labelledby="details-h"
+        className="grid gap-5 border-t border-rule pt-8"
+      >
+        <h3
+          id="details-h"
+          className="font-display text-[28px] leading-none font-bold uppercase"
+        >
           Details
         </h3>
         <TestForm
-          autoFocusTitle={!questions.length && isUntitled(test.title, UNTITLED_TEST)}
+          autoFocusTitle={
+            !questions.length && isUntitled(test.title, UNTITLED_TEST)
+          }
           action={updateTest.bind(null, test.id)}
           initial={{
             title: test.title,
             description: test.description,
-            time_limit: test.time_limit_minutes ? String(test.time_limit_minutes) : "",
+            time_limit: test.time_limit_minutes
+              ? String(test.time_limit_minutes)
+              : "",
+            attempts_allowed: test.attempts_allowed
+              ? String(test.attempts_allowed)
+              : "",
+            shuffle_questions: test.shuffle_questions ? "on" : "",
+            shuffle_choices: test.shuffle_choices ? "on" : "",
+            allow_practice: test.allow_practice ? "on" : "",
+            show_answers: test.show_answers ? "on" : "",
           }}
           submitLabel="Save details"
           pendingLabel="Saving"
         />
       </section>
 
-      <section aria-labelledby="delete-h" className="grid max-w-xl gap-3 border-t border-rule pt-8">
-        <h3 id="delete-h" className="font-display text-[28px] leading-none font-bold uppercase">
+      <section
+        aria-labelledby="delete-h"
+        className="grid max-w-xl gap-3 border-t border-rule pt-8"
+      >
+        <h3
+          id="delete-h"
+          className="font-display text-[28px] leading-none font-bold uppercase"
+        >
           Delete test
         </h3>
-        <p className="text-ink-2">Deletes the questions and everyone&rsquo;s attempts. Can&rsquo;t be undone.</p>
+        <p className="text-ink-2">
+          Deletes the questions and everyone&rsquo;s attempts. Can&rsquo;t be
+          undone.
+        </p>
         <ConfirmAction
           action={deleteTest.bind(null, room.id, test.id)}
           label="Delete test"
