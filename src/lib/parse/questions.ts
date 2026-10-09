@@ -35,6 +35,8 @@ function finish(d: Draft): ParsedQuestion {
   const options = d.options.map((o) => o.text.trim());
   const prompt = d.prompt.join("\n").trim();
   if (!prompt) errors.push("Question text is empty.");
+  if (prompt.length > 2000) errors.push("Question text is over 2000 characters.");
+  if (options.some((o) => o.length > 500)) errors.push("An option is over 500 characters.");
   if (options.length < 2) errors.push("Needs at least 2 options.");
   if (options.some((o) => !o)) errors.push("An option is empty.");
   if (d.options.some((o, i) => o.letter !== LETTERS[i])) errors.push("Option letters are out of order.");

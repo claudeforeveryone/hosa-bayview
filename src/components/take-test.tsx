@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, Timer, X } from "lucide-react";
 import { answerQuestion, submitAttempt } from "@/app/(app)/c/[id]/tests/actions";
 import { Button, FormMessage } from "@/components/form";
-import { permutation } from "@/lib/shuffle";
+import { orderBy, permutation } from "@/lib/shuffle";
 
 export type TakeRow = {
   question_id: string;
@@ -43,15 +43,14 @@ export function TakeTest({
   const router = useRouter();
   const practice = mode === "practice";
 
-  // Same order on every reload of this attempt; different for the next attempt.
-  const order = useMemo(() => permutation(rows.length, attemptId), [rows.length, attemptId]);
+  // Same order on every reload of this attempt (and stable if a question is added); different next attempt.
   const questions = useMemo(
     () =>
-      order.map((i) => {
-        const row = rows[i];
-        return { ...row, choiceOrder: permutation(row.options.length, `${attemptId}:${row.question_id}`) };
-      }),
-    [order, rows, attemptId],
+      orderBy(rows, attemptId, (r) => r.question_id).map((row) => ({
+        ...row,
+        choiceOrder: permutation(row.options.length, `${attemptId}:${row.question_id}`),
+      })),
+    [rows, attemptId],
   );
 
   const [answers, setAnswers] = useState<Record<string, Answer>>(() => {
@@ -77,6 +76,7 @@ export function TakeTest({
   const [submitting, startSubmit] = useTransition();
   const [saving, setSaving] = useState<string | null>(null);
   const submitted = useRef(false);
+  const autoTried = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
 
   const answered = Object.keys(answers).length;
@@ -107,7 +107,11 @@ export function TakeTest({
     const tick = () => {
       const ms = end - (Date.now() + offset);
       setRemaining(ms);
-      if (ms <= 0) submit();
+      // Auto-submit once; if that fails the Submit button stays for a manual retry.
+      if (ms <= 0 && !autoTried.current) {
+        autoTried.current = true;
+        submit();
+      }
     };
     tick();
     const t = setInterval(tick, 500);
@@ -121,7 +125,7 @@ export function TakeTest({
   };
 
   const pick = async (original: number) => {
-    if (locked || submitting || saving) return;
+    if (locked || submitting || saving === q.question_id) return;
     const qid = q.question_id;
     const before = answers[qid];
     setError(null);
@@ -142,7 +146,8 @@ export function TakeTest({
     setAnswers((a) => ({
       ...a,
       [qid]: {
-        selected: original,
+        // The server's stored pick wins (a stale second tab can't change a locked practice answer).
+        selected: r.selected_index ?? original,
         is_correct: r.is_correct ?? null,
         correct_index: r.correct_index ?? null,
         explanation: r.explanation ?? null,
@@ -173,7 +178,7 @@ export function TakeTest({
       </div>
 
       <section aria-labelledby="q-h" className="grid gap-5">
-        <h2 id="q-h" ref={heading} tabIndex={-1} className="caps num text-[16px] text-ink-2 outline-none">
+        <h2 id="q-h" ref={heading} tabIndex={-1} className="caps num scroll-mt-24 text-[16px] text-ink-2 outline-none">
           Question {current + 1} of {questions.length}
         </h2>
         <p className="max-w-[65ch] text-[clamp(1.25rem,4vw,1.6rem)] leading-snug font-medium whitespace-pre-line">{q.prompt}</p>
@@ -181,7 +186,7 @@ export function TakeTest({
           {q.choiceOrder.map((original, shown) => {
             const chosen = mine?.selected === original;
             const right = locked && mine?.correct_index === original;
-            const wrong = locked && chosen && !mine?.is_correct;
+            const wrong = locked && chosen && mine?.is_correct === false;
             const tone = right
               ? "border-ok bg-ok/15"
               : wrong
@@ -207,14 +212,21 @@ export function TakeTest({
             );
           })}
         </ul>
-        {locked ? (
-          <div className="grid max-w-2xl gap-2" aria-live="polite">
-            <p className={`caps text-[18px] ${mine?.is_correct ? "text-ok" : "text-danger"}`}>
-              {mine?.is_correct ? "Right" : mine?.is_correct === false ? "Not quite" : "Saving"}
-            </p>
-            {mine?.explanation ? <p className="text-ink-2">{mine.explanation}</p> : null}
-          </div>
-        ) : null}
+        {/* Always mounted so screen readers announce the verdict when it arrives. */}
+        <div className="grid max-w-2xl gap-2" aria-live="polite">
+          {locked ? (
+            <>
+              <p
+                className={`caps text-[18px] ${
+                  mine?.is_correct ? "text-ok" : mine?.is_correct === false ? "text-danger" : "text-ink-2"
+                }`}
+              >
+                {mine?.is_correct ? "Right" : mine?.is_correct === false ? "Not quite" : "Checking"}
+              </p>
+              {mine?.explanation ? <p className="text-ink-2">{mine.explanation}</p> : null}
+            </>
+          ) : null}
+        </div>
         {error ? <FormMessage tone="error">{error}</FormMessage> : null}
       </section>
 

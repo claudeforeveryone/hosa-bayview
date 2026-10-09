@@ -32,3 +32,11 @@ export function permutation(n: number, seed: string): number[] {
   }
   return order;
 }
+
+// Orders items by a per-item seeded key, so adding or removing one item never reshuffles the rest.
+export function orderBy<T>(items: T[], seed: string, key: (item: T) => string): T[] {
+  return items
+    .map((item) => ({ item, k: hash(`${seed}:${key(item)}`) }))
+    .sort((a, b) => a.k - b.k)
+    .map((x) => x.item);
+}

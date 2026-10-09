@@ -70,6 +70,13 @@ export type ResultRow = {
   last_at: string;
 };
 
+// Grades timed attempts whose time ran out while the tab was closed. Safe to call on every view.
+export async function closeExpired(testId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("close_expired_attempts", { tid: testId });
+  if (error) console.error("[tests] close expired:", error.message);
+}
+
 export async function getClassroomTests(classroomId: string): Promise<TestSummary[]> {
   if (!uuid.safeParse(classroomId).success) return [];
   const supabase = await createClient();

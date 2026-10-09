@@ -215,7 +215,13 @@ export async function startAttempt(classroomId: string, testId: string, mode: "t
   redirect(`/c/${classroomId}/tests/${testId}/a/${data}`);
 }
 
-export type AnswerResult = { error?: string; is_correct?: boolean | null; correct_index?: number | null; explanation?: string | null };
+export type AnswerResult = {
+  error?: string;
+  selected_index?: number | null;
+  is_correct?: boolean | null;
+  correct_index?: number | null;
+  explanation?: string | null;
+};
 
 export async function answerQuestion(attemptId: string, questionId: string, selected: number): Promise<AnswerResult> {
   await requireProfile();
@@ -225,7 +231,7 @@ export async function answerQuestion(attemptId: string, questionId: string, sele
   const supabase = await createClient();
   const { data, error } = await supabase
     .rpc("answer_question", { aid: attemptId, qid: questionId, selected })
-    .single<{ is_correct: boolean | null; correct_index: number | null; explanation: string | null }>();
+    .single<{ selected_index: number | null; is_correct: boolean | null; correct_index: number | null; explanation: string | null }>();
   if (error) {
     if (error.code === "22023") return { error: `${error.message}.` };
     console.error("[tests:answer]", error.message);

@@ -6,7 +6,7 @@ import { StartTest } from "@/components/start-test";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
-import { getMyAttempts, getQuestions, getResults, getTest } from "@/lib/tests";
+import { closeExpired, getMyAttempts, getQuestions, getResults, getTest } from "@/lib/tests";
 
 export async function generateMetadata({ params }: PageProps<"/c/[id]/tests/[testId]">): Promise<Metadata> {
   const test = await getTest((await params).testId);
@@ -22,6 +22,7 @@ export default async function TestPage({ params }: PageProps<"/c/[id]/tests/[tes
   const [room, test, profile] = await Promise.all([getClassroom(id), getTest(testId), requireProfile()]);
   if (!room || !test || test.classroom_id !== room.id) notFound();
 
+  await closeExpired(test.id);
   const [questions, attempts, results] = await Promise.all([
     getQuestions(test.id),
     getMyAttempts(test.id, profile.id),

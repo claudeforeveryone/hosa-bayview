@@ -23,3 +23,13 @@ describe("permutation", () => {
     expect(fixed.length).toBeLessThan(40);
   });
 });
+
+describe("orderBy", () => {
+  it("keeps the others in place when one item is added", async () => {
+    const { orderBy } = await import("./shuffle");
+    const ids = ["a", "b", "c", "d", "e", "f"];
+    const before = orderBy(ids, "attempt", (x) => x);
+    const after = orderBy([...ids, "g"], "attempt", (x) => x).filter((x) => x !== "g");
+    expect(after).toEqual(before);
+  });
+});

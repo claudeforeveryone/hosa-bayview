@@ -6,7 +6,7 @@ import { StartTest } from "@/components/start-test";
 import { TakeTest } from "@/components/take-test";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
-import { permutation } from "@/lib/shuffle";
+import { orderBy, permutation } from "@/lib/shuffle";
 import { getAttempt, getSheet, getTest } from "@/lib/tests";
 import { serverNow } from "@/lib/time";
 
@@ -58,7 +58,7 @@ export default async function AttemptPage({ params }: PageProps<"/c/[id]/tests/[
 
   const score = attempt.score ?? 0;
   const pct = attempt.total ? Math.round((score / attempt.total) * 100) : 0;
-  const order = permutation(sheet.length, attempt.id);
+  const ordered = orderBy(sheet, attempt.id, (r) => r.question_id);
 
   return (
     <div className="grid grid-cols-1 gap-10">
@@ -81,8 +81,7 @@ export default async function AttemptPage({ params }: PageProps<"/c/[id]/tests/[
           Review
         </h2>
         <ol className="border-t border-rule">
-          {order.map((index, n) => {
-            const q = sheet[index];
+          {ordered.map((q, n) => {
             const choices = permutation(q.options.length, `${attempt.id}:${q.question_id}`);
             const verdict = q.selected_index === null ? "Blank" : q.is_correct ? "Right" : "Wrong";
             return (
