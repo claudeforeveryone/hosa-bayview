@@ -126,6 +126,7 @@ export default async function TestPage({ params }: PageProps<"/c/[id]/tests/[tes
                     </td>
                     <td className="num py-3 pr-3 text-right font-display text-[22px] font-semibold whitespace-nowrap">
                       {r.best}/{r.total}
+                      {r.practice_only ? <span className="caps block text-[12px] font-normal text-ink-2">Practice</span> : null}
                     </td>
                     <td className="num hidden py-3 pr-3 text-right sm:table-cell">{r.attempts}</td>
                     <td className="num hidden py-3 text-right text-ink-2 sm:table-cell">{when(r.last_at)}</td>

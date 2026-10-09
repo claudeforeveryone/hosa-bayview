@@ -68,6 +68,8 @@ export type ResultRow = {
   best: number | null;
   total: number | null;
   last_at: string;
+  // Best score came from a practice run (answers shown as they went).
+  practice_only: boolean;
 };
 
 // Grades timed attempts whose time ran out while the tab was closed. Safe to call on every view.
