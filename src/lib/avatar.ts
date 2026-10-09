@@ -5,7 +5,8 @@
 export const AVATAR_SIZE = 256;
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 // Executives' GIFs are capped at 1 MB, except the two exempt executives (private.gif_size_exempt), who keep
-// the bucket's 2 MB limit. The database enforces this in the storage policy (0060).
+// the bucket's 2 MB limit. The database enforces this in two places: the storage upload policy (0060-0062)
+// and the profile guard on avatar_path (0063), which reads the saved object's size on every picture change.
 export const EXEC_GIF_MAX_BYTES = 1024 * 1024;
 
 // The GIF size limit for an executive's picture. Exempt executives keep the bucket limit.
