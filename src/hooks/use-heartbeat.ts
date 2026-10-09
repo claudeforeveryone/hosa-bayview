@@ -3,17 +3,20 @@
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// Once a minute, while the tab is visible and there was input in the last two minutes.
-// The database keeps one row per minute, so a repeat in the same minute changes nothing.
-export const HEARTBEAT_MS = 60_000;
+// Every 30 seconds while the tab is visible and there was input in the last two minutes. The database keeps
+// one row per minute, so the extra beats inside a minute change nothing. A room change beats at once.
+export const HEARTBEAT_MS = 30_000;
 export const IDLE_MS = 2 * 60_000;
 const INPUT_EVENTS = ["pointerdown", "keydown", "mousemove", "scroll", "touchstart"] as const;
 
 export function useHeartbeat(classroomId: string | null) {
   const room = useRef(classroomId);
+  const beatNow = useRef<() => void>(() => {});
 
+  // Declared first, so on mount it runs before the listener effect sets beatNow (that one beats on mount anyway).
   useEffect(() => {
     room.current = classroomId;
+    beatNow.current();
   }, [classroomId]);
 
   useEffect(() => {
@@ -30,6 +33,9 @@ export function useHeartbeat(classroomId: string | null) {
         // Presence is a convenience; a missed beat just means a minute uncounted.
       }
     };
+    beatNow.current = () => {
+      void beat();
+    };
 
     for (const event of INPUT_EVENTS) window.addEventListener(event, bump, { passive: true });
     document.addEventListener("visibilitychange", beat);
@@ -40,6 +46,7 @@ export function useHeartbeat(classroomId: string | null) {
       for (const event of INPUT_EVENTS) window.removeEventListener(event, bump);
       document.removeEventListener("visibilitychange", beat);
       window.clearInterval(timer);
+      beatNow.current = () => {};
     };
   }, []);
 }

@@ -20,7 +20,7 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
     <div className="grid max-w-2xl gap-8">
       <header className="grid gap-2">
         <h1 className="font-display text-[clamp(2.5rem,8vw,4.5rem)] leading-none font-bold [overflow-wrap:anywhere] uppercase">
-          {stats.full_name}
+          {stats.full_name || "Member"}
         </h1>
         <p className="caps text-[17px] text-ink-2">{ROLE_LABEL[stats.role]}</p>
       </header>

@@ -41,6 +41,8 @@ export async function getBoard(period: Period, classroomId: string | null): Prom
   if (classroomId !== null && !uuid.safeParse(classroomId).success) return [];
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("leaderboard", { period, cid: classroomId });
+  // 42501: a room you can't view. Read as an empty board, not an error page.
+  if (error?.code === "42501") return [];
   if (error) throw new Error(`Board lookup failed: ${error.message}`);
   return ((data ?? []) as RawBoard[]).map((r) => ({
     ...r,
@@ -59,6 +61,8 @@ export async function getOnline(classroomId: string | null): Promise<OnlineRow[]
   if (classroomId !== null && !uuid.safeParse(classroomId).success) return [];
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("members_online", { cid: classroomId });
+  // 42501: a room you can't view. Read as nobody online, not an error page.
+  if (error?.code === "42501") return [];
   if (error) throw new Error(`Online lookup failed: ${error.message}`);
   return (data ?? []) as OnlineRow[];
 }

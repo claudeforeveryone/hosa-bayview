@@ -20,7 +20,7 @@ export type Result = (typeof RESULTS)[number];
 
 // What the Elo score is made of. Shown under the club board so the number isn't a mystery.
 export const ELO_SUMMARY =
-  "Elo starts at 100. Each minute studied adds 0.5, each flashcard reviewed 1, each question answered 2 and each one right 3 more. A streak multiplies those gains by up to 1.6 (30 days).";
+  "Elo starts at 100. Each minute studied adds 0.5. Each flashcard counts 1 a day, each question 2 a day, and a question right adds 3 more (first answer of the day counts). A streak multiplies those gains by up to 1.6 (30 days).";
 
 export type BoardRow = {
   user_id: string;

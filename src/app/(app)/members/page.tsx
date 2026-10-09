@@ -45,7 +45,7 @@ export default async function MembersPage(props: PageProps<"/members">) {
               >
                 <span className="flex min-w-0 items-baseline gap-2">
                   <span className="truncate font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
-                    {member.full_name}
+                    {member.full_name || "Member"}
                   </span>
                   {member.user_id === me.id ? (
                     <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">You</span>

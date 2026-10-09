@@ -81,6 +81,14 @@ insert into public.card_reviews (user_id, card_id, known, reviewed_at) values
   ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000ab', true, now()),
   ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000ac', false, now());
 
+-- Farming guard: a repeat practice attempt and a repeat review later the same day must not add credit.
+insert into public.attempts (id, test_id, user_id, mode, total) values
+  ('00000000-0000-4000-8000-0000000000a4', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000b1', 'practice', 2);
+insert into public.attempt_answers (attempt_id, question_id, selected_index, is_correct, answered_at) values
+  ('00000000-0000-4000-8000-0000000000a4', '00000000-0000-4000-8000-0000000000f1', 1, false, now() + interval '1 second');
+insert into public.card_reviews (user_id, card_id, known, reviewed_at) values
+  ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000ab', false, now() + interval '1 second');
+
 -- Heartbeat: idempotent per minute, classroom kept ---------------------------------------
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1');
 select public.heartbeat('00000000-0000-4000-8000-0000000000c1');
@@ -161,10 +169,8 @@ select pg_temp.check('elo in the board matches the formula (115)',
   (select elo = 115 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
 -- Career: own answers; trainers see answers in their rooms; executives see all; trainees never see others'
-select pg_temp.check('career: b1 sees own three graded answers (unsubmitted timed excluded)',
-  (select count(*) from public.career('00000000-0000-4000-8000-0000000000b1', null)) = 3);
-select pg_temp.check('career: outsider sees none of b1',
-  (select count(*) from public.career('00000000-0000-4000-8000-0000000000b1', null)) = 0);
+select pg_temp.check('career keeps every graded answer, repeats included (history, not score)',
+  (select count(*) from public.career('00000000-0000-4000-8000-0000000000b1', null)) = 4);
 
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
 select pg_temp.check('trainee gets zero rows for another member',
@@ -174,7 +180,7 @@ select pg_temp.check('trainee career for self is empty',
 
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b3');
 select pg_temp.check('room trainer sees only answers in their room',
-  (select count(*) from public.career('00000000-0000-4000-8000-0000000000b1', null)) = 2);
+  (select count(*) from public.career('00000000-0000-4000-8000-0000000000b1', null)) = 3);
 
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b5');
 select pg_temp.check('other trainer sees only their own room answers',
@@ -182,7 +188,7 @@ select pg_temp.check('other trainer sees only their own room answers',
 
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b4');
 select pg_temp.check('executive sees all answers',
-  (select count(*) from public.career('00000000-0000-4000-8000-0000000000b1', null)) = 3);
+  (select count(*) from public.career('00000000-0000-4000-8000-0000000000b1', null)) = 4);
 
 -- Member profile and directory -----------------------------------------------------------
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');

@@ -78,7 +78,7 @@ function BoardLine({ row, metric, you }: { row: RankedRow; metric: Metric; you: 
             href={`/members/${row.user_id}`}
             className="step truncate font-display text-[clamp(1.4rem,5vw,1.9rem)] leading-tight font-semibold uppercase hover:underline"
           >
-            {row.full_name}
+            {row.full_name || "Member"}
           </Link>
           {you ? <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">You</span> : null}
         </span>
