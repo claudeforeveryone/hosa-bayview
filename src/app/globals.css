@@ -441,34 +441,34 @@
 
 /* Playing. Every part runs on the same clock; the last keyframe of each is its resting style above. */
 @media (prefers-reduced-motion: no-preference) {
-  .hero[data-play] .hero-shard,
-  .hero[data-play] .hero-season-old,
-  .hero[data-play] .hero-flash,
-  .hero[data-play] .hero-glint {
+  html:not([data-intro-played]) .hero[data-play] .hero-shard,
+  html:not([data-intro-played]) .hero[data-play] .hero-season-old,
+  html:not([data-intro-played]) .hero[data-play] .hero-flash,
+  html:not([data-intro-played]) .hero[data-play] .hero-glint {
     display: block;
   }
-  .hero[data-play] .hero-panel { animation: hero-drop var(--hero-t) both; }
-  .hero[data-play] .hero-stage { animation: hero-stage var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
-  .hero[data-play] .hero-tiger { animation: hero-tiger var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
-  .hero[data-play] .hero-shard {
+  html:not([data-intro-played]) .hero[data-play] .hero-panel { animation: hero-drop var(--hero-t) both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-stage { animation: hero-stage var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-tiger { animation: hero-tiger var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-shard {
     animation: hero-shard var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both;
     animation-delay: var(--d, 0ms);
     will-change: transform, opacity;
   }
-  .hero[data-play] .hero-season-old { animation: hero-season-old var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
-  .hero[data-play] .hero-flash { animation: hero-flash var(--hero-t) ease-out both; }
-  .hero[data-play] .hero-glint { animation: hero-glint var(--hero-t) cubic-bezier(0.77, 0, 0.175, 1) both; }
-  .hero[data-play] .hero-char {
+  html:not([data-intro-played]) .hero[data-play] .hero-season-old { animation: hero-season-old var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-flash { animation: hero-flash var(--hero-t) ease-out both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-glint { animation: hero-glint var(--hero-t) cubic-bezier(0.77, 0, 0.175, 1) both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-char {
     backface-visibility: hidden;
     animation: hero-char var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both;
     animation-delay: calc(var(--i) * 30ms);
   }
-  .hero[data-play] .hero-season { animation: hero-season var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
-  .hero[data-play] .hero-ecg-line {
+  html:not([data-intro-played]) .hero[data-play] .hero-season { animation: hero-season var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-ecg-line {
     stroke-dasharray: 1 1;
     animation: hero-ecg-draw var(--hero-t) linear both;
   }
-  .hero[data-play] .hero-ecg-pulse {
+  html:not([data-intro-played]) .hero[data-play] .hero-ecg-pulse {
     display: block;
     animation: hero-ecg-pulse var(--hero-t) linear both;
   }
@@ -476,9 +476,9 @@
 
 /* Reduce Motion: nothing travels. The logo and words fade in and the heartbeat still draws itself. */
 @media (prefers-reduced-motion: reduce) {
-  .hero[data-play] .hero-stage { animation: hero-fade 700ms ease-out both; }
-  .hero[data-play] .hero-words { animation: hero-fade 700ms ease-out 250ms both; }
-  .hero[data-play] .hero-ecg-line {
+  html:not([data-intro-played]) .hero[data-play] .hero-stage { animation: hero-fade 700ms ease-out both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-words { animation: hero-fade 700ms ease-out 250ms both; }
+  html:not([data-intro-played]) .hero[data-play] .hero-ecg-line {
     stroke-dasharray: 1 1;
     animation: hero-ecg-trace 1400ms linear 700ms both;
   }
@@ -835,14 +835,14 @@ html[data-intro] .intro-right {
 /* Home's banner sits on the page, with no box to drop in, so the words carry the hit: each letter slams down
    from above, the line shakes as the last one lands, and the rule runs out from the centre with the beat. */
 @media (prefers-reduced-motion: no-preference) {
-  .hero-page[data-play] .hero-panel { animation: none; }
-  .hero-page[data-play] .hero-char {
+  html:not([data-intro-played]) .hero-page[data-play] .hero-panel { animation: none; }
+  html:not([data-intro-played]) .hero-page[data-play] .hero-char {
     animation-name: hero-slam;
     animation-timing-function: steps(4, end);
     animation-delay: calc(var(--i) * 26ms);
   }
-  .hero-page[data-play] .hero-words { animation: hero-shake var(--hero-t) both; }
-  .hero-page[data-play] .hero-panel::after { animation: hero-rule var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  html:not([data-intro-played]) .hero-page[data-play] .hero-words { animation: hero-shake var(--hero-t) both; }
+  html:not([data-intro-played]) .hero-page[data-play] .hero-panel::after { animation: hero-rule var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
 }
 @keyframes hero-slam {
   0%, 34% { transform: translateY(-0.9em) scale(2.1); opacity: 0; }
@@ -860,22 +860,6 @@ html[data-intro] .intro-right {
 @keyframes hero-rule {
   0%, 56% { transform: scaleX(0); }
   78%, 100% { transform: scaleX(1); }
-}
-
-/* The banner under it holds its first frame until the halves part, so the opener never hides its shatter.
-   The head script clears data-intro-wait once the banner has finished. */
-html[data-intro-wait] .hero[data-play] :is(.hero-panel, .hero-stage, .hero-tiger, .hero-season-old, .hero-flash, .hero-glint, .hero-season, .hero-ecg-line, .hero-ecg-pulse, .hero-words),
-html[data-intro-wait] .hero[data-play] .hero-panel::after {
-  animation-delay: 1500ms;
-}
-html[data-intro-wait] .hero[data-play] .hero-shard {
-  animation-delay: calc(1500ms + var(--d, 0ms));
-}
-html[data-intro-wait] .hero[data-play] .hero-char {
-  animation-delay: calc(1500ms + var(--i) * 30ms);
-}
-html[data-intro-wait] .hero-page[data-play] .hero-char {
-  animation-delay: calc(1500ms + var(--i) * 26ms);
 }
 
 /* Settings > Look: accent colour. Overrides the theme's highlight ("you") in both modes. */
