@@ -90,7 +90,7 @@ export async function login(_: AuthState, form: FormData): Promise<AuthState> {
 }
 
 // Executive usernames (the demo admins). Their password is the executive password, checked in the
-// database (demo_credentials); works only while an exec has demo sign-in switched on.
+// database (demo_credentials). Works any time for the preset admin accounts.
 async function usernameLogin(
   username: string,
   password: string,

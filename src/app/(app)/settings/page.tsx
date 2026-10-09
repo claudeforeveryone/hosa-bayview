@@ -9,7 +9,6 @@ import { avatarSources } from "@/lib/avatar-urls";
 import { createClient } from "@/lib/supabase/server";
 import {
   ClaimAdminSection,
-  DemoSection,
   GradeSection,
   NameSection,
   PasscodeSection,
@@ -31,20 +30,17 @@ export default async function SettingsPage({
   );
   const isExec = profile.role === "executive";
   let passcodeSet = false;
-  let demoOn = false;
   let isDemo = false;
   if (isExec) {
     const supabase = await createClient();
-    const [passcode, demo, me] = await Promise.all([
+    const [passcode, me] = await Promise.all([
       supabase.rpc("admin_passcode_is_set"),
-      supabase.rpc("demo_login_enabled"),
       supabase.rpc("am_demo"),
     ]);
     isDemo = me.data !== false;
     if (passcode.error)
       throw new Error(`Passcode lookup failed: ${passcode.error.message}`);
     passcodeSet = Boolean(passcode.data);
-    demoOn = Boolean(demo.data);
   }
 
   return (
@@ -61,7 +57,6 @@ export default async function SettingsPage({
         />
         <LookSection />
         <PasswordSection />
-        {isExec && !isDemo ? <DemoSection enabled={demoOn} /> : null}
         {isDemo ? null : isExec ? (
           <PasscodeSection isSet={passcodeSet} />
         ) : (

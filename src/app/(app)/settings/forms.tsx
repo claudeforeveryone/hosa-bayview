@@ -8,7 +8,6 @@ import { GRADES } from "@/lib/profile";
 import {
   changePassword,
   setAdminPasscode,
-  setDemoLogin,
   updateGrade,
   updateName,
 } from "./actions";
@@ -248,37 +247,6 @@ export function PasscodeSection({ isSet }: { isSet: boolean }) {
           />
         )}
       </SettingsForm>
-    </Section>
-  );
-}
-
-export function DemoSection({ enabled }: { enabled: boolean }) {
-  const [state, run, pending] = useActionState<AuthState>(
-    () => setDemoLogin(!enabled),
-    {},
-  );
-  return (
-    <Section id="demo-h" title="Demo sign-in">
-      <form action={run} className="grid gap-4">
-        <p className="max-w-[60ch] text-ink-2">
-          {enabled
-            ? "On. The log-in page shows one-tap demo admins, and anyone with the link can use them. Turn it off after the demo."
-            : "Off. Demo admins are hidden and their old sessions are signed out."}
-        </p>
-        <div className="flex flex-wrap items-center gap-4">
-          <Button
-            type="submit"
-            variant={enabled ? "you" : "line"}
-            disabled={pending}
-          >
-            {pending ? "Saving" : enabled ? "Turn off" : "Turn on"}
-          </Button>
-          {state.error ? (
-            <FormMessage tone="error">{state.error}</FormMessage>
-          ) : null}
-          {state.ok ? <FormMessage tone="ok">{state.ok}</FormMessage> : null}
-        </div>
-      </form>
     </Section>
   );
 }

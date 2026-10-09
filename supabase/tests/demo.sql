@@ -51,21 +51,14 @@ select pg_temp.expect('demo cannot set passcode', $q$select public.set_admin_pas
 select pg_temp.expect('demo cannot switch demo off', $q$select public.set_demo_login(false)$q$, '42501');
 select pg_temp.check('demo knows it is demo', public.am_demo());
 
--- A real executive turns it off: list empties, credentials vanish, old secret stops matching.
+-- Since 0044 the preset admins sign in any time: the old demo switch no longer hides them.
 select pg_temp.as_admin();
-create temp table old_secret as select secret, user_id from private.demo_accounts where slug = 'kaden-li';
-grant select on old_secret to authenticated;
-select pg_temp.as_user('00000000-0000-4000-8000-0000000000d1');
-select pg_temp.check('real exec is not demo', not public.am_demo());
-select public.set_demo_login(false);
-select pg_temp.as_admin();
+update private.settings set value = 'off' where key = 'demo_login';
 set local role anon;
-select pg_temp.check('list empty when off', not exists (select 1 from public.demo_logins()));
-select pg_temp.check('no credentials when off', not exists (select 1 from public.demo_credentials('kaden-li', 'test-only-pass')));
+select pg_temp.check('still listed with the old switch off', (select count(*) from public.demo_logins()) = 3);
+select pg_temp.check('still sign in with the old switch off', exists (select 1 from public.demo_credentials('kaden-li', 'test-only-pass')));
+select pg_temp.check('still need the password', not exists (select 1 from public.demo_credentials('kaden-li', 'wrong')));
 reset role;
-select pg_temp.check('password rotated',
-  (select u.encrypted_password from auth.users u join old_secret o on o.user_id = u.id)
-    <> extensions.crypt((select secret from old_secret), (select u.encrypted_password from auth.users u join old_secret o on o.user_id = u.id)));
 
 select 'demo: all checks passed' as result;
 rollback;
