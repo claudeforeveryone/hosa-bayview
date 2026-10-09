@@ -4,7 +4,8 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormState } from "@/app/(app)/c/actions";
-import { requireProfile } from "@/lib/auth";
+import { canTeach, requireProfile } from "@/lib/auth";
+import { UNTITLED_TEST } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
 
 const id = z.string().uuid();
@@ -56,21 +57,28 @@ function readTest(form: FormData) {
   };
 }
 
-export async function createTest(classroomId: string, _: FormState, form: FormData): Promise<FormState> {
-  await requireProfile();
-  const { values, parsed, row } = readTest(form);
-  if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist.", values };
-  if (!parsed.success || !row) return { fieldErrors: fieldErrors(parsed.error!), values };
+// One tap from the classroom or Tests page: a blank draft, straight into its editor.
+export async function createBlankTest(_: FormState, form: FormData): Promise<FormState> {
+  const profile = await requireProfile();
+  if (!canTeach(profile)) return { error: "Only trainers and executives can add tests." };
+  const classroomId = String(form.get("classroom_id") ?? "");
+  if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist." };
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tests")
-    .insert({ ...row, classroom_id: classroomId })
+    .insert({
+      title: UNTITLED_TEST,
+      description: "",
+      time_limit_minutes: null,
+      is_published: false,
+      classroom_id: classroomId,
+    })
     .select("id")
     .single();
   if (error) {
-    if (error.code === "42501") return { error: "Only the trainer or an executive can add tests here.", values };
-    return { ...failed("create", error.message), values };
+    if (error.code === "42501") return { error: "Only the trainer or an executive can add tests here." };
+    return failed("create", error.message);
   }
   redirect(`/c/${classroomId}/tests/${data.id}/edit`);
 }

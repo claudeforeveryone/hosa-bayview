@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { FormState } from "@/app/(app)/c/actions";
 import { requireProfile } from "@/lib/auth";
 import { DEFINITION_MAX, MAX_CARDS_PER_PASTE, TERM_MAX } from "@/lib/parse/cards";
+import { UNTITLED_DECK } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
 
 const id = z.string().uuid();
@@ -58,6 +59,19 @@ export async function createDeck(_: FormState, form: FormData): Promise<FormStat
     if (error.code === "42501") return { error: "You can't share a deck to that classroom.", values };
     return { ...failed("create", error.message), values };
   }
+  redirect(`/flashcards/${data.id}`);
+}
+
+// One tap from Flashcards: a personal blank deck, straight into its page with the title ready to rename.
+export async function createBlankDeck(): Promise<FormState> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("decks")
+    .insert({ title: UNTITLED_DECK, description: "", classroom_id: null, is_shared: false })
+    .select("id")
+    .single();
+  if (error) return failed("create blank", error.message);
   redirect(`/flashcards/${data.id}`);
 }
 

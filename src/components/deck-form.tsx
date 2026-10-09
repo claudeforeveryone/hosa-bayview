@@ -14,6 +14,7 @@ export function DeckForm({
   defaultShared = false,
   submitLabel,
   pendingLabel,
+  autoFocusTitle = false,
 }: {
   action: (state: FormState, form: FormData) => Promise<FormState>;
   initial?: { title: string; description: string; classroom_id?: string | null; is_shared?: boolean };
@@ -21,6 +22,8 @@ export function DeckForm({
   defaultShared?: boolean;
   submitLabel: string;
   pendingLabel: string;
+  // A fresh blank deck: put the cursor on the title, selected, so it can be renamed at once.
+  autoFocusTitle?: boolean;
 }) {
   const [state, run, pending] = useActionState<FormState, FormData>(action, {
     values: initial
@@ -34,7 +37,16 @@ export function DeckForm({
   return (
     <form action={run} className="grid max-w-xl gap-5" noValidate>
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
-      <Field label="Title" name="title" required maxLength={120} defaultValue={v?.title ?? initial?.title} error={state.fieldErrors?.title} />
+      <Field
+        label="Title"
+        name="title"
+        required
+        maxLength={120}
+        defaultValue={v?.title ?? initial?.title}
+        error={state.fieldErrors?.title}
+        autoFocus={autoFocusTitle}
+        onFocus={autoFocusTitle ? (e) => e.currentTarget.select() : undefined}
+      />
       <TextArea
         label="Description"
         name="description"

@@ -35,11 +35,3 @@ export function DeckList({ decks }: { decks: DeckSummary[] }) {
     </ul>
   );
 }
-
-export function newDeckLink(href: string) {
-  return (
-    <Link href={href} className="caps step inline-flex h-11 shrink-0 items-center border border-ink px-4 text-[16px] hover:bg-band">
-      New deck
-    </Link>
-  );
-}

@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { NewBlank } from "@/components/new-blank";
 import { getClassroom } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
 import { getClassroomTests, type TestSummary } from "@/lib/tests";
+import { UNTITLED_TEST } from "@/lib/untitled";
+import { createBlankTest } from "./actions";
 
 function meta(t: TestSummary, manager: boolean) {
   const parts = [
@@ -20,21 +23,20 @@ export default async function TestsTab({ params }: PageProps<"/c/[id]/tests">) {
   const [room, tests] = await Promise.all([getClassroom(id), getClassroomTests(id)]);
   if (!room) notFound();
 
-  const newTest = room.can_manage ? (
-    <Link
-      href={`/c/${room.id}/tests/new`}
-      className="caps step inline-flex h-11 shrink-0 items-center gap-2 border border-ink px-4 text-[16px] hover:bg-band"
-    >
-      <Plus size={18} strokeWidth={2} aria-hidden />
-      New test
-    </Link>
-  ) : null;
+  const here = [{ id: room.id, name: room.name }];
 
-  if (!tests.length) return <EmptyState title="No tests yet" action={newTest} />;
+  if (!tests.length) {
+    if (!room.can_manage) return <EmptyState title="No tests yet" />;
+    return <NewBlank action={createBlankTest} variant="tile" label={UNTITLED_TEST} classrooms={here} />;
+  }
 
   return (
     <div className="grid grid-cols-1 gap-4">
-      {newTest ? <div className="flex justify-end">{newTest}</div> : null}
+      {room.can_manage ? (
+        <div className="flex justify-end">
+          <NewBlank action={createBlankTest} variant="button" label="New test" classrooms={here} />
+        </div>
+      ) : null}
       <ul className="border-t border-rule">
         {tests.map((t) => (
           <li key={t.id} className="border-b border-rule">
