@@ -1,4 +1,4 @@
--- Resources, topic breakdown and attendance checks (migration 0018).
+-- Resources, topic breakdown and attendance checks (migrations 0018, 0026, 0034).
 -- Runs in one transaction and rolls back; raises on the first failure. Throwaway users only.
 begin;
 
@@ -46,9 +46,10 @@ insert into public.classroom_members (classroom_id, user_id) values
   ('00000000-0000-4000-8000-0000000000c1', '00000000-0000-4000-8000-0000000000b4'),
   ('00000000-0000-4000-8000-0000000000c2', '00000000-0000-4000-8000-0000000000b6');
 
-insert into public.attendance_sessions (id, classroom_id, held_on) values
-  ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', '2026-01-05'),
-  ('00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c2', '2026-01-05');
+-- Weeks are Mondays: 2026-01-05, 2026-02-02, 2026-03-02, 2026-03-09 and 2026-03-16 all are.
+insert into public.attendance_sessions (id, classroom_id, week_start, submitted_by) values
+  ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000c1', '2026-01-05', '00000000-0000-4000-8000-0000000000b1'),
+  ('00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c2', '2026-01-05', '00000000-0000-4000-8000-0000000000b2');
 insert into public.attendance_marks (session_id, user_id, status) values
   ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000b3', 'present'),
   ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000b4', 'absent'),
@@ -110,7 +111,9 @@ select pg_temp.check('member A1 cannot see room B marks', (select count(*) from 
 select pg_temp.expect('member cannot mark attendance directly',
   $q$insert into public.attendance_marks (session_id, user_id, status) values ('00000000-0000-4000-8000-0000000000d1', '00000000-0000-4000-8000-0000000000b3', 'late')$q$, '42501');
 select pg_temp.expect('member cannot create a session',
-  $q$insert into public.attendance_sessions (classroom_id, held_on) values ('00000000-0000-4000-8000-0000000000c1', '2026-02-02')$q$, '42501');
+  $q$insert into public.attendance_sessions (classroom_id, week_start) values ('00000000-0000-4000-8000-0000000000c1', '2026-02-09')$q$, '42501');
+select pg_temp.expect('member cannot edit a session',
+  $q$update public.attendance_sessions set updated_at = now() where id = '00000000-0000-4000-8000-0000000000d1'$q$, '42501');
 select pg_temp.expect('member cannot take attendance through the RPC',
   $q$select public.save_attendance('00000000-0000-4000-8000-0000000000d1', '{"00000000-0000-4000-8000-0000000000b3":"late"}'::jsonb)$q$, '42501');
 
@@ -132,9 +135,13 @@ select pg_temp.check('save_attendance marks the member and skips the outsider',
   = '00000000-0000-4000-8000-0000000000b3=late');
 select pg_temp.expect('unknown status is rejected',
   $q$select public.save_attendance('00000000-0000-4000-8000-0000000000d1', '{"00000000-0000-4000-8000-0000000000b3":"tardy"}'::jsonb)$q$, '22023');
-insert into public.attendance_sessions (classroom_id, held_on) values ('00000000-0000-4000-8000-0000000000c1', '2026-02-02');
-select pg_temp.expect('one session per date per classroom',
-  $q$insert into public.attendance_sessions (classroom_id, held_on) values ('00000000-0000-4000-8000-0000000000c1', '2026-02-02')$q$, '23505');
+-- Constraint checks run as the owner: authenticated has no direct insert on sessions (RPC only).
+select pg_temp.as_admin();
+insert into public.attendance_sessions (classroom_id, week_start) values ('00000000-0000-4000-8000-0000000000c1', '2026-02-02');
+select pg_temp.expect('one session per week per classroom',
+  $q$insert into public.attendance_sessions (classroom_id, week_start) values ('00000000-0000-4000-8000-0000000000c1', '2026-02-02')$q$, '23505');
+select pg_temp.expect('a session must start on a Monday',
+  $q$insert into public.attendance_sessions (classroom_id, week_start) values ('00000000-0000-4000-8000-0000000000c1', '2026-02-03')$q$, '23514');
 
 -- Executive reads everything.
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b5');
@@ -173,7 +180,7 @@ select pg_temp.check('breakdown untouched by null save',
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b3');
 select pg_temp.expect('member cannot read the note column',
   $q$select note from public.attendance_sessions$q$, '42501');
-select pg_temp.check('member can still list session dates',
+select pg_temp.check('member can still list session weeks',
   (select count(*) from public.attendance_sessions where classroom_id = '00000000-0000-4000-8000-0000000000c1') = 2);
 select pg_temp.check('member gets no notes from the RPC',
   (select count(*) from public.attendance_session_notes('00000000-0000-4000-8000-0000000000c1')) = 0);
@@ -184,46 +191,87 @@ select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1');
 select pg_temp.check('trainer A gets notes for room A',
   (select count(*) from public.attendance_session_notes('00000000-0000-4000-8000-0000000000c1')) = 2);
 
--- save_attendance_day: one atomic save per date.
+-- save_attendance_week: submit and edit one week in one call. ----------------------
+
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b3');
-select pg_temp.expect('member cannot save a day',
-  $q$select public.save_attendance_day('00000000-0000-4000-8000-0000000000c1', date '2026-03-03', 'Nope', '{}'::jsonb)$q$, '42501');
+select pg_temp.expect('member cannot submit a week',
+  $q$select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-02', 'Nope', '{}'::jsonb)$q$, '42501');
+select pg_temp.check('member sees the room''s weeks, with trainer names',
+  (select count(*) from public.attendance_weeks('00000000-0000-4000-8000-0000000000c1')) = 2);
+select pg_temp.check('member sees who submitted a week',
+  (select submitted_by_name from public.attendance_weeks('00000000-0000-4000-8000-0000000000c1') where week_start = date '2026-01-05') = 'Ra Trainer A');
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
-select pg_temp.expect('trainer B cannot save a day in room A',
-  $q$select public.save_attendance_day('00000000-0000-4000-8000-0000000000c1', date '2026-03-03', 'Nope', '{}'::jsonb)$q$, '42501');
+select pg_temp.expect('trainer B cannot submit a week in room A',
+  $q$select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-02', 'Nope', '{}'::jsonb)$q$, '42501');
+select pg_temp.check('trainer B sees no weeks for room A',
+  (select count(*) from public.attendance_weeks('00000000-0000-4000-8000-0000000000c1')) = 0);
 select pg_temp.as_admin();
-select pg_temp.check('refused saves create no session',
-  (select count(*) from public.attendance_sessions where held_on = date '2026-03-03') = 0);
+select pg_temp.check('refused submits create no week',
+  (select count(*) from public.attendance_sessions where week_start = date '2026-03-02') = 0);
 
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1');
-select public.save_attendance_day('00000000-0000-4000-8000-0000000000c1', date '2026-03-03', 'Lab day',
+select pg_temp.expect('a week must start on a Monday',
+  $q$select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-03', 'x', '{}'::jsonb)$q$, '22023');
+select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-02', 'Lab day',
   '{"00000000-0000-4000-8000-0000000000b3":"present","00000000-0000-4000-8000-0000000000b4":"late"}'::jsonb);
 select pg_temp.as_admin();
-select pg_temp.check('new day has one session with its note',
-  (select note from public.attendance_sessions where classroom_id = '00000000-0000-4000-8000-0000000000c1' and held_on = date '2026-03-03') = 'Lab day');
-select pg_temp.check('former member is skipped on a new day',
+select pg_temp.check('submit creates one week with its note, submitter and no edit stamp',
+  (select note || '|' || submitted_by::text || '|' || coalesce(updated_at::text, 'none')
+     from public.attendance_sessions where classroom_id = '00000000-0000-4000-8000-0000000000c1' and week_start = date '2026-03-02')
+  = 'Lab day|00000000-0000-4000-8000-0000000000b1|none');
+select pg_temp.check('former member is skipped on a new week',
   (select count(*) from public.attendance_marks m join public.attendance_sessions s on s.id = m.session_id
-    where s.held_on = date '2026-03-03') = 1);
+    where s.week_start = date '2026-03-02') = 1);
 
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1');
-select public.save_attendance_day('00000000-0000-4000-8000-0000000000c1', date '2026-03-03', 'Lab day 2', '{}'::jsonb);
+select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-02', 'Lab day, edited',
+  '{"00000000-0000-4000-8000-0000000000b3":"excused"}'::jsonb);
 select pg_temp.as_admin();
-select pg_temp.check('same date reuses the session',
-  (select count(*) from public.attendance_sessions where classroom_id = '00000000-0000-4000-8000-0000000000c1' and held_on = date '2026-03-03') = 1);
-select pg_temp.check('re-save replaces the note',
-  (select note from public.attendance_sessions where classroom_id = '00000000-0000-4000-8000-0000000000c1' and held_on = date '2026-03-03') = 'Lab day 2');
-select pg_temp.check('empty map clears the members marks for that day',
+select pg_temp.check('edit keeps one week and replaces the note',
+  (select count(*) || '|' || max(note) from public.attendance_sessions where classroom_id = '00000000-0000-4000-8000-0000000000c1' and week_start = date '2026-03-02')
+  = '1|Lab day, edited');
+select pg_temp.check('edit stamps updated_at and updated_by, submitter unchanged',
+  (select (updated_at is not null) and (updated_by = '00000000-0000-4000-8000-0000000000b1') and (submitted_by = '00000000-0000-4000-8000-0000000000b1')
+     from public.attendance_sessions where classroom_id = '00000000-0000-4000-8000-0000000000c1' and week_start = date '2026-03-02'));
+select pg_temp.check('edit replaces the marks',
+  (select string_agg(user_id::text || '=' || status, ',') from public.attendance_marks m join public.attendance_sessions s on s.id = m.session_id
+    where s.week_start = date '2026-03-02') = '00000000-0000-4000-8000-0000000000b3=excused');
+
+-- An executive can edit any room's week; the edit is stamped with their id.
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000b5');
+select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-02', 'Exec fix',
+  '{"00000000-0000-4000-8000-0000000000b3":"late"}'::jsonb);
+select pg_temp.as_admin();
+select pg_temp.check('exec edit is stamped with the exec',
+  (select updated_by from public.attendance_sessions where classroom_id = '00000000-0000-4000-8000-0000000000c1' and week_start = date '2026-03-02')
+  = '00000000-0000-4000-8000-0000000000b5');
+
+-- A trainer cannot stamp the audit columns directly.
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1');
+select pg_temp.expect('trainer cannot write updated_by directly',
+  $q$update public.attendance_sessions set updated_by = '00000000-0000-4000-8000-0000000000b1' where week_start = date '2026-03-02'$q$, '42501');
+select pg_temp.expect('trainer cannot write marks directly',
+  $q$update public.attendance_marks set status = 'present'$q$, '42501');
+
+-- Clearing the marks for a week is allowed; the week itself stays submitted.
+select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-02', 'Lab day, cleared', '{}'::jsonb);
+select pg_temp.as_admin();
+select pg_temp.check('empty map clears the current members marks for that week',
   (select count(*) from public.attendance_marks m join public.attendance_sessions s on s.id = m.session_id
-    where s.held_on = date '2026-03-03') = 0);
+    where s.week_start = date '2026-03-02') = 0);
 
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1');
 select pg_temp.expect('note over 500 characters refused',
-  $q$select public.save_attendance_day('00000000-0000-4000-8000-0000000000c1', date '2026-03-04', repeat('x', 501), '{}'::jsonb)$q$, '22023');
-select pg_temp.expect('bad status refused and the session insert rolls back',
-  $q$select public.save_attendance_day('00000000-0000-4000-8000-0000000000c1', date '2026-03-05', 'x', '{"00000000-0000-4000-8000-0000000000b3":"tardy"}'::jsonb)$q$, '22023');
+  $q$select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-09', repeat('x', 501), '{}'::jsonb)$q$, '22023');
+select pg_temp.expect('bad status refused and the week insert rolls back',
+  $q$select public.save_attendance_week('00000000-0000-4000-8000-0000000000c1', date '2026-03-16', 'x', '{"00000000-0000-4000-8000-0000000000b3":"tardy"}'::jsonb)$q$, '22023');
 select pg_temp.as_admin();
-select pg_temp.check('refused days leave no session behind',
-  (select count(*) from public.attendance_sessions where held_on in (date '2026-03-04', date '2026-03-05')) = 0);
+select pg_temp.check('refused weeks leave no session behind',
+  (select count(*) from public.attendance_sessions where week_start in (date '2026-03-09', date '2026-03-16')) = 0);
+
+-- Executives see every room's weeks.
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000b5');
+select pg_temp.check('exec sees room B weeks', (select count(*) from public.attendance_weeks('00000000-0000-4000-8000-0000000000c2')) = 1);
 
 select 'resources and attendance: all checks passed' as result;
 rollback;
