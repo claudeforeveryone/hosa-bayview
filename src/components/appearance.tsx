@@ -1,17 +1,30 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 import { useEffect, useSyncExternalStore } from "react";
 import {
+  ACCENTS,
   MODES,
   PALETTES,
+  TEXT_SIZES,
+  applyExtras,
   applyMode,
+  readAccent,
   readMode,
+  readMotion,
   readPalette,
+  readTextSize,
+  resetAppearance,
+  setAccent,
   setMode,
+  setMotion,
   setPalette,
+  setTextSize,
+  type Accent,
   type Mode,
+  type Motion,
   type Palette,
+  type TextSize,
 } from "@/lib/appearance";
 
 function subscribe(onChange: () => void) {
@@ -37,9 +50,10 @@ export function AppearanceSync() {
       if (readMode() === "system") applyMode("system");
     };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === null || e.key === "theme" || e.key === "palette") {
+      if (e.key === null || ["theme", "palette", "accent", "text", "motion"].includes(e.key)) {
         applyMode(readMode());
         applyPalette(readPalette());
+        applyExtras();
       }
     };
     media.addEventListener("change", onScheme);
@@ -52,6 +66,48 @@ export function AppearanceSync() {
   return null;
 }
 
+const legend = "caps mb-2 text-[14px] text-ink-2";
+
+// A row of square segments backed by native radios.
+function Segments<T extends string>({
+  name,
+  label,
+  options,
+  value,
+  onPick,
+}: {
+  name: string;
+  label: string;
+  options: { id: T; label: string; className?: string }[];
+  value: T;
+  onPick: (v: T) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className={legend}>{label}</legend>
+      <div className="grid auto-cols-fr grid-flow-col border border-rule-strong">
+        {options.map((o) => (
+          <label key={o.id} className="relative border-r border-rule-strong last:border-r-0">
+            <input
+              type="radio"
+              name={name}
+              value={o.id}
+              checked={o.id === value}
+              onChange={() => onPick(o.id)}
+              className="peer sr-only"
+            />
+            <span
+              className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink ${o.className ?? ""}`}
+            >
+              {o.label}
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 // Native radios, so Tab lands on the group once and the arrow keys move the choice.
 export function LookSection() {
   const mode = useSyncExternalStore<Mode>(subscribe, readMode, () => "system");
@@ -60,6 +116,10 @@ export function LookSection() {
     readPalette,
     () => "bayview",
   );
+  const accent = useSyncExternalStore<Accent>(subscribe, readAccent, () => "theme");
+  const text = useSyncExternalStore<TextSize>(subscribe, readTextSize, () => "standard");
+  const motion = useSyncExternalStore<Motion>(subscribe, readMotion, () => "full");
+  const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? "#7a1f2b";
 
   return (
     <section
@@ -73,29 +133,10 @@ export function LookSection() {
         Look
       </h2>
       <div className="grid gap-6">
-        <fieldset className="grid grid-cols-3 border border-rule-strong">
-          <legend className="sr-only">Mode</legend>
-          {MODES.map((m) => (
-            <label
-              key={m.id}
-              className="relative border-r border-rule-strong last:border-r-0"
-            >
-              <input
-                type="radio"
-                name="look-mode"
-                value={m.id}
-                checked={m.id === mode}
-                onChange={() => setMode(m.id)}
-                className="peer sr-only"
-              />
-              <span className="caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink">
-                {m.label}
-              </span>
-            </label>
-          ))}
-        </fieldset>
+        <Preview />
+        <Segments name="look-mode" label="Mode" options={MODES} value={mode} onPick={setMode} />
         <fieldset className="grid grid-cols-4 gap-2 sm:gap-3">
-          <legend className="sr-only">Colour</legend>
+          <legend className={legend}>Theme</legend>
           {PALETTES.map((p) => {
             const on = p.id === palette;
             return (
@@ -138,7 +179,95 @@ export function LookSection() {
             );
           })}
         </fieldset>
+        <fieldset>
+          <legend className={legend}>Highlight</legend>
+          <div className="grid grid-cols-6 gap-2 sm:gap-3">
+            {ACCENTS.map((a) => {
+              const on = a.id === accent;
+              const colour = a.id === "theme" ? themeAccent : a.swatch;
+              return (
+                <label key={a.id} className="group grid cursor-pointer justify-items-center gap-1.5">
+                  <input
+                    type="radio"
+                    name="look-accent"
+                    value={a.id}
+                    checked={on}
+                    onChange={() => setAccent(a.id)}
+                    className="peer sr-only"
+                  />
+                  <span
+                    className={`relative grid aspect-square w-full place-items-center outline-solid outline-offset-2 peer-focus-visible:outline-[3px] peer-focus-visible:outline-ink ${
+                      on ? "outline-2 outline-ink" : "outline-1 outline-rule group-hover:outline-rule-strong"
+                    }`}
+                    style={{ background: colour }}
+                  >
+                    {on ? <Check size={18} strokeWidth={2.5} aria-hidden className="text-white" /> : null}
+                  </span>
+                  <span className={`caps text-[12px] sm:text-[13px] ${on ? "text-ink" : "text-ink-2"}`}>{a.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+        <Segments
+          name="look-text"
+          label="Text size"
+          options={TEXT_SIZES.map((t, i) => ({ ...t, className: `normal-case tracking-normal ${["text-[15px]", "text-[18px]", "text-[21px]"][i]}` }))}
+          value={text}
+          onPick={setTextSize}
+        />
+        <Segments
+          name="look-motion"
+          label="Motion"
+          options={[
+            { id: "full", label: "Lively" },
+            { id: "calm", label: "Calm" },
+          ]}
+          value={motion}
+          onPick={setMotion}
+        />
+        <button
+          type="button"
+          onClick={resetAppearance}
+          className="caps step inline-flex h-11 items-center gap-2 justify-self-start text-[15px] text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
+        >
+          <RotateCcw size={16} strokeWidth={1.75} aria-hidden />
+          Reset to the Bayview look
+        </button>
+        <p className="text-[15px] text-ink-2">Saved on this device.</p>
       </div>
     </section>
+  );
+}
+
+// A slice of the app in the current look, so every choice shows up as you make it.
+function Preview() {
+  return (
+    <div aria-hidden className="grid border border-rule-strong">
+      <div className="flex items-center justify-between gap-3 bg-field px-4 py-3 text-on-field">
+        <span className="font-display text-[26px] leading-none font-bold uppercase">Leaderboard</span>
+        <span className="caps num bg-you px-2 py-1 text-[13px] leading-none text-on-you">#3</span>
+      </div>
+      {[
+        ["1", "Kaden", "1,284"],
+        ["2", "Bernice", "1,190"],
+        ["3", "You", "1,152"],
+      ].map(([place, name, elo]) => {
+        const you = name === "You";
+        return (
+          <div
+            key={place}
+            className={`grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2 border-t border-rule px-4 py-2 ${you ? "bg-band" : ""}`}
+          >
+            <span className="num font-display text-[18px] font-semibold text-ink-2">{place}</span>
+            <span className={`text-[16px] ${you ? "font-semibold" : ""}`}>
+              {name}
+              {you ? <span className="caps ml-2 bg-you px-1.5 py-0.5 text-[11px] text-on-you">You</span> : null}
+            </span>
+            <span className="num font-display text-[18px] font-semibold">{elo}</span>
+          </div>
+        );
+      })}
+    </div>
   );
 }

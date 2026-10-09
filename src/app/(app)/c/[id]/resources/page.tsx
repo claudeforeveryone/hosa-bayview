@@ -7,20 +7,53 @@ import { TopicList } from "@/components/topic-breakdown";
 import { TopicEditor } from "@/components/topic-editor";
 import { getClassroom } from "@/lib/classrooms";
 import { hostOf } from "@/lib/resources";
+import { saveMaterial } from "@/app/(app)/library/actions";
+import { getMaterials } from "@/app/(app)/library/queries";
+import { MaterialForm } from "@/components/material-form";
+import { MaterialList } from "@/components/material-list";
 import { deleteResource, saveResource, saveTopics } from "./actions";
 import { getResources, getTopicWeights } from "./queries";
 
 export const metadata: Metadata = { title: "Resources" };
 
-const heading = "font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase";
+const heading =
+  "font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase";
 
-export default async function ResourcesTab({ params }: PageProps<"/c/[id]/resources">) {
+export default async function ResourcesTab({
+  params,
+}: PageProps<"/c/[id]/resources">) {
   const { id } = await params;
-  const [room, links, topics] = await Promise.all([getClassroom(id), getResources(id), getTopicWeights(id)]);
+  const [room, files, links, topics] = await Promise.all([
+    getClassroom(id),
+    getMaterials(id),
+    getResources(id),
+    getTopicWeights(id),
+  ]);
   if (!room) notFound();
 
   return (
     <div className="grid grid-cols-1 gap-14">
+      <section aria-labelledby="files-h" className="grid gap-6">
+        <h2 id="files-h" className={heading}>
+          Files
+        </h2>
+        <MaterialList
+          rows={files}
+          canManage={room.can_manage}
+          empty="No files yet"
+        />
+        {room.can_manage ? (
+          <div className="grid gap-5 border-t border-rule pt-8">
+            <h3 className="caps text-[17px] font-semibold">Add a file</h3>
+            <MaterialForm
+              action={saveMaterial.bind(null, room.id)}
+              classroomId={room.id}
+              modes={["file"]}
+            />
+          </div>
+        ) : null}
+      </section>
+
       <section aria-labelledby="links-h" className="grid gap-6">
         <h2 id="links-h" className={heading}>
           Links
@@ -28,7 +61,10 @@ export default async function ResourcesTab({ params }: PageProps<"/c/[id]/resour
         {links.length ? (
           <ul className="border-t border-rule">
             {links.map((r) => (
-              <li key={r.id} className="grid gap-4 border-b border-rule px-1 py-4 sm:px-3">
+              <li
+                key={r.id}
+                className="grid gap-4 border-b border-rule px-1 py-4 sm:px-3"
+              >
                 <div className="min-w-0">
                   <a
                     href={r.url}
@@ -94,7 +130,10 @@ export default async function ResourcesTab({ params }: PageProps<"/c/[id]/resour
         {room.can_manage ? (
           <TopicEditor
             action={saveTopics.bind(null, room.id)}
-            initial={topics.map((t) => ({ topic: t.topic, percent: String(t.percent) }))}
+            initial={topics.map((t) => ({
+              topic: t.topic,
+              percent: String(t.percent),
+            }))}
           />
         ) : topics.length ? (
           <TopicList rows={topics} />

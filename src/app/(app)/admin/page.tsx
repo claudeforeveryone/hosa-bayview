@@ -4,6 +4,7 @@ import { requireRole, type Role } from "@/lib/auth";
 import { avatarSources } from "@/lib/avatar-urls";
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceSummary } from "./attendance-overview";
+import { AdminLog, ContentLists } from "./content";
 import { PeopleList } from "./people-list";
 import type { PersonRow, WarningRow } from "./person-dialog";
 
@@ -59,6 +60,8 @@ export default async function AdminPage() {
     }
   }
 
+  // eslint-disable-next-line react-hooks/purity -- server render time, once per request
+  const now = Date.now();
   const stats = [
     ["Members", people.length],
     ["Trainers", count("trainer")],
@@ -99,6 +102,8 @@ export default async function AdminPage() {
         />
       </section>
       <AttendanceSummary />
+      {isDemo ? null : <AdminLog now={now} />}
+      {isDemo ? null : <ContentLists />}
     </div>
   );
 }

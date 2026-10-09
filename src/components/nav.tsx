@@ -5,9 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowRight,
+  CalendarDays,
   ClipboardList,
   House,
   Layers,
+  LibraryBig,
+  Medal,
+  Megaphone,
   Menu,
   Plus,
   Settings,
@@ -19,14 +23,20 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { ClassicLogo } from "@/components/classic-logo";
+import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Credit } from "@/components/credit";
 import { formNumber } from "@/lib/join-code";
 
 export type NavRoom = { id: string; num: number; name: string };
-type Props = { isExec: boolean; canTeach: boolean; rooms: NavRoom[] };
+type Props = {
+  isExec: boolean;
+  canTeach: boolean;
+  rooms: NavRoom[];
+  unread: number;
+};
 
-// `more`: sidebar and drawer only, not the phone shortcut bar.
+// `more`: sidebar and drawer only, not the phone shortcut bar. `chapter`: listed under Chapter.
 type Item = {
   href: string;
   label: string;
@@ -35,6 +45,7 @@ type Item = {
   match: (p: string) => boolean;
   exec?: boolean;
   more?: boolean;
+  chapter?: boolean;
 };
 
 const ITEMS: Item[] = [
@@ -65,6 +76,42 @@ const ITEMS: Item[] = [
     short: "Cards",
     Icon: Layers,
     match: (p) => p.startsWith("/flashcards"),
+  },
+  {
+    href: "/announcements",
+    label: "Announcements",
+    short: "News",
+    Icon: Megaphone,
+    match: (p) => p.startsWith("/announcements"),
+    more: true,
+    chapter: true,
+  },
+  {
+    href: "/calendar",
+    label: "Calendar",
+    short: "Calendar",
+    Icon: CalendarDays,
+    match: (p) => p.startsWith("/calendar"),
+    more: true,
+    chapter: true,
+  },
+  {
+    href: "/blc",
+    label: "BLC",
+    short: "BLC",
+    Icon: Medal,
+    match: (p) => p.startsWith("/blc"),
+    more: true,
+    chapter: true,
+  },
+  {
+    href: "/library",
+    label: "Library",
+    short: "Library",
+    Icon: LibraryBig,
+    match: (p) => p.startsWith("/library"),
+    more: true,
+    chapter: true,
   },
   {
     href: "/members",
@@ -120,22 +167,31 @@ const rowState = (active: boolean) =>
 function PanelBody({ isExec, canTeach, rooms }: Props) {
   const { path, items } = useItems(isExec);
   const roomsHeading = useId();
+  const chapterHeading = useId();
+  const link = ({ href, label, Icon, active }: (typeof items)[number]) => (
+    <li key={href}>
+      <Link
+        href={href}
+        aria-current={active ? "page" : undefined}
+        className={`${row} ${rowState(active)}`}
+      >
+        <Icon size={22} strokeWidth={1.75} aria-hidden />
+        <span className="caps text-[19px]">{label}</span>
+      </Link>
+    </li>
+  );
   return (
     <>
       <nav aria-label="Main">
-        <ul>
-          {items.map(({ href, label, Icon, active }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={`${row} ${rowState(active)}`}
-              >
-                <Icon size={22} strokeWidth={1.75} aria-hidden />
-                <span className="caps text-[19px]">{label}</span>
-              </Link>
-            </li>
-          ))}
+        <ul>{items.filter((i) => !i.chapter).map(link)}</ul>
+        <h2
+          id={chapterHeading}
+          className="caps mx-5 mt-8 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
+        >
+          Chapter
+        </h2>
+        <ul className="mt-1" aria-labelledby={chapterHeading}>
+          {items.filter((i) => i.chapter).map(link)}
         </ul>
       </nav>
 
@@ -199,13 +255,15 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
 export function Sidebar(props: Props) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-[18rem] shrink-0 flex-col overflow-y-auto bg-field text-on-field lg:flex">
-      <Link
-        href="/"
-        aria-label="HOSA Bayview home"
-        className="block px-6 pt-6 pb-8"
-      >
-        <ClassicLogo className="h-[136px]" />
-      </Link>
+      <div className="flex items-start justify-between gap-2 pt-6 pr-3 pb-8 pl-6">
+        <Link href="/" aria-label="HOSA Bayview home" className="block">
+          <ClassicLogo className="h-[136px]" />
+        </Link>
+        <NotificationBell
+          initial={props.unread}
+          className="-mt-1 text-on-field-2 hover:text-on-field aria-[current=page]:text-on-field"
+        />
+      </div>
       <PanelBody {...props} />
       <div className="mt-auto flex items-end justify-between gap-3 border-t border-on-field-2/40 px-6 pt-4 pb-5">
         <Credit className="text-on-field-2" />
@@ -245,6 +303,7 @@ export function MobileBar(props: Props) {
         </Link>
       )}
       <div className="flex items-center">
+        <NotificationBell initial={props.unread} className="text-ink" />
         <ThemeToggle className="text-ink" />
         <button
           type="button"

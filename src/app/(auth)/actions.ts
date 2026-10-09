@@ -141,9 +141,25 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
   if (error) return { error: friendly(error.message), values };
   if (!data.session)
     return {
-      ok: "Check your email to confirm your account, then log in.",
+      ok: form.get("passcode")
+        ? "Check your email to confirm your account, then log in and enter the admin passcode in Settings."
+        : "Check your email to confirm your account, then log in.",
       values,
     };
+
+  // Optional admin passcode. The account exists either way; a miss goes to Settings to try again.
+  const passcode = String(form.get("passcode") ?? "");
+  if (passcode) {
+    const claim = await supabase.rpc("claim_admin", { code: passcode });
+    if (claim.error) {
+      if (claim.error.code !== "54000")
+        console.error("[auth] claim_admin on signup:", claim.error.message);
+      redirect(
+        `/settings?passcode=${claim.error.code === "54000" ? "slow" : "retry"}#admin-h`,
+      );
+    }
+    redirect(claim.data ? "/admin" : "/settings?passcode=wrong#admin-h");
+  }
 
   redirect("/");
 }

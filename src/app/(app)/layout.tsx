@@ -22,20 +22,29 @@ async function unseenWarning(userId: string | null) {
   return (data as { id: string; message: string } | null) ?? null;
 }
 
+// Unread notifications for the bell. The bell re-checks on its own, so a failed lookup just starts at zero.
+async function unreadCount() {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("unread_notifications");
+  return typeof data === "number" ? data : 0;
+}
+
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   // The sidebar list is a convenience; a failed lookup shouldn't take every page down with it.
   // All three start together; the warning only needs the id, not the whole profile.
-  const [profile, rooms, warning] = await Promise.all([
+  const [profile, rooms, warning, unread] = await Promise.all([
     requireProfile(),
     getMyClassrooms().catch(() => []),
     getUserId()
       .then(unseenWarning)
       .catch(() => null),
+    unreadCount().catch(() => 0),
   ]);
   const nav = {
     isExec: profile.role === "executive",
     canTeach: canTeach(profile),
     rooms: rooms.map(({ id, num, name }) => ({ id, num, name })),
+    unread,
   };
 
   return (
