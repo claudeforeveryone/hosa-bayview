@@ -74,9 +74,11 @@ const played = new Set<"bare" | "panel">();
 // apart in 3D and "Shatter every limit" flips in beside the tiger; then it stays as a plain band.
 export function HeroBanner({
   bare = false,
+  blend = false,
   className = "",
 }: {
-  bare?: boolean;
+  bare?: boolean; // on the sign-in page's field: no box of its own
+  blend?: boolean; // on the page itself (Home): drawn in ink, a hairline under it
   className?: string;
 }) {
   // Server and first client render agree (nothing has played yet), so hydration matches.
@@ -88,7 +90,7 @@ export function HeroBanner({
 
   return (
     <div
-      className={`hero ${bare ? "hero-bare" : ""} ${className}`}
+      className={`hero ${bare ? "hero-bare" : ""} ${blend ? "hero-page" : ""} ${className}`}
       data-play={play ? "" : undefined}
     >
       <p className="sr-only">Shatter every limit. HOSA Bayview {SEASON}.</p>

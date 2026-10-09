@@ -279,6 +279,27 @@
   padding-inline: 0.75rem;
   margin-inline: -0.75rem;
 }
+/* Blended into the page (Home): drawn in the page's own ink, no field box, a hairline under it. */
+.hero-page {
+  --on-field: var(--ink);
+  --on-field-2: var(--ink-2);
+}
+.hero-page .hero-panel {
+  background: transparent;
+  padding-inline: 0.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+@media (min-width: 40rem) {
+  .hero-page .hero-panel { padding-inline: 0.75rem; }
+}
+/* On the page's ground the white light would vanish: the glint takes the ground's colour across the
+   tiger, and the burst glows maroon. */
+.hero-page .hero-glint {
+  background: linear-gradient(100deg, transparent, color-mix(in oklab, var(--ground) 90%, transparent), transparent);
+}
+.hero-page .hero-flash {
+  background: radial-gradient(circle, color-mix(in oklab, var(--you) 55%, transparent) 0%, color-mix(in oklab, var(--you) 18%, transparent) 30%, transparent 65%);
+}
 .hero-bare .hero-stage {
   width: clamp(5.5rem, 32cqw, 15rem);
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Check, ChevronRight, Plus } from "lucide-react";
 import { JoinForm } from "@/components/join-form";
 import { BoardView } from "@/components/board-view";
+import { CreateBar } from "@/components/create-bar";
 import { HeroBanner } from "@/components/hero-banner";
 import { HonorRoll } from "@/components/honor-roll";
 import { canTeach, requireProfile, type Role } from "@/lib/auth";
@@ -17,6 +18,8 @@ import {
 } from "@/lib/activity";
 import { getMyClassrooms, type ClassroomSummary } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
+import { createBlankTest } from "@/app/(app)/c/[id]/tests/actions";
+import { createBlankDeck } from "@/app/(app)/flashcards/actions";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 function Hello({
@@ -277,7 +280,7 @@ export default async function HomePage(props: PageProps<"/">) {
   if (!rooms.length && !teach) {
     return (
       <div className="grid grid-cols-1 gap-8">
-        <HeroBanner className="-mx-4 -mt-6 sm:mx-0 sm:mt-0" />
+        <HeroBanner blend />
         <Hello
           name={first}
           role={profile.role}
@@ -312,7 +315,7 @@ export default async function HomePage(props: PageProps<"/">) {
 
   return (
     <div className="grid grid-cols-1 gap-8">
-      <HeroBanner className="-mx-4 -mt-6 sm:mx-0 sm:mt-0" />
+      <HeroBanner blend />
       <Hello
         name={first}
         role={profile.role}
@@ -320,6 +323,15 @@ export default async function HomePage(props: PageProps<"/">) {
         rooms={rooms.length}
         online={online.length}
       />
+      {teach ? (
+        <CreateBar
+          rooms={rooms
+            .filter((r) => r.can_manage)
+            .map((r) => ({ id: r.id, name: r.name }))}
+          newTest={createBlankTest}
+          newDeck={createBlankDeck}
+        />
+      ) : null}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
         <div className="grid grid-cols-1 gap-8">
           {settingUp ? <Setup steps={steps} /> : null}
