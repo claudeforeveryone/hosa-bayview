@@ -111,9 +111,12 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
         aria-label={flipped ? `Definition: ${card.definition}. Tap to show the term.` : `Term: ${card.term}. Tap to show the definition.`}
         className="step grid min-h-64 w-full place-items-center gap-3 border border-rule-strong bg-band px-6 py-10 text-center hover:border-ink"
       >
-        <span className="caps text-[14px] text-ink-2">{flipped ? "Definition" : "Term"}</span>
-        <span className="max-w-[40ch] break-words font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-tight font-semibold">
-          {flipped ? card.definition : card.term}
+        {/* Keyed by face, so each tap turns the card over again. */}
+        <span key={`${card.id}-${flipped}`} className="card-face grid place-items-center gap-3">
+          <span className="caps text-[14px] text-ink-2">{flipped ? "Definition" : "Term"}</span>
+          <span className="max-w-[40ch] break-words font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-tight font-semibold">
+            {flipped ? card.definition : card.term}
+          </span>
         </span>
       </button>
 

@@ -501,6 +501,17 @@
   64%, 100% { transform: none; opacity: 1; letter-spacing: 0.32em; }
 }
 
+/* Study card: each side turns in over five hard steps, the house motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .card-face {
+    animation: card-face 200ms steps(5, end) both;
+  }
+}
+@keyframes card-face {
+  from { transform: perspective(700px) rotateY(-90deg); }
+  to { transform: none; }
+}
+
 /* Lucky bonus: a band slams in, the number pops, pieces burst out. Transform and opacity only, in hard steps.
    Reduced motion gets a plain fade of the band and nothing moves. */
 @keyframes lucky-slam {
