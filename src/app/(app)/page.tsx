@@ -280,7 +280,7 @@ export default async function HomePage(props: PageProps<"/">) {
   if (!rooms.length && !teach) {
     return (
       <div className="grid grid-cols-1 gap-8">
-        <HeroBanner />
+        <HeroBanner className="-mx-4 -mt-6 sm:mx-0 sm:mt-0" />
         <Hello
           name={first}
           role={profile.role}
@@ -314,7 +314,7 @@ export default async function HomePage(props: PageProps<"/">) {
 
   return (
     <div className="grid grid-cols-1 gap-8">
-      <HeroBanner />
+      <HeroBanner className="-mx-4 -mt-6 sm:mx-0 sm:mt-0" />
       <Hello
         name={first}
         role={profile.role}

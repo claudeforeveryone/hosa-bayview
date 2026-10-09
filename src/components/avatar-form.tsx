@@ -98,7 +98,7 @@ export function AvatarForm({
             disabled={busy !== null}
             onChange={onPick}
             aria-describedby={`${inputId}-hint`}
-            className="text-[16px] file:caps file:mr-4 file:h-12 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-5 file:text-[16px] file:text-ink hover:file:bg-band focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
+            className="w-full min-w-0 text-[16px] file:caps file:mr-4 file:h-12 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-5 file:text-[16px] file:text-ink hover:file:bg-band focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
           />
           <p id={`${inputId}-hint`} className="text-[15px] text-ink-2">
             Any photo, or a GIF up to 2 MB.

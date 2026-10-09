@@ -66,8 +66,9 @@ const shardStyle = (s: Shard) =>
 
 const LINES = ["Shatter", "Every limit"];
 
-// Set once the banner has played in this page load. Coming back to a page client-side shows it finished.
-let playedThisLoad = false;
+// Which banners have played in this page load. Coming back to a page client-side shows it finished, but
+// signing in still plays Home's banner after the sign-in page's own.
+const played = new Set<"bare" | "panel">();
 
 // The banner at the top of Home and the sign-in page. On a fresh load it drops in, the classic logo breaks
 // apart in 3D and "Shatter every limit" flips in beside the tiger; then it stays as a plain band.
@@ -79,10 +80,11 @@ export function HeroBanner({
   className?: string;
 }) {
   // Server and first client render agree (nothing has played yet), so hydration matches.
-  const [play] = useState(() => !playedThisLoad);
+  const variant = bare ? "bare" : "panel";
+  const [play] = useState(() => !played.has(variant));
   useEffect(() => {
-    playedThisLoad = true;
-  }, []);
+    played.add(variant);
+  }, [variant]);
 
   return (
     <div

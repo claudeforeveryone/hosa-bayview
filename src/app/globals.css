@@ -441,6 +441,23 @@
   }
 }
 
+/* Reduce Motion: nothing travels. The logo and words fade in and the heartbeat still draws itself. */
+@media (prefers-reduced-motion: reduce) {
+  .hero[data-play] .hero-stage { animation: hero-fade 700ms ease-out both; }
+  .hero[data-play] .hero-words { animation: hero-fade 700ms ease-out 250ms both; }
+  .hero[data-play] .hero-ecg-line {
+    stroke-dasharray: 1 1;
+    animation: hero-ecg-trace 1400ms linear 700ms both;
+  }
+}
+@keyframes hero-fade {
+  from { opacity: 0; }
+}
+@keyframes hero-ecg-trace {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
 /* 0-15% drop in · 15-30% the logo holds · 30-50% shatter · 38-54% words flip · 56-76% heartbeat · 52-64% season · 64-84% glint. */
 @keyframes hero-drop {
   0% { transform: rotateX(-88deg); opacity: 0.3; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
