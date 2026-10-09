@@ -284,6 +284,8 @@ export async function saveSelectionCard(
     items: [{ term, definition }],
   });
   if (error) {
+    // A deck made just for this card shouldn't survive a failed save, or a retry makes a second empty one.
+    if (isNew) await supabase.from("decks").delete().eq("id", target);
     if (error.code === "22023") return { error: `${error.message}.` };
     if (error.code === "42501")
       return { error: "You can't add cards to that deck." };

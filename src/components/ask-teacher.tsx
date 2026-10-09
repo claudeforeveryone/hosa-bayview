@@ -105,18 +105,21 @@ export function AskTeacher({
           )}
         </div>
       ) : null}
-      <div>
-        <button
-          type="button"
-          onClick={() => {
-            setNote(current?.note ?? "");
-            setEditing(true);
-          }}
-          className="caps step inline-flex h-10 items-center border border-ink px-4 text-[15px] hover:bg-band"
-        >
-          {current ? "Ask again" : "Ask teacher"}
-        </button>
-      </div>
+      {/* Once the trainer has replied, the thread is closed: asking again would drop their reply. */}
+      {current?.status !== "answered" ? (
+        <div>
+          <button
+            type="button"
+            onClick={() => {
+              setNote(current?.note ?? "");
+              setEditing(true);
+            }}
+            className="caps step inline-flex h-10 items-center border border-ink px-4 text-[15px] hover:bg-band"
+          >
+            {current ? "Ask again" : "Ask teacher"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

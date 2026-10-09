@@ -188,10 +188,9 @@ export async function getAttemptQuestions(
     aid: attemptId,
   });
   if (error) throw new Error(`Attempt lookup failed: ${error.message}`);
-  return ((data ?? []) as AttemptQuestion[]).map((r) => ({
-    ...r,
-    choice_order: r.choice_order.map(Number),
-  }));
+  return ((data ?? []) as AttemptQuestion[])
+    .map((r) => ({ ...r, choice_order: r.choice_order.map(Number) }))
+    .sort((a, b) => a.pos - b.pos);
 }
 
 export async function getMyAttempts(
@@ -212,7 +211,7 @@ export async function getMyAttempts(
   return (data ?? []) as Attempt[];
 }
 
-// How many attempts of one mode a taker has used (open or finished) on a test.
+// Finished attempts of one mode on a test. An open run isn't "used": it resumes from Keep going.
 export async function countAttempts(
   testId: string,
   userId: string,
@@ -224,7 +223,8 @@ export async function countAttempts(
     .select("id", { count: "exact", head: true })
     .eq("test_id", testId)
     .eq("user_id", userId)
-    .eq("mode", mode);
+    .eq("mode", mode)
+    .not("submitted_at", "is", null);
   if (error) throw new Error(`Attempts lookup failed: ${error.message}`);
   return count ?? 0;
 }

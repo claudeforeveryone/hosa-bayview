@@ -41,7 +41,8 @@ export function GradesView({
 }) {
   const grid = useMemo(() => buildGrid(rows), [rows]);
 
-  if (!grid.tests.length) {
+  // No members wins: "no posted tests" only makes sense once there is someone to grade.
+  if (grid.members.length && !grid.tests.length) {
     return (
       <p className="border-y border-dashed border-rule-strong px-1 py-4 text-ink-2">
         No posted tests yet.

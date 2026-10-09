@@ -52,7 +52,10 @@ export default async function AttemptPage({
         .filter((d) => d.owner_id === profile.id)
         .map((d) => ({ id: d.id, title: d.title }))
     : [];
-  const flags = mine ? await getTestFlags(test.id) : [];
+  // getTestFlags returns every member's flags to trainers, so keep only this taker's own.
+  const flags = mine
+    ? (await getTestFlags(test.id)).filter((f) => f.user_id === profile.id)
+    : [];
   const flagByQuestion = Object.fromEntries(
     flags.map((f) => [
       f.question_id,

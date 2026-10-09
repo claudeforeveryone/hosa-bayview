@@ -99,13 +99,17 @@ select pg_temp.check('submitted review keeps keys and choice order is a permutat
 
 -- Answers off, one attempt: practice on c2.
 select pg_temp.save('p2', public.start_attempt('00000000-0000-4000-8000-0000000000c2', 'practice'));
-select pg_temp.check('answers off: practice shows right or not but never which option was right',
+select pg_temp.check('answers off: practice saves the pick and gives no verdict or key',
   exists (select 1 from public.answer_question(pg_temp.get('p2'), '00000000-0000-4000-8000-0000000000d3', 0) r
-          where r.is_correct = false and r.correct_index is null and r.explanation is null));
+          where r.selected_index = 0 and r.is_correct is null and r.correct_index is null and r.explanation is null));
 select public.submit_attempt(pg_temp.get('p2'));
-select pg_temp.check('answers off: review hides the key from the taker',
-  exists (select 1 from public.attempt_sheet(pg_temp.get('p2')) r where r.correct_index is null and r.explanation is null)
-  and not exists (select 1 from public.attempt_questions(pg_temp.get('p2')) r where r.correct_index is not null));
+select pg_temp.check('answers off: review hides the key and the verdict from the taker',
+  exists (select 1 from public.attempt_sheet(pg_temp.get('p2')) r where r.correct_index is null and r.explanation is null and r.is_correct is null)
+  and not exists (select 1 from public.attempt_questions(pg_temp.get('p2')) r where r.correct_index is not null or r.is_correct is not null));
+select pg_temp.check('rows come back in display order (pos 1..n in sequence)',
+  not exists (
+    select 1 from (select pos, row_number() over () as rn from public.attempt_questions(pg_temp.get('p1'))) s where s.pos <> s.rn)
+  and (select count(*) from public.attempt_questions(pg_temp.get('p1'))) = 2);
 select pg_temp.check('attempt cap stops another practice run on c2',
   pg_temp.fails($$select public.start_attempt('00000000-0000-4000-8000-0000000000c2', 'practice')$$, 'used all your attempts'));
 
@@ -116,6 +120,9 @@ select pg_temp.check('shuffle off keeps position order and choice order',
   exists (select 1 from public.attempt_questions(pg_temp.get('p4')) r
           where r.pos = 1 and r.question_id = '00000000-0000-4000-8000-0000000000d4' and r.choice_order = array[0, 1, 2, 3]::smallint[])
   and exists (select 1 from public.attempt_questions(pg_temp.get('p4')) r where r.pos = 2 and r.question_id = '00000000-0000-4000-8000-0000000000d5'));
+select pg_temp.check('shuffle off returns questions in full position order',
+  (select array_agg(question_id order by rn) from (select question_id, row_number() over () rn from public.attempt_questions(pg_temp.get('p4'))) s)
+    = array['00000000-0000-4000-8000-0000000000d4', '00000000-0000-4000-8000-0000000000d5']::uuid[]);
 
 select pg_temp.save('t1', public.start_attempt('00000000-0000-4000-8000-0000000000c1', 'timed'));
 select public.answer_question(pg_temp.get('t1'), '00000000-0000-4000-8000-0000000000d1', 0);
@@ -160,6 +167,15 @@ select pg_temp.check('asking again keeps the same flag', public.flag_question('0
 select pg_temp.check('asking again reopens it and clears the old reply',
   exists (select 1 from public.test_flags('00000000-0000-4000-8000-0000000000c1') f
           where f.id = pg_temp.get('f1') and f.status = 'open' and f.reply = '' and f.note = 'again'));
+
+-- A practice run that was open when the trainer turned practice off can't be answered any more.
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000a3');
+select pg_temp.save('p5', public.start_attempt('00000000-0000-4000-8000-0000000000c1', 'practice'));
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000a1');
+update public.tests set allow_practice = false where id = '00000000-0000-4000-8000-0000000000c1';
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000a3');
+select pg_temp.check('an open practice run stops taking answers once practice is off',
+  pg_temp.fails(format($$select public.answer_question('%s', '00000000-0000-4000-8000-0000000000d1', 0)$$, pg_temp.get('p5')), 'Practice is off'));
 
 select 'tests_teaching: all checks passed' as result;
 rollback;

@@ -131,4 +131,28 @@ describe("gradesCsv", () => {
     expect(first).toBe('Name,"Terms, part 1",Average');
     expect(gradesCsv(grid).split("\r\n")[1]).toContain('"\'=HYPERLINK(""x"")"');
   });
+
+  it("neutralises a leading tab or carriage return too", () => {
+    const grid = buildGrid([
+      row({
+        user_id: "u1",
+        full_name: "\t=cmd",
+        mode: "timed",
+        best_score: 1,
+        best_total: 1,
+        tries: 1,
+      }),
+      row({
+        user_id: "u2",
+        full_name: "\r+sum",
+        mode: "timed",
+        best_score: 1,
+        best_total: 1,
+        tries: 1,
+      }),
+    ]);
+    const csv = gradesCsv(grid);
+    expect(csv).toContain("'\t=cmd,");
+    expect(csv).toContain('"\'\r+sum",');
+  });
 });

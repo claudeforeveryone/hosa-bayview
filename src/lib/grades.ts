@@ -93,7 +93,7 @@ export function buildGrid(rows: GradeRow[]): GradeGrid {
 
 // Spreadsheets run a leading = + - or @ as a formula; prefix those so a name can't do that.
 function csvField(value: string): string {
-  const safe = /^[=+\-@]/.test(value) ? `'${value}` : value;
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
   return /[",\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 

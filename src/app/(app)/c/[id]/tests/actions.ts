@@ -217,31 +217,20 @@ export async function deleteTest(
   redirect(`/c/${classroomId}/tests`);
 }
 
-const choice = z.string().trim().max(500, "Keep choices under 500 characters.");
 const questionFields = z.object({
   prompt: z
     .string()
     .trim()
     .min(1, "Write the question.")
     .max(2000, "Keep the question under 2000 characters."),
-  right: choice.min(1, "Write the right answer."),
-  others: z
-    .array(choice)
-    .transform((o) => o.filter(Boolean))
-    .pipe(
-      z
-        .array(z.string())
-        .min(1, "Add at least one wrong choice.")
-        .max(4, "4 wrong choices at most."),
-    ),
   explanation: z
     .string()
     .trim()
     .max(2000, "Keep the explanation under 2000 characters."),
 });
 
-// The builder asks for the right answer and the wrong choices separately; it's stored first
-// and choices are shuffled per attempt when the test is taken.
+// The editor sends the choices in the order typed, and which one is right (its position).
+// Saved exactly as given, so the right answer is never always option A.
 export async function saveQuestion(
   testId: string,
   questionId: string | null,
@@ -251,12 +240,13 @@ export async function saveQuestion(
   await requireProfile();
   const clean = (v: FormDataEntryValue | null) =>
     String(v ?? "").replace(/\r\n?/g, "\n");
-  const others = form.getAll("other").map(clean);
+  const choices = form.getAll("choice").map(clean);
+  const correctRaw = clean(form.get("correct"));
   const values = {
     prompt: clean(form.get("prompt")),
-    right: clean(form.get("right")),
     explanation: clean(form.get("explanation")),
-    others: JSON.stringify(others),
+    choices: JSON.stringify(choices),
+    correct: correctRaw,
   };
   if (
     !id.safeParse(testId).success ||
@@ -264,21 +254,33 @@ export async function saveQuestion(
   ) {
     return { error: "That question doesn't exist.", values };
   }
-  const parsed = questionFields.safeParse({ ...values, others });
-  if (!parsed.success)
-    return { fieldErrors: fieldErrors(parsed.error), values };
-  const options = [parsed.data.right, ...parsed.data.others];
-  if (new Set(options.map((o) => o.toLowerCase())).size !== options.length) {
-    return { fieldErrors: { others: "Two choices are the same." }, values };
-  }
+  const fields: Record<string, string> = {};
+  const parsed = questionFields.safeParse(values);
+  if (!parsed.success) Object.assign(fields, fieldErrors(parsed.error));
+
+  const trimmed = choices.map((c) => c.trim());
+  if (trimmed.length < 2) fields.choices = "Add at least two choices.";
+  else if (trimmed.length > 5) fields.choices = "5 choices at most.";
+  else if (trimmed.some((c) => c === ""))
+    fields.choices = "Fill in every choice, or remove it.";
+  else if (trimmed.some((c) => c.length > 500))
+    fields.choices = "Keep choices under 500 characters.";
+  else if (new Set(trimmed.map((o) => o.toLowerCase())).size !== trimmed.length)
+    fields.choices = "Two choices are the same.";
+
+  const correct = /^\d+$/.test(correctRaw) ? Number(correctRaw) : -1;
+  if (!fields.choices && (correct < 0 || correct >= trimmed.length))
+    fields.correct = "Mark the right answer.";
+  if (!parsed.success || Object.keys(fields).length)
+    return { fieldErrors: fields, values };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_question", {
     tid: testId,
     qid: questionId,
     prompt: parsed.data.prompt,
-    options,
-    correct: 0,
+    options: trimmed,
+    correct,
     explanation: parsed.data.explanation,
   });
   if (error) return { ...rpcError("save question", error), values };

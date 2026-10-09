@@ -14,9 +14,12 @@ import type { AttemptQuestion } from "@/lib/tests";
 
 type Answer = {
   selected: number;
+  // Null while the answer is saving, and when the trainer has answers off (no verdict to show).
   is_correct: boolean | null;
   correct_index: number | null;
   explanation: string | null;
+  // True once the server has stored the pick (rows from the page always are).
+  saved: boolean;
 };
 
 const LETTERS = "ABCDE";
@@ -59,6 +62,7 @@ export function TakeTest({
           is_correct: r.is_correct,
           correct_index: r.correct_index,
           explanation: r.explanation,
+          saved: true,
         };
       }
     }
@@ -135,6 +139,7 @@ export function TakeTest({
         is_correct: null,
         correct_index: null,
         explanation: null,
+        saved: false,
       },
     }));
     setSaving(qid);
@@ -158,6 +163,7 @@ export function TakeTest({
         is_correct: r.is_correct ?? null,
         correct_index: r.correct_index ?? null,
         explanation: r.explanation ?? null,
+        saved: true,
       },
     }));
   };
@@ -259,18 +265,20 @@ export function TakeTest({
             <>
               <p
                 className={`caps text-[18px] ${
-                  mine?.is_correct
+                  mine?.saved && mine.is_correct
                     ? "text-ok"
-                    : mine?.is_correct === false
+                    : mine?.saved && mine.is_correct === false
                       ? "text-danger"
                       : "text-ink-2"
                 }`}
               >
-                {mine?.is_correct
-                  ? "Right"
-                  : mine?.is_correct === false
-                    ? "Not quite"
-                    : "Checking"}
+                {!mine?.saved
+                  ? "Checking"
+                  : mine.is_correct
+                    ? "Right"
+                    : mine.is_correct === false
+                      ? "Not quite"
+                      : "Saved"}
               </p>
               {mine?.explanation ? (
                 <p className="text-ink-2">{mine.explanation}</p>
@@ -278,7 +286,7 @@ export function TakeTest({
             </>
           ) : null}
         </div>
-        {locked ? (
+        {locked && mine?.saved ? (
           <AskTeacher
             key={q.question_id}
             testId={testId}

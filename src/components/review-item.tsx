@@ -21,8 +21,15 @@ export function ReviewItem({
   decks: DeckOption[];
   flag: FlagState | null;
 }) {
+  // Null verdict: the trainer has answers off, so the taker only sees that they answered.
   const verdict =
-    q.selected_index === null ? "Blank" : q.is_correct ? "Right" : "Wrong";
+    q.selected_index === null
+      ? "Blank"
+      : q.is_correct === null
+        ? "Answered"
+        : q.is_correct
+          ? "Right"
+          : "Wrong";
   const rightText =
     q.correct_index !== null ? (q.options[q.correct_index] ?? null) : null;
 
