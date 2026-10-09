@@ -107,8 +107,16 @@ export async function deleteDeck(deckId: string): Promise<FormState> {
 }
 
 const cardItem = z.object({
-  term: z.string().trim().min(1).max(TERM_MAX),
-  definition: z.string().trim().min(1).max(DEFINITION_MAX),
+  term: z
+    .string()
+    .trim()
+    .min(1, "Write the term.")
+    .max(TERM_MAX, `Keep the term under ${TERM_MAX} characters.`),
+  definition: z
+    .string()
+    .trim()
+    .min(1, "Write the definition.")
+    .max(DEFINITION_MAX, `Keep the definition under ${DEFINITION_MAX} characters.`),
 });
 
 // Adds cards from the paste preview or the single-card form. Items are already parsed on the client.

@@ -16,7 +16,7 @@ export default async function StudyPage({ params, searchParams }: PageProps<"/fl
   if (!deck) notFound();
   const cards = await getCards(deck.id);
   const learningOnly = sp.filter === "learning";
-  const learning = learningOnly ? await getLearningCardIds(cards.map((c) => c.id)) : null;
+  const learning = learningOnly ? await getLearningCardIds(deck.id) : null;
   const pool = learning ? cards.filter((c) => learning.has(c.id)) : cards;
   const back = (
     <Link href={`/flashcards/${deck.id}`} className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band">
@@ -52,9 +52,11 @@ export default async function StudyPage({ params, searchParams }: PageProps<"/fl
       {cards.length && !pool.length ? <EmptyState title="Nothing still learning" action={back} /> : null}
       {pool.length ? (
         <StudySession
+          key={learningOnly ? "learning" : "all"}
           deckId={deck.id}
           cards={pool.map((c) => ({ id: c.id, term: c.term, definition: c.definition }))}
           label={learningOnly ? "Still learning" : "All cards"}
+          seed={crypto.randomUUID()}
         />
       ) : null}
     </div>

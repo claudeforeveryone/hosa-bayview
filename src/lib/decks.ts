@@ -64,17 +64,11 @@ export async function getCards(deckId: string): Promise<Card[]> {
   return (data ?? []) as Card[];
 }
 
-// Card ids whose latest review by you was "still learning". Reviews are private, so this is yours only.
-export async function getLearningCardIds(cardIds: string[]): Promise<Set<string>> {
-  if (!cardIds.length) return new Set();
+// Card ids in this deck whose latest review by you was "still learning". Done in SQL, for you only.
+export async function getLearningCardIds(deckId: string): Promise<Set<string>> {
+  if (!uuid.safeParse(deckId).success) return new Set();
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("card_reviews")
-    .select("card_id, known, reviewed_at")
-    .in("card_id", cardIds)
-    .order("reviewed_at", { ascending: true });
+  const { data, error } = await supabase.rpc("learning_card_ids", { did: deckId });
   if (error) throw new Error(`Reviews lookup failed: ${error.message}`);
-  const latest = new Map<string, boolean>();
-  for (const r of data ?? []) latest.set(r.card_id as string, r.known as boolean);
-  return new Set([...latest].filter(([, known]) => !known).map(([id]) => id));
+  return new Set((data ?? []) as string[]);
 }

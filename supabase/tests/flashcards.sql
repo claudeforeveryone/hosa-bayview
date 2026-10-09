@@ -116,5 +116,79 @@ select pg_temp.as_admin();
 select pg_temp.check('trainer edit saved on owner shared deck',
   (select title from public.decks where id = '00000000-0000-4000-8000-0000000000d2') = 'Trainer touched');
 
+-- Migration 0022. A trainee deck in a room is the owner's until it is shared. Seeded here so the checks above stay as they were.
+insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, aud, role) values
+  ('00000000-0000-4000-8000-0000000000f5', 'fc.exec@example.com', '{"full_name":"Card Exec"}', now(), 'authenticated', 'authenticated');
+update public.profiles set role = 'executive' where id = '00000000-0000-4000-8000-0000000000f5';
+insert into public.decks (id, owner_id, classroom_id, title, is_shared) values
+  ('00000000-0000-4000-8000-0000000000d4', '00000000-0000-4000-8000-0000000000f3', '00000000-0000-4000-8000-0000000000c1', 'Classmate private', false);
+insert into public.cards (id, deck_id, position, term, definition) values
+  ('00000000-0000-4000-8000-0000000000e4', '00000000-0000-4000-8000-0000000000d4', 1, 'Own term', 'Own definition');
+
+-- A: the trainer runs the room but cannot see or touch an unshared trainee deck.
+select pg_temp.as_admin();
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f1');
+select pg_temp.check('trainer cannot read an unshared trainee deck in the room', (select count(*) from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = 0);
+select pg_temp.check('trainer cannot read cards of an unshared trainee deck', (select count(*) from public.cards where deck_id = '00000000-0000-4000-8000-0000000000d4') = 0);
+select pg_temp.check('trainer deck list leaves out the unshared trainee deck', (select count(*) from public.deck_list('00000000-0000-4000-8000-0000000000c1')) = 2);
+update public.decks set title = 'Trainer tried' where id = '00000000-0000-4000-8000-0000000000d4';
+select pg_temp.expect('trainer cannot add cards to an unshared trainee deck',
+  $q$select public.add_cards('00000000-0000-4000-8000-0000000000d4', '[{"term":"x","definition":"y"}]'::jsonb)$q$, '42501');
+select pg_temp.as_admin();
+select pg_temp.check('trainer update did not change the trainee deck', (select title from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = 'Classmate private');
+
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f2');
+select pg_temp.check('classmate cannot read an unshared trainee deck', (select count(*) from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = 0);
+
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f3');
+select pg_temp.check('owner reads their unshared trainee deck', (select count(*) from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = 1);
+
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f5');
+select pg_temp.check('executive reads an unshared trainee deck', (select count(*) from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = 1);
+select pg_temp.check('executive reads a private deck of another owner', (select count(*) from public.decks where id = '00000000-0000-4000-8000-0000000000d1') = 1);
+
+-- B: the owner shares it while still in the room; the classmate and the trainer can then read it.
+select pg_temp.as_admin();
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f3');
+update public.decks set is_shared = true where id = '00000000-0000-4000-8000-0000000000d4';
+select pg_temp.as_admin();
+select pg_temp.check('owner shares a trainee deck into the room', (select is_shared from public.decks where id = '00000000-0000-4000-8000-0000000000d4'));
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f2');
+select pg_temp.check('classmate reads the trainee deck once shared', (select count(*) from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = 1);
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f1');
+select pg_temp.check('trainer reads the trainee deck once shared', (select count(*) from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = 1);
+
+-- Learning cards: your own latest review per card, one deck at a time. Reviews are written with explicit times
+-- because every statement in this transaction shares one now().
+select pg_temp.as_admin();
+insert into public.card_reviews (user_id, card_id, known, reviewed_at) values
+  ('00000000-0000-4000-8000-0000000000f2', '00000000-0000-4000-8000-0000000000e1', false, '2026-01-01 10:00+00'),
+  ('00000000-0000-4000-8000-0000000000f2', '00000000-0000-4000-8000-0000000000e1', true, '2026-01-01 10:05+00'),
+  ('00000000-0000-4000-8000-0000000000f2', '00000000-0000-4000-8000-0000000000e2', false, '2026-01-01 10:00+00');
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f2');
+select pg_temp.check('still learning lists the card whose latest review is unknown',
+  (select coalesce(array_agg(x), '{}'::uuid[]) from public.learning_card_ids('00000000-0000-4000-8000-0000000000d2') x) = array['00000000-0000-4000-8000-0000000000e2'::uuid]);
+select pg_temp.check('a card whose latest review is known is not still learning',
+  (select count(*) from public.learning_card_ids('00000000-0000-4000-8000-0000000000d1')) = 0);
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f3');
+select pg_temp.check('classmate learning list ignores other reviewers', (select count(*) from public.learning_card_ids('00000000-0000-4000-8000-0000000000d2')) = 0);
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f5');
+select pg_temp.check('executive sees other reviews but the learning list is only their own',
+  (select count(*) from public.card_reviews where card_id = '00000000-0000-4000-8000-0000000000e2') = 2
+  and (select count(*) from public.learning_card_ids('00000000-0000-4000-8000-0000000000d2')) = 0);
+
+-- C: the owner unshares, then leaves the room. A removed member cannot share into it again.
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f3');
+update public.decks set is_shared = false where id = '00000000-0000-4000-8000-0000000000d4';
+select pg_temp.as_admin();
+select pg_temp.check('owner unshares a trainee deck', (select is_shared from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = false);
+delete from public.classroom_members where classroom_id = '00000000-0000-4000-8000-0000000000c1' and user_id = '00000000-0000-4000-8000-0000000000f3';
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f3');
+select pg_temp.expect('removed member cannot share a deck into the room they left',
+  $q$update public.decks set is_shared = true where id = '00000000-0000-4000-8000-0000000000d4'$q$, '42501');
+update public.decks set title = 'Renamed while unshared' where id = '00000000-0000-4000-8000-0000000000d4';
+select pg_temp.as_admin();
+select pg_temp.check('removed member can still rename an unshared deck', (select title from public.decks where id = '00000000-0000-4000-8000-0000000000d4') = 'Renamed while unshared');
+
 select 'flashcards: all checks passed' as result;
 rollback;

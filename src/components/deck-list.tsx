@@ -4,12 +4,14 @@ import type { DeckSummary } from "@/lib/decks";
 import { formNumber } from "@/lib/join-code";
 
 // Rows for decks: title, card count and where the deck lives. Plain rules, no cards or badges.
-export function DeckList({ decks }: { decks: DeckSummary[] }) {
+// "Only you" is only said to the owner; an executive looking at someone else's private deck sees "Private".
+export function DeckList({ decks, viewerId }: { decks: DeckSummary[]; viewerId: string }) {
   return (
     <ul className="border-t border-rule">
       {decks.map((d) => {
         const count = `${d.card_count} card${d.card_count === 1 ? "" : "s"}`;
-        const where = d.classroom_name ? (d.is_shared ? d.classroom_name : `Only you · ${d.classroom_name}`) : "Only you";
+        const privacy = d.owner_id === viewerId ? "Only you" : "Private";
+        const where = d.classroom_name ? (d.is_shared ? d.classroom_name : `${privacy} · ${d.classroom_name}`) : privacy;
         return (
           <li key={d.id} className="border-b border-rule">
             <Link

@@ -19,7 +19,6 @@ export function DeckShare({ deckId, shared, classroomName }: { deckId: string; s
       <Button
         variant="line"
         disabled={pending}
-        aria-pressed={on}
         onClick={() =>
           start(async () => {
             const next = !on;

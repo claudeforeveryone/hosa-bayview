@@ -16,7 +16,7 @@ export function DeckCards({ deckId, cards, canEdit }: { deckId: string; cards: C
     <div className="grid gap-8">
       {canEdit ? <AddCards deckId={deckId} /> : null}
       {cards.length ? (
-        <ol className="border-t border-rule">
+        <ol id="deck-cards-list" tabIndex={-1} className="border-t border-rule">
           {cards.map((c) => (
             <CardRow key={c.id} card={c} canEdit={canEdit} />
           ))}
@@ -172,6 +172,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             maxLength={500}
+            required
             className="step h-12 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink"
           />
           <textarea
@@ -179,6 +180,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             value={definition}
             onChange={(e) => setDefinition(e.target.value)}
             maxLength={2000}
+            required
             rows={2}
             className="step border border-rule-strong bg-transparent px-3 py-2 text-[17px] outline-none focus:border-ink"
           />
@@ -187,7 +189,18 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             <Button type="submit" disabled={pending}>
               {pending ? "Saving" : "Save"}
             </Button>
-            <Button type="button" variant="line" onClick={() => setEditing(false)} disabled={pending}>
+            <Button
+              type="button"
+              variant="line"
+              disabled={pending}
+              onClick={() => {
+                // Back to the saved card, not whatever was typed.
+                setTerm(card.term);
+                setDefinition(card.definition);
+                setState({});
+                setEditing(false);
+              }}
+            >
               Cancel
             </Button>
           </div>
@@ -203,8 +216,8 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
         <span className="break-words text-ink-2">{card.definition}</span>
       </div>
       {canEdit ? (
-        <div className="flex flex-wrap items-start gap-3">
-          <Button variant="line" className="h-10 px-4 text-[15px]" onClick={() => setEditing(true)}>
+        <div role="group" aria-label={`Card: ${card.term}`} className="flex flex-wrap items-start gap-3">
+          <Button variant="line" className="h-10 px-4 text-[15px]" aria-label={`Edit ${card.term}`} onClick={() => setEditing(true)}>
             Edit
           </Button>
           <ConfirmAction
@@ -214,6 +227,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             pendingLabel="Deleting"
             question="Delete this card?"
             compact
+            focusAfter="deck-cards-list"
           />
         </div>
       ) : null}

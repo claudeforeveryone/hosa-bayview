@@ -23,13 +23,13 @@ export default async function FlashcardsPage() {
       {mine.length ? (
         <section className="grid gap-4" aria-labelledby="mine-heading">
           <h2 id="mine-heading" className="caps text-[17px] text-ink-2">Yours</h2>
-          <DeckList decks={mine} />
+          <DeckList decks={mine} viewerId={profile.id} />
         </section>
       ) : null}
       {others.length ? (
         <section className="grid gap-4" aria-labelledby="shared-heading">
           <h2 id="shared-heading" className="caps text-[17px] text-ink-2">Shared with you</h2>
-          <DeckList decks={others} />
+          <DeckList decks={others} viewerId={profile.id} />
         </section>
       ) : null}
     </div>

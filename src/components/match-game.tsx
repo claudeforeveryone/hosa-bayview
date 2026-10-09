@@ -4,50 +4,70 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/form";
 import type { StudyCard } from "@/components/study-session";
+import { permutation } from "@/lib/shuffle";
 
 const ROUND = 10;
 
-function shuffled<T>(items: T[]): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
-
 const seconds = (ms: number) => (ms / 1000).toFixed(1);
 
-// Each round is a fresh subset in fresh orders. The round component is keyed, so a new round is a clean mount.
-export function MatchGame({ deckId, cards }: { deckId: string; cards: StudyCard[] }) {
-  const [round, setRound] = useState(0);
-  if (!cards.length) return null;
-  return <MatchRound key={round} deckId={deckId} cards={cards} onAgain={() => setRound((r) => r + 1)} />;
+// A round is a subset of cards in orders derived from the seed and round number. Same inputs, same layout,
+// so the server render and the first client render match, and nothing random runs during render.
+function layoutFor(cards: StudyCard[], seed: string, round: number) {
+  const key = `${seed}:${round}`;
+  const subset = permutation(cards.length, `${key}:pick`)
+    .slice(0, ROUND)
+    .map((i) => cards[i]);
+  return {
+    total: subset.length,
+    terms: permutation(subset.length, `${key}:terms`).map((i) => subset[i]),
+    defs: permutation(subset.length, `${key}:defs`).map((i) => subset[i]),
+  };
 }
 
-// Tap a term, then its definition. A right pair locks in; a wrong one flashes and clears.
-function MatchRound({ deckId, cards, onAgain }: { deckId: string; cards: StudyCard[]; onAgain: () => void }) {
-  const [layout] = useState(() => {
-    const subset = shuffled(cards).slice(0, ROUND);
-    return { total: subset.length, terms: shuffled(subset), defs: shuffled(subset) };
-  });
+// Each round is a fresh subset in fresh orders. The round component is keyed, so a new round is a clean mount.
+export function MatchGame({ deckId, cards, seed }: { deckId: string; cards: StudyCard[]; seed: string }) {
+  const [round, setRound] = useState(0);
+  if (!cards.length) return null;
+  return (
+    <MatchRound
+      key={round}
+      deckId={deckId}
+      layout={layoutFor(cards, seed, round)}
+      onAgain={() => setRound((r) => r + 1)}
+    />
+  );
+}
+
+// Tap a term, then its definition. A pair matches when the definition text equals the term's definition,
+// so duplicate definitions never reject a right answer. A wrong one flashes and clears.
+function MatchRound({
+  deckId,
+  layout,
+  onAgain,
+}: {
+  deckId: string;
+  layout: { total: number; terms: StudyCard[]; defs: StudyCard[] };
+  onAgain: () => void;
+}) {
   const [picked, setPicked] = useState<string | null>(null);
-  const [matched, setMatched] = useState<Set<string>>(new Set());
+  const [matchedTerms, setMatchedTerms] = useState<Set<string>>(new Set());
+  const [matchedDefs, setMatchedDefs] = useState<Set<string>>(new Set());
   const [flash, setFlash] = useState<{ term: string; def: string } | null>(null);
-  const [running, setRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
+  // The clock starts on the first term tap. Finish time is taken from the same start, at the moment of the last match.
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(0);
+  const [finishedMs, setFinishedMs] = useState<number | null>(null);
   const [message, setMessage] = useState("");
 
   const { total } = layout;
-  const finished = total > 0 && matched.size === total;
+  const finished = finishedMs !== null;
 
-  // The clock runs from the first tap until the last pair locks in. Time is read in the effect, not the handlers.
+  // Times come from the tap events (same clock as performance.now), so start and finish are read at the tap itself.
   useEffect(() => {
-    if (!running || finished) return;
-    const began = Date.now();
-    const t = setInterval(() => setElapsed(Date.now() - began), 100);
+    if (startedAt === null || finished) return;
+    const t = setInterval(() => setNow(performance.now()), 100);
     return () => clearInterval(t);
-  }, [running, finished]);
+  }, [startedAt, finished]);
 
   useEffect(() => {
     if (!flash) return;
@@ -55,24 +75,33 @@ function MatchRound({ deckId, cards, onAgain }: { deckId: string; cards: StudyCa
     return () => clearTimeout(t);
   }, [flash]);
 
-  const tapTerm = (id: string) => {
-    if (matched.has(id) || finished) return;
-    setRunning(true);
+  const definitionOf = (id: string) => layout.terms.find((c) => c.id === id)?.definition ?? "";
+  const defById = (id: string) => layout.defs.find((c) => c.id === id);
+
+  const tapTerm = (id: string, at: number) => {
+    if (matchedTerms.has(id) || finished) return;
+    if (startedAt === null) {
+      setStartedAt(at);
+      setNow(at);
+    }
     setPicked(id);
     setMessage("");
   };
 
-  const tapDef = (id: string) => {
-    if (matched.has(id) || finished) return;
-    setRunning(true);
+  const tapDef = (id: string, at: number) => {
+    if (matchedDefs.has(id) || finished) return;
     if (picked === null) {
       setMessage("Pick a term first.");
       return;
     }
-    if (picked === id) {
-      setMatched((m) => new Set(m).add(id));
+    const def = defById(id);
+    if (def && def.definition === definitionOf(picked)) {
+      const nextTerms = new Set(matchedTerms).add(picked);
+      setMatchedTerms(nextTerms);
+      setMatchedDefs((m) => new Set(m).add(id));
       setPicked(null);
       setMessage("");
+      if (nextTerms.size === total && startedAt !== null) setFinishedMs(at - startedAt);
     } else {
       setFlash({ term: picked, def: id });
       setPicked(null);
@@ -84,7 +113,7 @@ function MatchRound({ deckId, cards, onAgain }: { deckId: string; cards: StudyCa
     return (
       <div className="grid max-w-xl gap-6">
         <p className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-semibold uppercase">Matched all {total}</p>
-        <p className="num font-display text-[clamp(2.5rem,10vw,4rem)] leading-none font-bold">{seconds(elapsed)} s</p>
+        <p className="num font-display text-[clamp(2.5rem,10vw,4rem)] leading-none font-bold">{seconds(finishedMs)} s</p>
         <div className="flex flex-wrap gap-3">
           <Button onClick={onAgain}>Play again</Button>
           <Link href={`/flashcards/${deckId}`} className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band">
@@ -95,15 +124,17 @@ function MatchRound({ deckId, cards, onAgain }: { deckId: string; cards: StudyCa
     );
   }
 
+  const elapsed = startedAt === null ? 0 : now - startedAt;
+
   const cell = (c: StudyCard, side: "term" | "def") => {
-    const isMatched = matched.has(c.id);
+    const isMatched = side === "term" ? matchedTerms.has(c.id) : matchedDefs.has(c.id);
     const isPicked = side === "term" && picked === c.id;
     const isFlash = flash !== null && (side === "term" ? flash.term === c.id : flash.def === c.id);
     return (
       <button
         key={`${side}-${c.id}`}
         type="button"
-        onClick={() => (side === "term" ? tapTerm(c.id) : tapDef(c.id))}
+        onClick={(e) => (side === "term" ? tapTerm(c.id, e.timeStamp) : tapDef(c.id, e.timeStamp))}
         disabled={isMatched}
         aria-pressed={isPicked}
         className={`step grid min-h-20 place-items-center border px-2.5 py-2 text-center text-[16px] leading-snug break-words ${
@@ -125,7 +156,7 @@ function MatchRound({ deckId, cards, onAgain }: { deckId: string; cards: StudyCa
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="caps num text-[15px] text-ink-2">
-          {matched.size} of {total} matched · {seconds(elapsed)} s
+          {matchedTerms.size} of {total} matched · {seconds(elapsed)} s
         </p>
         <button
           type="button"
@@ -138,7 +169,7 @@ function MatchRound({ deckId, cards, onAgain }: { deckId: string; cards: StudyCa
       <p className="min-h-6 text-[15px] text-ink-2" aria-live="polite">
         {message || "Tap a term, then its definition."}
       </p>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-6 min-[400px]:grid-cols-2 min-[400px]:gap-3">
         <div className="grid content-start gap-2" role="group" aria-label="Terms">
           {layout.terms.map((c) => cell(c, "term"))}
         </div>
