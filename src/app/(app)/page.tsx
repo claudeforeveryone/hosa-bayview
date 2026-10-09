@@ -4,10 +4,9 @@ import { JoinForm } from "@/components/join-form";
 import { BoardView } from "@/components/board-view";
 import { CreateBar } from "@/components/create-bar";
 import { HeroBanner } from "@/components/hero-banner";
-import { HonorRoll } from "@/components/honor-roll";
 import { canTeach, requireProfile, type Role } from "@/lib/auth";
 import { roleLabel } from "@/lib/role-label";
-import { getBoard, getHonorRoll, getOnline } from "@/lib/activity-data";
+import { getBoard, getOnline } from "@/lib/activity-data";
 import {
   formatCount,
   parsePeriod,
@@ -35,25 +34,24 @@ function Hello({
   rooms: number;
   online: number;
 }) {
+  const line = [
+    roleLabel(role, title),
+    rooms ? plural(rooms, "classroom") : null,
+    `${formatCount(online)} online`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
-    <header className="flex items-end justify-between gap-6 px-1 sm:px-3">
-      <div className="grid min-w-0 gap-1">
-        <h1 className="font-display text-[clamp(3rem,12vw,6rem)] leading-[0.88] font-bold [overflow-wrap:anywhere] uppercase">
-          {name}
-        </h1>
-        <p className="caps text-[17px] text-ink-2">
-          {roleLabel(role, title)}
-          {rooms ? ` · ${plural(rooms, "classroom")}` : ""}
-        </p>
-      </div>
-      <p className="caps num shrink-0 pb-2 text-[17px] text-ink-2">
-        Members online {formatCount(online)}
-      </p>
+    <header className="grid min-w-0 gap-1 px-1 sm:px-3">
+      <h1 className="font-display text-[clamp(2.75rem,11vw,5rem)] leading-[0.9] font-bold [overflow-wrap:anywhere] uppercase">
+        {name}
+      </h1>
+      <p className="caps num text-[16px] text-ink-2">{line}</p>
     </header>
   );
 }
 
-// The club board on Home: top ten by Elo, with a link to the full board.
+// The club board on Home: top five by Elo, where you stand, and a link to the full board.
 function ClubBoard({
   metric,
   period,
@@ -65,14 +63,22 @@ function ClubBoard({
   ranked: RankedRow[];
   meId: string;
 }) {
+  const place = ranked.find((r) => r.user_id === meId)?.place;
   return (
     <section aria-labelledby="board-h" className="grid gap-4">
-      <h2
-        id="board-h"
-        className="px-1 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase sm:px-3"
-      >
-        Leaderboard
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 px-1 sm:px-3">
+        <h2
+          id="board-h"
+          className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
+        >
+          Leaderboard
+        </h2>
+        {place ? (
+          <p className="caps num text-[16px] text-ink-2">
+            You&apos;re #{place} of {ranked.length}
+          </p>
+        ) : null}
+      </div>
       <BoardView
         base="/"
         metric={metric}
@@ -80,7 +86,7 @@ function ClubBoard({
         rows={ranked}
         meId={meId}
         empty="Nothing ranked yet"
-        limit={10}
+        limit={5}
         metrics={["elo"]}
         more={{
           href: `/leaderboard?metric=${metric}&period=${period}`,
@@ -186,9 +192,25 @@ function Join() {
   );
 }
 
+// Once you're in a classroom, joining another is a side errand: one line, not a band.
+function JoinLink() {
+  return (
+    <Link
+      href="/join"
+      className="caps step flex h-14 items-center justify-between border-y border-rule px-1 text-[17px] hover:bg-band sm:px-3"
+    >
+      Got a code? Join a classroom
+      <ArrowRight size={20} strokeWidth={2} aria-hidden />
+    </Link>
+  );
+}
+
 function ClassroomRow({ room }: { room: ClassroomSummary }) {
   const meta = [
-    room.event,
+    // Most rooms are named after their event; don't say it twice.
+    room.event.trim().toLowerCase() === room.name.trim().toLowerCase()
+      ? null
+      : room.event,
     room.is_owner ? "You run it" : room.owner_name,
     plural(room.member_count, "member"),
   ]
@@ -237,47 +259,18 @@ function Classrooms({ rooms }: { rooms: ClassroomSummary[] }) {
 
 export default async function HomePage(props: PageProps<"/">) {
   const sp = await props.searchParams;
-  // Home keeps it simple: Elo only. The full board has the other measures.
+  // Home keeps it simple: Elo only. The full board has the other measures and the honor roll.
   const metric: Metric = "elo";
   const period = parsePeriod(sp.period);
-  const [profile, rooms, board, online, honor] = await Promise.all([
+  const [profile, rooms, board, online] = await Promise.all([
     requireProfile(),
     getMyClassrooms(),
     getBoard(period, null),
     getOnline(null),
-    getHonorRoll(),
   ]);
   const teach = canTeach(profile);
   const first = profile.full_name.split(" ")[0] || profile.full_name;
   const ranked = rankBoard(board, metric, period);
-  const club = (
-    <ClubBoard
-      metric={metric}
-      period={period}
-      ranked={ranked}
-      meId={profile.id}
-    />
-  );
-  const honorRoll = <HonorRoll rows={honor} limit={10} />;
-
-  // A trainee with nowhere to go yet only needs the code box, then the board.
-  if (!rooms.length && !teach) {
-    return (
-      <div className="grid grid-cols-1 gap-8">
-        <HeroBanner blend />
-        <Hello
-          name={first}
-          role={profile.role}
-          title={profile.title}
-          rooms={0}
-          online={online.length}
-        />
-        <Join />
-        {club}
-        {honorRoll}
-      </div>
-    );
-  }
 
   const owned = rooms.filter((r) => r.is_owner);
   const firstOwned = owned[0];
@@ -295,8 +288,14 @@ export default async function HomePage(props: PageProps<"/">) {
       action: "Show the code",
     },
   ];
-  const settingUp = teach && steps.some((s) => !s.done);
+  // Only nag someone with no classrooms yet, or whose own room is still empty. An exec sitting in other
+  // people's rooms doesn't need a setup checklist.
+  const settingUp =
+    teach &&
+    (rooms.length === 0 || owned.length > 0) &&
+    steps.some((s) => !s.done);
 
+  // Order of use: make things (trainers), your classrooms, how you rank. Joining leads only until you're in one.
   return (
     <div className="grid grid-cols-1 gap-8">
       <HeroBanner blend />
@@ -317,10 +316,14 @@ export default async function HomePage(props: PageProps<"/">) {
         />
       ) : null}
       {settingUp ? <Setup steps={steps} /> : null}
-      {rooms.length ? <Classrooms rooms={rooms} /> : null}
-      <Join />
-      {club}
-      {honorRoll}
+      {rooms.length ? <Classrooms rooms={rooms} /> : <Join />}
+      <ClubBoard
+        metric={metric}
+        period={period}
+        ranked={ranked}
+        meId={profile.id}
+      />
+      {rooms.length ? <JoinLink /> : null}
     </div>
   );
 }
