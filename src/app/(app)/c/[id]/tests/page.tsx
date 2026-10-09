@@ -6,7 +6,6 @@ import { NewBlank } from "@/components/new-blank";
 import { getClassroom } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
 import { getClassroomTests, type TestSummary } from "@/lib/tests";
-import { UNTITLED_TEST } from "@/lib/untitled";
 import { createBlankTest } from "./actions";
 
 function meta(t: TestSummary, manager: boolean) {
@@ -27,7 +26,7 @@ export default async function TestsTab({ params }: PageProps<"/c/[id]/tests">) {
 
   if (!tests.length) {
     if (!room.can_manage) return <EmptyState title="No tests yet" />;
-    return <NewBlank action={createBlankTest} variant="tile" label={UNTITLED_TEST} classrooms={here} />;
+    return <NewBlank action={createBlankTest} variant="tile" label="New test" classrooms={here} />;
   }
 
   return (

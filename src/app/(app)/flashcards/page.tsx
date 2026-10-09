@@ -4,7 +4,6 @@ import { NewBlank } from "@/components/new-blank";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
 import { listDecks } from "@/lib/decks";
-import { UNTITLED_DECK } from "@/lib/untitled";
 import { createBlankDeck } from "./actions";
 
 export const metadata: Metadata = { title: "Flashcards" };
@@ -21,7 +20,7 @@ export default async function FlashcardsPage() {
         <PageTitle>Flashcards</PageTitle>
         {decks.length ? <NewBlank action={createBlankDeck} variant="button" label="New deck" /> : null}
       </div>
-      {!decks.length ? <NewBlank action={createBlankDeck} variant="tile" label={UNTITLED_DECK} /> : null}
+      {!decks.length ? <NewBlank action={createBlankDeck} variant="tile" label="New deck" /> : null}
       {mine.length ? (
         <section className="grid gap-4" aria-labelledby="mine-heading">
           <h2 id="mine-heading" className="caps text-[17px] text-ink-2">Yours</h2>

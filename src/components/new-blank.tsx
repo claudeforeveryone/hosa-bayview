@@ -56,8 +56,9 @@ export function NewBlank({
             type="submit"
             disabled={pending}
             aria-busy={pending || undefined}
-            className="step grid min-h-44 w-full place-items-center border border-dashed border-rule-strong px-4 py-10 text-center hover:bg-band disabled:opacity-60"
+            className="step grid min-h-44 w-full place-content-center justify-items-center gap-3 border border-dashed border-rule-strong px-4 py-10 text-center hover:border-ink hover:bg-band disabled:opacity-60"
           >
+            <Plus size={40} strokeWidth={1.75} aria-hidden />
             <span className="font-display text-[clamp(2.25rem,9vw,3.5rem)] leading-none font-bold uppercase [overflow-wrap:anywhere]">
               {pending ? "Making it" : label}
             </span>

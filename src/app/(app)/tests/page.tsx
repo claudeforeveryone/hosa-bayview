@@ -7,7 +7,6 @@ import { PageTitle } from "@/components/page-title";
 import { canTeach, requireProfile } from "@/lib/auth";
 import { getMyClassrooms } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
-import { UNTITLED_TEST } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
 import { createBlankTest } from "@/app/(app)/c/[id]/tests/actions";
 
@@ -90,7 +89,7 @@ export default async function TestsPage() {
           ))}
         </ul>
       ) : teacher && managed.length ? (
-        <NewBlank action={createBlankTest} variant="tile" label={UNTITLED_TEST} classrooms={managed} />
+        <NewBlank action={createBlankTest} variant="tile" label="New test" classrooms={managed} />
       ) : (
         <EmptyState title="No tests yet" />
       )}
