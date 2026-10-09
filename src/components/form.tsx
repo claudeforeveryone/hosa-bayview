@@ -8,7 +8,12 @@ export function Field({
   hint,
   id: idProp,
   ...input
-}: { label: string; name: string; error?: string; hint?: ReactNode } & ComponentProps<"input">) {
+}: {
+  label: string;
+  name: string;
+  error?: string;
+  hint?: ReactNode;
+} & ComponentProps<"input">) {
   const id = idProp ?? `f-${name}`;
   const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
   return (
@@ -37,6 +42,50 @@ export function Field({
   );
 }
 
+export function Select({
+  label,
+  name,
+  error,
+  hint,
+  id: idProp,
+  children,
+  ...select
+}: {
+  label: string;
+  name: string;
+  error?: string;
+  hint?: ReactNode;
+} & ComponentProps<"select">) {
+  const id = idProp ?? `f-${name}`;
+  const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
+  return (
+    <div className="grid gap-1.5">
+      <label htmlFor={id} className="text-[15px] font-medium">
+        {label}
+      </label>
+      <select
+        id={id}
+        name={name}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        className="step h-12 w-full border border-rule-strong bg-ground px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
+        {...select}
+      >
+        {children}
+      </select>
+      {error ? (
+        <p id={`${id}-err`} className="text-[15px] text-danger">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="text-[15px] text-ink-2">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function TextArea({
   label,
   name,
@@ -44,7 +93,12 @@ export function TextArea({
   hint,
   id: idProp,
   ...input
-}: { label: string; name: string; error?: string; hint?: ReactNode } & ComponentProps<"textarea">) {
+}: {
+  label: string;
+  name: string;
+  error?: string;
+  hint?: ReactNode;
+} & ComponentProps<"textarea">) {
   const id = idProp ?? `f-${name}`;
   const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
   return (
@@ -91,14 +145,25 @@ export function Button({
   );
 }
 
-export function FormMessage({ tone, children }: { tone: "error" | "ok"; children: ReactNode }) {
+export function FormMessage({
+  tone,
+  children,
+}: {
+  tone: "error" | "ok";
+  children: ReactNode;
+}) {
   const Icon = tone === "error" ? CircleAlert : CircleCheck;
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
       className={`flex gap-2 text-[16px] ${tone === "error" ? "text-danger" : "text-ok"}`}
     >
-      <Icon size={20} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden />
+      <Icon
+        size={20}
+        strokeWidth={1.75}
+        className="mt-0.5 shrink-0"
+        aria-hidden
+      />
       <span>{children}</span>
     </p>
   );

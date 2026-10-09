@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sessionState } from "@/lib/session-state";
+import { banStatus } from "@/lib/moderation";
 
 export type Role = "executive" | "trainer" | "trainee";
 
@@ -12,9 +13,17 @@ export type Profile = {
   full_name: string;
   role: Role;
   created_at: string;
+  avatar_path: string | null;
+  grade: number | null;
+  banned_until: string | null;
+  ban_reason: string | null;
 };
 
-type Session = { signedIn: false } | { signedIn: true; profile: Profile | null };
+const PROFILE_COLUMNS =
+  "id, email, full_name, role, created_at, avatar_path, grade, banned_until, ban_reason";
+
+type Session =
+  { signedIn: false } | { signedIn: true; profile: Profile | null };
 
 // One session + profile lookup per request, shared by layout and page.
 const getSession = cache(async (): Promise<Session> => {
@@ -26,7 +35,7 @@ const getSession = cache(async (): Promise<Session> => {
   if (state === "signed-out" || !id) return { signedIn: false };
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, created_at")
+    .select(PROFILE_COLUMNS)
     .eq("id", id)
     .maybeSingle();
   // A failed lookup is an outage, not a missing account: surface it to the error boundary.
@@ -44,6 +53,9 @@ export async function requireProfile(): Promise<Profile> {
   if (!session.signedIn) redirect("/login");
   // Signed in but no profile: clear the dead session instead of looping through /login.
   if (!session.profile) redirect("/auth/signout");
+  // A banned account gets the banned page and nothing else in the app.
+  if (banStatus(session.profile.banned_until, new Date()).banned)
+    redirect("/banned");
   return session.profile;
 }
 
@@ -53,4 +65,5 @@ export async function requireRole(...roles: Role[]): Promise<Profile> {
   return profile;
 }
 
-export const canTeach = (p: Pick<Profile, "role">) => p.role === "trainer" || p.role === "executive";
+export const canTeach = (p: Pick<Profile, "role">) =>
+  p.role === "trainer" || p.role === "executive";

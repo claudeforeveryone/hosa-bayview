@@ -2,15 +2,23 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { Button, Field, FormMessage } from "@/components/form";
+import { Button, Field, FormMessage, Select } from "@/components/form";
+import { GRADES } from "@/lib/profile";
 import { signup, type AuthState } from "../actions";
 
 export function SignupForm() {
-  const [state, action, pending] = useActionState<AuthState, FormData>(signup, {});
+  const [state, action, pending] = useActionState<AuthState, FormData>(
+    signup,
+    {},
+  );
   return (
     <form action={action} className="grid gap-5" noValidate>
-      <h1 className="font-display text-[44px] leading-none font-bold uppercase">Join the chapter</h1>
-      {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
+      <h1 className="font-display text-[44px] leading-none font-bold uppercase">
+        Join the chapter
+      </h1>
+      {state.error ? (
+        <FormMessage tone="error">{state.error}</FormMessage>
+      ) : null}
       {state.ok ? <FormMessage tone="ok">{state.ok}</FormMessage> : null}
       <Field
         label="Your name"
@@ -30,6 +38,20 @@ export function SignupForm() {
         defaultValue={state.values?.email}
         error={state.fieldErrors?.email}
       />
+      <Select
+        label="Grade"
+        name="grade"
+        defaultValue={state.values?.grade ?? ""}
+        error={state.fieldErrors?.grade}
+        hint="Optional. Shown on your profile and in the members list."
+      >
+        <option value="">No grade</option>
+        {GRADES.map((g) => (
+          <option key={g} value={g}>
+            Grade {g}
+          </option>
+        ))}
+      </Select>
       <Field
         label="Password"
         name="password"

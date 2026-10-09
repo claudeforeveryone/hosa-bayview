@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
 import {
   ELO_SUMMARY,
@@ -28,11 +29,18 @@ type Props = {
   elo?: boolean; // show the Elo footnote
 };
 
-const toggleHref = (base: string, metric: Metric, period: Period) => `${base}?metric=${metric}&period=${period}`;
+const toggleHref = (base: string, metric: Metric, period: Period) =>
+  `${base}?metric=${metric}&period=${period}`;
 
 // Plain links, so the board works without client JavaScript and the URL is shareable.
 // Measures read as tabs on a hairline; the period is a quieter text switch beside them.
-function Toggles({ label, items, current, make, quiet = false }: {
+function Toggles({
+  label,
+  items,
+  current,
+  make,
+  quiet = false,
+}: {
   label: string;
   items: { value: string; text: string }[];
   current: string;
@@ -41,7 +49,9 @@ function Toggles({ label, items, current, make, quiet = false }: {
 }) {
   return (
     <nav aria-label={label}>
-      <ul className={`flex flex-wrap ${quiet ? "gap-x-4" : "gap-x-3.5 sm:gap-x-5"}`}>
+      <ul
+        className={`flex flex-wrap ${quiet ? "gap-x-4" : "gap-x-3.5 sm:gap-x-5"}`}
+      >
         {items.map(({ value, text }) => {
           const on = value === current;
           return (
@@ -65,7 +75,15 @@ function Toggles({ label, items, current, make, quiet = false }: {
   );
 }
 
-function BoardLine({ row, metric, you }: { row: RankedRow; metric: Metric; you: boolean }) {
+function BoardLine({
+  row,
+  metric,
+  you,
+}: {
+  row: RankedRow;
+  metric: Metric;
+  you: boolean;
+}) {
   const caption = [
     `${formatHours(row.minutes)} h`,
     `${formatCount(row.reviews)} cards`,
@@ -75,16 +93,27 @@ function BoardLine({ row, metric, you }: { row: RankedRow; metric: Metric; you: 
   ].join(" · ");
   return (
     <li className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule px-1 py-3 sm:px-3">
-      <span className="num font-display text-[26px] font-semibold text-ink-2">{row.place ?? "—"}</span>
+      <span className="num font-display text-[26px] font-semibold text-ink-2">
+        {row.place ?? "—"}
+      </span>
       <span className="min-w-0">
-        <span className="flex min-w-0 items-baseline gap-2">
+        <span className="flex min-w-0 items-center gap-2.5">
+          <Avatar
+            name={row.full_name || "Member"}
+            src={row.avatar_url ?? null}
+            size="sm"
+          />
           <Link
             href={`/members/${row.user_id}`}
             className="step truncate font-display text-[clamp(1.4rem,5vw,1.9rem)] leading-tight font-semibold uppercase hover:underline"
           >
             {row.full_name || "Member"}
           </Link>
-          {you ? <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">You</span> : null}
+          {you ? (
+            <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">
+              You
+            </span>
+          ) : null}
         </span>
         <span className="block truncate text-[15px] text-ink-2">{caption}</span>
       </span>
@@ -96,7 +125,17 @@ function BoardLine({ row, metric, you }: { row: RankedRow; metric: Metric; you: 
 }
 
 // One board: the measure and period toggles, the ranked rows, and the empty state.
-export function BoardView({ base, metric, period, rows, meId, empty, limit, more, elo }: Props) {
+export function BoardView({
+  base,
+  metric,
+  period,
+  rows,
+  meId,
+  empty,
+  limit,
+  more,
+  elo,
+}: Props) {
   const shown = limit ? rows.slice(0, limit) : rows;
   const since = periodSince(period, new Date());
   return (
@@ -116,22 +155,34 @@ export function BoardView({ base, metric, period, rows, meId, empty, limit, more
           quiet
         />
       </div>
-      {since ? <p className="caps text-[15px] text-ink-2">Since {since}</p> : null}
+      {since ? (
+        <p className="caps text-[15px] text-ink-2">Since {since}</p>
+      ) : null}
       {shown.length ? (
         <ol className="border-t border-rule">
           {shown.map((row) => (
-            <BoardLine key={row.user_id} row={row} metric={metric} you={row.user_id === meId} />
+            <BoardLine
+              key={row.user_id}
+              row={row}
+              metric={metric}
+              you={row.user_id === meId}
+            />
           ))}
         </ol>
       ) : (
         <EmptyState title={empty} />
       )}
       {more && rows.length > shown.length ? (
-        <Link href={more.href} className="caps step justify-self-start text-[17px] underline underline-offset-4">
+        <Link
+          href={more.href}
+          className="caps step justify-self-start text-[17px] underline underline-offset-4"
+        >
           {more.text}
         </Link>
       ) : null}
-      {elo ? <p className="max-w-[65ch] text-[15px] text-ink-2">{ELO_SUMMARY}</p> : null}
+      {elo ? (
+        <p className="max-w-[65ch] text-[15px] text-ink-2">{ELO_SUMMARY}</p>
+      ) : null}
     </div>
   );
 }

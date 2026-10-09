@@ -1,16 +1,38 @@
 "use client";
 
 import { useActionState, type ReactNode } from "react";
-import { Button, Field, FormMessage } from "@/components/form";
+import { AvatarForm } from "@/components/avatar-form";
+import { Button, Field, FormMessage, Select } from "@/components/form";
 import { claimAdmin, type AuthState } from "@/app/(auth)/actions";
-import { changePassword, setAdminPasscode, setDemoLogin, updateName } from "./actions";
+import { GRADES } from "@/lib/profile";
+import {
+  changePassword,
+  setAdminPasscode,
+  setDemoLogin,
+  updateGrade,
+  updateName,
+} from "./actions";
 
 type Action = (state: AuthState, form: FormData) => Promise<AuthState>;
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function Section({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: ReactNode;
+}) {
   return (
-    <section aria-labelledby={id} className="grid grid-cols-1 gap-5 border-t border-rule pt-6 lg:grid-cols-[16rem_minmax(0,32rem)]">
-      <h2 id={id} className="font-display text-[clamp(1.75rem,5vw,2.25rem)] leading-none font-bold uppercase">
+    <section
+      aria-labelledby={id}
+      className="grid grid-cols-1 gap-5 border-t border-rule pt-6 lg:grid-cols-[16rem_minmax(0,32rem)]"
+    >
+      <h2
+        id={id}
+        className="font-display text-[clamp(1.75rem,5vw,2.25rem)] leading-none font-bold uppercase"
+      >
         {title}
       </h2>
       <div>{children}</div>
@@ -29,10 +51,15 @@ function SettingsForm({
   pendingLabel: string;
   children: (state: AuthState) => ReactNode;
 }) {
-  const [state, formAction, pending] = useActionState<AuthState, FormData>(action, {});
+  const [state, formAction, pending] = useActionState<AuthState, FormData>(
+    action,
+    {},
+  );
   return (
     <form action={formAction} className="grid gap-5" noValidate>
-      {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
+      {state.error ? (
+        <FormMessage tone="error">{state.error}</FormMessage>
+      ) : null}
       {children(state)}
       <div className="flex flex-wrap items-center gap-4">
         <Button type="submit" disabled={pending}>
@@ -47,7 +74,11 @@ function SettingsForm({
 export function NameSection({ name }: { name: string }) {
   return (
     <Section id="name-h" title="Name">
-      <SettingsForm action={updateName} submit="Save name" pendingLabel="Saving">
+      <SettingsForm
+        action={updateName}
+        submit="Save name"
+        pendingLabel="Saving"
+      >
         {(state) => (
           <Field
             label="Your name"
@@ -63,10 +94,66 @@ export function NameSection({ name }: { name: string }) {
   );
 }
 
+export function PictureSection({
+  userId,
+  name,
+  src,
+  hasPicture,
+}: {
+  userId: string;
+  name: string;
+  src: string | null;
+  hasPicture: boolean;
+}) {
+  return (
+    <Section id="picture-h" title="Picture">
+      <AvatarForm
+        userId={userId}
+        name={name}
+        src={src}
+        hasPicture={hasPicture}
+      />
+    </Section>
+  );
+}
+
+export function GradeSection({ grade }: { grade: number | null }) {
+  return (
+    <Section id="grade-h" title="Grade">
+      <SettingsForm
+        action={updateGrade}
+        submit="Save grade"
+        pendingLabel="Saving"
+      >
+        {(state) => (
+          <Select
+            label="Grade"
+            name="grade"
+            defaultValue={state.values?.grade ?? (grade ? String(grade) : "")}
+            error={state.fieldErrors?.grade}
+            hint="Shown on your profile and in the members list. Only you can change it."
+          >
+            <option value="">No grade</option>
+            {GRADES.map((g) => (
+              <option key={g} value={g}>
+                Grade {g}
+              </option>
+            ))}
+          </Select>
+        )}
+      </SettingsForm>
+    </Section>
+  );
+}
+
 export function PasswordSection() {
   return (
     <Section id="password-h" title="Password">
-      <SettingsForm action={changePassword} submit="Change password" pendingLabel="Saving">
+      <SettingsForm
+        action={changePassword}
+        submit="Change password"
+        pendingLabel="Saving"
+      >
         {(state) => (
           <>
             <Field
@@ -95,13 +182,19 @@ export function PasswordSection() {
 }
 
 const NOTICE = {
-  wrong: "Your account is made, but that passcode wasn't right. Try it again here.",
+  wrong:
+    "Your account is made, but that passcode wasn't right. Try it again here.",
   slow: "Your account is made, but there were too many wrong passcodes. Try again here in 10 minutes.",
-  retry: "Your account is made, but the passcode check didn't go through. Try it again here.",
+  retry:
+    "Your account is made, but the passcode check didn't go through. Try it again here.",
 } as const;
 export type PasscodeNotice = keyof typeof NOTICE;
 
-export function ClaimAdminSection({ notice }: { notice: PasscodeNotice | null }) {
+export function ClaimAdminSection({
+  notice,
+}: {
+  notice: PasscodeNotice | null;
+}) {
   return (
     <Section id="admin-h" title="Admin">
       {notice ? (
@@ -109,7 +202,11 @@ export function ClaimAdminSection({ notice }: { notice: PasscodeNotice | null })
           <FormMessage tone="error">{NOTICE[notice]}</FormMessage>
         </div>
       ) : null}
-      <SettingsForm action={claimAdmin} submit="Become an admin" pendingLabel="Checking">
+      <SettingsForm
+        action={claimAdmin}
+        submit="Become an admin"
+        pendingLabel="Checking"
+      >
         {(state) => (
           <Field
             label="Admin passcode"
@@ -129,7 +226,11 @@ export function ClaimAdminSection({ notice }: { notice: PasscodeNotice | null })
 export function PasscodeSection({ isSet }: { isSet: boolean }) {
   return (
     <Section id="passcode-h" title="Admin passcode">
-      <SettingsForm action={setAdminPasscode} submit={isSet ? "Change passcode" : "Set passcode"} pendingLabel="Saving">
+      <SettingsForm
+        action={setAdminPasscode}
+        submit={isSet ? "Change passcode" : "Set passcode"}
+        pendingLabel="Saving"
+      >
         {(state) => (
           <Field
             label={isSet ? "New passcode" : "Passcode"}
@@ -152,7 +253,10 @@ export function PasscodeSection({ isSet }: { isSet: boolean }) {
 }
 
 export function DemoSection({ enabled }: { enabled: boolean }) {
-  const [state, run, pending] = useActionState<AuthState>(() => setDemoLogin(!enabled), {});
+  const [state, run, pending] = useActionState<AuthState>(
+    () => setDemoLogin(!enabled),
+    {},
+  );
   return (
     <Section id="demo-h" title="Demo sign-in">
       <form action={run} className="grid gap-4">
@@ -162,10 +266,16 @@ export function DemoSection({ enabled }: { enabled: boolean }) {
             : "Off. Demo admins are hidden and their old sessions are signed out."}
         </p>
         <div className="flex flex-wrap items-center gap-4">
-          <Button type="submit" variant={enabled ? "you" : "line"} disabled={pending}>
+          <Button
+            type="submit"
+            variant={enabled ? "you" : "line"}
+            disabled={pending}
+          >
             {pending ? "Saving" : enabled ? "Turn off" : "Turn on"}
           </Button>
-          {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
+          {state.error ? (
+            <FormMessage tone="error">{state.error}</FormMessage>
+          ) : null}
           {state.ok ? <FormMessage tone="ok">{state.ok}</FormMessage> : null}
         </div>
       </form>

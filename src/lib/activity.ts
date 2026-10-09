@@ -3,9 +3,19 @@
 
 export const PERIODS = ["week", "month", "all"] as const;
 export type Period = (typeof PERIODS)[number];
-export const PERIOD_LABEL: Record<Period, string> = { week: "This week", month: "This month", all: "All time" };
+export const PERIOD_LABEL: Record<Period, string> = {
+  week: "This week",
+  month: "This month",
+  all: "All time",
+};
 
-export const METRICS = ["hours", "reviews", "answered", "accuracy", "elo"] as const;
+export const METRICS = [
+  "hours",
+  "reviews",
+  "answered",
+  "accuracy",
+  "elo",
+] as const;
 export type Metric = (typeof METRICS)[number];
 export const METRIC_LABEL: Record<Metric, string> = {
   hours: "Hours",
@@ -32,23 +42,41 @@ export type BoardRow = {
   accuracy: number | null;
   elo: number;
   streak: number;
+  avatar_url?: string | null;
 };
 
-export type RankedRow = BoardRow & { value: number | null; place: number | null };
+export type RankedRow = BoardRow & {
+  value: number | null;
+  place: number | null;
+};
 
-export type OnlineRow = { user_id: string; full_name: string; last_seen: string };
+export type OnlineRow = {
+  user_id: string;
+  full_name: string;
+  last_seen: string;
+};
 
 const TORONTO = "America/Toronto";
 const DAY_MS = 86_400_000;
 
 // Accepts a search param of unknown shape (string, array or missing) and falls back to a default.
-function pick<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
-  return typeof value === "string" && (allowed as readonly string[]).includes(value) ? (value as T) : fallback;
+function pick<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T,
+): T {
+  return typeof value === "string" &&
+    (allowed as readonly string[]).includes(value)
+    ? (value as T)
+    : fallback;
 }
 
-export const parsePeriod = (value: unknown): Period => pick(value, PERIODS, "week");
-export const parseMetric = (value: unknown): Metric => pick(value, METRICS, "hours");
-export const parseResult = (value: unknown): Result => pick(value, RESULTS, "all");
+export const parsePeriod = (value: unknown): Period =>
+  pick(value, PERIODS, "week");
+export const parseMetric = (value: unknown): Metric =>
+  pick(value, METRICS, "hours");
+export const parseResult = (value: unknown): Result =>
+  pick(value, RESULTS, "all");
 
 export function metricValue(row: BoardRow, metric: Metric): number | null {
   switch (metric) {
@@ -95,8 +123,10 @@ const count = new Intl.NumberFormat("en-CA");
 
 export const formatCount = (n: number) => count.format(Math.round(n));
 export const formatHours = (minutes: number) => (minutes / 60).toFixed(1);
-export const formatPercent = (accuracy: number | null) => (accuracy === null ? "—" : `${Math.round(accuracy * 100)}%`);
-export const formatStreak = (days: number) => (days <= 0 ? "None" : days === 1 ? "1 day" : `${days} days`);
+export const formatPercent = (accuracy: number | null) =>
+  accuracy === null ? "—" : `${Math.round(accuracy * 100)}%`;
+export const formatStreak = (days: number) =>
+  days <= 0 ? "None" : days === 1 ? "1 day" : `${days} days`;
 
 export function formatValue(value: number | null, metric: Metric): string {
   if (value === null) return "—";
@@ -107,8 +137,14 @@ export function formatValue(value: number | null, metric: Metric): string {
 
 // The Toronto calendar day for an instant, as numbers, so the period math isn't at the mercy of the server's zone.
 function torontoDay(now: Date) {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: TORONTO, year: "numeric", month: "numeric", day: "numeric" }).formatToParts(now);
-  const read = (type: string) => Number(parts.find((p) => p.type === type)?.value);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TORONTO,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(now);
+  const read = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value);
   return { year: read("year"), month: read("month"), day: read("day") };
 }
 
@@ -124,7 +160,20 @@ export function periodStart(period: Period, now: Date): Date | null {
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 // "Mon 5 Oct" for captions, or null for all time. Fixed names so the text doesn't depend on ICU data.
 export function periodSince(period: Period, now: Date): string | null {
@@ -134,20 +183,27 @@ export function periodSince(period: Period, now: Date): string | null {
 }
 
 // Case-insensitive name search. An empty query returns everyone.
-export function filterMembers<T extends { full_name: string }>(rows: T[], query: string): T[] {
+export function filterMembers<T extends { full_name: string }>(
+  rows: T[],
+  query: string,
+): T[] {
   const q = query.trim().toLowerCase();
   return q ? rows.filter((r) => r.full_name.toLowerCase().includes(q)) : rows;
 }
 
 export type CareerItem = { is_correct: boolean };
-export function filterCareer<T extends CareerItem>(rows: T[], result: Result): T[] {
+export function filterCareer<T extends CareerItem>(
+  rows: T[],
+  result: Result,
+): T[] {
   if (result === "right") return rows.filter((r) => r.is_correct);
   if (result === "wrong") return rows.filter((r) => !r.is_correct);
   return rows;
 }
 
 // The classroom id in a /c/<uuid>/... path, or null for anywhere else.
-const CLASSROOM_PATH = /^\/c\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\/|$)/i;
+const CLASSROOM_PATH =
+  /^\/c\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:\/|$)/i;
 export function classroomIdFromPath(path: string): string | null {
   return CLASSROOM_PATH.exec(path)?.[1] ?? null;
 }
