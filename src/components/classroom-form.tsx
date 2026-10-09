@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { FormState } from "@/app/(app)/c/actions";
+import { Combobox } from "@/components/combobox";
 import { Button, Field, FormMessage, TextArea } from "@/components/form";
 import { HOSA_EVENTS } from "@/lib/hosa-events";
 
@@ -32,21 +33,14 @@ export function ClassroomForm({
         defaultValue={v?.name}
         error={state.fieldErrors?.name}
       />
-      <Field
+      <Combobox
         label="HOSA event"
         name="event"
-        list="hosa-events"
+        options={HOSA_EVENTS}
         maxLength={80}
-        autoComplete="off"
         defaultValue={v?.event}
         error={state.fieldErrors?.event}
-        hint="Pick one or type your own."
       />
-      <datalist id="hosa-events">
-        {HOSA_EVENTS.map((e) => (
-          <option key={e} value={e} />
-        ))}
-      </datalist>
       <TextArea
         label="Description"
         name="description"

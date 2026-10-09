@@ -19,7 +19,6 @@ export function SignupForm() {
         required
         defaultValue={state.values?.full_name}
         error={state.fieldErrors?.full_name}
-        hint="Shows on leaderboards."
       />
       <Field
         label="Email"
