@@ -28,7 +28,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 
 ## Global leaderboard (all of HOSA Bayview)
 - Rankings: most time on site, most questions answered, most questions correct, accuracy.
-- Filters: this week, this month, all time.
+- Filters: all time (default), today, this week, this month, in a dropdown beside the measure dropdown.
 
 ## Classrooms
 - One per HOSA event. Trainers create with name, event, description, and get a join code.

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
+import { BoardMenu } from "@/components/board-menu";
 import {
   ELO_SUMMARY,
   METRICS,
@@ -31,49 +32,6 @@ type Props = {
 
 const toggleHref = (base: string, metric: Metric, period: Period) =>
   `${base}?metric=${metric}&period=${period}`;
-
-// Plain links, so the board works without client JavaScript and the URL is shareable.
-// Measures read as tabs on a hairline; the period is a quieter text switch beside them.
-function Toggles({
-  label,
-  items,
-  current,
-  make,
-  quiet = false,
-}: {
-  label: string;
-  items: { value: string; text: string }[];
-  current: string;
-  make: (value: string) => string;
-  quiet?: boolean;
-}) {
-  return (
-    <nav aria-label={label}>
-      <ul
-        className={`flex flex-wrap ${quiet ? "gap-x-4" : "gap-x-3.5 sm:gap-x-5"}`}
-      >
-        {items.map(({ value, text }) => {
-          const on = value === current;
-          return (
-            <li key={value}>
-              <Link
-                href={make(value)}
-                aria-current={on ? "true" : undefined}
-                className={`caps step inline-flex min-h-11 items-center ${
-                  quiet
-                    ? `text-[14px] ${on ? "text-ink" : "text-ink-2 hover:text-ink"}`
-                    : `-mb-px border-b-2 text-[14px] sm:text-[15px] ${on ? "border-ink text-ink" : "border-transparent text-ink-2 hover:text-ink"}`
-                }`}
-              >
-                {text}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
-}
 
 function BoardLine({
   row,
@@ -146,22 +104,31 @@ export function BoardView({
   const since = periodSince(period, new Date());
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 border-b border-rule px-1 sm:px-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 px-1 sm:px-3">
         {metrics.length > 1 ? (
-          <Toggles
+          <BoardMenu
             label="Measure"
-            items={metrics.map((m) => ({ value: m, text: METRIC_LABEL[m] }))}
+            lead="Ranked by"
             current={metric}
-            make={(m) => toggleHref(base, m as Metric, period)}
+            items={metrics.map((m) => ({
+              value: m,
+              text: METRIC_LABEL[m],
+              href: toggleHref(base, m, period),
+            }))}
           />
         ) : null}
-        <Toggles
-          label="Period"
-          items={PERIODS.map((p) => ({ value: p, text: PERIOD_LABEL[p] }))}
-          current={period}
-          make={(p) => toggleHref(base, metric, p as Period)}
-          quiet
-        />
+        <div className="ml-auto">
+          <BoardMenu
+            label="Period"
+            current={period}
+            align="end"
+            items={PERIODS.map((p) => ({
+              value: p,
+              text: PERIOD_LABEL[p],
+              href: toggleHref(base, metric, p),
+            }))}
+          />
+        </div>
       </div>
       {since ? (
         <p className="caps text-[15px] text-ink-2">Since {since}</p>

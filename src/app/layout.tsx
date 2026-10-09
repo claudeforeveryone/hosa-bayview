@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow, Barlow_Condensed, Montserrat } from "next/font/google";
+import { Barlow, Barlow_Condensed } from "next/font/google";
+import localFont from "next/font/local";
 import { AppearanceSync } from "@/components/appearance";
 import { appearanceScript } from "@/lib/appearance";
 import "./globals.css";
@@ -16,11 +17,15 @@ const barlowCondensed = Barlow_Condensed({
   weight: ["500", "600", "700"],
 });
 
-// The chapter mark's wordmark face.
-const montserrat = Montserrat({
+// The chapter mark's wordmark face. Static files, one per weight: Google serves Montserrat as a single
+// variable font, and some WebKit builds draw that at its thinnest weight whatever weight is asked for.
+const montserrat = localFont({
   variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["500", "600", "800"],
+  src: [
+    { path: "./fonts/montserrat-latin-500-normal.woff2", weight: "500" },
+    { path: "./fonts/montserrat-latin-600-normal.woff2", weight: "600" },
+    { path: "./fonts/montserrat-latin-800-normal.woff2", weight: "800" },
+  ],
 });
 
 export const metadata: Metadata = {

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  METRICS,
+  PERIODS,
   type BoardRow,
   awardFor,
   classroomIdFromPath,
@@ -32,11 +34,15 @@ describe("parsing search params", () => {
   it("falls back for anything unknown, including repeated params", () => {
     expect(parsePeriod("today")).toBe("today");
     expect(parsePeriod("month")).toBe("month");
-    expect(parsePeriod("year")).toBe("week");
-    expect(parsePeriod(["month", "all"])).toBe("week");
-    expect(parsePeriod(undefined)).toBe("week");
+    expect(parsePeriod("year")).toBe("all");
+    expect(parsePeriod(["month", "all"])).toBe("all");
+    expect(parsePeriod(undefined)).toBe("all");
+    expect(parsePeriod("week")).toBe("week");
     expect(parseMetric("hours")).toBe("hours");
     expect(parseMetric("bogus")).toBe("elo");
+    // Elo leads: it is the default and the first choice in the measure menu.
+    expect(METRICS[0]).toBe("elo");
+    expect(PERIODS[0]).toBe("all");
     expect(parseResult("wrong")).toBe("wrong");
     expect(parseResult(undefined)).toBe("all");
   });

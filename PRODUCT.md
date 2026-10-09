@@ -27,7 +27,7 @@ Built for one chapter by its own members: classrooms map to HOSA events, tests c
 ## Operating Context
 
 - Trainers copy-paste past competition tests in the common numbered format (`1. Question`, `A.`–`D.`, `Answer: B`) and fix parse errors in a preview.
-- Leaderboards are filtered by week, month, and all time; the weekly board is the motivator.
+- Leaderboards default to all time (Elo); today, week and month are one tap away in the period menu.
 - Time on site is tracked by a heartbeat only while the tab is visible and the user is active.
 - Planned later: weekly email reminders.
 

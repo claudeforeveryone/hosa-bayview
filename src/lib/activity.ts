@@ -1,7 +1,8 @@
 // Pure helpers for activity, Elo, leaderboards and the honor roll. No database or server imports, so they test directly.
 // The numbers themselves come from migrations 0017, 0030 and 0036; this file only ranks, filters and formats them.
 
-export const PERIODS = ["today", "week", "month", "all"] as const;
+// All time leads: it is the default and the first choice in the period menu.
+export const PERIODS = ["all", "today", "week", "month"] as const;
 export type Period = (typeof PERIODS)[number];
 export const PERIOD_LABEL: Record<Period, string> = {
   today: "Today",
@@ -11,11 +12,11 @@ export const PERIOD_LABEL: Record<Period, string> = {
 };
 
 export const METRICS = [
+  "elo",
   "hours",
   "reviews",
   "answered",
   "accuracy",
-  "elo",
 ] as const;
 export type Metric = (typeof METRICS)[number];
 export const METRIC_LABEL: Record<Metric, string> = {
@@ -79,7 +80,7 @@ function pick<T extends string>(
 }
 
 export const parsePeriod = (value: unknown): Period =>
-  pick(value, PERIODS, "week");
+  pick(value, PERIODS, "all");
 export const parseMetric = (value: unknown): Metric =>
   pick(value, METRICS, "elo");
 export const parseResult = (value: unknown): Result =>

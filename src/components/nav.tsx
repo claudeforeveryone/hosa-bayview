@@ -210,11 +210,18 @@ export function MobileBar(props: Props) {
     return () => wide.removeEventListener("change", onChange);
   }, []);
 
+  // Home's banner is the logo there, so the bar doesn't repeat it.
+  const home = path === "/";
+
   return (
-    <header className="flex items-start justify-between gap-4 px-4 pt-3 lg:hidden">
-      <Link href="/" aria-label="HOSA Bayview home" className="text-ink">
-        <ClassicLogo className="h-[96px]" />
-      </Link>
+    <header
+      className={`flex items-start gap-4 px-4 lg:hidden ${home ? "justify-end py-1" : "justify-between pt-3"}`}
+    >
+      {home ? null : (
+        <Link href="/" aria-label="HOSA Bayview home" className="text-ink">
+          <ClassicLogo className="h-[96px]" />
+        </Link>
+      )}
       <div className="flex items-center">
         <ThemeToggle className="text-ink" />
         <button
