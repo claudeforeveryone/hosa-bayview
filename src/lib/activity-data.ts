@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
   type BoardRow,
@@ -65,9 +66,9 @@ type RawDetail = {
   grade: number | null;
 };
 
-// Picture (a short-lived signed URL) and grade for every member. Pictures are decoration: if this lookup
-// fails, pages still render, with initials.
-export async function getMemberDetails(): Promise<Map<string, MemberDetail>> {
+// Picture (a short-lived signed URL) and grade for every member, once per request. Pictures are decoration:
+// if this lookup fails, pages still render, with initials.
+export const getMemberDetails = cache(async (): Promise<Map<string, MemberDetail>> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("member_details");
   if (error) {
@@ -86,7 +87,7 @@ export async function getMemberDetails(): Promise<Map<string, MemberDetail>> {
       },
     ]),
   );
-}
+});
 
 // Club board when classroomId is null, otherwise that classroom's board.
 export async function getBoard(
@@ -95,14 +96,14 @@ export async function getBoard(
 ): Promise<BoardRow[]> {
   if (classroomId !== null && !uuid.safeParse(classroomId).success) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("leaderboard", {
-    period,
-    cid: classroomId,
-  });
+  // Pictures load alongside the board rather than after it.
+  const [{ data, error }, details] = await Promise.all([
+    supabase.rpc("leaderboard", { period, cid: classroomId }),
+    getMemberDetails(),
+  ]);
   // 42501: a room you can't view. Read as an empty board, not an error page.
   if (error?.code === "42501") return [];
   if (error) throw new Error(`Board lookup failed: ${error.message}`);
-  const details = await getMemberDetails();
   return ((data ?? []) as RawBoard[]).map((r) => ({
     ...r,
     minutes: Number(r.minutes),

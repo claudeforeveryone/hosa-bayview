@@ -512,6 +512,25 @@
   to { transform: none; }
 }
 
+/* Page loading: held back 150 ms so quick pages never flash it, then the rail runs across in hard steps.
+   Reduced motion keeps the rail still. */
+.route-loading {
+  animation: route-loading-in 1ms 150ms both;
+}
+@keyframes route-loading-in {
+  from { visibility: hidden; }
+  to { visibility: visible; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .route-loading-rail > span {
+    animation: route-loading-rail 1200ms steps(8, end) 150ms infinite;
+  }
+}
+@keyframes route-loading-rail {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(400%); }
+}
+
 /* Lucky bonus: a band slams in, the number pops, pieces burst out. Transform and opacity only, in hard steps.
    Reduced motion gets a plain fade of the band and nothing moves. */
 @keyframes lucky-slam {

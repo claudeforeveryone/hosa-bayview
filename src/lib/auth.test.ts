@@ -14,7 +14,7 @@ vi.mock("next/navigation", () => ({
 // react's cache() memoises per request; in tests each call should hit the mock fresh.
 vi.mock("react", async (orig) => ({ ...(await orig<typeof import("react")>()), cache: <T,>(fn: T) => fn }));
 
-const { getProfile, requireProfile, requireRole } = await import("./auth");
+const { getProfile, getUserId, requireProfile, requireRole } = await import("./auth");
 
 const profile = { id: "u1", email: "a@b.co", full_name: "Ann", role: "trainee", created_at: "2026-01-01" };
 const redirectOf = async (p: Promise<unknown>) => {
@@ -56,6 +56,19 @@ describe("lib/auth", () => {
   it("treats an unreachable auth server as an outage, not signed out", async () => {
     client = mockSupabase({ userId: null, claimsError: new AuthRetryableFetchError("fetch failed", 0) });
     await expect(requireProfile()).rejects.toThrow(/unreachable/);
+  });
+
+  it("getUserId gives the signed-in id without the profile, null for guests", async () => {
+    client = mockSupabase({ userId: "u1", profile });
+    expect(await getUserId()).toBe("u1");
+    expect(client.from).not.toHaveBeenCalled();
+    client = mockSupabase();
+    expect(await getUserId()).toBeNull();
+  });
+
+  it("getUserId treats an unreachable auth server as an outage", async () => {
+    client = mockSupabase({ userId: null, claimsError: new AuthRetryableFetchError("fetch failed", 0) });
+    await expect(getUserId()).rejects.toThrow(/unreachable/);
   });
 
   it("requireRole lets matching roles through and sends others home", async () => {

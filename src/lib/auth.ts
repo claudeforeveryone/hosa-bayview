@@ -25,14 +25,22 @@ const PROFILE_COLUMNS =
 type Session =
   { signedIn: false } | { signedIn: true; profile: Profile | null };
 
-// One session + profile lookup per request, shared by layout and page.
-const getSession = cache(async (): Promise<Session> => {
+// The signed-in user's id, or null. Once per request; lets lookups that only need the id start before the
+// profile arrives.
+export const getUserId = cache(async (): Promise<string | null> => {
   const supabase = await createClient();
   const result = await supabase.auth.getClaims();
   const state = sessionState(result);
   if (state === "unavailable") throw new Error("Auth server unreachable");
   const id = result.data?.claims?.sub;
-  if (state === "signed-out" || !id) return { signedIn: false };
+  return state === "signed-out" || !id ? null : id;
+});
+
+// One session + profile lookup per request, shared by layout and page.
+const getSession = cache(async (): Promise<Session> => {
+  const id = await getUserId();
+  if (!id) return { signedIn: false };
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
     .select(PROFILE_COLUMNS)

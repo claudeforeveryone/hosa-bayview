@@ -3,12 +3,13 @@ import { Credit } from "@/components/credit";
 import { LuckyBonus } from "@/components/lucky-bonus";
 import { OnlineHeartbeat } from "@/components/online-heartbeat";
 import { WarningBanner } from "@/components/warning-banner";
-import { canTeach, requireProfile } from "@/lib/auth";
+import { canTeach, getUserId, requireProfile } from "@/lib/auth";
 import { getMyClassrooms } from "@/lib/classrooms";
 import { createClient } from "@/lib/supabase/server";
 
 // The oldest warning the member hasn't cleared. A failed lookup just means no banner this time.
-async function unseenWarning(userId: string) {
+async function unseenWarning(userId: string | null) {
+  if (!userId) return null;
   const supabase = await createClient();
   const { data } = await supabase
     .from("user_warnings")
@@ -23,11 +24,14 @@ async function unseenWarning(userId: string) {
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   // The sidebar list is a convenience; a failed lookup shouldn't take every page down with it.
-  const [profile, rooms] = await Promise.all([
+  // All three start together; the warning only needs the id, not the whole profile.
+  const [profile, rooms, warning] = await Promise.all([
     requireProfile(),
     getMyClassrooms().catch(() => []),
+    getUserId()
+      .then(unseenWarning)
+      .catch(() => null),
   ]);
-  const warning = await unseenWarning(profile.id).catch(() => null);
   const nav = {
     isExec: profile.role === "executive",
     canTeach: canTeach(profile),
