@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ConfirmAction } from "@/components/confirm-action";
+import { CopyDeck } from "@/components/copy-deck";
 import { DeckCards } from "@/components/deck-cards";
 import { DeckForm } from "@/components/deck-form";
 import { DeckShare } from "@/components/deck-share";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
-import { getCards, getDeck } from "@/lib/decks";
+import { getCards, getDeck, getDeckOwnerName, getMyBestMs, getTopTimes, type TopTime } from "@/lib/decks";
 import { formNumber } from "@/lib/join-code";
+import { formatMatchTime, standardRound } from "@/lib/match-times";
 import { UNTITLED_DECK, isUntitled } from "@/lib/untitled";
 import { deleteDeck, updateDeck } from "../actions";
 
@@ -25,7 +27,14 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
   const profile = await requireProfile();
   const deck = await getDeck(deckId);
   if (!deck) notFound();
-  const [cards, room] = await Promise.all([getCards(deck.id), deck.classroom_id ? getClassroom(deck.classroom_id) : null]);
+  const topFromClass = Boolean(deck.classroom_id && deck.is_shared);
+  const cards = await getCards(deck.id);
+  const [room, best, top, ownerName] = await Promise.all([
+    deck.classroom_id ? getClassroom(deck.classroom_id) : null,
+    getMyBestMs(deck.id, standardRound(cards.length)),
+    topFromClass ? getTopTimes(deck.id) : Promise.resolve<TopTime[]>([]),
+    deck.owner_id === profile.id ? Promise.resolve(null) : getDeckOwnerName(deck.id),
+  ]);
   const canEdit = deck.owner_id === profile.id || profile.role === "executive" || Boolean(room?.can_manage);
   const privacy = deck.owner_id === profile.id ? "Only you" : "Private";
   const scope = room ? (deck.is_shared ? `Shared with ${room.name}` : `${privacy} · ${room.name}`) : privacy;
@@ -43,22 +52,60 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
         <p className="caps text-[17px] text-ink-2">
           {count} · {scope}
         </p>
+        {!canEdit && ownerName ? <p className="text-[15px] text-ink-2">Shared by {ownerName}</p> : null}
         {deck.description ? <p className="max-w-[65ch] whitespace-pre-line">{deck.description}</p> : null}
-        {cards.length ? (
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Link href={`/flashcards/${deck.id}/study`} className={studyLink}>
-              Study
-            </Link>
-            <Link href={`/flashcards/${deck.id}/match`} className={outlineLink}>
-              Match
-            </Link>
+        {cards.length || !canEdit ? (
+          <div className="flex flex-wrap items-start gap-3 pt-2">
+            {cards.length ? (
+              <>
+                <Link href={`/flashcards/${deck.id}/study`} className={studyLink}>
+                  Study
+                </Link>
+                <Link href={`/flashcards/${deck.id}/match`} className={outlineLink}>
+                  Match
+                </Link>
+              </>
+            ) : null}
+            {canEdit ? null : <CopyDeck deckId={deck.id} />}
           </div>
+        ) : null}
+        {cards.length ? (
+          <p className="caps text-[17px] text-ink-2">
+            Best match <span className="num text-ink">{best === null ? "none yet" : formatMatchTime(best)}</span>
+          </p>
         ) : null}
       </header>
 
+      {top.length ? (
+        <section className="grid gap-4 border-t border-rule pt-8" aria-labelledby="top-heading">
+          <h2 id="top-heading" className="caps text-[17px] text-ink-2">
+            Fastest matches
+          </h2>
+          <ol className="border-t border-rule">
+            {top.map((t, i) => (
+              <li
+                key={`${i}-${t.user_name}`}
+                className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule py-3 text-[17px]"
+              >
+                <span className="num text-ink-2">{i + 1}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{t.user_name}</span>
+                  {t.is_you ? (
+                    <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">You</span>
+                  ) : null}
+                </span>
+                <span className="num">{formatMatchTime(t.time_ms)}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
       {canEdit ? (
         <section className="grid gap-6 border-t border-rule pt-8" aria-labelledby="edit-heading">
-          <h2 id="edit-heading" className="caps text-[17px] text-ink-2">Edit deck</h2>
+          <h2 id="edit-heading" className="caps text-[17px] text-ink-2">
+            Edit deck
+          </h2>
           <DeckForm
             action={updateDeck.bind(null, deck.id)}
             initial={{ title: deck.title, description: deck.description }}
@@ -78,7 +125,9 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
       ) : null}
 
       <section className="grid gap-6 border-t border-rule pt-8" aria-labelledby="cards-heading">
-        <h2 id="cards-heading" className="caps text-[17px] text-ink-2">Cards</h2>
+        <h2 id="cards-heading" className="caps text-[17px] text-ink-2">
+          Cards
+        </h2>
         <DeckCards deckId={deck.id} cards={cards} canEdit={canEdit} />
       </section>
     </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { recordMatch } from "@/app/(app)/flashcards/actions";
 import { EmptyState } from "@/components/empty-state";
 import { MatchGame } from "@/components/match-game";
 import { getCards, getDeck } from "@/lib/decks";
@@ -23,8 +24,13 @@ export default async function MatchPage({ params }: PageProps<"/flashcards/[deck
       {cards.length ? (
         <MatchGame
           deckId={deck.id}
-          cards={cards.map((c) => ({ id: c.id, term: c.term, definition: c.definition }))}
+          cards={cards.map((c) => ({
+            id: c.id,
+            term: c.term,
+            definition: c.definition,
+          }))}
           seed={crypto.randomUUID()}
+          record={recordMatch.bind(null, deck.id)}
         />
       ) : (
         <EmptyState title="No cards yet" />

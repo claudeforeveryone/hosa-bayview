@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormState } from "@/app/(app)/c/actions";
 import { requireProfile } from "@/lib/auth";
+import type { MatchOutcome } from "@/lib/match-times";
 import { DEFINITION_MAX, MAX_CARDS_PER_PASTE, TERM_MAX } from "@/lib/parse/cards";
 import { UNTITLED_DECK } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
@@ -68,7 +69,12 @@ export async function createBlankDeck(): Promise<FormState> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("decks")
-    .insert({ title: UNTITLED_DECK, description: "", classroom_id: null, is_shared: false })
+    .insert({
+      title: UNTITLED_DECK,
+      description: "",
+      classroom_id: null,
+      is_shared: false,
+    })
     .select("id")
     .single();
   if (error) return failed("create blank", error.message);
@@ -107,7 +113,9 @@ export async function setShared(deckId: string, shared: boolean): Promise<FormSt
   }
   if (!data?.length) return { error: "You can't change sharing on this deck." };
   refresh();
-  return { ok: shared ? "Shared with the classroom." : "Only you can see it now." };
+  return {
+    ok: shared ? "Shared with the classroom." : "Only you can see it now.",
+  };
 }
 
 export async function deleteDeck(deckId: string): Promise<FormState> {
@@ -122,11 +130,7 @@ export async function deleteDeck(deckId: string): Promise<FormState> {
 }
 
 const cardItem = z.object({
-  term: z
-    .string()
-    .trim()
-    .min(1, "Write the term.")
-    .max(TERM_MAX, `Keep the term under ${TERM_MAX} characters.`),
+  term: z.string().trim().min(1, "Write the term.").max(TERM_MAX, `Keep the term under ${TERM_MAX} characters.`),
   definition: z
     .string()
     .trim()
@@ -143,13 +147,22 @@ export async function addCards(deckId: string, items: unknown): Promise<FormStat
     .min(1, "Nothing to add.")
     .max(MAX_CARDS_PER_PASTE, `Add at most ${MAX_CARDS_PER_PASTE} cards at a time.`)
     .safeParse(items);
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Fix the cards marked first." };
+  if (!parsed.success)
+    return {
+      error: parsed.error.issues[0]?.message ?? "Fix the cards marked first.",
+    };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("add_cards", { did: deckId, items: parsed.data });
+  const { data, error } = await supabase.rpc("add_cards", {
+    did: deckId,
+    items: parsed.data,
+  });
   if (error) {
     if (error.code === "22023") return { error: `${error.message}.` };
-    if (error.code === "42501") return { error: "Only the owner or the classroom trainer can add cards here." };
+    if (error.code === "42501")
+      return {
+        error: "Only the owner or the classroom trainer can add cards here.",
+      };
     return failed("add cards", error.message);
   }
   refresh();
@@ -160,7 +173,10 @@ export async function addCards(deckId: string, items: unknown): Promise<FormStat
 export async function updateCard(cardId: string, _: FormState, form: FormData): Promise<FormState> {
   await requireProfile();
   if (!id.safeParse(cardId).success) return { error: "That card doesn't exist." };
-  const parsed = cardItem.safeParse({ term: String(form.get("term") ?? ""), definition: String(form.get("definition") ?? "") });
+  const parsed = cardItem.safeParse({
+    term: String(form.get("term") ?? ""),
+    definition: String(form.get("definition") ?? ""),
+  });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the card." };
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -183,6 +199,57 @@ export async function deleteCard(cardId: string): Promise<FormState> {
   if (!data?.length) return { error: "You can't delete this card." };
   refresh();
   return {};
+}
+
+// Your own copy of a deck you can view: private to you, every card, then open it.
+export async function copyDeck(deckId: string): Promise<FormState> {
+  await requireProfile();
+  if (!id.safeParse(deckId).success) return { error: "That deck doesn't exist." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("copy_deck", { p_deck: deckId });
+  if (error) {
+    if (error.code === "42501") return { error: "You can't copy this deck." };
+    return failed("copy deck", error.message);
+  }
+  redirect(`/flashcards/${data}`);
+}
+
+export type MatchResult = { outcome: MatchOutcome } | { error: string };
+
+// Records a finished match. The server checks the card count and the time, and says whether it is a new best.
+export async function recordMatch(deckId: string, cardCount: number, timeMs: number): Promise<MatchResult> {
+  await requireProfile();
+  if (!id.safeParse(deckId).success) return { error: "That deck doesn't exist." };
+  if (!Number.isInteger(cardCount) || !Number.isInteger(timeMs)) return { error: "That match didn't save. Try again." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("record_match", {
+    p_deck: deckId,
+    p_card_count: cardCount,
+    p_time_ms: timeMs,
+  });
+  if (error) {
+    if (error.code === "22023") return { error: `${error.message}.` };
+    if (error.code === "42501") return { error: "You can't play this deck." };
+    console.error("[flashcards:record match]", error.message);
+    return { error: "That match didn't save. Try again." };
+  }
+  const row = (
+    data as
+      | {
+          is_full_deck: boolean;
+          is_new_best: boolean;
+          previous_best_ms: number | null;
+        }[]
+      | null
+  )?.[0];
+  if (!row) return { error: "That match didn't save. Try again." };
+  return {
+    outcome: {
+      isFullDeck: row.is_full_deck,
+      isNewBest: row.is_new_best,
+      previousBestMs: row.previous_best_ms,
+    },
+  };
 }
 
 // One row per tap in study mode. Reviews are private to the reviewer.
