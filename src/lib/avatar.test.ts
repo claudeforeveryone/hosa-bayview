@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   AVATAR_MAX_BYTES,
+  EXEC_GIF_MAX_BYTES,
+  gifLimitBytes,
   checkAvatarFile,
   isAnimatedImage,
   extensionFor,
@@ -146,5 +148,24 @@ describe("isAnimatedImage", () => {
     expect(isAnimatedImage(new Uint8Array([0xff, 0xd8, 0xff, 0xe0]))).toBe(
       false,
     );
+  });
+});
+
+describe("executive GIF limit", () => {
+  it("caps most executives at 1 MB and keeps the bucket limit for the exempt", () => {
+    expect(gifLimitBytes(false)).toBe(1024 * 1024);
+    expect(gifLimitBytes(true)).toBe(AVATAR_MAX_BYTES);
+  });
+
+  it("refuses a capped executive's GIF over 1 MB, with a plain message", () => {
+    const gif = { type: "image/gif", size: EXEC_GIF_MAX_BYTES + 1 };
+    expect(checkAvatarFile(gif, true, EXEC_GIF_MAX_BYTES)).toBe("Keep the GIF under 1 MB.");
+    expect(checkAvatarFile({ type: "image/gif", size: EXEC_GIF_MAX_BYTES }, true, EXEC_GIF_MAX_BYTES)).toBeNull();
+  });
+
+  it("lets the exempt executives use GIFs up to the bucket limit", () => {
+    expect(
+      checkAvatarFile({ type: "image/gif", size: 1.5 * 1024 * 1024 }, true, gifLimitBytes(true)),
+    ).toBeNull();
   });
 });
