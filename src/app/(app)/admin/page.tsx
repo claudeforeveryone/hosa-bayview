@@ -12,11 +12,14 @@ const date = (iso: string) =>
 export default async function AdminPage() {
   const me = await requireRole("executive");
   const supabase = await createClient();
-  const [{ data, error }, rooms, tests] = await Promise.all([
+  const [{ data, error }, rooms, tests, demo] = await Promise.all([
     supabase.from("profiles").select("id, email, full_name, role, created_at").order("created_at"),
     supabase.from("classrooms").select("id", { count: "exact", head: true }),
     supabase.from("tests").select("id", { count: "exact", head: true }),
+    supabase.rpc("am_demo"),
   ]);
+  // Demo admins can look around, but don't see emails or get the role controls.
+  const isDemo = demo.data !== false;
   if (error) throw new Error(`Members lookup failed: ${error.message}`);
   if (rooms.error || tests.error) throw new Error(`Counts failed: ${(rooms.error ?? tests.error)?.message}`);
   const people = (data ?? []) as Profile[];
@@ -57,10 +60,15 @@ export default async function AdminPage() {
                   {p.id === me.id ? <span className="caps ml-2 bg-you px-1.5 py-0.5 text-[12px] text-on-you">You</span> : null}
                 </span>
                 <span className="block truncate text-[15px] text-ink-2">
-                  {p.email} · <span className="num">{date(p.created_at)}</span>
+                  {isDemo ? null : <>{p.email} · </>}
+                  <span className="num">{date(p.created_at)}</span>
                 </span>
               </span>
-              <RoleSwitch userId={p.id} name={p.full_name} role={p.role} isMe={p.id === me.id} />
+              {isDemo ? (
+                <span className="caps text-[15px] text-ink-2">{p.role === "executive" ? "Exec" : p.role === "trainer" ? "Trainer" : "Trainee"}</span>
+              ) : (
+                <RoleSwitch userId={p.id} name={p.full_name} role={p.role} isMe={p.id === me.id} />
+              )}
             </li>
           ))}
         </ul>

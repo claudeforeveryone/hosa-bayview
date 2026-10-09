@@ -51,3 +51,4 @@ next-env.d.ts
 .impeccable/review/
 .impeccable/live/
 .impeccable/questions/
+.claude/worktrees/

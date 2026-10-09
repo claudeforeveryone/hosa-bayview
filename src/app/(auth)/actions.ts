@@ -106,6 +106,23 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
   redirect("/");
 }
 
+// Demo sign-in: one tap on a name. Works only while an exec has demo sign-in switched on.
+export async function demoLogin(slug: string): Promise<AuthState> {
+  if (!/^[a-z-]{1,40}$/.test(slug)) return { error: "That demo account doesn't exist." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("demo_credentials", { p_slug: slug })
+    .maybeSingle<{ email: string; secret: string }>();
+  if (error) {
+    console.error("[auth] demo:", error.message);
+    return { error: "Demo sign-in didn't work. Try again." };
+  }
+  if (!data) return { error: "Demo sign-in is off." };
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email: data.email, password: data.secret });
+  if (signInError) return { error: friendly(signInError.message) };
+  redirect("/");
+}
+
 export async function claimAdmin(_: AuthState, form: FormData): Promise<AuthState> {
   const code = String(form.get("passcode") ?? "");
   if (!code) return { fieldErrors: { passcode: "Enter the passcode." } };

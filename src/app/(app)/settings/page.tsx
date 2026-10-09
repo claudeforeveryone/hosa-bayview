@@ -5,7 +5,7 @@ import { Button } from "@/components/form";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { ClaimAdminSection, NameSection, PasscodeSection, PasswordSection, type PasscodeNotice } from "./forms";
+import { ClaimAdminSection, DemoSection, NameSection, PasscodeSection, PasswordSection, type PasscodeNotice } from "./forms";
 
 const NOTICES: PasscodeNotice[] = ["wrong", "slow", "retry"];
 
@@ -15,11 +15,19 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
   const [profile, sp] = await Promise.all([requireProfile(), searchParams]);
   const isExec = profile.role === "executive";
   let passcodeSet = false;
+  let demoOn = false;
+  let isDemo = false;
   if (isExec) {
     const supabase = await createClient();
-    const { data, error } = await supabase.rpc("admin_passcode_is_set");
-    if (error) throw new Error(`Passcode lookup failed: ${error.message}`);
-    passcodeSet = Boolean(data);
+    const [passcode, demo, me] = await Promise.all([
+      supabase.rpc("admin_passcode_is_set"),
+      supabase.rpc("demo_login_enabled"),
+      supabase.rpc("am_demo"),
+    ]);
+    isDemo = me.data !== false;
+    if (passcode.error) throw new Error(`Passcode lookup failed: ${passcode.error.message}`);
+    passcodeSet = Boolean(passcode.data);
+    demoOn = Boolean(demo.data);
   }
 
   return (
@@ -28,7 +36,8 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
       <div className="grid grid-cols-1 gap-10">
         <NameSection name={profile.full_name} />
         <PasswordSection />
-        {isExec ? <PasscodeSection isSet={passcodeSet} /> : <ClaimAdminSection notice={NOTICES.find((n) => n === sp.passcode) ?? null} />}
+        {isExec && !isDemo ? <DemoSection enabled={demoOn} /> : null}
+        {isDemo ? null : isExec ? <PasscodeSection isSet={passcodeSet} /> : <ClaimAdminSection notice={NOTICES.find((n) => n === sp.passcode) ?? null} />}
         <section className="border-t border-rule pt-6">
           <form action={logout}>
             <Button variant="line" type="submit">

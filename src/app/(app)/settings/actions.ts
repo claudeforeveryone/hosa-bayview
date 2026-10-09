@@ -68,3 +68,15 @@ export async function changePassword(_: AuthState, form: FormData): Promise<Auth
   await supabase.auth.signOut({ scope: "others" });
   return { ok: "Password changed." };
 }
+
+export async function setDemoLogin(enabled: boolean): Promise<AuthState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_demo_login", { enabled });
+  if (error) {
+    if (error.code === "42501") return { error: "Only executives can change this." };
+    console.error("[settings] demo:", error.message);
+    return { error: "Couldn't change that. Try again." };
+  }
+  refresh();
+  return { ok: enabled ? "Demo sign-in is on." : "Demo sign-in is off. Old demo sessions are signed out." };
+}
