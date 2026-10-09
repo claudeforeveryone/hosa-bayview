@@ -400,3 +400,33 @@ export async function recordReview(
   if (error) return failed("review", error.message);
   return {};
 }
+
+// Puts a deck in a classroom (or takes it out). Moving always unshares; sharing is its own step.
+export async function moveDeck(
+  deckId: string,
+  classroomId: string | null,
+): Promise<FormState> {
+  await requireProfile();
+  if (!id.safeParse(deckId).success)
+    return { error: "That deck doesn't exist." };
+  if (classroomId !== null && !id.safeParse(classroomId).success)
+    return { error: "Pick one of your classrooms." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("decks")
+    .update({ classroom_id: classroomId, is_shared: false })
+    .eq("id", deckId)
+    .select("id");
+  if (error) {
+    if (error.code === "42501")
+      return { error: "You can't move this deck to that classroom." };
+    return failed("move", error.message);
+  }
+  if (!data?.length) return { error: "You can't move this deck." };
+  refresh();
+  return {
+    ok: classroomId
+      ? "Moved. Share it when you want the class to see it."
+      : "Taken out of the classroom. Only you can see it.",
+  };
+}

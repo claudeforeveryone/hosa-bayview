@@ -5,9 +5,10 @@ import { ConfirmAction } from "@/components/confirm-action";
 import { CopyDeck } from "@/components/copy-deck";
 import { DeckCards } from "@/components/deck-cards";
 import { DeckForm } from "@/components/deck-form";
+import { DeckRoom } from "@/components/deck-room";
 import { DeckShare } from "@/components/deck-share";
 import { requireProfile } from "@/lib/auth";
-import { getClassroom } from "@/lib/classrooms";
+import { getClassroom, getMyClassrooms } from "@/lib/classrooms";
 import { getCards, getDeck, getDeckOwnerName, getMyBestMs, getTopTimes, type TopTime } from "@/lib/decks";
 import { formNumber } from "@/lib/join-code";
 import { formatMatchTime, standardRound } from "@/lib/match-times";
@@ -29,11 +30,12 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
   if (!deck) notFound();
   const topFromClass = Boolean(deck.classroom_id && deck.is_shared);
   const cards = await getCards(deck.id);
-  const [room, best, top, ownerName] = await Promise.all([
+  const [room, best, top, ownerName, myRooms] = await Promise.all([
     deck.classroom_id ? getClassroom(deck.classroom_id) : null,
     getMyBestMs(deck.id, standardRound(cards.length)),
     topFromClass ? getTopTimes(deck.id) : Promise.resolve<TopTime[]>([]),
     deck.owner_id === profile.id ? Promise.resolve(null) : getDeckOwnerName(deck.id),
+    deck.owner_id === profile.id ? getMyClassrooms().catch(() => []) : Promise.resolve([]),
   ]);
   const canEdit = deck.owner_id === profile.id || profile.role === "executive" || Boolean(room?.can_manage);
   const privacy = deck.owner_id === profile.id ? "Only you" : "Private";
@@ -113,6 +115,16 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
             submitLabel="Save deck"
             pendingLabel="Saving"
           />
+          {deck.owner_id === profile.id && (myRooms.length || deck.classroom_id) ? (
+            <DeckRoom
+              deckId={deck.id}
+              current={deck.classroom_id}
+              rooms={[
+                ...(room && !myRooms.some((r) => r.id === room.id) ? [{ id: room.id, name: room.name }] : []),
+                ...myRooms.map((r) => ({ id: r.id, name: r.name })),
+              ]}
+            />
+          ) : null}
           {room ? <DeckShare deckId={deck.id} shared={deck.is_shared} classroomName={room.name} /> : null}
           <ConfirmAction
             action={deleteDeck.bind(null, deck.id)}
