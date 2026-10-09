@@ -23,19 +23,36 @@ function subscribe(onChange: () => void) {
   };
 }
 
-// In the root layout. On Auto, follows the device when it switches between light and dark.
+function applyPalette(palette: Palette) {
+  if (palette === "bayview") delete document.documentElement.dataset.palette;
+  else document.documentElement.dataset.palette = palette;
+}
+
+// In the root layout. On Auto, follows the device when it switches between light and dark, and picks up a
+// change made in another tab.
 export function AppearanceSync() {
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => {
+    const onScheme = () => {
       if (readMode() === "system") applyMode("system");
     };
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === null || e.key === "theme" || e.key === "palette") {
+        applyMode(readMode());
+        applyPalette(readPalette());
+      }
+    };
+    media.addEventListener("change", onScheme);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      media.removeEventListener("change", onScheme);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
   return null;
 }
 
+// Native radios, so Tab lands on the group once and the arrow keys move the choice.
 export function LookSection() {
   const mode = useSyncExternalStore<Mode>(subscribe, readMode, () => "system");
   const palette = useSyncExternalStore<Palette>(
@@ -56,51 +73,47 @@ export function LookSection() {
         Look
       </h2>
       <div className="grid gap-6">
-        <div
-          role="radiogroup"
-          aria-label="Mode"
-          className="grid grid-cols-3 border border-rule-strong"
-        >
-          {MODES.map((m) => {
-            const on = m.id === mode;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => setMode(m.id)}
-                className={`caps step h-12 border-r border-rule-strong text-[16px] last:border-r-0 ${
-                  on ? "bg-ink text-ground" : "text-ink hover:bg-band"
-                }`}
-              >
+        <fieldset className="grid grid-cols-3 border border-rule-strong">
+          <legend className="sr-only">Mode</legend>
+          {MODES.map((m) => (
+            <label
+              key={m.id}
+              className="relative border-r border-rule-strong last:border-r-0"
+            >
+              <input
+                type="radio"
+                name="look-mode"
+                value={m.id}
+                checked={m.id === mode}
+                onChange={() => setMode(m.id)}
+                className="peer sr-only"
+              />
+              <span className="caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink">
                 {m.label}
-              </button>
-            );
-          })}
-        </div>
-        <div
-          role="radiogroup"
-          aria-label="Colour"
-          className="grid grid-cols-4 gap-2 sm:gap-3"
-        >
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <fieldset className="grid grid-cols-4 gap-2 sm:gap-3">
+          <legend className="sr-only">Colour</legend>
           {PALETTES.map((p) => {
             const on = p.id === palette;
             return (
-              <button
-                key={p.id}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => setPalette(p.id)}
-                className="group grid gap-2 text-left"
-              >
+              <label key={p.id} className="group grid cursor-pointer gap-2">
+                <input
+                  type="radio"
+                  name="look-palette"
+                  value={p.id}
+                  checked={on}
+                  onChange={() => setPalette(p.id)}
+                  className="peer sr-only"
+                />
                 <span
-                  className={`relative block aspect-square outline-offset-2 ${
+                  className={`relative block aspect-square outline-solid outline-offset-2 peer-focus-visible:outline-[3px] peer-focus-visible:outline-ink ${
                     on
                       ? "outline-2 outline-ink"
                       : "outline-1 outline-rule group-hover:outline-rule-strong"
-                  } outline-solid`}
+                  }`}
                   style={{ background: p.field }}
                 >
                   <span
@@ -121,10 +134,10 @@ export function LookSection() {
                 >
                   {p.label}
                 </span>
-              </button>
+              </label>
             );
           })}
-        </div>
+        </fieldset>
       </div>
     </section>
   );

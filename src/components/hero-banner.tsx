@@ -126,6 +126,19 @@ export function HeroBanner({
               ))}
             </span>
           ))}
+          {/* The heartbeat from the logo, run out under the words. */}
+          <svg className="hero-ecg" viewBox="0 0 200 24" preserveAspectRatio="none">
+            <path
+              className="hero-ecg-line"
+              pathLength={1}
+              d="M0 15 H70 l4 -3 l4 3 H90 l3 4 l5 -18 l5 22 l4 -8 H126 q7 -7 14 0 H200"
+            />
+            <path
+              className="hero-ecg-pulse"
+              pathLength={1}
+              d="M0 15 H70 l4 -3 l4 3 H90 l3 4 l5 -18 l5 22 l4 -8 H126 q7 -7 14 0 H200"
+            />
+          </svg>
           <span className="hero-season">{SEASON}</span>
         </div>
       </div>

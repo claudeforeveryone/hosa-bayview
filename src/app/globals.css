@@ -259,6 +259,8 @@
 .hero {
   --hero-t: 3000ms;
   container-type: inline-size;
+  /* Clipping lives here, outside the 3D chain: overflow on the panel would flatten the shards. */
+  overflow: clip;
   perspective: 1200px;
   perspective-origin: 50% 0%;
   color: var(--on-field);
@@ -268,7 +270,6 @@
   align-items: center;
   gap: clamp(0.75rem, 4cqw, 2.5rem);
   padding: clamp(1rem, 4cqw, 2rem) clamp(1rem, 5cqw, 3rem);
-  overflow: hidden;
   background: var(--field);
   transform-origin: 50% 0%;
   transform-style: preserve-3d;
@@ -374,8 +375,31 @@
 .hero-space {
   width: 0.3em;
 }
+.hero-ecg {
+  display: block;
+  width: 100%;
+  height: clamp(0.9rem, 3.4cqw, 1.6rem);
+  margin-top: 0.35em;
+  overflow: visible;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hero-ecg-line {
+  stroke: var(--on-field-2);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+.hero-ecg-pulse {
+  display: none;
+  stroke: var(--on-field);
+  stroke-width: 2.5px;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 0.07 1;
+  filter: drop-shadow(0 0 3px var(--on-field));
+}
 .hero-season {
-  margin-top: 0.7em;
+  margin-top: 0.45em;
   font-size: clamp(0.7rem, 2.2cqw, 1rem);
   font-weight: 500;
   letter-spacing: 0.32em;
@@ -407,9 +431,17 @@
     animation-delay: calc(var(--i) * 30ms);
   }
   .hero[data-play] .hero-season { animation: hero-season var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  .hero[data-play] .hero-ecg-line {
+    stroke-dasharray: 1 1;
+    animation: hero-ecg-draw var(--hero-t) linear both;
+  }
+  .hero[data-play] .hero-ecg-pulse {
+    display: block;
+    animation: hero-ecg-pulse var(--hero-t) linear both;
+  }
 }
 
-/* 0-15% drop in · 15-30% the logo holds · 30-50% shatter · 38-54% words flip · 52-64% season · 64-84% glint. */
+/* 0-15% drop in · 15-30% the logo holds · 30-50% shatter · 38-54% words flip · 56-76% heartbeat · 52-64% season · 64-84% glint. */
 @keyframes hero-drop {
   0% { transform: rotateX(-88deg); opacity: 0.3; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
   11% { transform: rotateX(5deg); opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
@@ -452,6 +484,17 @@
 @keyframes hero-char {
   0%, 38% { transform: perspective(500px) rotateY(-95deg) translateX(-0.4em) translateZ(-60px); opacity: 0; }
   54%, 100% { transform: none; opacity: 1; }
+}
+@keyframes hero-ecg-draw {
+  0%, 56% { stroke-dashoffset: 1; }
+  76%, 100% { stroke-dashoffset: 0; }
+}
+/* One bright beat chases the trace as it draws, then leaves off the end. */
+@keyframes hero-ecg-pulse {
+  0%, 56% { stroke-dashoffset: 0.07; opacity: 0; }
+  57% { opacity: 1; }
+  76% { stroke-dashoffset: -0.93; opacity: 1; }
+  80%, 100% { stroke-dashoffset: -1; opacity: 0; }
 }
 @keyframes hero-season {
   0%, 52% { transform: translateY(70%); opacity: 0; letter-spacing: 0.6em; }
