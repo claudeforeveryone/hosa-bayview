@@ -81,7 +81,7 @@ function pick<T extends string>(
 export const parsePeriod = (value: unknown): Period =>
   pick(value, PERIODS, "week");
 export const parseMetric = (value: unknown): Metric =>
-  pick(value, METRICS, "hours");
+  pick(value, METRICS, "elo");
 export const parseResult = (value: unknown): Result =>
   pick(value, RESULTS, "all");
 

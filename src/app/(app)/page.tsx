@@ -8,7 +8,6 @@ import { canTeach, requireProfile, type Role } from "@/lib/auth";
 import { getBoard, getHonorRoll, getOnline } from "@/lib/activity-data";
 import {
   formatCount,
-  parseMetric,
   parsePeriod,
   rankBoard,
   type Metric,
@@ -54,7 +53,7 @@ function Hello({
   );
 }
 
-// The club board on Home: top ten by the chosen measure, with a link to the full board.
+// The club board on Home: top ten by Elo, with a link to the full board.
 function ClubBoard({
   metric,
   period,
@@ -82,6 +81,7 @@ function ClubBoard({
         meId={meId}
         empty="Nothing ranked yet"
         limit={10}
+        metrics={["elo"]}
         more={{
           href: `/leaderboard?metric=${metric}&period=${period}`,
           text: "Full board",
@@ -253,7 +253,8 @@ function Classrooms({
 
 export default async function HomePage(props: PageProps<"/">) {
   const sp = await props.searchParams;
-  const metric = parseMetric(sp.metric);
+  // Home keeps it simple: Elo only. The full board has the other measures.
+  const metric: Metric = "elo";
   const period = parsePeriod(sp.period);
   const [profile, rooms, board, online, honor] = await Promise.all([
     requireProfile(),

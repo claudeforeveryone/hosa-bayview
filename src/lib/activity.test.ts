@@ -35,8 +35,8 @@ describe("parsing search params", () => {
     expect(parsePeriod("year")).toBe("week");
     expect(parsePeriod(["month", "all"])).toBe("week");
     expect(parsePeriod(undefined)).toBe("week");
-    expect(parseMetric("elo")).toBe("elo");
-    expect(parseMetric("bogus")).toBe("hours");
+    expect(parseMetric("hours")).toBe("hours");
+    expect(parseMetric("bogus")).toBe("elo");
     expect(parseResult("wrong")).toBe("wrong");
     expect(parseResult(undefined)).toBe("all");
   });

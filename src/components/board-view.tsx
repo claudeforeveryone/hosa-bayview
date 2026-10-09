@@ -86,12 +86,16 @@ function BoardLine({
   period: Period;
   you: boolean;
 }) {
+  const count = (n: number, word: string) =>
+    `${formatCount(n)} ${word}${n === 1 ? "" : "s"}`;
   const caption = [
-    `${formatCount(row.reviews)} cards`,
-    `${formatCount(row.answered)} questions`,
-    formatPercent(row.accuracy),
+    count(row.reviews, "card"),
+    count(row.answered, "question"),
+    row.accuracy === null ? null : formatPercent(row.accuracy),
     `Elo ${formatCount(row.elo)}`,
-  ].join(" · ");
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <li className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-rule px-1 py-2 sm:px-3">
       <span className="num font-display text-[20px] font-semibold text-ink-2">
