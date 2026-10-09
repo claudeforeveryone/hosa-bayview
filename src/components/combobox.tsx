@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
+import { filterOptions, nextIndex } from "@/lib/combobox";
 
 // Text field with a filtered suggestion list. Free text is allowed; the input itself is what submits.
 export function Combobox({
@@ -29,25 +30,27 @@ export function Combobox({
   const list = useRef<HTMLUListElement>(null);
 
   // Opening shows everything; typing filters.
-  const shown = useMemo(() => {
-    const q = value.trim().toLowerCase();
-    if (!typed || !q) return options;
-    return options.filter((o) => o.toLowerCase().includes(q));
-  }, [options, value, typed]);
+  const shown = useMemo(() => filterOptions(options, value, typed), [options, value, typed]);
+  const expanded = open && shown.length > 0;
+
+  function close() {
+    setOpen(false);
+    setActive(-1);
+  }
 
   function choose(option: string) {
     setValue(option);
-    setOpen(false);
-    setActive(-1);
+    close();
     setTyped(false);
     input.current?.focus();
   }
 
-  function move(delta: number) {
-    if (!open) setOpen(true);
-    const next = shown.length ? (active + delta + shown.length) % shown.length : -1;
+  function move(delta: 1 | -1) {
+    setOpen(true);
+    const next = nextIndex(active, delta, shown.length);
     setActive(next);
-    list.current?.children[next]?.scrollIntoView({ block: "nearest" });
+    // The list may only mount on this render, so scroll after it paints.
+    requestAnimationFrame(() => list.current?.children[next]?.scrollIntoView({ block: "nearest" }));
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -62,7 +65,7 @@ export function Combobox({
       choose(shown[active]);
     } else if (e.key === "Escape" && open) {
       e.preventDefault();
-      setOpen(false);
+      close();
     }
   }
 
@@ -80,10 +83,10 @@ export function Combobox({
           maxLength={maxLength}
           autoComplete="off"
           role="combobox"
-          aria-expanded={open}
-          aria-controls={listId}
+          aria-expanded={expanded}
+          aria-controls={expanded ? listId : undefined}
           aria-autocomplete="list"
-          aria-activedescendant={open && active >= 0 ? `${id}-o${active}` : undefined}
+          aria-activedescendant={expanded && active >= 0 ? `${id}-o${active}` : undefined}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-err` : undefined}
           onChange={(e) => {
@@ -94,17 +97,19 @@ export function Combobox({
           }}
           onFocus={() => setOpen(true)}
           onClick={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
+          onBlur={close}
           onKeyDown={onKeyDown}
           className="step h-12 w-full border border-rule-strong bg-transparent pr-12 pl-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
         />
+        {/* Mouse and touch shortcut only; keyboard and screen-reader users open the list from the field. */}
         <button
           type="button"
           tabIndex={-1}
-          aria-label={open ? `Close ${label} list` : `Open ${label} list`}
+          aria-hidden
           onMouseDown={(e) => {
             e.preventDefault();
             setTyped(false);
+            setActive(-1);
             setOpen((o) => !o);
             input.current?.focus();
           }}
@@ -112,7 +117,7 @@ export function Combobox({
         >
           <ChevronDown size={20} strokeWidth={1.75} className={open ? "rotate-180" : ""} aria-hidden />
         </button>
-        {open && shown.length ? (
+        {expanded ? (
           <ul
             ref={list}
             id={listId}
