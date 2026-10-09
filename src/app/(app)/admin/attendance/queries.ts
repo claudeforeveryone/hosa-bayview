@@ -133,10 +133,12 @@ export const loadAttendanceOverview = cache(async () => {
     .sort(compareParticipation);
 
   // Most absences across every classroom, counting only meetings that have passed.
-  // Executives can't be warned (warn_member), so their rows carry no Warn button.
+  // Executives can't be warned (warn_member), and neither can someone whose profile is gone ("Former member"),
+  // so their rows carry no Warn button.
   const executives = new Set(
     profiles.filter((p) => p.role === "executive").map((p) => p.id),
   );
+  const existing = new Set(profiles.map((p) => p.id));
   const absences = absenceLeaders({
     meetings,
     sessions: sessions.map((s) => ({
@@ -146,7 +148,10 @@ export const loadAttendanceOverview = cache(async () => {
     marks: cleanMarks,
     names,
     today: torontoToday(),
-  }).map((a) => ({ ...a, warnable: !executives.has(a.user_id) }));
+  }).map((a) => ({
+    ...a,
+    warnable: existing.has(a.user_id) && !executives.has(a.user_id),
+  }));
 
   return {
     week,

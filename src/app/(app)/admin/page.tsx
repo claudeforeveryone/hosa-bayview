@@ -42,7 +42,8 @@ export default async function AdminPage() {
     ...p,
     email: isDemo ? "" : p.email,
     avatar_src: p.avatar_path ? (sources.get(p.avatar_path) ?? null) : null,
-    gif_limit: gifLimitBytes(exempt.has(p.id)),
+    // Same rule as savePicture: the bigger limit needs both the picture's owner and the uploader to be exempt.
+    gif_limit: gifLimitBytes(exempt.has(p.id) && exempt.has(me.id)),
   }));
   const count = (r: Role) => people.filter((p) => p.role === r).length;
 
