@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
 import {
   ELO_SUMMARY,
@@ -99,7 +100,12 @@ function BoardLine({
         {row.place ?? "—"}
       </span>
       <span className="min-w-0">
-        <span className="flex min-w-0 items-baseline gap-2">
+        <span className="flex min-w-0 items-center gap-2.5">
+          <Avatar
+            name={row.full_name || "Member"}
+            src={row.avatar_url ?? null}
+            size="sm"
+          />
           <Link
             href={`/members/${row.user_id}`}
             className="step min-w-0 truncate font-display text-[18px] leading-tight font-semibold uppercase hover:underline sm:text-[20px]"

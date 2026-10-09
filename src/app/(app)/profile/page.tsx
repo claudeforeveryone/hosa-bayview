@@ -1,48 +1,94 @@
 import type { Metadata } from "next";
 import { LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
+import { AvatarForm } from "@/components/avatar-form";
+import { Avatar } from "@/components/avatar";
 import { MemberCareer } from "@/components/member-career";
 import { MemberStatRows } from "@/components/member-stats";
 import { Button } from "@/components/form";
 import { parseResult } from "@/lib/activity";
 import { getCareer, getMemberStats } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
+import { avatarSources } from "@/lib/avatar-urls";
+import { gradeLabel } from "@/lib/profile";
 
 export const metadata: Metadata = { title: "Profile" };
 
-const ROLE_LABEL = { executive: "Executive", trainer: "Trainer", trainee: "Trainee" } as const;
+const ROLE_LABEL = {
+  executive: "Executive",
+  trainer: "Trainer",
+  trainee: "Trainee",
+} as const;
 
 export default async function ProfilePage(props: PageProps<"/profile">) {
   const sp = await props.searchParams;
   const result = parseResult(sp.result);
   const profile = await requireProfile();
-  const [stats, career] = await Promise.all([getMemberStats(profile.id), getCareer(profile.id)]);
+  const [stats, career, sources] = await Promise.all([
+    getMemberStats(profile.id),
+    getCareer(profile.id),
+    avatarSources([profile.avatar_path]),
+  ]);
+  const picture = profile.avatar_path
+    ? (sources.get(profile.avatar_path) ?? null)
+    : null;
   return (
     <div className="grid max-w-2xl gap-10">
-      <div>
-        <h1 className="font-display text-[clamp(2.5rem,8vw,4.5rem)] leading-none font-bold uppercase">
-          {profile.full_name}
-        </h1>
-        <p className="mt-2 text-ink-2">{profile.email}</p>
+      <div className="flex items-center gap-5">
+        <Avatar name={profile.full_name} src={picture} size="lg" />
+        <div className="min-w-0">
+          <h1 className="font-display text-[clamp(2.5rem,8vw,4.5rem)] leading-none font-bold [overflow-wrap:anywhere] uppercase">
+            {profile.full_name}
+          </h1>
+          <p className="mt-2 text-ink-2 [overflow-wrap:anywhere]">
+            {profile.email}
+          </p>
+        </div>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 border-y border-rule py-4">
         <dt className="caps text-ink-2">Role</dt>
         <dd>{ROLE_LABEL[profile.role]}</dd>
+        <dt className="caps text-ink-2">Grade</dt>
+        <dd>{gradeLabel(profile.grade)}</dd>
         <dt className="caps text-ink-2">Member since</dt>
         <dd className="num">
-          {new Date(profile.created_at).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" })}
+          {new Date(profile.created_at).toLocaleDateString("en-CA", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
         </dd>
       </dl>
       {stats ? (
         <section aria-labelledby="numbers-h" className="grid gap-4">
-          <h2 id="numbers-h" className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase">
+          <h2
+            id="numbers-h"
+            className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
+          >
             Your numbers
           </h2>
           <MemberStatRows stats={stats} />
         </section>
       ) : null}
+      <section aria-labelledby="picture-h" className="grid gap-4">
+        <h2
+          id="picture-h"
+          className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
+        >
+          Picture
+        </h2>
+        <AvatarForm
+          userId={profile.id}
+          name={profile.full_name}
+          src={picture}
+          hasPicture={profile.avatar_path !== null}
+        />
+      </section>
       <section aria-labelledby="career-h" className="grid gap-4">
-        <h2 id="career-h" className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase">
+        <h2
+          id="career-h"
+          className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
+        >
           Career
         </h2>
         <MemberCareer rows={career} result={result} basePath="/profile" />

@@ -9,6 +9,7 @@ import {
 } from "@/lib/activity";
 import type { Role } from "@/lib/auth";
 import { uuid } from "@/lib/classrooms";
+import { avatarSources } from "@/lib/avatar-urls";
 
 // Reads from the activity RPCs in migrations 0017 and 0030. The database decides who may see what; these just call and map.
 
@@ -45,6 +46,41 @@ export type CareerRow = CareerItem & {
 
 const num = (v: number | string | null) => (v === null ? null : Number(v));
 
+export type MemberDetail = {
+  user_id: string;
+  avatar_url: string | null;
+  grade: number | null;
+};
+
+type RawDetail = {
+  user_id: string;
+  avatar_path: string | null;
+  grade: number | null;
+};
+
+// Picture (a short-lived signed URL) and grade for every member. Pictures are decoration: if this lookup
+// fails, pages still render, with initials.
+export async function getMemberDetails(): Promise<Map<string, MemberDetail>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("member_details");
+  if (error) {
+    console.error("[activity] member details:", error.message);
+    return new Map();
+  }
+  const rows = (data ?? []) as RawDetail[];
+  const sources = await avatarSources(rows.map((r) => r.avatar_path));
+  return new Map(
+    rows.map((r) => [
+      r.user_id,
+      {
+        user_id: r.user_id,
+        grade: r.grade,
+        avatar_url: r.avatar_path ? (sources.get(r.avatar_path) ?? null) : null,
+      },
+    ]),
+  );
+}
+
 // Club board when classroomId is null, otherwise that classroom's board.
 export async function getBoard(
   period: Period,
@@ -59,6 +95,7 @@ export async function getBoard(
   // 42501: a room you can't view. Read as an empty board, not an error page.
   if (error?.code === "42501") return [];
   if (error) throw new Error(`Board lookup failed: ${error.message}`);
+  const details = await getMemberDetails();
   return ((data ?? []) as RawBoard[]).map((r) => ({
     ...r,
     minutes: Number(r.minutes),
@@ -69,6 +106,7 @@ export async function getBoard(
     elo: Number(r.elo),
     gain: Number(r.gain),
     streak: Number(r.streak),
+    avatar_url: details.get(r.user_id)?.avatar_url ?? null,
   }));
 }
 

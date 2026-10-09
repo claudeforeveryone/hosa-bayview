@@ -44,6 +44,7 @@ export type BoardRow = {
   elo: number; // all-time Elo
   gain: number; // Elo earned inside the chosen period
   streak: number;
+  avatar_url?: string | null;
 };
 
 export type RankedRow = BoardRow & {
