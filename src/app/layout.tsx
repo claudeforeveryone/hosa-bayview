@@ -3,6 +3,8 @@ import { Barlow, Barlow_Condensed } from "next/font/google";
 import localFont from "next/font/local";
 import { AppearanceSync } from "@/components/appearance";
 import { appearanceScript } from "@/lib/appearance";
+import { introScript } from "@/lib/intro";
+import { SiteIntro } from "@/components/site-intro";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -50,8 +52,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
+        <script dangerouslySetInnerHTML={{ __html: introScript }} />
       </head>
       <body className="min-h-full">
+        <SiteIntro />
         {children}
         <AppearanceSync />
       </body>

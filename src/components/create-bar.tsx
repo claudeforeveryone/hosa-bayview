@@ -10,10 +10,9 @@ import { useDisclosureClose } from "@/hooks/use-disclosure-close";
 
 type Action = (state: FormState, form: FormData) => Promise<FormState>;
 
+// One slim strip, three cells: it reads as a single control, not three cards.
 const tile =
-  "step grid h-28 w-full min-w-0 content-between justify-items-start overflow-hidden border border-ink p-3 text-left hover:bg-band aria-disabled:opacity-60 sm:h-32 sm:p-4";
-const word =
-  "font-display text-[clamp(1.375rem,7vw,2.75rem)] leading-none font-bold uppercase";
+  "caps step flex h-14 w-full min-w-0 items-center justify-center gap-2 px-2 text-[16px] hover:bg-band aria-disabled:opacity-60 sm:text-[17px]";
 
 // The tile's face. Screen readers hear "New test" at rest and "Making" while it works.
 function Face({
@@ -27,27 +26,25 @@ function Face({
 }) {
   return (
     <>
-      <span className="flex w-full items-center justify-between">
-        <Plus size={26} strokeWidth={2} aria-hidden />
-        {menu ? (
-          <ChevronDown
-            size={20}
-            strokeWidth={2}
-            aria-hidden
-            className="text-ink-2 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180"
-          />
-        ) : null}
-      </span>
-      <span className={word}>
+      <Plus size={18} strokeWidth={2.25} aria-hidden className="shrink-0" />
+      <span className="truncate">
         {pending ? (
           "Making"
         ) : (
           <>
-            <span className="sr-only">New </span>
+            <span className="sr-only sm:not-sr-only">New </span>
             {text}
           </>
         )}
       </span>
+      {menu ? (
+        <ChevronDown
+          size={16}
+          strokeWidth={2}
+          aria-hidden
+          className="shrink-0 text-ink-2 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180"
+        />
+      ) : null}
     </>
   );
 }
@@ -171,11 +168,8 @@ export function CreateBar({
         : null;
 
   return (
-    <section aria-labelledby="create-h" className="grid gap-3">
-      <h2 id="create-h" className="caps px-1 text-[17px] text-ink-2 sm:px-3">
-        Create
-      </h2>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+    <section aria-label="Create" className="grid gap-3">
+      <div className="grid grid-cols-3 divide-x divide-ink border border-ink">
         <TestTile
           rooms={rooms}
           run={runTest}

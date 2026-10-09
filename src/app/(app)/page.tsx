@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, ChevronRight, Plus } from "lucide-react";
+import { ArrowRight, Check, ChevronRight } from "lucide-react";
 import { JoinForm } from "@/components/join-form";
 import { BoardView } from "@/components/board-view";
 import { CreateBar } from "@/components/create-bar";
@@ -168,15 +168,16 @@ function Setup({ steps }: { steps: Step[] }) {
   );
 }
 
-function Join({ big }: { big: boolean }) {
+// A slim navy band: the heading and the code box side by side on wider screens, stacked on a phone.
+function Join() {
   return (
     <section
       aria-labelledby="join-h"
-      className={`grid content-end gap-5 bg-field px-4 py-6 text-on-field sm:px-8 lg:py-8 ${big ? "min-h-[calc(100dvh-13rem)] lg:min-h-[28rem]" : ""}`}
+      className="grid gap-4 bg-field px-4 py-5 text-on-field sm:grid-cols-[auto_minmax(0,1fr)] sm:items-end sm:gap-10 sm:px-6 sm:py-6"
     >
       <h2
         id="join-h"
-        className="font-display text-[clamp(2.5rem,10vw,4.5rem)] leading-[0.92] font-bold uppercase"
+        className="font-display text-[clamp(2rem,7vw,2.75rem)] leading-[0.9] font-bold uppercase sm:pb-3"
       >
         Got a code?
       </h2>
@@ -216,32 +217,15 @@ function ClassroomRow({ room }: { room: ClassroomSummary }) {
   );
 }
 
-function Classrooms({
-  rooms,
-  teach,
-}: {
-  rooms: ClassroomSummary[];
-  teach: boolean;
-}) {
+function Classrooms({ rooms }: { rooms: ClassroomSummary[] }) {
   return (
     <section aria-labelledby="rooms-h" className="grid gap-4">
-      <div className="flex items-end justify-between gap-4 px-1 sm:px-3">
-        <h2
-          id="rooms-h"
-          className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
-        >
-          Your classrooms
-        </h2>
-        {teach ? (
-          <Link
-            href="/c/new"
-            className="caps step inline-flex h-11 shrink-0 items-center gap-2 border border-ink px-4 text-[16px] hover:bg-band"
-          >
-            <Plus size={18} strokeWidth={2} aria-hidden />
-            New
-          </Link>
-        ) : null}
-      </div>
+      <h2
+        id="rooms-h"
+        className="px-1 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase sm:px-3"
+      >
+        Your classrooms
+      </h2>
       <ul className="border-t border-rule">
         {rooms.map((room) => (
           <ClassroomRow key={room.id} room={room} />
@@ -288,7 +272,7 @@ export default async function HomePage(props: PageProps<"/">) {
           rooms={0}
           online={online.length}
         />
-        <Join big />
+        <Join />
         {club}
         {honorRoll}
       </div>
@@ -332,15 +316,11 @@ export default async function HomePage(props: PageProps<"/">) {
           newDeck={createBlankDeck}
         />
       ) : null}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
-        <div className="grid grid-cols-1 gap-8">
-          {settingUp ? <Setup steps={steps} /> : null}
-          {rooms.length ? <Classrooms rooms={rooms} teach={teach} /> : null}
-          {club}
-          {honorRoll}
-        </div>
-        <Join big={false} />
-      </div>
+      {settingUp ? <Setup steps={steps} /> : null}
+      {rooms.length ? <Classrooms rooms={rooms} /> : null}
+      <Join />
+      {club}
+      {honorRoll}
     </div>
   );
 }

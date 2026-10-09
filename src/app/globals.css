@@ -285,9 +285,21 @@
   --on-field-2: var(--ink-2);
 }
 .hero-page .hero-panel {
+  position: relative;
   background: transparent;
   padding-inline: 0.25rem;
-  border-bottom: 1px solid var(--rule);
+}
+/* The hairline under it, drawn so it can run out from the middle as the heartbeat lands. */
+.hero-page .hero-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: var(--rule);
+}
+.hero-page .hero-ecg-pulse {
+  stroke: var(--you);
+  filter: drop-shadow(0 0 4px var(--you));
 }
 @media (min-width: 40rem) {
   .hero-page .hero-panel { padding-inline: 0.75rem; }
@@ -644,4 +656,224 @@
   .lucky-piece {
     display: none;
   }
+}
+
+/* Full-screen opener (src/components/site-intro.tsx). Shown only while <html data-intro> is set by the head
+   script; it plays once and hides itself at the end even if no script ever runs. Rare and first-visit only,
+   so it gets the big moment the rest of the app doesn't. */
+.intro {
+  display: none;
+}
+html[data-intro] .intro {
+  --intro-t: 2700ms;
+  --intro-ground: color-mix(in oklab, var(--field) 72%, #000);
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  color: var(--on-field);
+  animation: intro-gone var(--intro-t) steps(1, end) both, intro-backing var(--intro-t) steps(1, end) both;
+}
+.intro-half {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--intro-ground);
+  will-change: transform;
+}
+.intro-ecg {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: clamp(5rem, 16vh, 10rem);
+  translate: 0 -50%;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px color-mix(in oklab, var(--on-field) 70%, transparent));
+  clip-path: inset(-50% 100% -50% 0);
+}
+.intro-ecg path {
+  vector-effect: non-scaling-stroke;
+}
+.intro-mark {
+  display: grid;
+  justify-items: center;
+  gap: clamp(1rem, 3vh, 2rem);
+  padding-inline: 1rem;
+  text-align: center;
+  opacity: 0;
+}
+.intro-logo {
+  height: clamp(5.5rem, 17vh, 11rem);
+}
+.intro-words {
+  display: grid;
+  font-family: var(--font-montserrat), sans-serif;
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+.intro-line-1 {
+  font-size: clamp(3.4rem, 17vw, 13rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.intro-line-2 {
+  margin-top: 0.12em;
+  font-size: clamp(1.5rem, 7.4vw, 5.75rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.intro-flash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 160vmax;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--on-field) 85%, transparent), color-mix(in oklab, var(--on-field) 25%, transparent) 22%, transparent 55%);
+  opacity: 0;
+  pointer-events: none;
+}
+.intro-crack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--on-field);
+  stroke-width: 4px;
+  stroke-linejoin: miter;
+  filter: drop-shadow(0 0 8px var(--on-field)) drop-shadow(0 0 24px color-mix(in oklab, var(--on-field) 60%, transparent));
+  clip-path: inset(0 -20% 100% -20%);
+  opacity: 0;
+  pointer-events: none;
+}
+.intro-crack path {
+  vector-effect: non-scaling-stroke;
+}
+.intro-crack .intro-branch {
+  stroke-width: 2px;
+}
+
+/* 0-26% heartbeat · 22% the mark slams in · 46% the crack · 50% shake · 56-92% the halves pull apart. */
+html[data-intro] .intro-ecg {
+  animation: intro-ecg var(--intro-t) cubic-bezier(0.5, 0, 0.6, 1) both;
+}
+html[data-intro] .intro-mark {
+  animation: intro-mark var(--intro-t) both;
+}
+html[data-intro] .intro-flash {
+  animation: intro-flash var(--intro-t) ease-out both;
+}
+html[data-intro] .intro-crack {
+  animation: intro-crack-fade var(--intro-t) both, intro-crack var(--intro-t) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+html[data-intro] .intro-left {
+  animation: intro-left var(--intro-t) both;
+}
+html[data-intro] .intro-right {
+  animation: intro-right var(--intro-t) both;
+}
+@keyframes intro-gone {
+  to { visibility: hidden; }
+}
+/* Solid behind the halves until they part, so the cut between them never shows as a seam. */
+@keyframes intro-backing {
+  0% { background: var(--intro-ground); }
+  56%, 100% { background: transparent; }
+}
+@keyframes intro-ecg {
+  0% { clip-path: inset(-50% 100% -50% 0); opacity: 1; }
+  24% { clip-path: inset(-50% 0 -50% 0); opacity: 1; }
+  30%, 100% { clip-path: inset(-50% 0 -50% 0); opacity: 0; }
+}
+@keyframes intro-mark {
+  0%, 21% { opacity: 0; transform: scale(1.7); }
+  22% { opacity: 1; transform: scale(1.7); animation-timing-function: steps(5, end); }
+  31% { opacity: 1; transform: scale(1); }
+  49% { transform: none; }
+  50% { transform: translate(-1.2%, 0.6%); }
+  51.5% { transform: translate(1%, -0.8%); }
+  53% { transform: translate(-0.6%, 0.4%); }
+  54.5%, 100% { transform: none; opacity: 1; }
+}
+@keyframes intro-flash {
+  0%, 21% { opacity: 0; transform: scale(0.2); }
+  22% { opacity: 0.8; transform: scale(0.35); }
+  34% { opacity: 0; transform: scale(1); }
+  45% { opacity: 0; transform: scale(0.2); }
+  46.5% { opacity: 1; transform: scale(0.4); }
+  62%, 100% { opacity: 0; transform: scale(1.2); }
+}
+@keyframes intro-crack-fade {
+  0%, 45% { opacity: 0; }
+  46%, 60% { opacity: 1; }
+  68%, 100% { opacity: 0; }
+}
+@keyframes intro-crack {
+  0%, 46% { clip-path: inset(0 -20% 100% -20%); }
+  53%, 100% { clip-path: inset(0 -20% 0 -20%); }
+}
+@keyframes intro-left {
+  0%, 56% { transform: none; animation-timing-function: cubic-bezier(0.7, 0, 0.2, 1); }
+  92%, 100% { transform: translateX(-64%) rotate(-4deg); }
+}
+@keyframes intro-right {
+  0%, 56% { transform: none; animation-timing-function: cubic-bezier(0.7, 0, 0.2, 1); }
+  92%, 100% { transform: translateX(64%) rotate(4deg); }
+}
+
+/* Home's banner sits on the page, with no box to drop in, so the words carry the hit: each letter slams down
+   from above, the line shakes as the last one lands, and the rule runs out from the centre with the beat. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-page[data-play] .hero-panel { animation: none; }
+  .hero-page[data-play] .hero-char {
+    animation-name: hero-slam;
+    animation-timing-function: steps(4, end);
+    animation-delay: calc(var(--i) * 26ms);
+  }
+  .hero-page[data-play] .hero-words { animation: hero-shake var(--hero-t) both; }
+  .hero-page[data-play] .hero-panel::after { animation: hero-rule var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+}
+@keyframes hero-slam {
+  0%, 34% { transform: translateY(-0.9em) scale(2.1); opacity: 0; }
+  35% { transform: translateY(-0.9em) scale(2.1); opacity: 1; }
+  43% { transform: translateY(0.04em) scale(0.96); opacity: 1; }
+  46%, 100% { transform: none; opacity: 1; }
+}
+@keyframes hero-shake {
+  0%, 51% { transform: none; }
+  52.5% { transform: translate(-5px, 3px); }
+  54% { transform: translate(4px, -2px); }
+  55.5% { transform: translate(-2px, 1px); }
+  57%, 100% { transform: none; }
+}
+@keyframes hero-rule {
+  0%, 56% { transform: scaleX(0); }
+  78%, 100% { transform: scaleX(1); }
+}
+
+/* The banner under it holds its first frame until the halves part, so the opener never hides its shatter.
+   The head script clears data-intro-wait once the banner has finished. */
+html[data-intro-wait] .hero[data-play] :is(.hero-panel, .hero-stage, .hero-tiger, .hero-season-old, .hero-flash, .hero-glint, .hero-season, .hero-ecg-line, .hero-ecg-pulse, .hero-words),
+html[data-intro-wait] .hero[data-play] .hero-panel::after {
+  animation-delay: 1500ms;
+}
+html[data-intro-wait] .hero[data-play] .hero-shard {
+  animation-delay: calc(1500ms + var(--d, 0ms));
+}
+html[data-intro-wait] .hero[data-play] .hero-char {
+  animation-delay: calc(1500ms + var(--i) * 30ms);
+}
+html[data-intro-wait] .hero-page[data-play] .hero-char {
+  animation-delay: calc(1500ms + var(--i) * 26ms);
 }
