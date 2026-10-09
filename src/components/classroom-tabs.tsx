@@ -4,15 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+// Most used first.
 const TABS = [
   { slug: "", label: "Board" },
-  { slug: "online", label: "Online" },
-  { slug: "flashcards", label: "Flashcards" },
   { slug: "tests", label: "Tests" },
+  { slug: "flashcards", label: "Flashcards" },
   { slug: "grades", label: "Grades" },
-  { slug: "resources", label: "Resources" },
   { slug: "attendance", label: "Attendance" },
+  { slug: "resources", label: "Resources" },
   { slug: "members", label: "Members" },
+  { slug: "online", label: "Online" },
 ];
 
 // Condensed caps tabs; the active one gets the maroon rule. Scrolls sideways on phones.
@@ -61,7 +62,7 @@ export function ClassroomTabs({
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`caps step -mb-px block border-b-[3px] px-3 py-3 text-[18px] sm:px-4 ${
+                className={`caps step -mb-px block border-b-[3px] px-2.5 py-3 text-[16px] sm:px-4 sm:text-[18px] ${
                   active
                     ? "border-you text-ink"
                     : "border-transparent text-ink-2 hover:text-ink"
