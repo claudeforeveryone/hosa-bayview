@@ -1,7 +1,7 @@
 // Match times and personal-best wording. The server decides whether a match counts (record_match);
 // these helpers only turn its answer into text.
 
-// A standard round is 10 cards, or the whole deck when it has fewer. Mirrors record_match (migration 0038).
+// A standard round is 10 cards, or the whole deck when it has fewer. Mirrors record_match (migration 0040).
 export const STANDARD_ROUND = 10;
 
 export function standardRound(cardCount: number): number {

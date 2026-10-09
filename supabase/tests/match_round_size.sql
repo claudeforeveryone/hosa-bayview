@@ -1,4 +1,4 @@
--- Standard-round match bests (migration 0038). Runs in one transaction and rolls back; raises on the first failure.
+-- Standard-round match bests (migration 0040). Runs in one transaction and rolls back; raises on the first failure.
 -- A standard round is min(10, deck size) cards. Bests compare only within the same round size.
 begin;
 
