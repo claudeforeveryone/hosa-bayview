@@ -1,26 +1,125 @@
 @import "tailwindcss";
 
+/* Dark variant follows the resolved theme, not just the OS. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Bayview HOSA. Light: ice ground, navy ink. Dark: navy ground, ice ink.
+   Maroon is reserved for "you" and the active item. Nothing is rounded. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --ground: #e8f2fa;
+  --band: #d6e6f3;
+  --ink: #0f2440;
+  --ink-2: #33506f;
+  --rule: #a9c1d8;
+  --rule-strong: #5b7896;
+  --field: #1e3d62;
+  --on-field: #e8f2fa;
+  --on-field-2: #b4cbe0;
+  --you: #7a1f2b;
+  --on-you: #f7ecee;
+  --danger: #9b1c1c;
+  --ok: #1d5e3a;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #1e3d62;
+  --band: #183353;
+  --ink: #e8f2fa;
+  --ink-2: #b4cbe0;
+  --rule: #3b5c82;
+  --rule-strong: #7d9bbb;
+  --field: #0f2440;
+  --on-field: #e8f2fa;
+  --on-field-2: #a9c1d8;
+  --you: #8e2a37;
+  --on-you: #f7ecee;
+  --danger: #ffb4b4;
+  --ok: #a6e3bf;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ground: var(--ground);
+  --color-band: var(--band);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-field: var(--field);
+  --color-on-field: var(--on-field);
+  --color-on-field-2: var(--on-field-2);
+  --color-you: var(--you);
+  --color-on-you: var(--on-you);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-barlow), system-ui, sans-serif;
+  --font-display: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+  --radius-none: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    background: var(--ground);
+    color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.5;
+    caret-color: var(--you);
+  }
+  *,
+  input,
+  button,
+  select,
+  textarea {
+    border-radius: 0;
+  }
+  ::selection {
+    background: var(--you);
+    color: var(--on-you);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+  * {
+    scrollbar-color: var(--rule-strong) transparent;
+    scrollbar-width: thin;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--ink-2);
+    opacity: 1;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Condensed caps label used for buttons and tabs. */
+  .caps {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .num {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+}
+
+/* Motion is a hard step, never an ease. */
+@media (prefers-reduced-motion: no-preference) {
+  .step {
+    transition-property: background-color, color, border-color;
+    transition-duration: 90ms;
+    transition-timing-function: steps(2, end);
+  }
 }

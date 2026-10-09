@@ -5,17 +5,17 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 ## Phase 0: Setup
 - [x] Scaffold Next.js 16 + Tailwind v4 + TypeScript
 - [x] CLAUDE.md (spec) and PLAN.md
-- [ ] Supabase project `hosa-bayview` (ca-central-1), `.env.local`
-- [ ] Private GitHub repo, first push
-- [ ] Install `@supabase/ssr`, `@supabase/supabase-js`, `zod`, `vitest`
+- [x] Supabase project `hosa-bayview` (ca-central-1), `.env.local`
+- [x] Private GitHub repo, first push
+- [x] Install `@supabase/ssr`, `@supabase/supabase-js`, `zod`, `vitest`, `lucide-react`
 
 ## Phase 1: Schema, auth, roles
-- [ ] Migration: `profiles`, role enum, `private.settings` (first exec email), `handle_new_user` trigger, role-change guard trigger, helper fns (`is_executive`, `is_trainer`)
-- [ ] Supabase clients: server, browser, admin (service role, server only)
-- [ ] `src/proxy.ts` session refresh and route gating
-- [ ] Pages: login, signup, forgot password, reset password, auth callback, logout action
-- [ ] App shell: header with logo, nav, theme toggle, footer credit
-- [ ] Verify: exec email becomes executive, others trainee, trainee can't change own role (SQL as role)
+- [x] Migrations 0001-0005: `profiles`, role enum, `private.settings` (first exec email), signup trigger, one-shot first-exec promotion, role/last-exec guards, email sync, helpers (`is_executive`, `can_teach`)
+- [x] Supabase clients: server, browser, admin (service role, server only)
+- [x] `src/proxy.ts` session refresh and route gating
+- [x] Pages: login, signup, forgot password, reset password, auth callback, logout action
+- [x] App shell: header with logo, nav, theme toggle, footer credit
+- [x] Verify: `supabase/tests/roles.sql` (30 checks) + `npm test` (42 unit tests); 5 adversarial review rounds, last one clean
 
 ## Phase 2: Classrooms and join codes
 - [ ] Migration: `classrooms`, `classroom_members`, `owns_classroom`, `is_member`, `can_view_classroom`, `join_classroom(code)` RPC, RLS
@@ -35,7 +35,7 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 ## Phase 4: Flashcards
 - [ ] Migration: `decks`, `cards`, `card_progress`, RLS
 - [ ] `parse/cards.ts` + tests
-- [ ] Deck CRUD, bulk paste, share toggle for trainee decks
+- [ ] Deck CRUD, bulk paste, share toggle for trainee decks; add Decks to nav
 - [ ] Study mode: flip, shuffle, known / still learning, filter to still learning
 
 ## Phase 5: Activity and leaderboards
@@ -47,7 +47,7 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 ## Phase 6: Executive dashboard, files, links
 - [ ] Storage bucket `resources` + policies; `resources` table
 - [ ] Resources tab: add link, upload file (≤ 10 MB), signed download, delete
-- [ ] `/admin`: overview stats, users + role changer, all classrooms / tests / decks / resources
+- [ ] `/admin`: overview stats, users + role changer, all classrooms / tests / decks / resources; add Admin to nav
 
 ## Phase 7: Polish and ship
 - [ ] Empty, loading, error states everywhere; a11y pass

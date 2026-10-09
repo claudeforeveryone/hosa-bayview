@@ -43,3 +43,11 @@ next-env.d.ts
 # tooling state
 .omc/
 .claude/settings.local.json
+!.env.example
+
+# impeccable working files (surface briefs are kept)
+.impeccable/refs/
+.impeccable/decision/
+.impeccable/review/
+.impeccable/live/
+.impeccable/questions/

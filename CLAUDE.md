@@ -75,3 +75,8 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 
 ## Later
 - Weekly email reminders (Phase 8). Needs a real email provider (e.g. Resend) and a Vercel cron.
+
+## Security notes
+- First executive: `private.settings.first_executive_email` promotes that address once, during its own sign-up (the auth server inserts the user, then confirms it in the same transaction while "Confirm email" is off), and only if no executive exists; the setting is then deleted. Confirming an older account later never promotes. With confirmation off, nothing proves who owns the inbox, so the owner must sign up with that address before anyone else. If "Confirm email" is on, promote the first executive by hand in the SQL editor.
+- Profiles are deleted only by deleting the auth user (admin API); the last executive can't be demoted or deleted.
+- DB checks: `supabase/tests/roles.sql` (runs in a rolled-back transaction, raises on failure). Unit tests: `npm test`.
