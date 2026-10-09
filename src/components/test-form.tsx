@@ -144,7 +144,7 @@ export function TestForm({
         <Toggle
           name="show_answers"
           label="Show correct answers after submitting"
-          hint="When off, members see whether they were right, not which answer was."
+          hint="When off, members see only their score."
           defaultChecked={on("show_answers", true)}
         />
       </fieldset>

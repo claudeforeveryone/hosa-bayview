@@ -33,6 +33,12 @@ describe("isAvatarPath", () => {
 });
 
 describe("checkAvatarFile", () => {
+  it("takes a big phone photo, since it is shrunk before upload", () => {
+    expect(checkAvatarFile({ type: "image/jpeg", size: 6 * 1024 * 1024 })).toBeNull();
+    expect(checkAvatarFile({ type: "image/jpeg", size: 30 * 1024 * 1024 })).toBe(
+      "Keep the picture under 25 MB.",
+    );
+  });
   it("accepts a static picture or a GIF up to 2 MB", () => {
     expect(checkAvatarFile({ type: "image/heic", size: 1000 })).toBeNull();
     expect(checkAvatarFile({ type: "image/gif", size: 1000 })).toBeNull();

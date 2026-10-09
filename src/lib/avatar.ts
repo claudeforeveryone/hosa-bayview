@@ -4,6 +4,8 @@
 
 export const AVATAR_SIZE = 256;
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+// Photos are shrunk to 256 px before upload, so the original only needs to be sane.
+const PHOTO_MAX_BYTES = 25 * 1024 * 1024;
 export const AVATAR_BUCKET = "avatars";
 
 export type AvatarExt = "webp" | "jpg" | "gif";
@@ -37,7 +39,9 @@ export function checkAvatarFile(file: {
 }): string | null {
   if (!file.type.startsWith("image/")) return "Pick a picture file.";
   if (file.size === 0) return "That file is empty.";
-  if (file.size > AVATAR_MAX_BYTES) return "Keep the picture under 2 MB.";
+  if (file.type === "image/gif") {
+    if (file.size > AVATAR_MAX_BYTES) return "Keep the picture under 2 MB.";
+  } else if (file.size > PHOTO_MAX_BYTES) return "Keep the picture under 25 MB.";
   return null;
 }
 

@@ -43,6 +43,93 @@
   --ok: #a6e3bf;
 }
 
+/* Colour themes (Settings > Look). Bayview navy is the default above; each of these swaps the same tokens
+   in light and dark. "You" stays a reserved accent that contrasts with the theme's own field. */
+:root[data-palette="maroon"] {
+  --ground: #f8eef0;
+  --band: #efdde1;
+  --ink: #3a0d15;
+  --ink-2: #6b3540;
+  --rule: #dcb9c0;
+  --rule-strong: #9a6470;
+  --field: #6a1a26;
+  --field-2: #82283a;
+  --on-field: #f8eef0;
+  --on-field-2: #e6c6cc;
+  --you: #1e3d62;
+  --on-you: #e8f2fa;
+}
+:root[data-palette="maroon"][data-theme="dark"] {
+  --ground: #4a121c;
+  --band: #3d0f17;
+  --ink: #f8eef0;
+  --ink-2: #e3bfc6;
+  --rule: #6e2e3a;
+  --rule-strong: #b57f8a;
+  --field: #2e0a10;
+  --field-2: #3f121b;
+  --on-field: #f8eef0;
+  --on-field-2: #dcb9c0;
+  --you: #c9a04a;
+  --on-you: #1e1405;
+}
+:root[data-palette="forest"] {
+  --ground: #ecf3ee;
+  --band: #dbe9df;
+  --ink: #10291b;
+  --ink-2: #355343;
+  --rule: #aecbb7;
+  --rule-strong: #5f8470;
+  --field: #1d4a33;
+  --field-2: #285e42;
+  --on-field: #ecf3ee;
+  --on-field-2: #bcd6c5;
+  --you: #7a1f2b;
+  --on-you: #f7ecee;
+}
+:root[data-palette="forest"][data-theme="dark"] {
+  --ground: #1d4a33;
+  --band: #173d2a;
+  --ink: #ecf3ee;
+  --ink-2: #b9d3c2;
+  --rule: #3a6a50;
+  --rule-strong: #82a993;
+  --field: #0f2a1c;
+  --field-2: #183a28;
+  --on-field: #ecf3ee;
+  --on-field-2: #aecbb7;
+  --you: #8e2a37;
+  --on-you: #f7ecee;
+}
+:root[data-palette="graphite"] {
+  --ground: #f1f1ef;
+  --band: #e3e3e0;
+  --ink: #161616;
+  --ink-2: #4a4a48;
+  --rule: #c4c4c0;
+  --rule-strong: #7a7a76;
+  --field: #1f1f1f;
+  --field-2: #2f2f2f;
+  --on-field: #f1f1ef;
+  --on-field-2: #c4c4c0;
+  --you: #7a1f2b;
+  --on-you: #f7ecee;
+}
+:root[data-palette="graphite"][data-theme="dark"] {
+  --ground: #1b1b1b;
+  --band: #141414;
+  --ink: #ededeb;
+  --ink-2: #b5b5b1;
+  --rule: #3a3a3a;
+  --rule-strong: #85857f;
+  --field: #0b0b0b;
+  --field-2: #222222;
+  --on-field: #ededeb;
+  --on-field-2: #b5b5b1;
+  --you: #9b2c3a;
+  --on-you: #f7ecee;
+}
+
 @theme inline {
   --color-ground: var(--ground);
   --color-band: var(--band);
@@ -165,91 +252,72 @@
   white-space: nowrap;
 }
 
-/* Opening banner (src/components/intro-banner.tsx). Every full page load: rolls down like a
-   blind hinged at the top, the classic logo breaks apart in 3D, "Shatter every limit" flips
-   in letter by letter, then it rolls back up. ~3.9s total; tap or Escape skips. */
-.intro {
-  position: fixed;
-  inset: 0 0 auto 0;
-  z-index: 60;
-  height: clamp(17rem, 56vh, 34rem);
-  perspective: 1400px;
+/* Banner (src/components/hero-banner.tsx) at the top of Home and the sign-in page. Its resting look is the
+   base style: tiger left, "Shatter every limit" right, flat field. With data-play (first mount of a page
+   load) it drops in hinged at the top, the classic logo holds a beat, shatters in 3D, and the words flip in, ~3s, then
+   rests. Sizes follow the banner's own width so it fits a phone column and a desktop half alike. */
+.hero {
+  --hero-t: 3000ms;
+  container-type: inline-size;
+  perspective: 1200px;
   perspective-origin: 50% 0%;
-  pointer-events: none;
-  animation: intro-life 3900ms linear both;
-}
-.intro-panel {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
   color: var(--on-field);
-  background:
-    radial-gradient(120% 90% at 30% 35%, color-mix(in srgb, var(--field-2) 85%, white 15%) 0%, var(--field) 55%, color-mix(in srgb, var(--field) 70%, black 30%) 100%);
-  transform-origin: 50% 0%;
-  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.55);
-  animation: intro-roll 3900ms both;
 }
-/* Fine scan lines give the field some texture without adding colour. */
-.intro-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.035) 0 1px, transparent 1px 4px);
-  pointer-events: none;
-}
-/* The bottom edge of the blind. */
-.intro-panel::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 1px;
-  background: color-mix(in srgb, var(--on-field) 35%, transparent);
-}
-.intro-scene {
-  position: absolute;
-  inset: 0;
+.hero-panel {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: clamp(1rem, 4vw, 3.5rem);
-  padding: 1.5rem clamp(1rem, 5vw, 4rem) 2rem;
+  gap: clamp(0.75rem, 4cqw, 2.5rem);
+  padding: clamp(1rem, 4cqw, 2rem) clamp(1rem, 5cqw, 3rem);
+  overflow: hidden;
+  background: var(--field);
+  transform-origin: 50% 0%;
   transform-style: preserve-3d;
-  perspective: 900px;
 }
-.intro-stage {
+.hero-bare .hero-panel {
+  background: transparent;
+  padding-inline: 0.75rem;
+  margin-inline: -0.75rem;
+}
+.hero-bare .hero-stage {
+  width: clamp(5.5rem, 32cqw, 15rem);
+}
+.hero-bare .hero-line-1 {
+  font-size: clamp(1.9rem, 12cqw, 6rem);
+}
+.hero-bare .hero-line-2 {
+  font-size: clamp(1.1rem, 7cqw, 3.5rem);
+}
+.hero-stage {
   position: relative;
   flex-shrink: 0;
-  width: clamp(9.5rem, 30vw, 22rem);
+  width: clamp(5.5rem, 28cqw, 12rem);
   aspect-ratio: 793 / 746;
   container-type: inline-size;
   transform-style: preserve-3d;
-  animation: intro-stage 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-.intro-layer {
+.hero-layer {
   position: absolute;
   inset: 0;
   background: currentColor;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
+  -webkit-mask: center / contain no-repeat;
+  mask: center / contain no-repeat;
 }
-.intro-triangle { -webkit-mask-image: url(/brand/layer-triangle.png); mask-image: url(/brand/layer-triangle.png); }
-.intro-word { -webkit-mask-image: url(/brand/layer-word.png); mask-image: url(/brand/layer-word.png); }
-.intro-tiger {
+.hero-triangle { -webkit-mask-image: url(/brand/layer-triangle.png); mask-image: url(/brand/layer-triangle.png); }
+.hero-word { -webkit-mask-image: url(/brand/layer-word.png); mask-image: url(/brand/layer-word.png); }
+/* At rest the tiger sits centred in the stage, a touch larger than in the full logo. */
+.hero-tiger {
   -webkit-mask-image: url(/brand/layer-tiger.png);
   mask-image: url(/brand/layer-tiger.png);
   overflow: hidden;
-  animation: intro-tiger 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  transform: translate(-7%, -2%) scale(1.12);
 }
-.intro-shard {
-  animation: intro-shard 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
-  animation-delay: var(--d, 0ms);
-  will-change: transform, opacity;
+.hero-shard,
+.hero-season-old,
+.hero-flash,
+.hero-glint {
+  display: none;
 }
-.intro-season-old {
+.hero-season-old {
   position: absolute;
   left: 43.1%;
   top: 80.9%;
@@ -258,18 +326,14 @@
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
-  animation: intro-season-old 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
 }
-.intro-glint {
+.hero-glint {
   position: absolute;
   inset: -10% auto -10% 0;
   width: 40%;
-  background: linear-gradient(100deg, transparent 0%, rgb(255 255 255 / 0.95) 50%, transparent 100%);
-  opacity: 0;
-  animation: intro-glint 3900ms cubic-bezier(0.77, 0, 0.175, 1) both;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.9), transparent);
 }
-/* The moment of impact: a white bloom at the point the shards leave from. */
-.intro-flash {
+.hero-flash {
   position: absolute;
   left: 62%;
   top: 46%;
@@ -277,158 +341,121 @@
   aspect-ratio: 1;
   translate: -50% -50%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 255 255 / 0.95) 0%, rgb(255 255 255 / 0.35) 30%, transparent 65%);
-  opacity: 0;
-  pointer-events: none;
-  animation: intro-flash 3900ms ease-out both;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0.3) 30%, transparent 65%);
 }
-.intro-words {
-  position: relative;
+.hero-words {
   display: grid;
   justify-items: start;
-  gap: 0.12em;
+  min-width: 0;
   font-family: var(--font-montserrat), sans-serif;
   text-transform: uppercase;
   line-height: 0.95;
   transform-style: preserve-3d;
 }
-.intro-line {
+.hero-line {
   display: block;
   white-space: nowrap;
-  transform-style: preserve-3d;
 }
-.intro-line-1 {
-  font-size: clamp(2.4rem, 8.4vw, 7rem);
+.hero-line-1 {
+  font-size: clamp(1.9rem, 10.5cqw, 4.75rem);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
-.intro-line-2 {
-  font-size: clamp(1.45rem, 5vw, 4.2rem);
+.hero-line-2 {
+  margin-top: 0.08em;
+  font-size: clamp(1.1rem, 6.1cqw, 2.75rem);
   font-weight: 600;
   letter-spacing: 0.03em;
 }
-.intro-char {
+.hero-char {
   display: inline-block;
   transform-origin: 50% 100%;
-  backface-visibility: hidden;
-  animation: intro-char 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
-  animation-delay: calc(var(--i) * 32ms);
 }
-.intro-space {
+.hero-space {
   width: 0.3em;
 }
-.intro-season {
-  margin-top: 0.6em;
-  font-size: clamp(0.8rem, 1.6vw, 1.25rem);
+.hero-season {
+  margin-top: 0.7em;
+  font-size: clamp(0.7rem, 2.2cqw, 1rem);
   font-weight: 500;
   letter-spacing: 0.32em;
-  opacity: 0;
-  animation: intro-season 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
-}
-.intro-scan {
-  position: absolute;
-  inset: -6% -4%;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent 0%, transparent 86%, rgb(255 255 255 / 0.85) 96%, transparent 100%);
-  opacity: 0;
-  animation: intro-scan 3900ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  color: var(--on-field-2);
 }
 
-@media (max-width: 40rem) {
-  .intro {
-    height: clamp(20rem, 66vh, 30rem);
+/* Playing. Every part runs on the same clock; the last keyframe of each is its resting style above. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero[data-play] .hero-shard,
+  .hero[data-play] .hero-season-old,
+  .hero[data-play] .hero-flash,
+  .hero[data-play] .hero-glint {
+    display: block;
   }
-  .intro-scene {
-    flex-direction: column;
-    gap: 0.9rem;
+  .hero[data-play] .hero-panel { animation: hero-drop var(--hero-t) both; }
+  .hero[data-play] .hero-stage { animation: hero-stage var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  .hero[data-play] .hero-tiger { animation: hero-tiger var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  .hero[data-play] .hero-shard {
+    animation: hero-shard var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both;
+    animation-delay: var(--d, 0ms);
+    will-change: transform, opacity;
   }
-  .intro-stage {
-    width: min(52vw, 13rem, 24vh);
+  .hero[data-play] .hero-season-old { animation: hero-season-old var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
+  .hero[data-play] .hero-flash { animation: hero-flash var(--hero-t) ease-out both; }
+  .hero[data-play] .hero-glint { animation: hero-glint var(--hero-t) cubic-bezier(0.77, 0, 0.175, 1) both; }
+  .hero[data-play] .hero-char {
+    backface-visibility: hidden;
+    animation: hero-char var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both;
+    animation-delay: calc(var(--i) * 30ms);
   }
-  .intro-words {
-    justify-items: center;
-    text-align: center;
-  }
-  .intro-line-1 {
-    font-size: clamp(2.2rem, 13vw, 3.6rem);
-  }
-  .intro-line-2 {
-    font-size: clamp(1.3rem, 7.6vw, 2.2rem);
-  }
+  .hero[data-play] .hero-season { animation: hero-season var(--hero-t) cubic-bezier(0.23, 1, 0.32, 1) both; }
 }
 
-/* Timeline as percentages of 3900ms:
-   0-17% roll down · 26-40% shatter · 34-52% words flip in · 52-82% hold · 84-100% roll up. */
-@keyframes intro-life {
-  0%, 99% { visibility: visible; }
-  100% { visibility: hidden; }
+/* 0-15% drop in · 15-30% the logo holds · 30-50% shatter · 38-54% words flip · 52-64% season · 64-84% glint. */
+@keyframes hero-drop {
+  0% { transform: rotateX(-88deg); opacity: 0.3; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
+  11% { transform: rotateX(5deg); opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
+  16%, 100% { transform: none; opacity: 1; }
 }
-@keyframes intro-roll {
-  0% { transform: rotateX(-96deg); opacity: 0.4; animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1); }
-  13% { transform: rotateX(7deg); opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
-  18% { transform: rotateX(0deg); }
-  84% { transform: rotateX(0deg); opacity: 1; animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1); }
-  100% { transform: rotateX(-96deg); opacity: 0; }
+@keyframes hero-stage {
+  0% { transform: rotateY(-24deg) rotateX(10deg) translateZ(-40px); }
+  30% { transform: rotateY(-10deg) rotateX(3deg); }
+  52% { transform: rotateY(-3deg) rotateX(1deg) translateZ(16px); }
+  100% { transform: none; }
 }
-@keyframes intro-stage {
-  0% { transform: rotateY(-26deg) rotateX(10deg) translateZ(-60px); }
-  26% { transform: rotateY(-14deg) rotateX(5deg) translateZ(0); }
-  40% { transform: rotateY(-4deg) rotateX(2deg) translateZ(20px); }
-  84% { transform: rotateY(3deg) rotateX(0deg) translateZ(20px); }
-  100% { transform: rotateY(6deg) rotateX(0deg) translateZ(0); }
+@keyframes hero-tiger {
+  0%, 30% { transform: translateZ(40px); }
+  35% { transform: translateZ(60px) scale(1.04); }
+  54%, 100% { transform: translate(-7%, -2%) scale(1.12); }
 }
-@keyframes intro-tiger {
-  0% { transform: translateZ(40px); }
-  26% { transform: translateZ(40px) scale(1); }
-  30% { transform: translateZ(60px) scale(1.04); }
-  44% { transform: translateZ(70px) translateY(-6%) scale(1.06); }
-  100% { transform: translateZ(70px) translateY(-6%) scale(1.06); }
-}
-@keyframes intro-shard {
-  0%, 26% { transform: translateZ(40px); opacity: 1; }
-  27% { transform: translate3d(calc(var(--tx) * 0.04), calc(var(--ty) * 0.04), 50px); opacity: 1; }
-  48% {
-    transform: translate3d(var(--tx), var(--ty), var(--tz)) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz));
-    opacity: 0;
-  }
-  100% {
+@keyframes hero-shard {
+  0%, 30% { transform: translateZ(40px); opacity: 1; }
+  31% { transform: translate3d(calc(var(--tx) * 0.04), calc(var(--ty) * 0.04), 50px); opacity: 1; }
+  50%, 100% {
     transform: translate3d(var(--tx), var(--ty), var(--tz)) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz));
     opacity: 0;
   }
 }
-@keyframes intro-season-old {
-  0%, 26% { transform: translateZ(40px); opacity: 1; }
-  40%, 100% { transform: translate3d(-30%, 90%, 180px) rotateX(70deg); opacity: 0; }
+@keyframes hero-season-old {
+  0%, 30% { transform: translateZ(40px); opacity: 1; }
+  45%, 100% { transform: translate3d(-30%, 90%, 180px) rotateX(70deg); opacity: 0; }
 }
-@keyframes intro-flash {
-  0%, 25% { opacity: 0; transform: scale(0.4); }
-  27% { opacity: 1; transform: scale(0.9); }
-  40%, 100% { opacity: 0; transform: scale(1.5); }
+@keyframes hero-flash {
+  0%, 29% { opacity: 0; transform: scale(0.4); }
+  31% { opacity: 1; transform: scale(0.9); }
+  46%, 100% { opacity: 0; transform: scale(1.5); }
 }
-@keyframes intro-glint {
-  0%, 50% { transform: translateX(-110%); opacity: 0; }
-  51% { opacity: 1; }
-  70% { transform: translateX(260%); opacity: 1; }
-  71%, 100% { transform: translateX(260%); opacity: 0; }
+@keyframes hero-glint {
+  0%, 64% { transform: translateX(-110%); opacity: 0; }
+  65% { opacity: 1; }
+  84% { transform: translateX(260%); opacity: 1; }
+  85%, 100% { transform: translateX(260%); opacity: 0; }
 }
-@keyframes intro-char {
-  0%, 34% { transform: perspective(500px) rotateY(-95deg) translateX(-0.4em) translateZ(-60px); opacity: 0; }
-  46%, 100% { transform: none; opacity: 1; }
+@keyframes hero-char {
+  0%, 38% { transform: perspective(500px) rotateY(-95deg) translateX(-0.4em) translateZ(-60px); opacity: 0; }
+  54%, 100% { transform: none; opacity: 1; }
 }
-@keyframes intro-season {
-  0%, 48% { transform: translateY(70%); opacity: 0; letter-spacing: 0.6em; }
-  58%, 100% { transform: none; opacity: 0.8; letter-spacing: 0.32em; }
-}
-@keyframes intro-scan {
-  0%, 34% { transform: translateX(-100%); opacity: 0; }
-  35% { opacity: 1; }
-  54% { transform: translateX(10%); opacity: 1; }
-  56%, 100% { transform: translateX(10%); opacity: 0; }
-}
-
-/* Reduced motion: no banner. The logo in the nav is already on the page. */
-@media (prefers-reduced-motion: reduce) {
-  .intro { display: none; }
+@keyframes hero-season {
+  0%, 52% { transform: translateY(70%); opacity: 0; letter-spacing: 0.6em; }
+  64%, 100% { transform: none; opacity: 1; letter-spacing: 0.32em; }
 }
 
 /* Lucky bonus: a band slams in, the number pops, pieces burst out. Transform and opacity only, in hard steps.

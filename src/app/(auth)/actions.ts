@@ -34,6 +34,7 @@ function friendly(message: string) {
     return "That email and password don't match.";
   if (m.includes("already registered"))
     return "There's already an account with that email. Try logging in.";
+  if (m.includes("banned")) return "This account is banned.";
   if (m.includes("rate limit"))
     return "Too many tries. Wait a minute and try again.";
   if (m.includes("email not confirmed"))

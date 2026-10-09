@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Check, ChevronRight, Plus } from "lucide-react";
 import { JoinForm } from "@/components/join-form";
 import { BoardView } from "@/components/board-view";
+import { HeroBanner } from "@/components/hero-banner";
 import { HonorRoll } from "@/components/honor-roll";
 import { canTeach, requireProfile, type Role } from "@/lib/auth";
 import { getBoard, getHonorRoll, getOnline } from "@/lib/activity-data";
@@ -278,6 +279,7 @@ export default async function HomePage(props: PageProps<"/">) {
   if (!rooms.length && !teach) {
     return (
       <div className="grid grid-cols-1 gap-8">
+        <HeroBanner />
         <Hello
           name={first}
           role={profile.role}
@@ -311,6 +313,7 @@ export default async function HomePage(props: PageProps<"/">) {
 
   return (
     <div className="grid grid-cols-1 gap-8">
+      <HeroBanner />
       <Hello
         name={first}
         role={profile.role}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
+import { LookSection } from "@/components/appearance";
 import { Button } from "@/components/form";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
@@ -58,6 +59,7 @@ export default async function SettingsPage({
           src={picture ?? null}
           hasPicture={profile.avatar_path !== null}
         />
+        <LookSection />
         <PasswordSection />
         {isExec && !isDemo ? <DemoSection enabled={demoOn} /> : null}
         {isDemo ? null : isExec ? (

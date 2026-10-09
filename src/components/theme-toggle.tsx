@@ -2,6 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useSyncExternalStore } from "react";
+import { setMode } from "@/lib/appearance";
 
 type Theme = "light" | "dark";
 
@@ -20,12 +21,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   return (
     <button
       type="button"
-      onClick={() => {
-        document.documentElement.dataset.theme = next;
-        try {
-          localStorage.setItem("theme", next);
-        } catch {}
-      }}
+      onClick={() => setMode(next)}
       aria-label={`Switch to ${next} mode`}
       className={`grid size-11 place-items-center ${className}`}
     >

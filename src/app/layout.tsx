@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed, Montserrat } from "next/font/google";
-import { IntroBanner } from "@/components/intro-banner";
+import { AppearanceSync } from "@/components/appearance";
+import { appearanceScript } from "@/lib/appearance";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -34,8 +35,6 @@ export const viewport: Viewport = {
   ],
 };
 
-// Resolves the theme before first paint so there's no flash.
-const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){}})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -45,11 +44,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${barlow.variable} ${barlowCondensed.variable} ${montserrat.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
       </head>
       <body className="min-h-full">
         {children}
-        <IntroBanner />
+        <AppearanceSync />
       </body>
     </html>
   );
