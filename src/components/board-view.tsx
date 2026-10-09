@@ -8,7 +8,6 @@ import {
   PERIODS,
   PERIOD_LABEL,
   formatCount,
-  formatHours,
   formatPercent,
   formatValue,
   periodSince,
@@ -88,7 +87,6 @@ function BoardLine({
   you: boolean;
 }) {
   const caption = [
-    `${formatHours(row.minutes)} h`,
     `${formatCount(row.reviews)} cards`,
     `${formatCount(row.answered)} questions`,
     formatPercent(row.accuracy),
