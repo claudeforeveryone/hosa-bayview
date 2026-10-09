@@ -877,3 +877,42 @@ html[data-intro-wait] .hero[data-play] .hero-char {
 html[data-intro-wait] .hero-page[data-play] .hero-char {
   animation-delay: calc(1500ms + var(--i) * 26ms);
 }
+
+/* Settings > Look: accent colour. Overrides the theme's highlight ("you") in both modes. */
+:root[data-accent="maroon"] { --you: #7a1f2b; --on-you: #f7ecee; }
+:root[data-accent="maroon"][data-theme="dark"] { --you: #9b2c3a; }
+:root[data-accent="gold"] { --you: #8a6110; --on-you: #fff8e8; }
+:root[data-accent="gold"][data-theme="dark"] { --you: #d6a64a; --on-you: #1e1405; }
+:root[data-accent="teal"] { --you: #0f6b66; --on-you: #e9f7f5; }
+:root[data-accent="teal"][data-theme="dark"] { --you: #4fb8ae; --on-you: #062421; }
+:root[data-accent="violet"] { --you: #5a3594; --on-you: #f2ecfb; }
+:root[data-accent="violet"][data-theme="dark"] { --you: #a98ae0; --on-you: #1a0f2e; }
+:root[data-accent="ember"] { --you: #a8400f; --on-you: #fff1e9; }
+:root[data-accent="ember"][data-theme="dark"] { --you: #f08a4b; --on-you: #2a1004; }
+
+/* Settings > Look: text size. Scales the page body, not the navigation chrome. */
+:root[data-text="large"] #main { zoom: 1.1; }
+:root[data-text="larger"] #main { zoom: 1.2; }
+
+/* Settings > Look: calm motion. Everything lands in its final state at once. */
+:root[data-motion="calm"] *,
+:root[data-motion="calm"] *::before,
+:root[data-motion="calm"] *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* The bell's count pops once when it appears. */
+@media (prefers-reduced-motion: no-preference) {
+  .bell-badge {
+    animation: bell-pop 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+@keyframes bell-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

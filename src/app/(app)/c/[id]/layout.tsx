@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClassroomChrome } from "@/components/classroom-chrome";
 import { ClassroomTabs } from "@/components/classroom-tabs";
 import { CodeStrip } from "@/components/code-strip";
 import { getClassroom } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
+import { createClient } from "@/lib/supabase/server";
 import { regenerateCode } from "../actions";
 
 export async function generateMetadata({
@@ -21,6 +23,14 @@ export default async function ClassroomLayout({
   const { id } = await params;
   const room = await getClassroom(id);
   if (!room) notFound();
+  // Mock competitions have a page of their own under /blc; link back to it from the header.
+  const supabase = await createClient();
+  const { data: kindRow } = await supabase
+    .from("classrooms")
+    .select("kind")
+    .eq("id", room.id)
+    .maybeSingle();
+  const isCompetition = kindRow?.kind === "competition";
 
   const people = `${room.member_count} member${room.member_count === 1 ? "" : "s"}`;
   // The event only adds anything when the class has its own name.
@@ -51,6 +61,14 @@ export default async function ClassroomLayout({
             </span>
           </div>
           <p className="text-[17px] text-on-field-2">{meta}</p>
+          {isCompetition ? (
+            <Link
+              href={`/blc/${room.id}`}
+              className="caps step inline-flex min-h-11 w-fit items-center text-[17px] text-on-field-2 underline hover:text-on-field"
+            >
+              Back to BLC page
+            </Link>
+          ) : null}
           {room.description ? (
             <p className="max-w-[65ch] whitespace-pre-line">
               {room.description}

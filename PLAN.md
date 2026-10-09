@@ -42,34 +42,34 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 ## Phase 3: Testing
 - [x] Migration 0013: `tests`, `questions`, `question_keys`, `attempts`, `attempt_answers`, RPCs (save/import/delete question, start/answer/submit attempt, attempt_sheet, classroom_tests, test_results)
 - [x] `parse/questions.ts` + Vitest cases (messy pastes, `A)` vs `A.`, E options, explanations, missing answers)
-- [ ] SQL checks for the tests RPCs (`supabase/tests/tests.sql`)
-- [ ] Question builder: type the question, the right answer, then the other choices (add/remove), explanation; edit/delete
-- [ ] Paste import (past BLC / competition questions) with editable preview
-- [ ] Take test: timed (countdown, auto-submit) and practice; shuffle questions and choices
-- [ ] Results page with correct answers + explanations; attempt history; trainer results
+- [x] SQL checks for the tests RPCs (`supabase/tests/test_teaching.sql`, `test_results.sql`)
+- [x] Question builder: type the question, the right answer, then the other choices (add/remove), explanation; edit/delete
+- [x] Paste import (past BLC / competition questions) with editable preview
+- [x] Take test: timed (countdown, auto-submit) and practice; shuffle questions and choices
+- [x] Results page with correct answers + explanations; attempt history; trainer results
 
 ## Phase 4: Flashcards
-- [ ] Migration: `decks` (classroom decks by trainers; private trainee decks, shareable to a classroom or to people), `cards`, `card_reviews`
-- [ ] `parse/cards.ts` + tests; deck CRUD, bulk paste
-- [ ] Study mode: flip, shuffle, known / still learning
-- [ ] Match mode: match terms to definitions against the clock
+- [x] Migration: `decks` (classroom decks by trainers; private trainee decks, shareable to a classroom or to people), `cards`, `card_reviews`
+- [x] `parse/cards.ts` + tests; deck CRUD, bulk paste
+- [x] Study mode: flip, shuffle, known / still learning
+- [x] Match mode: match terms to definitions against the clock
 
 ## Phase 5: Activity, Elo, leaderboards
-- [ ] Migration: `activity_minutes` (heartbeat, one row per user-minute), `presence`, streak days
-- [ ] Elo (the one score): starts at 100, grows from time spent + flashcards reviewed + questions done (accuracy counts), streaks multiply it
-- [ ] Home: club leaderboard by hours, toggle to flashcards reviewed / questions done / accuracy / Elo; "Members online N" top right
-- [ ] Classroom Leaderboard tab with the same toggles; who's online tab
+- [x] Migration: `activity_minutes` (heartbeat, one row per user-minute), `presence`, streak days
+- [x] Elo (the one score): starts at 100, grows from time spent + flashcards reviewed + questions done (accuracy counts), streaks multiply it
+- [x] Home: club leaderboard by hours, toggle to flashcards reviewed / questions done / accuracy / Elo; "Members online N" top right
+- [x] Classroom Leaderboard tab with the same toggles; who's online tab
 
 ## Phase 6: Members, profiles, career
-- [ ] Members directory: everyone in HOSA Bayview, with search
-- [ ] Profile page per member: Elo, streak, hours, cards, questions, accuracy by classroom/event. Keep it simple: plain stat rows, no charts or flourishes
-- [ ] Career section: every question you got right and wrong (with the answer), Elo history, your rank
+- [x] Members directory: everyone in HOSA Bayview, with search
+- [x] Profile page per member: Elo, streak, hours, cards, questions, accuracy by classroom/event. Keep it simple: plain stat rows, no charts or flourishes
+- [x] Career section: every question you got right and wrong (with the answer), Elo history, your rank
 
 ## Phase 6.5: Resources and attendance
-- [ ] Resources tab: links (and files), trainers add/edit/delete
-- [ ] Event breakdown: trainers set the % weight of each topic for the event, shown on the Resources tab
-- [ ] Attendance: trainers take and save attendance per session for their classroom; members see their own record
-- [ ] Admin tab (execs only): all attendance across classrooms, all classrooms/tests/decks/resources
+- [x] Resources tab: links (and files), trainers add/edit/delete
+- [x] Event breakdown: trainers set the % weight of each topic for the event, shown on the Resources tab
+- [x] Attendance: trainers take and save attendance per session for their classroom; members see their own record
+- [x] Admin tab (execs only): all attendance across classrooms, all classrooms/tests/decks/resources
 
 ## Phase 7: Polish and ship
 - [ ] Empty, loading, error states everywhere; a11y pass
@@ -78,9 +78,15 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 - [ ] Live check on hosa-bayview.vercel.app
 
 ## Phase 7.5: Chapter-wide (all events, not just MC)
-- [ ] Announcements per classroom and chapter-wide, written and edited by trainers / execs
-- [ ] Notifications in the app (new test, announcement, attendance)
-- [ ] BLC: run mock competitions online (timed test window, chapter ranking); execs can spin up as many as they want
+- [x] Announcements per classroom and chapter-wide, written and edited by trainers / execs
+- [x] Notifications in the app (new test, announcement, attendance)
+- [x] BLC: run mock competitions online (timed test window, chapter ranking); execs can spin up as many as they want (0053, 0055, 0056; /blc)
+- [x] Calendar: chapter and class events, "Coming up" on Home (0052; /calendar)
+- [x] Library: chapter files and links, class files on Resources, private bucket with signed URLs (0052; /library)
+- [x] Admin log and content lists with delete on /admin (0052)
+- [x] Optional admin passcode on sign-up; preset exec logins retired (0049)
+- [x] Settings > Look: highlight colour, text size, calm motion, reset
+- [x] SQL checks for 0050-0056 (`supabase/tests/chapter_tools.sql`)
 
 ## Phase 8 (later): Weekly email updates
 - [ ] Weekly email = that week's announcements + your progress; trainers can edit before it sends

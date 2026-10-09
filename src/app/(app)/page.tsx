@@ -19,6 +19,8 @@ import { getMyClassrooms, type ClassroomSummary } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
 import { createBlankTest } from "@/app/(app)/c/[id]/tests/actions";
 import { createBlankDeck } from "@/app/(app)/flashcards/actions";
+import { DateStub, EventSummary } from "@/components/event-item";
+import { getEvents, type EventRow } from "@/lib/events";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 function Hello({
@@ -205,6 +207,42 @@ function JoinLink() {
   );
 }
 
+// The next three things on the calendar. Hidden when nothing's planned.
+function ComingUp({ events }: { events: EventRow[] }) {
+  if (!events.length) return null;
+  return (
+    <section aria-labelledby="soon-h" className="grid gap-4">
+      <div className="flex items-baseline justify-between gap-4 px-1 sm:px-3">
+        <h2
+          id="soon-h"
+          className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
+        >
+          Coming up
+        </h2>
+        <Link
+          href="/calendar"
+          className="caps step text-[16px] text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
+        >
+          Calendar
+        </Link>
+      </div>
+      <ul className="border-t border-rule">
+        {events.map((e) => (
+          <li key={e.id} className="border-b border-rule">
+            <Link
+              href="/calendar"
+              className="step grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 px-1 py-3 hover:bg-band sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:px-3"
+            >
+              <DateStub iso={e.starts_at} />
+              <EventSummary e={e} compact />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function ClassroomRow({ room }: { room: ClassroomSummary }) {
   const meta = [
     // Most rooms are named after their event; don't say it twice.
@@ -262,11 +300,13 @@ export default async function HomePage(props: PageProps<"/">) {
   // Home keeps it simple: Elo only. The full board has the other measures and the honor roll.
   const metric: Metric = "elo";
   const period = parsePeriod(sp.period);
-  const [profile, rooms, board, online] = await Promise.all([
+  const [profile, rooms, board, online, soon] = await Promise.all([
     requireProfile(),
     getMyClassrooms(),
     getBoard(period, null),
     getOnline(null),
+    // The calendar is a nice-to-have on Home; an outage there shouldn't take Home down.
+    getEvents({ limit: 3 }).catch(() => [] as EventRow[]),
   ]);
   const teach = canTeach(profile);
   const first = profile.full_name.split(" ")[0] || profile.full_name;
@@ -317,6 +357,7 @@ export default async function HomePage(props: PageProps<"/">) {
       ) : null}
       {settingUp ? <Setup steps={steps} /> : null}
       {rooms.length ? <Classrooms rooms={rooms} /> : <Join />}
+      <ComingUp events={soon} />
       <ClubBoard
         metric={metric}
         period={period}

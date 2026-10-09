@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireProfile, canTeach } from "@/lib/auth";
 import { JOIN_CODE, normalizeCode } from "@/lib/join-code";
+import { removeClassroomFiles } from "@/lib/material-cleanup";
 import { createClient } from "@/lib/supabase/server";
 
 export type FormState = {
@@ -90,6 +91,7 @@ export async function deleteClassroom(classroomId: string): Promise<FormState> {
   await requireProfile();
   if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist." };
   const supabase = await createClient();
+  await removeClassroomFiles(supabase, classroomId);
   const { data, error } = await supabase.from("classrooms").delete().eq("id", classroomId).select("id");
   if (error) return failed("delete", error.message);
   if (!data?.length) return { error: "You can't delete this classroom." };
