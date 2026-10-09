@@ -1,28 +1,19 @@
-// Stand-in lockup (triangle, ECG trace, wordmark) until the official logo files land in /public.
-export function Logo({ className, title = "HOSA Bayview" }: { className?: string; title?: string }) {
+// Official Bayview HOSA logo, drawn as a mask so it takes the current text colour:
+// navy on the ice ground, ice on navy. Source art and build script: scripts/make-logo.py.
+export function Logo({ className = "", title = "HOSA Bayview" }: { className?: string; title?: string }) {
   return (
-    <svg viewBox="0 0 180 160" role="img" aria-label={title} className={className}>
-      <title>{title}</title>
-      <path
-        d="M40 96 L92 6 L172 150 L160 150"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinejoin="miter"
-      />
-      <path
-        d="M96 78 H124 L129 66 L135 92 L141 56 L147 84 L151 78 H174"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinejoin="miter"
-      />
-      <text x="4" y="122" fill="currentColor" fontFamily="var(--font-barlow)" fontWeight="400" fontSize="31" letterSpacing="1">
-        HOSA
-      </text>
-      <text x="2" y="154" fill="currentColor" fontFamily="var(--font-barlow)" fontWeight="700" fontSize="35" letterSpacing="0.5">
-        BAYVIEW
-      </text>
-    </svg>
+    <span
+      role="img"
+      aria-label={title}
+      className={`inline-block aspect-[793/746] bg-current ${className}`}
+      style={{
+        maskImage: "url(/brand/logo-mask.png)",
+        WebkitMaskImage: "url(/brand/logo-mask.png)",
+        maskSize: "contain",
+        WebkitMaskSize: "contain",
+        maskRepeat: "no-repeat",
+        WebkitMaskRepeat: "no-repeat",
+      }}
+    />
   );
 }

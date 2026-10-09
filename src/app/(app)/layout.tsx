@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       </a>
       <header className="mx-auto flex w-full max-w-[90rem] items-start justify-between gap-4 px-4 pt-3 sm:px-8 lg:items-end lg:pt-6">
         <Link href="/" aria-label="HOSA Bayview home" className="text-ink">
-          <Logo className="h-[88px] w-auto lg:h-[120px]" />
+          <Logo className="h-[104px] lg:h-[150px]" />
         </Link>
         <div className="flex items-center gap-2">
           <TopNav isExec={isExec} />

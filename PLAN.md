@@ -17,6 +17,10 @@ Each phase ends with: `npm run build`, `npm test`, browser check at phone width,
 - [x] App shell: header with logo, nav, theme toggle, footer credit
 - [x] Verify: `supabase/tests/roles.sql` (30 checks) + `npm test` (42 unit tests); 5 adversarial review rounds, last one clean
 
+## Phase 1.5: Brand and deploy pipeline
+- [x] Replace placeholder logo with the official Bayview HOSA logo (one alpha mask, tinted per theme)
+- [ ] Vercel project linked to GitHub with env vars; push to `main` deploys; Supabase redirect URLs for the Vercel domain
+
 ## Phase 2: Classrooms and join codes
 - [ ] Migration: `classrooms`, `classroom_members`, `owns_classroom`, `is_member`, `can_view_classroom`, `join_classroom(code)` RPC, RLS
 - [ ] Create / edit / delete classroom (trainer, exec), regenerate code
