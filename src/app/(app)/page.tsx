@@ -1,24 +1,51 @@
 import Link from "next/link";
 import { ArrowRight, Check, ChevronRight, Plus } from "lucide-react";
 import { JoinForm } from "@/components/join-form";
+import { BoardView } from "@/components/board-view";
 import { canTeach, requireProfile, type Role } from "@/lib/auth";
+import { getBoard, getOnline } from "@/lib/activity-data";
+import { formatCount, parseMetric, parsePeriod, rankBoard, type Metric, type Period, type RankedRow } from "@/lib/activity";
 import { getMyClassrooms, type ClassroomSummary } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const ROLE = { executive: "Executive", trainer: "Trainer", trainee: "Trainee" } satisfies Record<Role, string>;
 
-function Hello({ name, role, rooms }: { name: string; role: Role; rooms: number }) {
+function Hello({ name, role, rooms, online }: { name: string; role: Role; rooms: number; online: number }) {
   return (
-    <header className="grid gap-1 px-1 sm:px-3">
-      <h1 className="font-display text-[clamp(3rem,12vw,6rem)] leading-[0.88] font-bold [overflow-wrap:anywhere] uppercase">
-        {name}
-      </h1>
-      <p className="caps text-[17px] text-ink-2">
-        {ROLE[role]}
-        {rooms ? ` · ${plural(rooms, "classroom")}` : ""}
-      </p>
+    <header className="flex items-end justify-between gap-6 px-1 sm:px-3">
+      <div className="grid min-w-0 gap-1">
+        <h1 className="font-display text-[clamp(3rem,12vw,6rem)] leading-[0.88] font-bold [overflow-wrap:anywhere] uppercase">
+          {name}
+        </h1>
+        <p className="caps text-[17px] text-ink-2">
+          {ROLE[role]}
+          {rooms ? ` · ${plural(rooms, "classroom")}` : ""}
+        </p>
+      </div>
+      <p className="caps num shrink-0 pb-2 text-[17px] text-ink-2">Members online {formatCount(online)}</p>
     </header>
+  );
+}
+
+// The club board on Home: top ten by the chosen measure, with a link to the full board.
+function ClubBoard({ metric, period, ranked, meId }: { metric: Metric; period: Period; ranked: RankedRow[]; meId: string }) {
+  return (
+    <section aria-labelledby="board-h" className="grid gap-4">
+      <h2 id="board-h" className="px-1 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase sm:px-3">
+        Leaderboard
+      </h2>
+      <BoardView
+        base="/"
+        metric={metric}
+        period={period}
+        rows={ranked}
+        meId={meId}
+        empty="Nothing ranked yet"
+        limit={10}
+        more={{ href: `/leaderboard?metric=${metric}&period=${period}`, text: "Full board" }}
+      />
+    </section>
   );
 }
 
@@ -140,17 +167,28 @@ function Classrooms({ rooms, teach }: { rooms: ClassroomSummary[]; teach: boolea
   );
 }
 
-export default async function HomePage() {
-  const [profile, rooms] = await Promise.all([requireProfile(), getMyClassrooms()]);
+export default async function HomePage(props: PageProps<"/">) {
+  const sp = await props.searchParams;
+  const metric = parseMetric(sp.metric);
+  const period = parsePeriod(sp.period);
+  const [profile, rooms, board, online] = await Promise.all([
+    requireProfile(),
+    getMyClassrooms(),
+    getBoard(period, null),
+    getOnline(null),
+  ]);
   const teach = canTeach(profile);
   const first = profile.full_name.split(" ")[0] || profile.full_name;
+  const ranked = rankBoard(board, metric);
+  const club = <ClubBoard metric={metric} period={period} ranked={ranked} meId={profile.id} />;
 
-  // A trainee with nowhere to go yet only needs the code box.
+  // A trainee with nowhere to go yet only needs the code box, then the board.
   if (!rooms.length && !teach) {
     return (
       <div className="grid grid-cols-1 gap-8">
-        <Hello name={first} role={profile.role} rooms={0} />
+        <Hello name={first} role={profile.role} rooms={0} online={online.length} />
         <Join big />
+        {club}
       </div>
     );
   }
@@ -170,11 +208,12 @@ export default async function HomePage() {
 
   return (
     <div className="grid grid-cols-1 gap-8">
-      <Hello name={first} role={profile.role} rooms={rooms.length} />
+      <Hello name={first} role={profile.role} rooms={rooms.length} online={online.length} />
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:items-start">
         <div className="grid grid-cols-1 gap-8">
           {settingUp ? <Setup steps={steps} /> : null}
           {rooms.length ? <Classrooms rooms={rooms} teach={teach} /> : null}
+          {club}
         </div>
         <Join big={false} />
       </div>

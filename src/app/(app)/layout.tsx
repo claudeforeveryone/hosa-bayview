@@ -1,5 +1,6 @@
 import { BottomNav, MobileBar, Sidebar } from "@/components/nav";
 import { Credit } from "@/components/credit";
+import { OnlineHeartbeat } from "@/components/online-heartbeat";
 import { canTeach, requireProfile } from "@/lib/auth";
 import { getMyClassrooms } from "@/lib/classrooms";
 
@@ -28,6 +29,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </footer>
       </div>
       <BottomNav isExec={nav.isExec} />
+      <OnlineHeartbeat />
     </div>
   );
 }
