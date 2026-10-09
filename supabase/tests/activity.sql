@@ -107,6 +107,10 @@ select pg_temp.check('a later heartbeat without a room keeps the room',
 select pg_temp.check('presence follows the latest heartbeat and is recent',
   (select classroom_id is null and last_seen > now() - interval '1 minute'
      from public.presence where user_id = '00000000-0000-4000-8000-0000000000b1'));
+-- Heartbeats also record today as a sign-in day, once.
+select pg_temp.check('three heartbeats record one sign-in day for today',
+  (select count(*) = 1 from public.sign_in_days
+     where user_id = '00000000-0000-4000-8000-0000000000b1' and day = private.local_day(now())));
 
 -- An outsider's room id is ignored: the minute counts as chapter time only.
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
@@ -164,9 +168,10 @@ select pg_temp.check('chapter board: b1 answered 3 right 2, 2 reviews',
   (select answered = 3 and correct = 2 and reviews = 2 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 select pg_temp.check('streak counts today for b1',
   (select streak = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
--- Chapter gains: 1 min x 0.5 + 2 reviews + 3 answered x 2 + 2 right x 3 = 14.5; streak 1 gives x1.02 => 1214.79, rounds to 1215.
-select pg_temp.check('elo in the board matches the formula (1215)',
-  (select elo = 1215 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+-- Activity gains: 1 min x 0.5 + 2 reviews + 3 answered x 2 + 2 right x 3 = 14.5; streak 1 gives x1.02 => 14.79, rounds to 15.
+-- Plus 5 for today's sign-in: 1200 + 15 + 5 = 1220. Everything happened today, so the gain is 20 too.
+select pg_temp.check('elo in the board matches the formula (1220, gain 20)',
+  (select elo = 1220 and gain = 20 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
 -- Career: own answers; trainers see answers in their rooms; executives see all; trainees never see others'
 select pg_temp.check('career keeps every graded answer, repeats included (history, not score)',
@@ -194,6 +199,8 @@ select pg_temp.check('executive sees all answers',
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
 select pg_temp.check('profile stats visible to another member, with a rank',
   (select count(*) = 1 and bool_and(rank >= 1) from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
+select pg_temp.check('profile shows sign-in streak (1, today) and all-time elo 1220',
+  (select sign_in_streak = 1 and elo = 1220 from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
 select pg_temp.check('profile for a missing member is empty',
   (select count(*) from public.member_stats('00000000-0000-4000-8000-0000000000ff')) = 0);
 select pg_temp.check('directory lists members by name',
@@ -210,14 +217,58 @@ select pg_temp.check('streak: yesterday and the day before still count (exec)',
 select pg_temp.check('streak: a single old day has ended',
   private.streak_of('00000000-0000-4000-8000-0000000000b6') = 0);
 
+-- Sign-in days: b4 signed in yesterday and the day before, b6 for the last three days, b1 today (from heartbeat).
+insert into public.sign_in_days (user_id, day) values
+  ('00000000-0000-4000-8000-0000000000b4', private.local_day(now() - interval '1 day')),
+  ('00000000-0000-4000-8000-0000000000b4', private.local_day(now() - interval '2 days')),
+  ('00000000-0000-4000-8000-0000000000b6', private.local_day(now() - interval '1 day')),
+  ('00000000-0000-4000-8000-0000000000b6', private.local_day(now() - interval '2 days')),
+  ('00000000-0000-4000-8000-0000000000b6', private.local_day(now() - interval '3 days'));
+select pg_temp.check('sign-in streak: yesterday and the day before count (b4)',
+  private.sign_in_streak('00000000-0000-4000-8000-0000000000b4') = 2);
+select pg_temp.check('sign-in streak: three days running (b6)',
+  private.sign_in_streak('00000000-0000-4000-8000-0000000000b6') = 3);
+select pg_temp.check('sign-in streak: none for a member who never signed in (b5)',
+  private.sign_in_streak('00000000-0000-4000-8000-0000000000b5') = 0);
+
+-- Elo gained by period: b4 has activity and sign-ins only on past days, so today's gain is zero.
+-- All time: 2 minutes x 0.5 x 1.04 (streak 2) rounds to 1, plus 2 sign-ins x 5 = 11. Total elo is all-time in every period.
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
+select pg_temp.check('gain today leaves out past days (b4 gains 0 today, elo still 1211)',
+  (select gain = 0 and elo = 1211 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
+select pg_temp.check('gain all time counts every day (b4 gains 11)',
+  (select gain = 11 and elo = 1211 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
+select pg_temp.check('gain today for b1 is today activity plus today sign-in (20, elo 1220)',
+  (select gain = 20 and elo = 1220 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+select pg_temp.check('week and month gains for b1 are 20 (all of it is this week)',
+  (select bool_and(gain = 20) from public.leaderboard('week', null) where user_id = '00000000-0000-4000-8000-0000000000b1')
+  and (select bool_and(gain = 20) from public.leaderboard('month', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+
+-- Honor roll: 3+ day sign-in streaks. b6 qualifies, b4 (2 days) and b1 (today only) do not.
+select pg_temp.check('honor roll lists a 3-day streak (b6)',
+  exists (select 1 from public.honor_roll() where user_id = '00000000-0000-4000-8000-0000000000b6' and streak = 3));
+select pg_temp.check('honor roll leaves out streaks under 3 days (b4, b1)',
+  not exists (select 1 from public.honor_roll() where user_id in ('00000000-0000-4000-8000-0000000000b4', '00000000-0000-4000-8000-0000000000b1')));
+select pg_temp.check('honor roll lists only 3+ day streaks',
+  not exists (select 1 from public.honor_roll() where streak < 3));
+select pg_temp.as_admin();
+select pg_temp.expect('honor roll needs a signed-in user', 'select * from public.honor_roll()', '42501');
+select pg_temp.check('today starts at Toronto midnight, within the last day',
+  private.period_start('today') between now() - interval '1 day' and now());
+
 -- Elo formula ---------------------------------------------------------------------------
-select pg_temp.check('elo: base is 1200', private.elo_score(0, 0, 0, 0, 0) = 1200);
-select pg_temp.check('elo: 60 minutes is +30', private.elo_score(60, 0, 0, 0, 0) = 1230);
-select pg_temp.check('elo: 10 reviews is +10', private.elo_score(0, 10, 0, 0, 0) = 1210);
-select pg_temp.check('elo: 10 answered with 5 right is +35', private.elo_score(0, 0, 10, 5, 0) = 1235);
-select pg_temp.check('elo: streak multiplies gains, not the base', private.elo_score(0, 0, 0, 0, 30) = 1200);
-select pg_temp.check('elo: 30-day streak is x1.6 on gains', private.elo_score(100, 0, 0, 0, 30) = 1280);
-select pg_temp.check('elo: streak above 30 is capped', private.elo_score(100, 0, 0, 0, 90) = 1280);
+-- Gains: 0.5 a minute, 1 a review, 2 a question, 3 more when right, times the streak multiplier (max x1.6 at 30 days).
+-- Sign-ins: +5 each, added after the multiplier. Everyone starts at 1200.
+select pg_temp.check('elo: base is 1200', private.elo_score(0, 0, 0, 0, 0, 0) = 1200);
+select pg_temp.check('elo: 60 minutes is +30', private.elo_score(60, 0, 0, 0, 0, 0) = 1230);
+select pg_temp.check('elo: 10 reviews is +10', private.elo_score(0, 10, 0, 0, 0, 0) = 1210);
+select pg_temp.check('elo: 10 answered with 5 right is +35', private.elo_score(0, 0, 10, 5, 0, 0) = 1235);
+select pg_temp.check('elo: streak multiplies gains, not the base', private.elo_score(0, 0, 0, 0, 30, 0) = 1200);
+select pg_temp.check('elo: 30-day streak is x1.6 on gains', private.elo_score(100, 0, 0, 0, 30, 0) = 1280);
+select pg_temp.check('elo: streak above 30 is capped', private.elo_score(100, 0, 0, 0, 90, 0) = 1280);
+select pg_temp.check('elo: each sign-in day is +5', private.elo_score(0, 0, 0, 0, 0, 3) = 1215);
+select pg_temp.check('elo: sign-ins are not multiplied by the streak', private.elo_score(100, 0, 0, 0, 30, 1) = 1285);
+select pg_temp.check('elo gain is the score minus the base', private.elo_gain(100, 0, 0, 0, 30, 1) = 85);
 
 -- Leftover rollback
 rollback;

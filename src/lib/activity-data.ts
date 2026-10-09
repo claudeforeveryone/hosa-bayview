@@ -1,12 +1,20 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { type BoardRow, type CareerItem, type OnlineRow, type Period } from "@/lib/activity";
+import {
+  type BoardRow,
+  type CareerItem,
+  type HonorRow,
+  type OnlineRow,
+  type Period,
+} from "@/lib/activity";
 import type { Role } from "@/lib/auth";
 import { uuid } from "@/lib/classrooms";
 
-// Reads from the activity RPCs in migration 0017. The database decides who may see what; these just call and map.
+// Reads from the activity RPCs in migrations 0017 and 0030. The database decides who may see what; these just call and map.
 
-type RawBoard = Omit<BoardRow, "accuracy"> & { accuracy: number | string | null };
+type RawBoard = Omit<BoardRow, "accuracy"> & {
+  accuracy: number | string | null;
+};
 
 export type MemberStats = {
   user_id: string;
@@ -19,6 +27,7 @@ export type MemberStats = {
   accuracy: number | null;
   elo: number;
   streak: number;
+  sign_in_streak: number;
   rank: number;
 };
 
@@ -37,10 +46,16 @@ export type CareerRow = CareerItem & {
 const num = (v: number | string | null) => (v === null ? null : Number(v));
 
 // Club board when classroomId is null, otherwise that classroom's board.
-export async function getBoard(period: Period, classroomId: string | null): Promise<BoardRow[]> {
+export async function getBoard(
+  period: Period,
+  classroomId: string | null,
+): Promise<BoardRow[]> {
   if (classroomId !== null && !uuid.safeParse(classroomId).success) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("leaderboard", { period, cid: classroomId });
+  const { data, error } = await supabase.rpc("leaderboard", {
+    period,
+    cid: classroomId,
+  });
   // 42501: a room you can't view. Read as an empty board, not an error page.
   if (error?.code === "42501") return [];
   if (error) throw new Error(`Board lookup failed: ${error.message}`);
@@ -52,25 +67,45 @@ export async function getBoard(period: Period, classroomId: string | null): Prom
     correct: Number(r.correct),
     accuracy: num(r.accuracy),
     elo: Number(r.elo),
+    gain: Number(r.gain),
+    streak: Number(r.streak),
+  }));
+}
+
+// Honor roll: members with a sign-in streak of 3+ days, longest first.
+export async function getHonorRoll(): Promise<HonorRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("honor_roll");
+  if (error) throw new Error(`Honor roll lookup failed: ${error.message}`);
+  return ((data ?? []) as HonorRow[]).map((r) => ({
+    ...r,
     streak: Number(r.streak),
   }));
 }
 
 // Who's online (seen in the last two minutes). Null classroom means the whole chapter.
-export async function getOnline(classroomId: string | null): Promise<OnlineRow[]> {
+export async function getOnline(
+  classroomId: string | null,
+): Promise<OnlineRow[]> {
   if (classroomId !== null && !uuid.safeParse(classroomId).success) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("members_online", { cid: classroomId });
+  const { data, error } = await supabase.rpc("members_online", {
+    cid: classroomId,
+  });
   // 42501: a room you can't view. Read as nobody online, not an error page.
   if (error?.code === "42501") return [];
   if (error) throw new Error(`Online lookup failed: ${error.message}`);
   return (data ?? []) as OnlineRow[];
 }
 
-export async function getMemberStats(userId: string): Promise<MemberStats | null> {
+export async function getMemberStats(
+  userId: string,
+): Promise<MemberStats | null> {
   if (!uuid.safeParse(userId).success) return null;
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("member_stats", { uid: userId }).maybeSingle();
+  const { data, error } = await supabase
+    .rpc("member_stats", { uid: userId })
+    .maybeSingle();
   if (error) throw new Error(`Member lookup failed: ${error.message}`);
   if (!data) return null;
   const r = data as MemberStats & { accuracy: number | string | null };
@@ -83,6 +118,7 @@ export async function getMemberStats(userId: string): Promise<MemberStats | null
     accuracy: num(r.accuracy),
     elo: Number(r.elo),
     streak: Number(r.streak),
+    sign_in_streak: Number(r.sign_in_streak),
     rank: Number(r.rank),
   };
 }
@@ -98,7 +134,10 @@ export async function getDirectory(): Promise<DirectoryRow[]> {
 export async function getCareer(userId: string): Promise<CareerRow[]> {
   if (!uuid.safeParse(userId).success) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("career", { uid: userId, cid: null });
+  const { data, error } = await supabase.rpc("career", {
+    uid: userId,
+    cid: null,
+  });
   if (error) throw new Error(`Career lookup failed: ${error.message}`);
   return (data ?? []) as CareerRow[];
 }
