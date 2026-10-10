@@ -3,13 +3,26 @@
 import { useState } from "react";
 import { PasteImport } from "@/components/paste-import";
 import { QuestionBuilder } from "@/components/question-builder";
+import type { AddQuestionsFn } from "@/components/questions-editor";
 
 // One question at a time, or a whole past test pasted in.
-export function AddQuestions({ testId }: { testId: string }) {
+export function AddQuestions({
+  testId,
+  add,
+  nextNumber,
+}: {
+  testId: string;
+  add: AddQuestionsFn;
+  nextNumber: number;
+}) {
   const [mode, setMode] = useState<"write" | "paste">("write");
   return (
     <div className="grid gap-5">
-      <div role="group" aria-label="How to add" className="flex justify-self-start border border-ink">
+      <div
+        role="group"
+        aria-label="How to add"
+        className="flex justify-self-start border border-ink"
+      >
         {(
           [
             ["write", "Write one"],
@@ -29,7 +42,11 @@ export function AddQuestions({ testId }: { testId: string }) {
           </button>
         ))}
       </div>
-      {mode === "write" ? <QuestionBuilder testId={testId} /> : <PasteImport testId={testId} />}
+      {mode === "write" ? (
+        <QuestionBuilder testId={testId} add={add} nextNumber={nextNumber} />
+      ) : (
+        <PasteImport testId={testId} add={add} />
+      )}
     </div>
   );
 }

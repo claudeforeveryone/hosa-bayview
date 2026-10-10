@@ -29,6 +29,11 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // A pasted test goes up in one server action call. 500 questions with long case stems and explanations can
+  // pass the 1 MB default; 2 MB covers that (the editor stops anything bigger, see src/lib/question-rules.ts).
+  experimental: {
+    serverActions: { bodySizeLimit: "2mb" },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

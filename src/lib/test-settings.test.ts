@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   attemptsLeft,
+  attemptsAfterAnswersToggle,
+  moreOptionsSummary,
   HIDDEN_SCORE_NOTE,
   parseAttemptsAllowed,
   practiceRuleOk,
@@ -53,5 +55,42 @@ describe("HIDDEN_SCORE_NOTE", () => {
     expect(HIDDEN_SCORE_NOTE).toBe(
       "Answers are hidden on this test, so only your first run with every question answered shows a score.",
     );
+  });
+});
+
+describe("attemptsAfterAnswersToggle", () => {
+  it("turning answers off with unlimited attempts sets one attempt", () => {
+    expect(attemptsAfterAnswersToggle(false, "")).toBe("1");
+    expect(attemptsAfterAnswersToggle(false, "  ")).toBe("1");
+  });
+
+  it("keeps a number the trainer already chose", () => {
+    expect(attemptsAfterAnswersToggle(false, "3")).toBe("3");
+  });
+
+  it("turning answers back on leaves attempts alone", () => {
+    expect(attemptsAfterAnswersToggle(true, "1")).toBe("1");
+    expect(attemptsAfterAnswersToggle(true, "")).toBe("");
+  });
+});
+
+describe("moreOptionsSummary", () => {
+  const defaults = {
+    shuffle_questions: true,
+    shuffle_choices: true,
+    allow_practice: true,
+    show_answers: true,
+    attempts: "",
+  };
+
+  it("is empty when everything is on its default", () => {
+    expect(moreOptionsSummary(defaults)).toBe("");
+  });
+
+  it("names what was changed", () => {
+    expect(moreOptionsSummary({ ...defaults, show_answers: false, attempts: "1" })).toBe("1 attempt, answers hidden");
+    expect(
+      moreOptionsSummary({ ...defaults, shuffle_questions: false, shuffle_choices: false, allow_practice: false, attempts: "3" }),
+    ).toBe("3 attempts, no practice, fixed order, choices in order");
   });
 });

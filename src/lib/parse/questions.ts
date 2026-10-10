@@ -1,13 +1,19 @@
 // Paste import for multiple-choice tests. Expected shape, forgiving about the details:
-//   1. Question text (can wrap)
-//   A. option   (also A)  (A)  a.)
+//   1. Question text (can wrap)     also 1)  1:  Q1.  Question 1
+//   A. option   (also A)  (A)  a.)  several on one line work too
 //   ...up to E
-//   Answer: B   (also Ans:, Correct answer:, Answer - B)
+//   Answer: B   (also Ans. B, Correct answer is B, Answer - B)
 //   Explanation: optional, can wrap
+// or no answer lines and an answer key at the end ("Answer key" then "1. B", "2) C" or "1-B, 2-C").
 // Every question comes back, even broken ones, with plain-language errors for the preview to show.
+// Lines that belong to no question come back in `skipped`, each with the reason.
 
 export type ParsedQuestion = {
   number: number;
+  // 1-based line in the pasted text where the question starts.
+  line: number;
+  // The question's own lines, so a question that isn't added can go back in the paste box as typed.
+  source: string;
   prompt: string;
   options: string[];
   correctIndex: number | null;
@@ -15,31 +21,104 @@ export type ParsedQuestion = {
   errors: string[];
 };
 
-const QUESTION = /^\s*(\d{1,3})\s*[.)]\s+(.*)$/;
+export type SkippedLine = { line: number; text: string; reason: string };
+
+const NUMBERED = /^\s*(\d{1,3})\s*[.):](?!\d)\s*(.*)$/;
+const LABELLED = /^\s*q(?:uestion)?\s*(\d{1,3})(?!\d)\s*[.):\-–]?\s*(.*)$/i;
 const OPTION = /^\s*\(?([A-Ea-e])[.)](?:\s+(.*))?$/;
-const ANSWER = /^\s*(?:correct\s+)?(?:answer|ans)\s*[:\-–]?\s*\(?([A-Ea-e])\b/i;
+const ANSWER =
+  /^\s*(?:correct\s+)?(?:answer|ans)\b\s*(?:is\b)?\s*[:.\-–]?\s*\(?([A-Ea-e])(?![A-Za-z])/i;
 const EXPLANATION = /^\s*(?:explanation|rationale|reason)\s*[:\-–]\s*(.*)$/i;
+const KEY_HEADING =
+  /^\s*(?:answer\s*key|answer\s*sheet|answers|key)\s*[:\-–]?\s*(.*)$/i;
+const KEY_ENTRY = /(\d{1,3})\s*[.):\-–]?\s*\(?([A-Ea-e])\)?(?![A-Za-z0-9])/g;
+// PDF footers: "Page 2 of 9", "12", "- 3 -", "4/10".
+const PAGE_NUMBER = /^\s*-?\s*(?:page\s*)?\d{1,3}(?:\s*(?:of|\/)\s*\d{1,3})?\s*-?\s*$/i;
 const LETTERS = "ABCDE";
 
 type Draft = {
   number: number;
+  line: number;
+  raw: string[];
   prompt: string[];
   options: { letter: string; text: string }[];
   answer: string | null;
+  keyed: boolean;
   explanation: string[];
-  phase: "prompt" | "options" | "answered" | "explanation";
+  phase: "prompt" | "options" | "answered" | "explanation" | "closed";
 };
+
+// "1. B  2) C, 3-D" -> [[1, "B"], ...], or null when the line is anything other than key entries.
+function keyEntries(
+  text: string,
+): { number: number; letter: string; text: string }[] | null {
+  const entries = [...text.matchAll(KEY_ENTRY)];
+  if (
+    !entries.length ||
+    text.replace(KEY_ENTRY, "").replace(/[\s,;|]/g, "") !== ""
+  )
+    return null;
+  return entries.map((m) => ({
+    number: Number(m[1]),
+    letter: m[2].toUpperCase(),
+    text: m[0].trim(),
+  }));
+}
+
+function questionStart(line: string): { number: number; rest: string } | null {
+  const m = NUMBERED.exec(line) ?? LABELLED.exec(line);
+  return m ? { number: Number(m[1]), rest: m[2].trim() } : null;
+}
+
+// A line can carry several options ("A. Humerus B. Femur C. Tibia"). Split at the next letters in order, but only
+// when there are at least two more of them or a wide gap, so "A. Hepatitis B. vaccine" stays one option.
+function splitOptions(
+  letter: string,
+  text: string,
+): { letter: string; text: string }[] {
+  const cuts: { at: number; end: number; letter: string; wide: boolean }[] = [];
+  let next = LETTERS.indexOf(letter) + 1;
+  let from = 0;
+  while (next < LETTERS.length) {
+    const re = new RegExp(`(\\s+)${LETTERS[next]}[.)]\\s+`, "g");
+    re.lastIndex = from;
+    const m = re.exec(text);
+    if (!m) break;
+    cuts.push({
+      at: m.index,
+      end: m.index + m[0].length,
+      letter: LETTERS[next],
+      wide: m[1].length >= 2 || m[1].includes("\t"),
+    });
+    from = m.index + m[0].length;
+    next++;
+  }
+  if (!cuts.length || (cuts.length < 2 && !cuts[0].wide))
+    return [{ letter, text }];
+  const out = [{ letter, text: text.slice(0, cuts[0].at) }];
+  cuts.forEach((c, i) =>
+    out.push({
+      letter: c.letter,
+      text: text.slice(c.end, cuts[i + 1]?.at ?? text.length),
+    }),
+  );
+  return out.map((o) => ({ ...o, text: o.text.trim() }));
+}
 
 function finish(d: Draft): ParsedQuestion {
   const errors: string[] = [];
   const options = d.options.map((o) => o.text.trim());
   const prompt = d.prompt.join("\n").trim();
   if (!prompt) errors.push("Question text is empty.");
-  if (prompt.length > 2000) errors.push("Question text is over 2000 characters.");
-  if (options.some((o) => o.length > 500)) errors.push("An option is over 500 characters.");
+  if (prompt.length > 2000)
+    errors.push("Question text is over 2000 characters.");
+  if (options.some((o) => o.length > 500))
+    errors.push("An option is over 500 characters.");
   if (options.length < 2) errors.push("Needs at least 2 options.");
+  if (options.length > 5) errors.push("5 options at most.");
   if (options.some((o) => !o)) errors.push("An option is empty.");
-  if (d.options.some((o, i) => o.letter !== LETTERS[i])) errors.push("Option letters are out of order.");
+  if (d.options.some((o, i) => o.letter !== LETTERS[i]))
+    errors.push("Option letters are out of order.");
 
   let correctIndex: number | null = null;
   if (!d.answer) {
@@ -49,66 +128,177 @@ function finish(d: Draft): ParsedQuestion {
     if (i === -1) errors.push(`Answer ${d.answer} isn't one of the options.`);
     else correctIndex = i;
   }
+  const explanation = d.explanation.join("\n").trim();
+  if (explanation.length > 2000)
+    errors.push("Explanation is over 2000 characters.");
 
-  return { number: d.number, prompt, options, correctIndex, explanation: d.explanation.join("\n").trim(), errors };
+  const source =
+    d.raw.join("\n") + (d.keyed && d.answer ? `\nAnswer: ${d.answer}` : "");
+  return {
+    number: d.number,
+    line: d.line,
+    source,
+    prompt,
+    options,
+    correctIndex,
+    explanation,
+    errors,
+  };
 }
 
-export function parseQuestions(text: string): { items: ParsedQuestion[]; ignored: number } {
-  const items: ParsedQuestion[] = [];
-  let ignored = 0;
+export function parseQuestions(text: string): {
+  items: ParsedQuestion[];
+  skipped: SkippedLine[];
+} {
+  const drafts: Draft[] = [];
+  const skipped: SkippedLine[] = [];
   let d: Draft | null = null;
+  let afterKey = false;
 
-  for (const raw of text.replace(/\r\n?/g, "\n").split("\n")) {
+  const applyKey = (
+    entries: { number: number; letter: string; text: string }[],
+    line: number,
+  ) => {
+    for (const e of entries) {
+      const target = drafts.findLast((x) => x.number === e.number);
+      if (!target)
+        skipped.push({
+          line,
+          text: e.text,
+          reason: `No question ${e.number} above`,
+        });
+      else if (target.answer && target.answer !== e.letter)
+        skipped.push({
+          line,
+          text: e.text,
+          reason: `Question ${e.number} already has answer ${target.answer}`,
+        });
+      else if (!target.answer) {
+        target.answer = e.letter;
+        target.keyed = true;
+      }
+    }
+    afterKey = true;
+    if (d) d.phase = "closed";
+  };
+
+  const lines = text.replace(/\r\n?/g, "\n").split("\n");
+  lines.forEach((raw, index) => {
+    const lineNo = index + 1;
     const line = raw.trimEnd();
-    if (!line.trim()) continue;
+    if (!line.trim()) return;
 
-    // A numbered line starts a question only if it's the first one or the next number,
-    // so "2. Normal values" inside question text doesn't split it.
-    const q = QUESTION.exec(line);
-    if (q && (!d || Number(q[1]) === d.number + 1 || (d.phase !== "prompt" && d.phase !== "options"))) {
-      if (d) items.push(finish(d));
-      d = { number: Number(q[1]), prompt: [q[2].trim()], options: [], answer: null, explanation: [], phase: "prompt" };
-      continue;
+    // Answer key lines are unambiguous ("12. C" is never a real question), so they go first.
+    const heading = KEY_HEADING.exec(line);
+    if (heading) {
+      const rest = heading[1].trim();
+      const entries = rest ? keyEntries(rest) : [];
+      if (entries) {
+        applyKey(entries, lineNo);
+        return;
+      }
+    }
+    const entries = keyEntries(line);
+    if (entries) {
+      applyKey(entries, lineNo);
+      return;
+    }
+
+    if (PAGE_NUMBER.test(line)) {
+      skipped.push({ line: lineNo, text: line.trim(), reason: "Looks like a page number" });
+      return;
+    }
+
+    // A numbered line starts a question when it can't be part of the current one: the first question, the next
+    // number while still in the question text (so "3. wash hands" in a list stays put), any higher number once
+    // options have started, or any number after the answer.
+    const q = questionStart(line);
+    if (
+      q &&
+      (!d ||
+        (d.phase === "prompt" && q.number === d.number + 1) ||
+        (d.phase === "options" && q.number > d.number) ||
+        d.phase === "answered" ||
+        d.phase === "explanation" ||
+        d.phase === "closed")
+    ) {
+      d = {
+        number: q.number,
+        line: lineNo,
+        raw: [line.trim()],
+        prompt: [q.rest],
+        options: [],
+        answer: null,
+        keyed: false,
+        explanation: [],
+        phase: "prompt",
+      };
+      drafts.push(d);
+      return;
     }
     if (!d) {
-      ignored++;
-      continue;
+      skipped.push({
+        line: lineNo,
+        text: line.trim(),
+        reason: "Before the first question",
+      });
+      return;
+    }
+    if (d.phase === "closed") {
+      skipped.push({
+        line: lineNo,
+        text: line.trim(),
+        reason: afterKey ? "After the answer key" : "Not part of a question",
+      });
+      return;
     }
 
     const a = ANSWER.exec(line);
-    if (a && (d.phase === "options" || d.phase === "prompt")) {
+    if (a && d.phase === "options") {
       d.answer = a[1].toUpperCase();
       d.phase = "answered";
-      continue;
+      d.raw.push(line.trim());
+      return;
     }
 
     const e = EXPLANATION.exec(line);
     if (e && d.phase !== "prompt") {
       d.explanation.push(e[1].trim());
       d.phase = "explanation";
-      continue;
+      d.raw.push(line.trim());
+      return;
     }
 
     if (d.phase === "explanation") {
       d.explanation.push(line.trim());
-      continue;
+      d.raw.push(line.trim());
+      return;
     }
 
     const o = OPTION.exec(line);
     if (o && (d.phase === "prompt" || d.phase === "options")) {
-      d.options.push({ letter: o[1].toUpperCase(), text: (o[2] ?? "").trim() });
+      d.options.push(...splitOptions(o[1].toUpperCase(), (o[2] ?? "").trim()));
       d.phase = "options";
-      continue;
+      d.raw.push(line.trim());
+      return;
     }
 
-    if (d.phase === "prompt") d.prompt.push(line.trim());
-    else if (d.phase === "options") {
+    if (d.phase === "prompt") {
+      d.prompt.push(line.trim());
+      d.raw.push(line.trim());
+    } else if (d.phase === "options") {
       const last = d.options[d.options.length - 1];
       last.text = `${last.text} ${line.trim()}`.trim();
+      d.raw.push(line.trim());
+    } else {
+      // Stray lines after the answer (page numbers, footers).
+      skipped.push({
+        line: lineNo,
+        text: line.trim(),
+        reason: `After the answer to question ${d.number}`,
+      });
     }
-    // Stray lines after the answer (page numbers, footers) are dropped.
-  }
+  });
 
-  if (d) items.push(finish(d));
-  return { items, ignored };
+  return { items: drafts.map(finish), skipped };
 }
