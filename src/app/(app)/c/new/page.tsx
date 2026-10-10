@@ -10,7 +10,12 @@ export default async function NewClassroomPage() {
   return (
     <div className="grid grid-cols-1 gap-8">
       <h1 className="font-display text-[clamp(2.75rem,10vw,5rem)] leading-[0.92] font-bold uppercase">New classroom</h1>
-      <ClassroomForm action={createClassroom} submitLabel="Make classroom" pendingLabel="Making it" />
+      <ClassroomForm
+        action={createClassroom}
+        initial={{ name: "", event: "", description: "", category: "mc" }}
+        submitLabel="Make classroom"
+        pendingLabel="Making it"
+      />
     </div>
   );
 }

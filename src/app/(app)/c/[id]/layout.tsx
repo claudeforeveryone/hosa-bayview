@@ -4,9 +4,8 @@ import { notFound } from "next/navigation";
 import { ClassroomChrome } from "@/components/classroom-chrome";
 import { ClassroomTabs } from "@/components/classroom-tabs";
 import { CodeStrip } from "@/components/code-strip";
-import { getClassroom } from "@/lib/classrooms";
+import { getClassroom, getRoomInfo } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
-import { createClient } from "@/lib/supabase/server";
 import { regenerateCode } from "../actions";
 import { BLC_ENABLED } from "@/lib/features";
 
@@ -22,16 +21,10 @@ export default async function ClassroomLayout({
   params,
 }: LayoutProps<"/c/[id]">) {
   const { id } = await params;
-  const room = await getClassroom(id);
+  const [room, info] = await Promise.all([getClassroom(id), getRoomInfo(id)]);
   if (!room) notFound();
   // Mock competitions have a page of their own under /blc; link back to it from the header.
-  const supabase = await createClient();
-  const { data: kindRow } = await supabase
-    .from("classrooms")
-    .select("kind")
-    .eq("id", room.id)
-    .maybeSingle();
-  const isCompetition = kindRow?.kind === "competition";
+  const isCompetition = info?.kind === "competition";
 
   const people = `${room.member_count} member${room.member_count === 1 ? "" : "s"}`;
   // The event only adds anything when the class has its own name.
@@ -82,7 +75,11 @@ export default async function ClassroomLayout({
             />
           ) : null}
         </header>
-        <ClassroomTabs id={room.id} canManage={room.can_manage} />
+        <ClassroomTabs
+          id={room.id}
+          canManage={room.can_manage}
+          category={info?.category ?? null}
+        />
       </ClassroomChrome>
       <div>{children}</div>
     </div>

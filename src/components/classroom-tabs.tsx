@@ -3,33 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-
-// Most used first. Members see their own scores on Tests, so Grades (the whole-class grid) is for trainers.
-// Who's online shows on People.
-const TABS = [
-  { slug: "", label: "Board" },
-  { slug: "tests", label: "Tests" },
-  { slug: "flashcards", label: "Cards" },
-  { slug: "resources", label: "Resources" },
-  { slug: "members", label: "People" },
-  { slug: "attendance", label: "Attendance" },
-];
-const MANAGER_TABS = [
-  { slug: "grades", label: "Grades" },
-  { slug: "settings", label: "Settings" },
-];
+import { type Category, tabsFor } from "@/lib/classroom-tabs";
 
 // Condensed caps tabs; the active one gets the maroon rule. Scrolls sideways on phones.
 export function ClassroomTabs({
   id,
   canManage,
+  category,
 }: {
   id: string;
   canManage: boolean;
+  category: Category | null;
 }) {
   const path = usePathname();
   const base = `/c/${id}`;
-  const tabs = canManage ? [...TABS, ...MANAGER_TABS] : TABS;
+  const tabs = tabsFor(category, canManage);
   const nav = useRef<HTMLElement>(null);
 
   // On phones the strip scrolls; keep the current tab on screen.

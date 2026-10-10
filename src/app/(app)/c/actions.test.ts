@@ -129,6 +129,28 @@ describe("createClassroom", () => {
   });
 });
 
+describe("classroom category", () => {
+  it("creates with the picked category", async () => {
+    client = makeClient({ data: { id: ROOM }, error: null });
+    await redirectOf(actions.createClassroom({}, form({ name: "Pharm", event: "", description: "", category: "practical" })));
+    const insert = client.calls.find((c) => c.op === "insert");
+    expect(insert?.args[0]).toEqual({ name: "Pharm", event: "", description: "", category: "practical" });
+  });
+
+  it("updates the category", async () => {
+    client = makeClient({ data: [{ id: ROOM }], error: null });
+    await actions.updateClassroom(ROOM, {}, form({ name: "N", event: "", description: "", category: "showcase" }));
+    const update = client.calls.find((c) => c.op === "update");
+    expect((update?.args[0] as { category: string }).category).toBe("showcase");
+  });
+
+  it("rejects an unknown category without writing", async () => {
+    const state = await actions.createClassroom({}, form({ name: "X", event: "", description: "", category: "essay" }));
+    expect(state.fieldErrors?.category).toBeTruthy();
+    expect(client.from).not.toHaveBeenCalled();
+  });
+});
+
 describe("updateClassroom", () => {
   it("counts CRLF newlines as one character, like the textarea does", async () => {
     client = makeClient({ data: [{ id: ROOM }], error: null });
