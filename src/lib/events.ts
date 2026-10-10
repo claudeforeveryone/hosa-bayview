@@ -35,3 +35,18 @@ export async function getEvents({
   // Past: started before today and already over.
   return past ? rows.filter((e) => !e.ends_at || Date.parse(e.ends_at) < cutoff) : rows;
 }
+
+// Everything that overlaps [from, to): starts before `to` and either starts or is still running at `from`.
+// For the month grid; same RLS as above.
+export async function getEventsInRange(from: string, to: string, limit = 500): Promise<EventRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select(COLUMNS)
+    .lt("starts_at", to)
+    .or(`starts_at.gte.${from},ends_at.gte.${from}`)
+    .order("starts_at", { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(`Calendar lookup failed: ${error.message}`);
+  return (data ?? []) as unknown as EventRow[];
+}

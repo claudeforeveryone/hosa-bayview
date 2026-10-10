@@ -1,75 +1,58 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
-import { ConfirmAction } from "@/components/confirm-action";
-import { EmptyState } from "@/components/empty-state";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { EventForm } from "@/components/event-form";
-import { DateStub, EventSummary } from "@/components/event-item";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
+import {
+  bucketByDay,
+  gridDays,
+  gridRange,
+  monthLabel,
+  monthParam,
+  parseMonth,
+  shiftMonth,
+} from "@/lib/calendar-grid";
 import { getMyClassrooms } from "@/lib/classrooms";
-import { getEvents, type EventRow } from "@/lib/events";
-import { dayKey, isoToToronto } from "@/lib/when";
-import { deleteEvent, saveEvent } from "./actions";
+import { getEventsInRange } from "@/lib/events";
+import { dayKey } from "@/lib/when";
+import { saveEvent } from "./actions";
+import { MonthGrid } from "./month-grid";
 
 export const metadata: Metadata = { title: "Calendar" };
 
-// Events grouped by Toronto day, in order.
-function byDay(rows: EventRow[]) {
-  const days: { key: string; first: string; items: EventRow[] }[] = [];
-  for (const e of rows) {
-    const key = dayKey(e.starts_at);
-    const last = days.at(-1);
-    if (last?.key === key) last.items.push(e);
-    else days.push({ key, first: e.starts_at, items: [e] });
-  }
-  return days;
-}
-
+// A month of boxes, Toronto days. `?m=2026-10` picks the month; anything else shows this one.
 export default async function CalendarPage(props: PageProps<"/calendar">) {
   const sp = await props.searchParams;
-  const past = sp.show === "past";
+  const todayKey = dayKey(new Date().toISOString());
+  const month = parseMonth(sp.m, todayKey);
+  const days = gridDays(month);
+  const { from, to } = gridRange(days);
   const [me, rooms, rows] = await Promise.all([
     requireProfile(),
     getMyClassrooms(),
-    getEvents({ past }),
+    getEventsInRange(from, to),
   ]);
   const exec = me.role === "executive";
   const managed = rooms.filter((r) => r.can_manage);
   const managedIds = new Set(managed.map((r) => r.id));
-  const canEdit = (e: EventRow) =>
-    exec || (e.classroom_id !== null && managedIds.has(e.classroom_id));
+  const editable = rows
+    .filter((e) => exec || (e.classroom_id !== null && managedIds.has(e.classroom_id)))
+    .map((e) => e.id);
   const places = [
     ...(exec ? [{ id: "chapter", label: "Whole chapter" }] : []),
     ...managed.map((r) => ({ id: r.id, label: r.name })),
   ];
-  const days = byDay(rows);
-  const tab = (on: boolean) =>
-    `caps step flex h-11 items-center px-4 text-[16px] ${on ? "bg-ink text-ground" : "text-ink-2 hover:bg-band hover:text-ink"}`;
+  const byDay = bucketByDay(rows, days);
+  const inMonth = days.some((d) => d.inMonth && byDay[d.key]?.length);
+  const thisMonth = monthParam(parseMonth(undefined, todayKey));
+  const showing = monthParam(month);
+  const step =
+    "step grid size-11 place-items-center border border-rule-strong text-ink hover:bg-band";
 
   return (
     <div className="grid grid-cols-1 gap-8">
       <PageTitle meta="Meetings, deadlines and comps">Calendar</PageTitle>
-
-      <nav
-        aria-label="Which events"
-        className="flex w-max border border-rule-strong"
-      >
-        <Link
-          href="/calendar"
-          aria-current={!past ? "page" : undefined}
-          className={tab(!past)}
-        >
-          Coming up
-        </Link>
-        <Link
-          href="/calendar?show=past"
-          aria-current={past ? "page" : undefined}
-          className={tab(past)}
-        >
-          Past
-        </Link>
-      </nav>
 
       {places.length ? (
         <details className="group border-y border-rule">
@@ -94,67 +77,58 @@ export default async function CalendarPage(props: PageProps<"/calendar">) {
         </details>
       ) : null}
 
-      {days.length ? (
-        <ol className="grid">
-          {days.map((d) => (
-            <li
-              key={d.key}
-              className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-t border-rule py-5 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:gap-6"
+      <section aria-labelledby="month-h" className="grid gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2
+            id="month-h"
+            className="font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-none font-bold uppercase"
+          >
+            {monthLabel(month)}
+          </h2>
+          <nav aria-label="Month" className="flex items-center gap-2">
+            <Link
+              href={`/calendar?m=${monthParam(shiftMonth(month, -1))}`}
+              aria-label={`Previous month, ${monthLabel(shiftMonth(month, -1))}`}
+              className={step}
             >
-              <DateStub iso={d.first} />
-              <ul className="grid gap-6">
-                {d.items.map((e) => (
-                  <li key={e.id} className="grid gap-3">
-                    <EventSummary e={e} />
-                    {canEdit(e) ? (
-                      <div className="flex flex-wrap items-start gap-3">
-                        <details className="max-w-2xl open:order-last open:basis-full">
-                          <summary className="caps step inline-flex h-10 cursor-pointer items-center border border-ink px-4 text-[15px] text-ink hover:bg-band">
-                            Edit
-                          </summary>
-                          <div className="pt-5">
-                            <EventForm
-                              action={saveEvent.bind(null, e.id)}
-                              initial={{
-                                title: e.title,
-                                starts: isoToToronto(e.starts_at),
-                                ends: isoToToronto(e.ends_at),
-                                location: e.location,
-                                details: e.details,
-                                all_day: e.all_day,
-                              }}
-                              submitLabel="Save"
-                              pendingLabel="Saving"
-                            />
-                          </div>
-                        </details>
-                        <ConfirmAction
-                          action={deleteEvent.bind(null, e.id)}
-                          label="Delete"
-                          confirmLabel="Delete"
-                          pendingLabel="Deleting"
-                          question={`Delete ${e.title}?`}
-                          compact
-                        />
-                      </div>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <EmptyState
-          title={past ? "Nothing in the past yet" : "Nothing coming up"}
-        >
-          {past
-            ? "Events show up here once they're over."
-            : places.length
-              ? "Add the next meeting or deadline above. Everyone it's for gets a notification."
-              : "When your trainers or the execs add events, they land here."}
-        </EmptyState>
-      )}
+              <ChevronLeft size={22} strokeWidth={1.75} aria-hidden />
+            </Link>
+            <Link
+              href="/calendar"
+              aria-current={showing === thisMonth ? "page" : undefined}
+              className="caps step flex h-11 items-center border border-rule-strong px-4 text-[15px] text-ink hover:bg-band aria-[current=page]:bg-ink aria-[current=page]:text-ground"
+            >
+              Today
+            </Link>
+            <Link
+              href={`/calendar?m=${monthParam(shiftMonth(month, 1))}`}
+              aria-label={`Next month, ${monthLabel(shiftMonth(month, 1))}`}
+              className={step}
+            >
+              <ChevronRight size={22} strokeWidth={1.75} aria-hidden />
+            </Link>
+          </nav>
+        </div>
+
+        <MonthGrid days={days} byDay={byDay} todayKey={todayKey} editable={editable} />
+
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[14px] text-ink-2">
+          <span className="flex items-center gap-2">
+            <span aria-hidden className="inline-block h-3.5 w-[3px] bg-you" />
+            Chapter
+          </span>
+          <span className="flex items-center gap-2">
+            <span aria-hidden className="inline-block h-3.5 w-[3px] bg-ink-2" />
+            Event rooms
+          </span>
+          {!inMonth ? (
+            <span>
+              Nothing on the calendar this month.
+              {places.length ? " Add a meeting or deadline above; everyone it's for gets a notification." : ""}
+            </span>
+          ) : null}
+        </div>
+      </section>
     </div>
   );
 }
