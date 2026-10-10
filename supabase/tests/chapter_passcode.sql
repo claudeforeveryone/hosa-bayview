@@ -15,6 +15,12 @@ begin
   execute 'set local role anon';
 end $$;
 
+create function pg_temp.as_service() returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, true);
+  execute 'set local role service_role';
+end $$;
+
 create function pg_temp.as_admin() returns void language plpgsql as $$
 begin
   execute 'reset role';
@@ -67,6 +73,12 @@ select pg_temp.as_admin();
 -- No gate: sign-up is open, and a stray code never stays on the account.
 select pg_temp.as_anon();
 select pg_temp.check('no gate: anon sees it off', public.chapter_gate_active() = false);
+select pg_temp.expect('anon cannot test a code', $q$select public.check_chapter_code('anything', '1.2.3.4')$q$, '42501');
+select pg_temp.as_admin();
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000c3');
+select pg_temp.expect('a member cannot test a code', $q$select public.check_chapter_code('anything', '1.2.3.4')$q$, '42501');
+select pg_temp.as_admin();
+select pg_temp.as_service();
 select pg_temp.check('no gate: checking a code gives nothing', public.check_chapter_code('anything', '1.2.3.4') is null);
 select pg_temp.as_admin();
 select pg_temp.signup('00000000-0000-4000-8000-0000000000d1', '{"full_name":"Open Signup","chapter_code":"x","chapter_ticket":"y"}');
@@ -132,8 +144,8 @@ select pg_temp.check('SQL fixtures still work with a gate on',
 
 -- A wrong code gives nothing and counts; the right one gives a single-use ticket.
 create temp table t (ticket text, old_ticket text) on commit drop;
-grant all on t to anon, authenticated;
-select pg_temp.as_anon();
+grant all on t to anon, authenticated, service_role;
+select pg_temp.as_service();
 select pg_temp.check('wrong code: no ticket', public.check_chapter_code('bayview-2025', '10.0.0.1') is null);
 select pg_temp.check('null code: no ticket', public.check_chapter_code(null, '10.0.0.1') is null);
 insert into t (ticket) values (public.check_chapter_code('bayview-2026', '10.0.0.1'));
@@ -141,7 +153,11 @@ select pg_temp.check('right code: a ticket', (select char_length(ticket) = 48 fr
 select pg_temp.as_admin();
 select pg_temp.check('misses are stored per hashed IP, never the IP',
   (select count(*) from private.chapter_code_attempts where at > now() - interval '10 minutes') = 2
-  and not exists (select 1 from private.chapter_code_attempts where ip_hash like '%10.0.0.1%'));
+  and not exists (select 1 from private.chapter_code_attempts where ip_hash like '%10.0.0.1%')
+  and not exists (select 1 from private.chapter_code_attempts
+                  where ip_hash = encode(extensions.digest('10.0.0.1', 'sha256'), 'hex')));
+select pg_temp.check('the IP key is random per project',
+  char_length((select value from private.settings where key = 'chapter_ip_salt')) = 64);
 select pg_temp.check('the ticket is stored hashed', not exists (select 1 from private.chapter_code_tickets where ticket_hash = (select ticket from t)));
 
 select pg_temp.signup('00000000-0000-4000-8000-0000000000d4',
@@ -162,7 +178,7 @@ select pg_temp.check('metadata updates are stripped',
     = '{"full_name":"With Ticket","grade":"10","email_verified":true}'::jsonb);
 
 -- An expired ticket is refused.
-select pg_temp.as_anon();
+select pg_temp.as_service();
 update t set ticket = public.check_chapter_code('bayview-2026', '10.0.0.2');
 select pg_temp.as_admin();
 update private.chapter_code_tickets set expires_at = now() - interval '1 second' where true;
@@ -170,30 +186,32 @@ select pg_temp.expect('an expired ticket is refused',
   format($q$select pg_temp.signup('00000000-0000-4000-8000-0000000000d5', jsonb_build_object('full_name', 'Late', 'chapter_ticket', %L))$q$,
          (select ticket from t)), '28000');
 
--- Per-IP limit: 10 misses in 10 minutes locks that IP out, even with the right code. Other IPs still work.
+-- Per-IP limit: 30 misses in 10 minutes locks that IP out, even with the right code. Other IPs still work.
 select pg_temp.as_admin();
 update private.chapter_code_attempts set at = now() - interval '11 minutes' where at > now() - interval '10 minutes';
-select pg_temp.as_anon();
-select public.check_chapter_code('wrong-' || g, '10.0.0.9') from generate_series(1, 10) g;
-select pg_temp.expect('11th try from the same IP is throttled',
+select pg_temp.as_service();
+select public.check_chapter_code('wrong-' || g, '10.0.0.9') from generate_series(1, 29) g;
+select pg_temp.check('29 misses: the right code still works', public.check_chapter_code('bayview-2026', '10.0.0.9') is not null);
+select public.check_chapter_code('wrong-30', '10.0.0.9');
+select pg_temp.expect('31st try from the same IP is throttled',
   $q$select public.check_chapter_code('bayview-2026', '10.0.0.9')$q$, '54000');
 select pg_temp.check('another IP still works', public.check_chapter_code('bayview-2026', '10.0.0.10') is not null);
 -- Missing IPs share one bucket.
-select public.check_chapter_code('wrong-' || g, null) from generate_series(1, 10) g;
+select public.check_chapter_code('wrong-' || g, null) from generate_series(1, 30) g;
 select pg_temp.expect('no IP shares one bucket', $q$select public.check_chapter_code('bayview-2026', '')$q$, '54000');
 select pg_temp.as_admin();
 
--- Overall cap: 100 misses in 10 minutes from any mix of IPs locks everyone out.
+-- Overall cap: 300 misses in 10 minutes from any mix of IPs locks everyone out.
 update private.chapter_code_attempts set at = now() - interval '11 minutes' where at > now() - interval '10 minutes';
-select pg_temp.as_anon();
-select public.check_chapter_code('wrong', '172.16.0.' || g) from generate_series(1, 100) g;
-select pg_temp.expect('the 101st miss locks out a fresh IP',
+select pg_temp.as_service();
+select public.check_chapter_code('wrong', '172.16.' || (g / 256) || '.' || (g % 256)) from generate_series(1, 300) g;
+select pg_temp.expect('the 301st miss locks out a fresh IP',
   $q$select public.check_chapter_code('bayview-2026', '192.168.1.1')$q$, '54000');
 select pg_temp.as_admin();
 update private.chapter_code_attempts set at = now() - interval '11 minutes' where at > now() - interval '10 minutes';
 
 -- Changing the code kills the old one and any tickets minted for it.
-select pg_temp.as_anon();
+select pg_temp.as_service();
 update t set old_ticket = public.check_chapter_code('bayview-2026', '10.0.1.1');
 select pg_temp.as_admin();
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000c1');
@@ -206,7 +224,7 @@ select pg_temp.check('the other executive is told of the change',
 select pg_temp.expect('a ticket from the old code is refused',
   format($q$select pg_temp.signup('00000000-0000-4000-8000-0000000000d6', jsonb_build_object('full_name', 'Old', 'chapter_ticket', %L))$q$,
          (select old_ticket from t)), '28000');
-select pg_temp.as_anon();
+select pg_temp.as_service();
 select pg_temp.check('the old code is wrong now', public.check_chapter_code('bayview-2026', '10.0.1.2') is null);
 select pg_temp.check('the new code works', public.check_chapter_code('tigers-2027', '10.0.1.2') is not null);
 select pg_temp.as_admin();

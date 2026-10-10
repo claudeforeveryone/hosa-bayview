@@ -3,6 +3,14 @@ import { mockSupabase } from "@/test/supabase-mock";
 
 let client = mockSupabase();
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => client }));
+// The code check runs with the secret key; the same mock answers it. Null: the key isn't set.
+let adminClient: (() => typeof client) | null = () => client;
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => {
+    if (!adminClient) throw new Error("SUPABASE_SECRET_KEY is not set");
+    return adminClient();
+  },
+}));
 // A tiny cookie jar, so the "Stay signed in" choice can be read back.
 const jar = new Map<
   string,
@@ -42,6 +50,7 @@ const redirectOf = async (p: Promise<unknown>) => {
 
 beforeEach(() => {
   client = mockSupabase();
+  adminClient = () => client;
   requestHeaders = new Headers({ origin: "null" });
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://hosa.example/");
 });
@@ -290,7 +299,7 @@ describe("chapter code", () => {
     expect(client.auth.signUp).not.toHaveBeenCalled();
   });
 
-  it("gives the same generic error when the IP is rate limited", async () => {
+  it("says to wait when the network is rate limited", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     withRpcs({
       ...gateOn,
@@ -303,9 +312,30 @@ describe("chapter code", () => {
       {},
       form({ ...fields, chapter_code: "bayview-2026" }),
     );
-    expect(state.fieldErrors?.chapter_code).toBe("Wrong chapter code");
+    expect(state.fieldErrors?.chapter_code).toBe(
+      "Too many tries. Wait 10 minutes.",
+    );
+    expect(state.chapterGate).toBe(true);
     expect(client.auth.signUp).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it("stops with a plain error when the server key is missing", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const rpc = withRpcs(gateOn);
+    adminClient = null;
+    const state = await signup(
+      {},
+      form({ ...fields, chapter_code: "bayview-2026" }),
+    );
+    expect(state.error).toBe("Something went wrong. Try again.");
+    expect(state.chapterGate).toBe(true);
+    expect(rpc).not.toHaveBeenCalledWith(
+      "check_chapter_code",
+      expect.anything(),
+    );
+    expect(client.auth.signUp).not.toHaveBeenCalled();
     log.mockRestore();
   });
 

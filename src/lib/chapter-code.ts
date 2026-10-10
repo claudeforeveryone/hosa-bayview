@@ -3,6 +3,7 @@
 // here treats that as "no gate" so sign-up keeps working and the Admin section stays hidden.
 
 export const WRONG_CHAPTER_CODE = "Wrong chapter code";
+export const CHAPTER_CODE_SLOW = "Too many tries. Wait 10 minutes.";
 export const CHAPTER_CODE_MIN = 6;
 export const CHAPTER_CODE_MAX = 72;
 

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ConfirmAction } from "@/components/confirm-action";
 import { deleteMaterial } from "@/app/(app)/library/actions";
 import { formNumber } from "@/lib/join-code";
+import { materialHref } from "@/lib/materials";
 import { createClient } from "@/lib/supabase/server";
 import { formatWhen, timeAgo } from "@/lib/when";
 import { adminDelete } from "./content-actions";
@@ -186,6 +187,7 @@ type Material = {
   id: string;
   title: string;
   url: string | null;
+  path: string | null;
   note: string;
   file_name: string | null;
   room: { name: string } | null;
@@ -216,7 +218,7 @@ export async function ContentLists() {
     supabase
       .from("materials")
       .select(
-        "id, title, url, note, file_name, room:classrooms!materials_classroom_id_fkey(name)",
+        "id, title, url, path, note, file_name, room:classrooms!materials_classroom_id_fkey(name)",
       )
       .order("created_at", { ascending: false }),
   ]);
@@ -298,7 +300,7 @@ export async function ContentLists() {
           {M.map((m) => (
             <Row
               key={m.id}
-              href={m.file_name || m.url ? `/files/${m.id}` : null}
+              href={materialHref(m)}
               external
               title={m.title}
               meta={[m.room?.name ?? "Resources", m.file_name ?? m.url ?? (m.note || "Placeholder")]

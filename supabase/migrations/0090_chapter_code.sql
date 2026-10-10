@@ -2,8 +2,10 @@
 -- account needs it. Null (no row) means no gate, the old open sign-up.
 --
 -- How the check can't be skipped:
--- 1. check_chapter_code(code, ip) is the only way to test a code. It's rate limited (10 misses per IP and 100
---    misses overall per 10 minutes) and on a match hands back a random single-use ticket (15 minutes).
+-- 1. check_chapter_code(code, ip) is the only way to test a code. Only the server (service_role, from the
+--    sign-up action) may call it, so the IP it passes is the one Vercel saw and can't be made up. It's rate
+--    limited (30 misses per IP and 300 misses overall per 10 minutes; a school network is one IP for a whole
+--    meeting) and on a match hands back a random single-use ticket (15 minutes).
 -- 2. The sign-up action passes that ticket in user metadata (chapter_ticket). A BEFORE INSERT trigger on
 --    auth.users redeems it, so the account insert itself fails without one, whether the request came through
 --    the site or straight to the auth API. No dashboard toggle or auth hook needed.
@@ -13,7 +15,9 @@
 -- Every account the auth server makes goes through this, so while a gate is on the dashboard's "Add user" and
 -- "Invite" (and any OAuth or magic-link sign-up) are refused too: clear the code first, or add the user in SQL.
 -- Until this migration is applied the site treats the missing RPCs as "no gate" and hides the Admin section.
--- Only a bcrypt hash of the code is stored (private.settings chapter_passcode_hash); IPs are stored hashed.
+-- Only a bcrypt hash of the code is stored (private.settings chapter_passcode_hash). IPs are stored as an
+-- HMAC with a random per-project key (private.settings chapter_ip_salt), so the stored values can't be
+-- reversed by hashing every IPv4 address.
 -- Rows written from a direct SQL session (postgres, supabase_admin: migrations, the SQL editor, the checks in
 -- supabase/tests) skip the check, so test fixtures still work while a gate is on. Setting
 -- hosa.chapter_code_check = 'on' forces it there, for the tests.
@@ -32,6 +36,10 @@ create table if not exists private.chapter_code_tickets (
 );
 revoke all on private.chapter_code_tickets from public, anon, authenticated;
 
+insert into private.settings (key, value)
+values ('chapter_ip_salt', encode(extensions.gen_random_bytes(32), 'hex'))
+on conflict (key) do nothing;
+
 -- Public: is a gate on? Boolean only, so the sign-up form knows whether to show the field.
 create or replace function public.chapter_gate_active()
 returns boolean language sql stable security definer set search_path = '' as $$
@@ -41,24 +49,27 @@ revoke all on function public.chapter_gate_active() from public;
 grant execute on function public.chapter_gate_active() to anon, authenticated;
 
 -- Test a code. Returns a single-use ticket on a match, null on a miss (or when no gate is set).
--- Raises 54000 when the IP or the whole site has too many recent misses. ip comes from the sign-up action;
--- a caller can lie about it, which is why the overall cap exists.
+-- Raises 54000 when the IP or the whole site has too many recent misses. Server only: ip comes from the
+-- sign-up action, which reads it from Vercel's headers.
 create or replace function public.check_chapter_code(code text, ip text)
 returns text language plpgsql volatile security definer set search_path = '' as $$
 declare
   stored text;
-  ip_key text := encode(extensions.digest(coalesce(nullif(left(trim(ip), 100), ''), 'unknown'), 'sha256'), 'hex');
+  ip_key text;
   ticket text;
 begin
+  ip_key := encode(extensions.hmac(coalesce(nullif(left(trim(ip), 100), ''), 'unknown'),
+                                   (select s.value from private.settings s where s.key = 'chapter_ip_salt'),
+                                   'sha256'), 'hex');
   select value into stored from private.settings where key = 'chapter_passcode_hash';
   if stored is null then
     return null;
   end if;
   -- One lock for everyone, so parallel guesses can't race past the counts.
   perform pg_advisory_xact_lock(hashtext('hosa.chapter_code'));
-  if (select count(*) from private.chapter_code_attempts a where a.at > now() - interval '10 minutes') >= 100
+  if (select count(*) from private.chapter_code_attempts a where a.at > now() - interval '10 minutes') >= 300
      or (select count(*) from private.chapter_code_attempts a
-         where a.ip_hash = ip_key and a.at > now() - interval '10 minutes') >= 10 then
+         where a.ip_hash = ip_key and a.at > now() - interval '10 minutes') >= 30 then
     raise exception 'Too many wrong chapter codes. Try again in 10 minutes.' using errcode = '54000';
   end if;
 
@@ -75,8 +86,8 @@ begin
   return ticket;
 end
 $$;
-revoke all on function public.check_chapter_code(text, text) from public;
-grant execute on function public.check_chapter_code(text, text) to anon, authenticated;
+revoke all on function public.check_chapter_code(text, text) from public, anon, authenticated;
+grant execute on function public.check_chapter_code(text, text) to service_role;
 
 -- Uses up a ticket. True if it was live.
 create or replace function private.redeem_chapter_ticket(ticket text)

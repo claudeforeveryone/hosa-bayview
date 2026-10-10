@@ -6,7 +6,13 @@ import { useEffect } from "react";
 export function OpenFromHash() {
   useEffect(() => {
     const open = () => {
-      const id = decodeURIComponent(window.location.hash.slice(1));
+      const raw = window.location.hash.slice(1);
+      let id = raw;
+      try {
+        id = decodeURIComponent(raw);
+      } catch {
+        // A malformed escape: use it as written, which matches nothing.
+      }
       if (!id) return;
       const el = document.getElementById(id);
       if (el instanceof HTMLDetailsElement) el.open = true;

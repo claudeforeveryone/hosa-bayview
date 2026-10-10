@@ -4,11 +4,13 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { safeNext } from "@/lib/safe-next";
 import { parseGrade } from "@/lib/profile";
 import { SHORT_SESSION } from "@/lib/session-length";
 import {
   WRONG_CHAPTER_CODE,
+  CHAPTER_CODE_SLOW,
   clientIp,
   readChapterGate,
 } from "@/lib/chapter-code";
@@ -170,15 +172,32 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
     };
 
   // The code is checked (and rate limited per IP, plus a cap for everyone) in the database, which hands back a
-  // single-use ticket. The account insert redeems it, so the auth API can't be used to skip this step. A wrong
-  // code and a throttled IP get the same answer.
+  // single-use ticket. The account insert redeems it, so the auth API can't be used to skip this step. Only the
+  // server may test a code, so the IP passed is the one Vercel saw.
   let ticket: string | null = null;
   if (gate) {
-    const check = await supabase.rpc("check_chapter_code", {
+    let admin: ReturnType<typeof createAdminClient>;
+    try {
+      admin = createAdminClient();
+    } catch (e) {
+      console.error("[auth]", (e as Error).message);
+      return {
+        error: "Something went wrong. Try again.",
+        values,
+        ...chapterGate,
+      };
+    }
+    const check = await admin.rpc("check_chapter_code", {
       code,
       ip: clientIp(await headers()),
     });
-    if (check.error && check.error.code !== "54000") {
+    if (check.error?.code === "54000")
+      return {
+        fieldErrors: { chapter_code: CHAPTER_CODE_SLOW },
+        values,
+        chapterGate: true,
+      };
+    if (check.error) {
       console.error("[auth] check_chapter_code:", check.error.message);
       return {
         error: "Something went wrong. Try again.",
@@ -186,8 +205,7 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
         ...chapterGate,
       };
     }
-    if (check.error || typeof check.data !== "string" || !check.data)
-      return wrongCode;
+    if (typeof check.data !== "string" || !check.data) return wrongCode;
     ticket = check.data;
   }
 
