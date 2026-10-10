@@ -21,7 +21,7 @@ const id = z.string().uuid();
 
 const NOT_MANAGER = "Only the trainer or an executive can change this.";
 const NOT_POSTER = "Only the trainer or an executive can add here.";
-const NOT_EXEC = "Only executives can add to the library.";
+const NOT_EXEC = "Only executives can add to Resources.";
 const DIDNT_SAVE = "That didn't save. Try again.";
 
 function failed(where: string, message: string): FormState {
@@ -181,7 +181,7 @@ export async function saveMaterial(
   }
   refresh();
   return {
-    ok: classroomId === null ? "Added to the library." : "Added.",
+    ok: classroomId === null ? "Added to Resources." : "Added.",
     values: {},
   };
 }
