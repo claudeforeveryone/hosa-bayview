@@ -15,8 +15,8 @@ function walk(dir: string): string[] {
 }
 
 describe("private by default", () => {
-  it("only the auth routes are public", () => {
-    expect([...PUBLIC_PATHS].sort()).toEqual(["/auth", "/forgot-password", "/login", "/signup"]);
+  it("only the auth routes and the secret-checked keepalive are public", () => {
+    expect([...PUBLIC_PATHS].sort()).toEqual(["/api/keepalive", "/auth", "/forgot-password", "/login", "/signup"]);
   });
 
   it("every other page route redirects a guest to login", () => {
@@ -46,11 +46,12 @@ describe("private by default", () => {
     }
   });
 
-  it("route handlers outside /auth do not exist", () => {
+  it("route handlers outside /auth and /api/keepalive do not exist", () => {
     const handlers = walk("src/app")
       .map((f) => f.replaceAll(String.fromCharCode(92), "/"))
       .filter((f) => /\/route\.ts$/.test(f));
     expect(handlers.sort()).toEqual([
+      "src/app/api/keepalive/route.ts",
       "src/app/auth/callback/route.ts",
       "src/app/auth/confirm/route.ts",
       "src/app/auth/signout/route.ts",

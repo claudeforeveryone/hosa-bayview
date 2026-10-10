@@ -8,7 +8,7 @@ describe("routeGate", () => {
   });
 
   it("lets guests reach public auth pages and callbacks", () => {
-    for (const p of ["/login", "/signup", "/forgot-password", "/auth/callback", "/auth/signout"]) {
+    for (const p of ["/login", "/signup", "/forgot-password", "/auth/callback", "/auth/signout", "/api/keepalive"]) {
       expect(routeGate(p, "", false)).toBeNull();
     }
   });

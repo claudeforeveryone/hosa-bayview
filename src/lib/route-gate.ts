@@ -1,6 +1,6 @@
-// Everything else needs a session. /reset-password and /banned are deliberately not here: both only make sense
+// /api/keepalive checks its own CRON_SECRET bearer token. Everything else needs a session. /reset-password and /banned are deliberately not here: both only make sense
 // with a session (the recovery link signs the browser in first; a banned member is signed in).
-export const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
+export const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth", "/api/keepalive"];
 const GUEST_ONLY = ["/login", "/signup"];
 
 export type Gate = { redirect: string } | null;
