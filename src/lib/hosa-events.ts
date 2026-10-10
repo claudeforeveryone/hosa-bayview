@@ -2,7 +2,9 @@
 export const HOSA_EVENTS = [
   "Behavioral Health",
   "Biomedical Laboratory Science",
+  "Clinical Laboratory Science",
   "Clinical Nursing",
+  "Community Awareness",
   "CPR/First Aid",
   "Dental Science",
   "Dental Terminology",
@@ -19,6 +21,7 @@ export const HOSA_EVENTS = [
   "Medical Reading",
   "Medical Spelling",
   "Medical Terminology",
+  "Mental Health Promotion",
   "Nutrition",
   "Pathophysiology",
   "Pharmacology",
