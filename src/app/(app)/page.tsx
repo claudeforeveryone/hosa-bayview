@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, ChevronRight } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { JoinForm } from "@/components/join-form";
 import { BoardView } from "@/components/board-view";
 import { CreateBar } from "@/components/create-bar";
@@ -15,8 +15,8 @@ import {
   type Period,
   type RankedRow,
 } from "@/lib/activity";
+import { ClassroomRow } from "@/components/classroom-row";
 import { getMyClassrooms, type ClassroomSummary } from "@/lib/classrooms";
-import { formNumber } from "@/lib/join-code";
 import { createBlankTest } from "@/app/(app)/c/[id]/tests/actions";
 import { createBlankDeck } from "@/app/(app)/flashcards/actions";
 import { DateStub, EventSummary } from "@/components/event-item";
@@ -240,40 +240,6 @@ function ComingUp({ events }: { events: EventRow[] }) {
         ))}
       </ul>
     </section>
-  );
-}
-
-function ClassroomRow({ room }: { room: ClassroomSummary }) {
-  const meta = [
-    // Most rooms are named after their event; don't say it twice.
-    room.event.trim().toLowerCase() === room.name.trim().toLowerCase()
-      ? null
-      : room.event,
-    room.is_owner ? "You run it" : room.owner_name,
-    plural(room.member_count, "member"),
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  return (
-    <li className="border-b border-rule">
-      <Link
-        href={`/c/${room.id}`}
-        className="step grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-1 py-4 hover:bg-band sm:px-3"
-      >
-        <span className="min-w-0">
-          <span className="block truncate font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
-            {room.name}
-          </span>
-          <span className="block truncate text-[16px] text-ink-2">{meta}</span>
-        </span>
-        <span className="flex items-center gap-2 text-ink-2">
-          <span className="num caps text-[15px]">
-            {formNumber("C", room.num)}
-          </span>
-          <ChevronRight size={22} strokeWidth={1.75} aria-hidden />
-        </span>
-      </Link>
-    </li>
   );
 }
 

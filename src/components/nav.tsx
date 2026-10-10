@@ -3,31 +3,13 @@
 import { useEffect, useId, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ArrowRight,
-  CalendarDays,
-  ClipboardList,
-  House,
-  Layers,
-  LibraryBig,
-  Medal,
-  Megaphone,
-  Menu,
-  Plus,
-  Settings,
-  ShieldCheck,
-  Trophy,
-  Users,
-  UserRound,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, Menu, Plus, X } from "lucide-react";
 import { ClassicLogo } from "@/components/classic-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Credit } from "@/components/credit";
 import { formNumber } from "@/lib/join-code";
-import { BLC_ENABLED } from "@/lib/features";
+import { bottomItemsFor, navItemsFor } from "@/lib/nav-items";
 
 export type NavRoom = { id: string; num: number; name: string };
 type Props = {
@@ -37,126 +19,14 @@ type Props = {
   unread: number;
 };
 
-// `more`: sidebar and drawer only, not the phone shortcut bar. `chapter`: listed under Chapter.
-type Item = {
-  href: string;
-  label: string;
-  short: string;
-  Icon: LucideIcon;
-  match: (p: string) => boolean;
-  exec?: boolean;
-  more?: boolean;
-  chapter?: boolean;
-};
-
-const ITEMS: Item[] = [
-  {
-    href: "/",
-    label: "Home",
-    short: "Home",
-    Icon: House,
-    match: (p) => p === "/",
-  },
-  {
-    href: "/leaderboard",
-    label: "Leaderboard",
-    short: "Board",
-    Icon: Trophy,
-    match: (p) => p.startsWith("/leaderboard"),
-  },
-  {
-    href: "/tests",
-    label: "Tests",
-    short: "Tests",
-    Icon: ClipboardList,
-    match: (p) => p.startsWith("/tests"),
-  },
-  {
-    href: "/flashcards",
-    label: "Flashcards",
-    short: "Cards",
-    Icon: Layers,
-    match: (p) => p.startsWith("/flashcards"),
-  },
-  {
-    href: "/announcements",
-    label: "Announcements",
-    short: "News",
-    Icon: Megaphone,
-    match: (p) => p.startsWith("/announcements"),
-    more: true,
-    chapter: true,
-  },
-  {
-    href: "/calendar",
-    label: "Calendar",
-    short: "Calendar",
-    Icon: CalendarDays,
-    match: (p) => p.startsWith("/calendar"),
-    more: true,
-    chapter: true,
-  },
-  {
-    href: "/blc",
-    label: "BLC",
-    short: "BLC",
-    Icon: Medal,
-    match: (p) => p.startsWith("/blc"),
-    more: true,
-    chapter: true,
-  },
-  {
-    href: "/library",
-    label: "Resources",
-    short: "Resources",
-    Icon: LibraryBig,
-    match: (p) => p.startsWith("/library"),
-    more: true,
-    chapter: true,
-  },
-  {
-    href: "/members",
-    label: "Members",
-    short: "Members",
-    Icon: Users,
-    match: (p) => p.startsWith("/members"),
-    more: true,
-  },
-  {
-    href: "/profile",
-    label: "Profile",
-    short: "Profile",
-    Icon: UserRound,
-    match: (p) => p.startsWith("/profile"),
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    short: "Settings",
-    Icon: Settings,
-    match: (p) => p.startsWith("/settings"),
-    more: true,
-  },
-  {
-    href: "/admin",
-    label: "Admin",
-    short: "Admin",
-    Icon: ShieldCheck,
-    match: (p) => p.startsWith("/admin"),
-    exec: true,
-  },
-];
-
 function useItems(isExec: boolean) {
   const path = usePathname();
+  const withActive = (list: ReturnType<typeof navItemsFor>) =>
+    list.map((i) => ({ ...i, active: i.match(path) }));
   return {
     path,
-    items: ITEMS.filter(
-      (i) => (!i.exec || isExec) && (BLC_ENABLED || i.href !== "/blc"),
-    ).map((i) => ({
-      ...i,
-      active: i.match(path),
-    })),
+    items: withActive(navItemsFor(isExec)),
+    bottom: withActive(bottomItemsFor(isExec)),
   };
 }
 
@@ -351,7 +221,7 @@ export function MobileBar(props: Props) {
 
 // Phone: fixed navy bar with the five main places; the active glyph fills.
 export function BottomNav({ isExec }: { isExec: boolean }) {
-  const { items } = useItems(isExec);
+  const { bottom } = useItems(isExec);
   return (
     <nav
       aria-label="Shortcuts"
@@ -359,30 +229,28 @@ export function BottomNav({ isExec }: { isExec: boolean }) {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="grid auto-cols-fr grid-flow-col">
-        {items
-          .filter((i) => !i.exec && !i.more)
-          .map(({ href, short, Icon, active }) => (
-            <li key={href}>
-              <Link
-                href={href}
-                aria-current={active ? "page" : undefined}
-                className={`step flex h-16 flex-col items-center justify-center gap-1 border-t-[3px] ${
-                  active
-                    ? "border-you text-on-field"
-                    : "border-transparent text-on-field-2"
-                }`}
-              >
-                <Icon
-                  size={24}
-                  strokeWidth={1.75}
-                  fill={active ? "currentColor" : "none"}
-                  fillOpacity={active ? 0.25 : 0}
-                  aria-hidden
-                />
-                <span className="caps text-[13px] leading-none">{short}</span>
-              </Link>
-            </li>
-          ))}
+        {bottom.map(({ href, short, Icon, active }) => (
+          <li key={href}>
+            <Link
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={`step flex h-16 flex-col items-center justify-center gap-1 border-t-[3px] ${
+                active
+                  ? "border-you text-on-field"
+                  : "border-transparent text-on-field-2"
+              }`}
+            >
+              <Icon
+                size={24}
+                strokeWidth={1.75}
+                fill={active ? "currentColor" : "none"}
+                fillOpacity={active ? 0.25 : 0}
+                aria-hidden
+              />
+              <span className="caps text-[13px] leading-none">{short}</span>
+            </Link>
+          </li>
+        ))}
       </ul>
     </nav>
   );

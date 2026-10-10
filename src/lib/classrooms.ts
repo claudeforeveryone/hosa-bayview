@@ -17,6 +17,7 @@ export type ClassroomSummary = {
   can_manage: boolean;
   join_code: string | null;
   created_at: string;
+  category: Category | null;
 };
 
 export type ClassroomDetail = ClassroomSummary & { owner_id: string | null; is_member: boolean };
@@ -30,7 +31,17 @@ export const getMyClassrooms = cache(async (): Promise<ClassroomSummary[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("my_classrooms");
   if (error) throw new Error(`Classrooms lookup failed: ${error.message}`);
-  return (data ?? []) as ClassroomSummary[];
+  const rooms = (data ?? []) as Omit<ClassroomSummary, "category">[];
+  // The RPC predates categories, so read them off the rows. A failed lookup just leaves rooms uncategorised.
+  const categories = new Map<string, Category | null>();
+  if (rooms.length) {
+    const { data: rows } = await supabase
+      .from("classrooms")
+      .select("id, category")
+      .in("id", rooms.map((r) => r.id));
+    for (const row of rows ?? []) categories.set(row.id, parseCategory(row.category));
+  }
+  return rooms.map((r) => ({ ...r, category: categories.get(r.id) ?? null }));
 });
 
 // Null when the id is malformed or you can't see the classroom; both read as "not found".
