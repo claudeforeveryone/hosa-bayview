@@ -35,10 +35,11 @@ export const getMyClassrooms = cache(async (): Promise<ClassroomSummary[]> => {
   // The RPC predates categories, so read them off the rows. A failed lookup just leaves rooms uncategorised.
   const categories = new Map<string, Category | null>();
   if (rooms.length) {
-    const { data: rows } = await supabase
+    const { data: rows, error: categoryError } = await supabase
       .from("classrooms")
       .select("id, category")
       .in("id", rooms.map((r) => r.id));
+    if (categoryError) console.error("[classrooms] categories:", categoryError.message);
     for (const row of rows ?? []) categories.set(row.id, parseCategory(row.category));
   }
   return rooms.map((r) => ({ ...r, category: categories.get(r.id) ?? null }));
