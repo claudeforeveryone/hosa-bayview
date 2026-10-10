@@ -18,8 +18,25 @@ export type MaterialRow = {
   created_at: string;
 };
 
-// A row plus a link to open it: the URL itself, or a signed storage URL for files (null if signing failed).
+// A row plus a link to open it: /files/<id> for files and links, null for placeholders.
 export type MaterialItem = MaterialRow & { href: string | null };
+
+// Where the UI opens a material. /files/<id> checks the session and RLS each click, then redirects to a
+// fresh 60 s signed URL (files) or the link itself, so a page left open never holds a stale link.
+export function materialHref(row: { id: string; path: string | null; url: string | null }): string | null {
+  return isPlaceholder(row) ? null : `/files/${row.id}`;
+}
+
+// A stored link only if it is an absolute http(s) URL. javascript:, data: and the rest are refused.
+export function openableUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw.trim());
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
 
 // Storage folder for a classroom id, or the chapter-wide folder when null.
 export function storageFolder(classroomId: string | null): string {

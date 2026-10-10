@@ -11,7 +11,7 @@ import {
   sectionNames,
 } from "@/lib/materials";
 
-// Files and links, newest first. Files open their signed link; links open in a new tab.
+// Files and links, newest first. Both open in a new tab through /files/<id>, which signs a fresh link per click.
 // canManage adds Edit and Delete, the same controls the links list has.
 export function MaterialList({
   rows,
@@ -67,7 +67,6 @@ function Rows({
       {rows.map((r) => {
         const placeholder = isPlaceholder(r);
         const Icon = placeholder ? Clock : r.path ? FileText : Link2;
-        const unavailable = Boolean(r.path) && !r.href;
         return (
           <li
             key={r.id}
@@ -100,9 +99,7 @@ function Rows({
                   </span>
                 )}
                 <span className="text-[15px] text-ink-2">
-                  {[materialMeta(r), unavailable && "File unavailable"]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {materialMeta(r)}
                 </span>
                 {r.note || placeholder ? (
                   <p className="text-[17px] whitespace-pre-line text-ink-2 [overflow-wrap:anywhere]">
