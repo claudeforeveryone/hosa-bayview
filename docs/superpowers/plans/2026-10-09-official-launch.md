@@ -190,3 +190,14 @@ Global additions:
 
 ### Task 17: Two guides (pptx in Downloads)
 - `C:\Users\Educational PC\Downloads\HOSA Site - Trainer Guide.pptx` and `HOSA Site - Chapter Guide.pptx`, with real screenshots from the site (no names visible: use a clean demo classroom view or blur names), short text per slide.
+
+### Task 18: Battles (1v1, 2v2, 3v3, teams)
+- Entry: "Battle" button on an MC or practical event page (not showcase). Host picks format (1v1, 2v2, 3v3, Teams), source (a published test or "All questions in this event"), question count (10 default, 5-30). Gets a 4-character code; classroom members join by code or from the event page's live "Join battle" row. Players pick a team (auto-balanced by default).
+- Flow: lobby -> host starts -> same question for everyone, 20 s timer -> reveal correct option + per-team round score -> next -> results (team scores, top player, accuracy). Leave/rejoin safe.
+- Server-authoritative: tables `battles`, `battle_players`, `battle_rounds`, `battle_answers`; RPCs create/join/start/answer/advance; key revealed only after a round closes; answer time measured server-side; points = 100 for correct + up to 50 speed bonus. Realtime via Supabase Realtime (broadcast channel per battle + postgres changes on battle_rounds). Members only in battles of their own classrooms; RLS on all tables.
+- No ELO from battles (no farming). `profiles` gets wins count shown on profile.
+- Tests: scoring unit tests, SQL tests for RLS + key secrecy + double-answer + late answer rejected.
+- Simple UI: one screen per state, big tap targets, sound/haptic on reveal (Task 14 setting).
+
+### Task 19: Official HOSA resources
+- Researcher finds, per event, the official hosa.org pages/PDFs (event guidelines incl. rating sheets, sample test questions, event page). Real URLs only, verified reachable. Added as link materials in section "Official HOSA". Skills note for events without steps links to that event's guidelines.
