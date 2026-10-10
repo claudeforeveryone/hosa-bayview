@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const head = vi.fn();
-const from = vi.fn(() => ({ select: head }));
-vi.mock("@supabase/supabase-js", () => ({ createClient: vi.fn(() => ({ from })) }));
+const rpc = vi.fn();
+const createClient = vi.fn(() => ({ rpc }));
+vi.mock("@supabase/supabase-js", () => ({ createClient: (...args: unknown[]) => (createClient as (...a: unknown[]) => unknown)(...args) }));
 
 import { GET } from "./route";
 
@@ -11,8 +11,10 @@ const call = (auth?: string) =>
 
 beforeEach(() => {
   vi.stubEnv("CRON_SECRET", "s3cret");
-  head.mockReset().mockResolvedValue({ error: null, status: 200 });
-  from.mockClear();
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://x.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "pub-key");
+  rpc.mockReset().mockResolvedValue({ error: null });
+  createClient.mockClear();
 });
 
 describe("GET /api/keepalive", () => {
@@ -20,7 +22,7 @@ describe("GET /api/keepalive", () => {
     vi.stubEnv("CRON_SECRET", "");
     const res = await call("Bearer ");
     expect(res.status).toBe(503);
-    expect(from).not.toHaveBeenCalled();
+    expect(createClient).not.toHaveBeenCalled();
   });
 
   it("answers 401 with an empty body for a missing or wrong secret", async () => {
@@ -29,26 +31,29 @@ describe("GET /api/keepalive", () => {
       expect(res.status).toBe(401);
       expect(await res.text()).toBe("");
     }
-    expect(from).not.toHaveBeenCalled();
+    expect(createClient).not.toHaveBeenCalled();
   });
 
-  it("touches Postgres once and answers 204 with no body", async () => {
+  it("runs the keepalive RPC once with the publishable key and answers 204 with no body", async () => {
     const res = await call("Bearer s3cret");
     expect(res.status).toBe(204);
     expect(await res.text()).toBe("");
-    expect(from).toHaveBeenCalledTimes(1);
-    expect(head).toHaveBeenCalledTimes(1);
+    expect(createClient).toHaveBeenCalledWith("https://x.supabase.co", "pub-key", {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("keepalive");
   });
 
-  it("counts a permission error as proof Postgres answered", async () => {
-    head.mockResolvedValue({ error: { code: "42501" }, status: 401 });
-    expect((await call("Bearer s3cret")).status).toBe(204);
+  it("answers 502 on any database error, permission errors included", async () => {
+    for (const error of [{ code: "42501" }, { code: "PGRST202" }, { code: "", message: "fetch failed" }]) {
+      rpc.mockResolvedValueOnce({ error });
+      expect((await call("Bearer s3cret")).status).toBe(502);
+    }
   });
 
-  it("answers 502 when the database cannot be reached", async () => {
-    head.mockResolvedValue({ error: { code: "", message: "fetch failed" }, status: 0 });
-    expect((await call("Bearer s3cret")).status).toBe(502);
-    head.mockRejectedValue(new Error("boom"));
+  it("answers 502 when the request throws", async () => {
+    rpc.mockRejectedValueOnce(new Error("boom"));
     expect((await call("Bearer s3cret")).status).toBe(502);
   });
 });

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { config } from "@/proxy";
 import { AVATAR_LINK_SECONDS, MATERIAL_LINK_SECONDS } from "./link-lifetimes";
-import { PUBLIC_PATHS, routeGate } from "./route-gate";
+import { EXACT_PUBLIC_PATHS, isPublicPath, PUBLIC_PATHS, routeGate } from "./route-gate";
 
 const matcher = new RegExp(`^${config.matcher[0]}$`);
 const runsProxy = (path: string) => matcher.test(path);
@@ -15,8 +15,9 @@ function walk(dir: string): string[] {
 }
 
 describe("private by default", () => {
-  it("only the auth routes and the secret-checked keepalive are public", () => {
-    expect([...PUBLIC_PATHS].sort()).toEqual(["/api/keepalive", "/auth", "/forgot-password", "/login", "/signup"]);
+  it("only the auth routes and the exact keepalive path are public", () => {
+    expect([...PUBLIC_PATHS].sort()).toEqual(["/auth", "/forgot-password", "/login", "/signup"]);
+    expect(EXACT_PUBLIC_PATHS).toEqual(["/api/keepalive"]);
   });
 
   it("every other page route redirects a guest to login", () => {
@@ -28,7 +29,7 @@ describe("private by default", () => {
     expect(pages.length).toBeGreaterThan(20);
     for (const path of pages) {
       const gate = routeGate(path, "", false);
-      const isPublic = PUBLIC_PATHS.some((p) => path === p || path.startsWith(`${p}/`));
+      const isPublic = isPublicPath(path);
       if (isPublic) expect(gate, path).toBeNull();
       else expect(gate, path).not.toBeNull();
     }

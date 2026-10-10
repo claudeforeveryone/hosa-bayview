@@ -271,6 +271,11 @@ begin
                and a.grantee = 'anon'::regrole) then
     fails := fails || 'grants: new public objects are still granted to anon by default'::text;
   end if;
+  -- Functions: the only public function anon may execute is keepalive() (0084, the Vercel cron's database touch).
+  if exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace
+               and p.proname <> 'keepalive' and has_function_privilege('anon', p.oid, 'execute')) then
+    fails := fails || 'grants: anon can execute a public function other than keepalive()'::text;
+  end if;
   if cardinality(fails) > 0 then
     raise exception E'FAIL permissions matrix, % cell(s):\n%', cardinality(fails), array_to_string(fails, E'\n');
   end if;

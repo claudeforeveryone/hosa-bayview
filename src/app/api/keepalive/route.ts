@@ -22,11 +22,9 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
-    // A HEAD count returns no rows. Even a permission error (RLS or revoked grant) proves Postgres answered.
-    const { error, status } = await supabase.from("profiles").select("id", { count: "exact", head: true });
-    if (error && error.code !== "42501" && status !== 401 && status !== 403) {
-      return new Response(null, { status: 502 });
-    }
+    // A no-argument RPC (migration 0084) runs a real query and returns nothing. Any error means no activity counted.
+    const { error } = await supabase.rpc("keepalive");
+    if (error) return new Response(null, { status: 502 });
   } catch {
     return new Response(null, { status: 502 });
   }

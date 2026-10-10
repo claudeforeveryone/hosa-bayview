@@ -8,9 +8,15 @@ describe("routeGate", () => {
   });
 
   it("lets guests reach public auth pages and callbacks", () => {
-    for (const p of ["/login", "/signup", "/forgot-password", "/auth/callback", "/auth/signout", "/api/keepalive"]) {
+    for (const p of ["/login", "/signup", "/forgot-password", "/auth/callback", "/auth/signout"]) {
       expect(routeGate(p, "", false)).toBeNull();
     }
+  });
+
+  it("exempts exactly /api/keepalive and nothing under or beside it", () => {
+    expect(routeGate("/api/keepalive", "", false)).toBeNull();
+    expect(routeGate("/api/keepalive/x", "", false)).not.toBeNull();
+    expect(routeGate("/api/keepalive2", "", false)).not.toBeNull();
   });
 
   it("does not treat lookalike paths as public", () => {
