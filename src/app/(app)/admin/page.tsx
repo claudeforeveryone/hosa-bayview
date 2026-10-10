@@ -29,7 +29,7 @@ async function StorageMeter() {
     bytes: Number(r.bytes),
   }));
   const used = rows.reduce((sum, r) => sum + r.bytes, 0);
-  const { percent, warn } = storageMeter(used);
+  const { percent, warn, valueText } = storageMeter(used);
 
   return (
     <section aria-labelledby="storage-h" className="grid gap-4">
@@ -48,6 +48,7 @@ async function StorageMeter() {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
+        aria-valuetext={valueText}
         className="h-2 border border-rule"
       >
         <div

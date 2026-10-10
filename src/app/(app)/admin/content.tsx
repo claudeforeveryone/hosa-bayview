@@ -120,23 +120,33 @@ function Group({
 
 function Row({
   href,
+  external = false,
   title,
   meta,
   del,
 }: {
   href: string | null;
+  external?: boolean;
   title: string;
   meta: string;
   del: ReactNode;
 }) {
+  const linkClass =
+    "block truncate text-[17px] font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink";
   return (
     <li className="grid gap-3 border-b border-rule px-1 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-3">
       <span className="min-w-0">
-        {href ? (
-          <Link
+        {href && external ? (
+          <a
             href={href}
-            className="block truncate text-[17px] font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClass}
           >
+            {title}
+          </a>
+        ) : href ? (
+          <Link href={href} className={linkClass}>
             {title}
           </Link>
         ) : (
@@ -288,7 +298,8 @@ export async function ContentLists() {
           {M.map((m) => (
             <Row
               key={m.id}
-              href={null}
+              href={m.file_name || m.url ? `/files/${m.id}` : null}
+              external
               title={m.title}
               meta={[m.room?.name ?? "Resources", m.file_name ?? m.url ?? (m.note || "Placeholder")]
                 .filter(Boolean)
