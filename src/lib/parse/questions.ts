@@ -14,6 +14,8 @@ export type ParsedQuestion = {
   line: number;
   // The question's own lines, so a question that isn't added can go back in the paste box as typed.
   source: string;
+  // Each option's letter as typed (they can be out of order, which is an error).
+  letters: string[];
   prompt: string;
   options: string[];
   correctIndex: number | null;
@@ -23,17 +25,23 @@ export type ParsedQuestion = {
 
 export type SkippedLine = { line: number; text: string; reason: string };
 
+// A question starts with a number and a delimiter ("12." "12)" "12:"), "Q12." / "Q12)", or "Question 12". Clinical
+// shorthand like q4h, q12h and q.i.d. has no delimiter after the number, so it never starts a question.
 const NUMBERED = /^\s*(\d{1,3})\s*[.):](?!\d)\s*(.*)$/;
-const LABELLED = /^\s*q(?:uestion)?\s*(\d{1,3})(?!\d)\s*[.):\-–]?\s*(.*)$/i;
+const LABELLED =
+  /^\s*(?:q\s?(\d{1,3})\s*[.):]|question\s+(\d{1,3})\b\s*[.):\-–]?)\s*(.*)$/i;
 const OPTION = /^\s*\(?([A-Ea-e])[.)](?:\s+(.*))?$/;
+// Only an explicit key form counts: "Answer: B", "Ans. B", "Answer - B", "Answer: (B)", "Correct answer is B".
+// The letter has to stand alone, so a wrapped option ("answer a short questionnaire") is never read as the key.
 const ANSWER =
-  /^\s*(?:correct\s+)?(?:answer|ans)\b\s*(?:is\b)?\s*[:.\-–]?\s*\(?([A-Ea-e])(?![A-Za-z])/i;
+  /^\s*(?:correct\s+answer|answer|ans)\s*(?:is\s+|[:.\-–]\s*)\(?([A-Ea-e])\)?(?=$|[\s.)])/i;
 const EXPLANATION = /^\s*(?:explanation|rationale|reason)\s*[:\-–]\s*(.*)$/i;
 const KEY_HEADING =
   /^\s*(?:answer\s*key|answer\s*sheet|answers|key)\s*[:\-–]?\s*(.*)$/i;
 const KEY_ENTRY = /(\d{1,3})\s*[.):\-–]?\s*\(?([A-Ea-e])\)?(?![A-Za-z0-9])/g;
 // PDF footers: "Page 2 of 9", "12", "- 3 -", "4/10".
-const PAGE_NUMBER = /^\s*-?\s*(?:page\s*)?\d{1,3}(?:\s*(?:of|\/)\s*\d{1,3})?\s*-?\s*$/i;
+const PAGE_NUMBER =
+  /^\s*-?\s*(?:page\s*)?\d{1,3}(?:\s*(?:of|\/)\s*\d{1,3})?\s*-?\s*$/i;
 const LETTERS = "ABCDE";
 
 type Draft = {
@@ -44,6 +52,8 @@ type Draft = {
   options: { letter: string; text: string }[];
   answer: string | null;
   keyed: boolean;
+  // Set when a second answer line or the answer key disagrees: the trainer has to pick.
+  conflict: string | null;
   explanation: string[];
   phase: "prompt" | "options" | "answered" | "explanation" | "closed";
 };
@@ -66,8 +76,29 @@ function keyEntries(
 }
 
 function questionStart(line: string): { number: number; rest: string } | null {
-  const m = NUMBERED.exec(line) ?? LABELLED.exec(line);
-  return m ? { number: Number(m[1]), rest: m[2].trim() } : null;
+  const n = NUMBERED.exec(line);
+  if (n) return { number: Number(n[1]), rest: n[2].trim() };
+  const l = LABELLED.exec(line);
+  return l ? { number: Number(l[1] ?? l[2]), rest: l[3].trim() } : null;
+}
+
+// Errors a trainer's pick in the preview settles: it states the answer outright.
+export function isAnswerError(e: string): boolean {
+  return (
+    e.startsWith("No answer") ||
+    e.startsWith("Answer ") ||
+    e.startsWith("Two answer lines")
+  );
+}
+
+// The question's own text with its answer set to `letter`: any answer lines dropped, then "Answer: X" placed
+// before the explanation (after it, the line would read as more explanation). Used when a question goes back into
+// the paste box, so a trainer's pick survives.
+export function sourceWithAnswer(source: string, letter: string): string {
+  const lines = source.split("\n").filter((l) => !ANSWER.test(l));
+  const at = lines.findIndex((l) => EXPLANATION.test(l));
+  lines.splice(at === -1 ? lines.length : at, 0, `Answer: ${letter}`);
+  return lines.join("\n");
 }
 
 // A line can carry several options ("A. Humerus B. Femur C. Tibia"). Split at the next letters in order, but only
@@ -119,6 +150,8 @@ function finish(d: Draft): ParsedQuestion {
   if (options.some((o) => !o)) errors.push("An option is empty.");
   if (d.options.some((o, i) => o.letter !== LETTERS[i]))
     errors.push("Option letters are out of order.");
+  if (options.every(Boolean) && new Set(options.map((o) => o.toLowerCase())).size !== options.length)
+    errors.push("Two options are the same.");
 
   let correctIndex: number | null = null;
   if (!d.answer) {
@@ -127,6 +160,11 @@ function finish(d: Draft): ParsedQuestion {
     const i = d.options.findIndex((o) => o.letter === d.answer);
     if (i === -1) errors.push(`Answer ${d.answer} isn't one of the options.`);
     else correctIndex = i;
+  }
+  // Disagreeing answers: nothing is pre-picked, the trainer chooses.
+  if (d.conflict) {
+    errors.push(d.conflict);
+    correctIndex = null;
   }
   const explanation = d.explanation.join("\n").trim();
   if (explanation.length > 2000)
@@ -138,6 +176,7 @@ function finish(d: Draft): ParsedQuestion {
     number: d.number,
     line: d.line,
     source,
+    letters: d.options.map((o) => o.letter),
     prompt,
     options,
     correctIndex,
@@ -167,12 +206,14 @@ export function parseQuestions(text: string): {
           text: e.text,
           reason: `No question ${e.number} above`,
         });
-      else if (target.answer && target.answer !== e.letter)
+      else if (target.answer && target.answer !== e.letter) {
         skipped.push({
           line,
           text: e.text,
           reason: `Question ${e.number} already has answer ${target.answer}`,
         });
+        target.conflict = "Two answer lines. Pick the right option.";
+      }
       else if (!target.answer) {
         target.answer = e.letter;
         target.keyed = true;
@@ -205,22 +246,23 @@ export function parseQuestions(text: string): {
     }
 
     if (PAGE_NUMBER.test(line)) {
-      skipped.push({ line: lineNo, text: line.trim(), reason: "Looks like a page number" });
+      skipped.push({
+        line: lineNo,
+        text: line.trim(),
+        reason: "Looks like a page number",
+      });
       return;
     }
 
     // A numbered line starts a question when it can't be part of the current one: the first question, the next
-    // number while still in the question text (so "3. wash hands" in a list stays put), any higher number once
-    // options have started, or any number after the answer.
+    // number while still in the question text (so "3. wash hands" in a list stays put), or any higher number once
+    // options have started. Numbers never go backwards, so a stray "1." later on can't split a question.
     const q = questionStart(line);
     if (
       q &&
       (!d ||
         (d.phase === "prompt" && q.number === d.number + 1) ||
-        (d.phase === "options" && q.number > d.number) ||
-        d.phase === "answered" ||
-        d.phase === "explanation" ||
-        d.phase === "closed")
+        (d.phase !== "prompt" && q.number > d.number))
     ) {
       d = {
         number: q.number,
@@ -230,6 +272,7 @@ export function parseQuestions(text: string): {
         options: [],
         answer: null,
         keyed: false,
+        conflict: null,
         explanation: [],
         phase: "prompt",
       };
@@ -257,6 +300,12 @@ export function parseQuestions(text: string): {
     if (a && d.phase === "options") {
       d.answer = a[1].toUpperCase();
       d.phase = "answered";
+      d.raw.push(line.trim());
+      return;
+    }
+    // A second answer line: don't guess which one is right.
+    if (a && (d.phase === "answered" || d.phase === "explanation")) {
+      if (a[1].toUpperCase() !== d.answer) d.conflict = "Two answer lines. Pick the right option.";
       d.raw.push(line.trim());
       return;
     }

@@ -311,6 +311,13 @@ export async function importQuestions(
     };
   if (parsed.data.some((q) => q.correct >= q.options.length))
     return { error: "Every question needs a right answer." };
+  // Same rule as adding one question.
+  const dup = parsed.data.findIndex(
+    (q) =>
+      new Set(q.options.map((o) => o.toLowerCase())).size !== q.options.length,
+  );
+  if (dup !== -1)
+    return { error: `Question ${dup + 1} has two choices the same.` };
 
   const supabase = await createClient();
   const bulk = await supabase.rpc("import_questions_bulk", {
@@ -330,7 +337,8 @@ export async function importQuestions(
         if (!added) return rpcError("import", error);
         refresh();
         const why = error.code === "22023" ? `${error.message}.` : "Try again.";
-        if (error.code !== "22023") console.error("[tests:import]", error.message);
+        if (error.code !== "22023")
+          console.error("[tests:import]", error.message);
         return {
           error: `Added ${added} of ${parsed.data.length}. The rest didn't save: ${why}`,
           added,

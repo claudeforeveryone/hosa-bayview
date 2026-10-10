@@ -3,16 +3,21 @@
 import { useState } from "react";
 import { PasteImport } from "@/components/paste-import";
 import { QuestionBuilder } from "@/components/question-builder";
-import type { AddQuestionsFn } from "@/components/questions-editor";
+import type { AddManyFn, AddOneFn } from "@/components/questions-editor";
 
 // One question at a time, or a whole past test pasted in.
 export function AddQuestions({
   testId,
-  add,
+  addOne,
+  addMany,
+  unsaved,
   nextNumber,
 }: {
   testId: string;
-  add: AddQuestionsFn;
+  addOne: AddOneFn;
+  addMany: AddManyFn;
+  // Single adds kept in the list after a failed save. A paste waits until they are sorted, to keep the order.
+  unsaved: number;
   nextNumber: number;
 }) {
   const [mode, setMode] = useState<"write" | "paste">("write");
@@ -43,9 +48,9 @@ export function AddQuestions({
         ))}
       </div>
       {mode === "write" ? (
-        <QuestionBuilder testId={testId} add={add} nextNumber={nextNumber} />
+        <QuestionBuilder testId={testId} add={addOne} nextNumber={nextNumber} />
       ) : (
-        <PasteImport testId={testId} add={add} />
+        <PasteImport testId={testId} add={addMany} unsaved={unsaved} />
       )}
     </div>
   );

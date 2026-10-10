@@ -48,6 +48,29 @@ insert into public.questions (id, test_id, position, prompt, options) values
   ('00000000-0000-4000-8000-0000000000f7', '00000000-0000-4000-8000-0000000000f6', 1, 'Already here', array['x', 'y']);
 insert into public.question_keys (question_id, correct_index) values ('00000000-0000-4000-8000-0000000000f7', 1);
 
+-- Both writers take the per-test positions lock. True when this session holds the lock for that test.
+create function pg_temp.holds_positions_lock(tid uuid) returns boolean language sql as $$
+  select exists (
+    select 1 from pg_locks l, (select hashtextextended('test_positions:' || tid::text, 0) as k) h
+    where l.locktype = 'advisory' and l.pid = pg_backend_pid() and l.granted and l.objsubid = 1
+      and l.classid = oid((h.k >> 32) & 4294967295) and l.objid = oid(h.k & 4294967295))
+$$;
+insert into public.tests (id, classroom_id, title, is_published) values
+  ('00000000-0000-4000-8000-0000000000f9', '00000000-0000-4000-8000-0000000000f4', 'Bulk lock', false);
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000f1');
+select pg_temp.check('the positions lock is not held before the save',
+  not pg_temp.holds_positions_lock('00000000-0000-4000-8000-0000000000f9'));
+select public.save_question('00000000-0000-4000-8000-0000000000f9', null, 'Locked?', array['a', 'b'], 0, '');
+select pg_temp.check('save_question takes the positions lock for a new question',
+  pg_temp.holds_positions_lock('00000000-0000-4000-8000-0000000000f9'));
+select pg_temp.check('the bulk test is not locked yet',
+  not pg_temp.holds_positions_lock('00000000-0000-4000-8000-0000000000f6'));
+reset role;
+select pg_temp.check('import_questions_bulk takes the same lock',
+  pg_get_functiondef('public.import_questions_bulk(uuid, jsonb)'::regprocedure) like '%private.lock_test_positions(tid)%');
+select pg_temp.check('clients cannot call the lock helper',
+  not has_function_privilege('authenticated', 'private.lock_test_positions(uuid)', 'execute'));
+
 -- Gate: only the room's trainer or an executive.
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000f2');
 select pg_temp.check('a member cannot bulk import',
@@ -93,6 +116,8 @@ select pg_temp.check('correct as a string', pg_temp.fails(
   $$select public.import_questions_bulk('00000000-0000-4000-8000-0000000000f6', '[{"prompt":"Q","options":["a","b"],"correct":"1"}]')$$, 'right option'));
 select pg_temp.check('missing correct', pg_temp.fails(
   $$select public.import_questions_bulk('00000000-0000-4000-8000-0000000000f6', '[{"prompt":"Q","options":["a","b"]}]')$$, 'right option'));
+select pg_temp.check('two options the same (case and spaces ignored)', pg_temp.fails(
+  $$select public.import_questions_bulk('00000000-0000-4000-8000-0000000000f6', '[{"prompt":"Q","options":["Femur"," femur ","Tibia"],"correct":0}]')$$, 'Question 1 has two options that are the same'));
 select pg_temp.check('a rejected batch adds nothing',
   (select count(*) from public.questions where test_id = '00000000-0000-4000-8000-0000000000f6') = 1);
 
@@ -106,6 +131,8 @@ begin
 end $$;
 select pg_temp.check('300 questions import in under 1500 ms (took ' || current_setting('hosa.bulk_ms') || ' ms)',
   current_setting('hosa.bulk_ms')::numeric < 1500);
+select pg_temp.check('import_questions_bulk takes the positions lock for its test',
+  pg_temp.holds_positions_lock('00000000-0000-4000-8000-0000000000f6'));
 
 reset role;
 select pg_temp.check('301 questions now, positions 1 to 301 with no gaps',

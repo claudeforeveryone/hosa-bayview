@@ -4,7 +4,8 @@ import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { importQuestions } from "@/app/(app)/c/[id]/tests/actions";
 import { Button, FormMessage } from "@/components/form";
-import type { AddQuestionsFn } from "@/components/questions-editor";
+import type { AddManyFn } from "@/components/questions-editor";
+import { leftoverText, pickKey, withPick, type Picks } from "@/lib/paste-picks";
 import {
   parseQuestions,
   type ParsedQuestion,
@@ -25,29 +26,22 @@ D. Fibula
 Answer: B
 Explanation: The femur runs from hip to knee.`;
 
-// A pick fixes (or sets) the answer, so the missing or wrong-letter errors go away with it.
-function withPick(q: ParsedQuestion, pick: number | undefined) {
-  if (pick === undefined) return { correct: q.correctIndex, errors: q.errors };
-  return {
-    correct: pick,
-    errors: q.errors.filter(
-      (e) => !e.startsWith("No answer") && !e.startsWith("Answer "),
-    ),
-  };
-}
-
 // Paste a whole past test; the preview below shows, as you type, exactly what will be added and what won't (and
 // why). Tapping an option sets or fixes that question's answer. Adding is one call for the whole batch; the
 // questions show in the list at once, and anything not added stays in the box to fix.
 export function PasteImport({
   testId,
   add,
+  unsaved,
 }: {
   testId: string;
-  add: AddQuestionsFn;
+  add: AddManyFn;
+  // Single questions waiting in the list after a failed save; a paste goes in after them, so it waits.
+  unsaved: number;
 }) {
   const [text, setText] = useState("");
-  const [picks, setPicks] = useState<Record<number, number>>({});
+  // Taps in the preview, keyed by each question's own text (src/lib/paste-picks.ts).
+  const [picks, setPicks] = useState<Picks>({});
   const [message, setMessage] = useState<{
     tone: "ok" | "error";
     text: string;
@@ -62,14 +56,14 @@ export function PasteImport({
   const items = parsed.items.map((q, i) => ({
     q,
     i,
-    ...withPick(q, picks[i]),
+    ...withPick(q, picks[pickKey(q)]),
   }));
   const ready = items.filter((x) => !x.errors.length && x.correct !== null);
   const leftOut = items.length - ready.length;
   const tooMany = ready.length > IMPORT_MAX;
 
   const pick = useCallback(
-    (i: number, j: number) => setPicks((p) => ({ ...p, [i]: j })),
+    (key: string, j: number) => setPicks((p) => ({ ...p, [key]: j })),
     [],
   );
 
@@ -99,12 +93,9 @@ export function PasteImport({
     }
     const before = { text, picks };
     const readySet = new Set(ready.map((x) => x.i));
-    // What stays in the box: the questions that weren't ready, as they were typed.
+    // What stays in the box: the questions that weren't ready, as typed, with any answer the trainer picked.
     const leftovers = (keep: Set<number>) =>
-      items
-        .filter((x) => keep.has(x.i))
-        .map((x) => x.q.source)
-        .join("\n\n");
+      leftoverText(parsed.items, keep, picks);
     const notReady = new Set(
       items.filter((x) => !readySet.has(x.i)).map((x) => x.i),
     );
@@ -166,7 +157,6 @@ export function PasteImport({
           readOnly={busy}
           onChange={(e) => {
             setText(e.target.value);
-            setPicks({});
             setMessage(null);
           }}
           rows={8}
@@ -181,7 +171,7 @@ export function PasteImport({
         <Button
           type="button"
           onClick={addAll}
-          disabled={busy || stale || !ready.length || tooMany}
+          disabled={busy || stale || !ready.length || tooMany || unsaved > 0}
         >
           {busy
             ? "Adding"
@@ -207,6 +197,12 @@ export function PasteImport({
             : ""}
         </p>
       </div>
+      {unsaved > 0 && ready.length ? (
+        <p className="text-[15px] text-ink-2">
+          Retry or remove the question{unsaved === 1 ? "" : "s"} that
+          didn&rsquo;t save first, so the order stays right.
+        </p>
+      ) : null}
       {tooMany ? (
         <FormMessage tone="error">{`${IMPORT_MAX} at a time. Paste the rest after.`}</FormMessage>
       ) : null}
@@ -223,9 +219,9 @@ export function PasteImport({
             "q" in r ? (
               <PreviewQuestion
                 key={`q${r.line}`}
-                index={r.i}
                 q={r.q}
-                pick={picks[r.i]}
+                pickId={pickKey(r.q)}
+                pick={picks[pickKey(r.q)]}
                 onPick={pick}
               />
             ) : (
@@ -241,14 +237,14 @@ export function PasteImport({
 // One parsed question, compact. Memoized so tapping an answer re-renders only its own row.
 const PreviewQuestion = memo(function PreviewQuestion({
   q,
-  index,
+  pickId,
   pick,
   onPick,
 }: {
   q: ParsedQuestion;
-  index: number;
+  pickId: string;
   pick: number | undefined;
-  onPick: (i: number, j: number) => void;
+  onPick: (key: string, j: number) => void;
 }) {
   const { correct, errors } = withPick(q, pick);
   const broken = errors.length > 0 || correct === null;
@@ -264,23 +260,24 @@ const PreviewQuestion = memo(function PreviewQuestion({
           {q.prompt || <em className="text-ink-2">No question text</em>}
         </p>
       </div>
-      <ul className="flex flex-wrap gap-1.5 pl-11">
+      <ul role="radiogroup" aria-label={`Right answer for question ${q.number}`} className="flex flex-wrap gap-1.5 pl-11">
         {q.options.map((o, j) => {
           const right = correct === j;
           return (
-            <li key={j} className="max-w-full">
+            <li key={j} role="none" className="max-w-full">
               <button
                 type="button"
-                onClick={() => onPick(index, j)}
-                aria-pressed={right}
-                aria-label={`${LETTERS[j]}: ${o || "empty"}${right ? ", right answer" : ""}`}
+                role="radio"
+                onClick={() => onPick(pickId, j)}
+                aria-checked={right}
+                aria-label={`${q.letters[j] ?? LETTERS[j]}: ${o || "empty"}`}
                 className={`step flex min-h-10 max-w-full items-center gap-1.5 border px-2 py-1 text-left text-[15px] ${
                   right
                     ? "border-ok bg-ok/15 font-medium text-ink"
                     : "border-rule text-ink-2 hover:border-ink hover:text-ink"
                 }`}
               >
-                <span className="num font-semibold">{LETTERS[j]}</span>
+                <span className="num font-semibold">{q.letters[j] ?? LETTERS[j]}</span>
                 <span className="min-w-0 [overflow-wrap:anywhere]">
                   {o || <em>empty</em>}
                 </span>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { choiceKey, isSaveKey, markKey } from "./question-keys";
+import { altDigitsReachPage, choiceKey, isSaveKey, markKey } from "./question-keys";
 
 const key = (
   k: string,
@@ -118,5 +118,17 @@ describe("markKey", () => {
         onMark: false,
       }),
     ).toBeNull();
+  });
+});
+
+describe("altDigitsReachPage", () => {
+  it("is false on Chromebooks and Linux, where Alt plus a number switches tabs or apps", () => {
+    expect(altDigitsReachPage("Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 Chrome/120")).toBe(false);
+    expect(altDigitsReachPage("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120")).toBe(false);
+  });
+
+  it("is true on Windows and Mac", () => {
+    expect(altDigitsReachPage("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120")).toBe(true);
+    expect(altDigitsReachPage("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Safari/605")).toBe(true);
   });
 });

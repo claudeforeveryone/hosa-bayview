@@ -43,3 +43,10 @@ export function markKey(
   const i = Number(m[1]) - 1;
   return i < at.count ? i : null;
 }
+
+// Chromebooks (and desktop Linux) take Alt plus a number for the shelf or tab switching before the page sees it,
+// so the editor only offers that shortcut elsewhere. Tapping a letter, then a number, works everywhere.
+export function altDigitsReachPage(userAgent: string): boolean {
+  if (/CrOS/.test(userAgent)) return false;
+  return !(/Linux/.test(userAgent) && !/Android/.test(userAgent));
+}

@@ -1,8 +1,51 @@
 -- Paste import in one statement. import_questions (0013) calls save_question once per item, which re-checks
 -- the trainer, re-reads max(position) and runs two inserts per question. This checks the trainer once, validates
--- every item in one pass (same rules as check_question, plus the 500-character option cap the app enforces),
+-- every item in one pass (same rules as check_question, plus the 500-character option cap and the no-duplicate-
+-- options rule the app enforces),
 -- then inserts all questions and their keys together. All or nothing: one bad item rejects the batch and names it.
 -- import_questions stays as the fallback the app uses until this is applied.
+--
+-- New positions are max(position) + 1, and questions has no unique (test_id, position), so two writers adding to
+-- one test at once could take the same number. Both writers (this and save_question, which import_questions also
+-- goes through) now take the same per-test transaction lock before reading max(position).
+
+create or replace function private.lock_test_positions(tid uuid)
+returns void language sql volatile set search_path = '' as $$
+  select pg_advisory_xact_lock(hashtextextended('test_positions:' || tid::text, 0))
+$$;
+revoke all on function private.lock_test_positions(uuid) from public, anon, authenticated;
+
+-- Live definition (0013) plus the lock for new questions; nothing else changes.
+create or replace function public.save_question(tid uuid, qid uuid, prompt text, options text[], correct integer, explanation text)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare
+  saved uuid;
+  clean text[] := (select array_agg(trim(o) order by n) from unnest(options) with ordinality as t(o, n));
+begin
+  if not private.can_manage_test(tid) then
+    raise exception 'Only the trainer or an executive can edit this test' using errcode = '42501';
+  end if;
+  perform private.check_question(prompt, options, correct, explanation);
+  if qid is null then
+    perform private.lock_test_positions(tid);
+    insert into public.questions (test_id, position, prompt, options)
+    values (tid, coalesce((select max(q.position) + 1 from public.questions q where q.test_id = tid), 1), trim(prompt), clean)
+    returning id into saved;
+  else
+    update public.questions q
+      set prompt = trim(save_question.prompt), options = clean
+      where q.id = qid and q.test_id = tid
+      returning q.id into saved;
+    if saved is null then
+      raise exception 'That question is not in this test' using errcode = 'P0002';
+    end if;
+  end if;
+  insert into public.question_keys (question_id, correct_index, explanation)
+  values (saved, correct, coalesce(trim(save_question.explanation), ''))
+  on conflict (question_id) do update set correct_index = excluded.correct_index, explanation = excluded.explanation;
+  return saved;
+end
+$$;
 
 create or replace function public.import_questions_bulk(tid uuid, items jsonb)
 returns integer language plpgsql security definer set search_path = '' as $$
@@ -38,6 +81,8 @@ begin
                      where char_length(trim(o)) = 0) then 'has an empty option'
         when exists (select 1 from jsonb_array_elements_text(e.item -> 'options') o
                      where char_length(trim(o)) > 500) then 'has an option over 500 characters'
+        when (select count(distinct lower(trim(o))) from jsonb_array_elements_text(e.item -> 'options') o)
+             <> jsonb_array_length(e.item -> 'options') then 'has two options that are the same'
         when jsonb_typeof(e.item -> 'correct') is distinct from 'number' then 'needs the right option picked'
         when (e.item ->> 'correct') !~ '^\d+$' then 'needs the right option picked'
         when (e.item ->> 'correct')::numeric >= jsonb_array_length(e.item -> 'options') then 'needs the right option picked'
@@ -53,8 +98,8 @@ begin
     raise exception 'Question % %', bad.ord, bad.reason using errcode = '22023';
   end if;
 
-  -- One import at a time per test, so two batches never take the same positions.
-  perform 1 from public.tests t where t.id = tid for update;
+  -- Same per-test lock as save_question, so no other writer takes these positions.
+  perform private.lock_test_positions(tid);
   select coalesce(max(q.position), 0) into base from public.questions q where q.test_id = tid;
 
   with src as (

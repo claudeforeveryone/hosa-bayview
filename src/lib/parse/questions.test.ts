@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseQuestions } from "./questions";
+import { parseQuestions, sourceWithAnswer } from "./questions";
 
 describe("parseQuestions", () => {
   it("reads the standard format", () => {
@@ -15,6 +15,7 @@ Answer: B`);
         line: 1,
         source:
           '1. What does the prefix "brady-" mean?\nA. Fast\nB. Slow\nC. Large\nD. Small\nAnswer: B',
+        letters: ["A", "B", "C", "D"],
         prompt: 'What does the prefix "brady-" mean?',
         options: ["Fast", "Slow", "Large", "Small"],
         correctIndex: 1,
@@ -232,16 +233,42 @@ describe("parseQuestions numbering styles", () => {
 });
 
 describe("parseQuestions answers", () => {
-  it("reads Ans. B, Correct answer is B and a bare Answer B", () => {
+  it("reads Ans. B, Correct answer is B and other explicit forms", () => {
     for (const line of [
       "Ans. B",
       "Correct answer is B",
-      "Answer B",
       "answer: b",
+      "Answer - B",
+      "Answer: (B)",
     ]) {
       const { items } = parseQuestions(`1. Q\nA. a\nB. b\n${line}`);
       expect(items[0].correctIndex, line).toBe(1);
     }
+  });
+
+  it("needs a separator: a bare 'Answer B' is not read as the key", () => {
+    const { items } = parseQuestions("1. Q\nA. a\nB. b\nAnswer B");
+    expect(items[0].correctIndex).toBeNull();
+    expect(items[0].errors).toContain("No answer. Pick the right option.");
+  });
+
+  // Review probe: a wrapped option starting "answer a ..." must not become the key.
+  it("does not read a wrapped option starting 'answer a' as the key", () => {
+    const { items } = parseQuestions(
+      "1. What should the nurse do first?\nA. Wash hands\nB. Call the doctor\nC. Check the chart\nD. Ask the client to\nanswer a short questionnaire\nAnswer: C",
+    );
+    expect(items[0].options[3]).toBe(
+      "Ask the client to answer a short questionnaire",
+    );
+    expect(items[0].correctIndex).toBe(2);
+    expect(items[0].errors).toEqual([]);
+  });
+
+  it("flags a question with two answer lines instead of picking one", () => {
+    const { items } = parseQuestions("1. Q\nA. a\nB. b\nAnswer: A\nAnswer: B");
+    expect(items[0].errors).toContain(
+      "Two answer lines. Pick the right option.",
+    );
   });
 
   it("does not read 'Answer a question' in a prompt as the key", () => {
@@ -291,11 +318,14 @@ Answer Key
     ]);
   });
 
-  it("keeps the inline answer when a key disagrees, and says so", () => {
+  it("leaves a question out when the key disagrees with its answer line, and says so", () => {
     const { items, skipped } = parseQuestions(
       "1. One\nA. a\nB. b\nAnswer: A\nAnswer key\n1. B",
     );
-    expect(items[0].correctIndex).toBe(0);
+    expect(items[0].correctIndex).toBeNull();
+    expect(items[0].errors).toEqual([
+      "Two answer lines. Pick the right option.",
+    ]);
     expect(skipped).toEqual([
       { line: 6, text: "1. B", reason: "Question 1 already has answer A" },
     ]);
@@ -308,6 +338,62 @@ Answer Key
     expect(items[0].correctIndex).toBeNull();
     expect(items[0].errors).toEqual(["No answer. Pick the right option."]);
     expect(items[1].correctIndex).toBe(0);
+  });
+});
+
+describe("parseQuestions clinical text", () => {
+  // Review probe: q6h in an explanation must not start "question 6".
+  it("does not read q6h as a question number", () => {
+    const { items } = parseQuestions(
+      "1. One\nA. a\nB. b\nAnswer: A\nExplanation: Given\nq6h around the clock.\n2. Two\nA. c\nB. d\nAnswer: B",
+    );
+    expect(items.map((q) => q.number)).toEqual([1, 2]);
+    expect(items[0].explanation).toBe("Given\nq6h around the clock.");
+    expect(items[1].prompt).toBe("Two");
+  });
+
+  it("keeps q4h, q12h and q.i.d. inside options and prompts", () => {
+    const { items } = parseQuestions(
+      "1. Dose the drug\nq4h as needed. Which order?\nA. Give it\nq12h with food\nB. Give it q.i.d.\nAnswer: A",
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0].prompt).toBe("Dose the drug\nq4h as needed. Which order?");
+    expect(items[0].options).toEqual([
+      "Give it q12h with food",
+      "Give it q.i.d.",
+    ]);
+    expect(items[0].errors).toEqual([]);
+  });
+
+  it("only moves on to a higher number after an answer", () => {
+    const { items, skipped } = parseQuestions(
+      "2. Two\nA. a\nB. b\nAnswer: A\n1. Earlier?\n3. Three\nA. c\nB. d\nAnswer: B",
+    );
+    expect(items.map((q) => q.number)).toEqual([2, 3]);
+    expect(skipped.map((s) => s.text)).toEqual(["1. Earlier?"]);
+  });
+
+  it("leaves out a question with two choices the same", () => {
+    const { items } = parseQuestions("1. Q\nA. Femur\nB. femur \nAnswer: A");
+    expect(items[0].errors).toContain("Two options are the same.");
+  });
+});
+
+describe("sourceWithAnswer", () => {
+  it("replaces the answer line with the picked one, before the explanation", () => {
+    const fixed = sourceWithAnswer(
+      "1. Q\nA. a\nB. b\nC. c\nAnswer: B\nExplanation: Why",
+      "C",
+    );
+    expect(fixed).toBe("1. Q\nA. a\nB. b\nC. c\nAnswer: C\nExplanation: Why");
+    expect(parseQuestions(fixed).items[0].correctIndex).toBe(2);
+  });
+
+  it("adds an answer line when there was none", () => {
+    expect(
+      parseQuestions(sourceWithAnswer("1. Q\nA. a\nB. b", "A")).items[0]
+        .correctIndex,
+    ).toBe(0);
   });
 });
 
