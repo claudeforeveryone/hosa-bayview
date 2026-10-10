@@ -7,12 +7,20 @@ import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
 import { parseGrade } from "@/lib/profile";
 import { SHORT_SESSION } from "@/lib/session-length";
+import {
+  WRONG_CHAPTER_CODE,
+  clientIp,
+  readChapterGate,
+} from "@/lib/chapter-code";
 
 export type AuthState = {
   error?: string;
   fieldErrors?: Record<string, string>;
   ok?: string;
   values?: Record<string, string>;
+  // Sign-up only: a chapter code is required, so the form shows its field even if the page loaded before the
+  // gate was turned on.
+  chapterGate?: boolean;
 };
 
 const email = z
@@ -125,6 +133,7 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
       email: form.get("email"),
       password: form.get("password"),
     });
+  // The chapter code is never echoed back, like the passwords.
   const values = {
     full_name: String(form.get("full_name") ?? ""),
     email: String(form.get("email") ?? ""),
@@ -132,10 +141,56 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
   };
   // Grade is optional; anything other than 9 to 12 is simply no grade.
   const grade = parseGrade(form.get("grade"));
-  if (!parsed.success)
-    return { fieldErrors: fieldErrors(parsed.error), values };
+  const code = String(form.get("chapter_code") ?? "").trim();
 
   const supabase = await createClient();
+  // Null: migration 0090 isn't applied yet, so there's no gate.
+  let gate: boolean | null;
+  try {
+    gate = await readChapterGate(supabase);
+  } catch (e) {
+    console.error("[auth]", (e as Error).message);
+    return { error: "Something went wrong. Try again.", values };
+  }
+  const chapterGate = gate === true ? { chapterGate: true } : {};
+  const wrongCode: AuthState = {
+    fieldErrors: { chapter_code: WRONG_CHAPTER_CODE },
+    values,
+    chapterGate: true,
+  };
+
+  if (!parsed.success || (gate && !code))
+    return {
+      fieldErrors: {
+        ...(parsed.success ? {} : fieldErrors(parsed.error)),
+        ...(gate && !code ? { chapter_code: "Enter the chapter code." } : {}),
+      },
+      values,
+      ...chapterGate,
+    };
+
+  // The code is checked (and rate limited per IP, plus a cap for everyone) in the database, which hands back a
+  // single-use ticket. The account insert redeems it, so the auth API can't be used to skip this step. A wrong
+  // code and a throttled IP get the same answer.
+  let ticket: string | null = null;
+  if (gate) {
+    const check = await supabase.rpc("check_chapter_code", {
+      code,
+      ip: clientIp(await headers()),
+    });
+    if (check.error && check.error.code !== "54000") {
+      console.error("[auth] check_chapter_code:", check.error.message);
+      return {
+        error: "Something went wrong. Try again.",
+        values,
+        ...chapterGate,
+      };
+    }
+    if (check.error || typeof check.data !== "string" || !check.data)
+      return wrongCode;
+    ticket = check.data;
+  }
+
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -143,11 +198,21 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
       data: {
         full_name: parsed.data.full_name,
         ...(grade ? { grade: String(grade) } : {}),
+        ...(ticket ? { chapter_ticket: ticket } : {}),
       },
       emailRedirectTo: `${await origin()}/auth/callback`,
     },
   });
-  if (error) return { error: friendly(error.message), values };
+  if (error) {
+    // The trigger refused the ticket (it expired, or the code changed in between). The auth server reports any
+    // trigger failure this way.
+    if (
+      ticket &&
+      error.message.toLowerCase().includes("database error saving new user")
+    )
+      return wrongCode;
+    return { error: friendly(error.message), values, ...chapterGate };
+  }
   if (!data.session)
     return {
       ok: form.get("passcode")
