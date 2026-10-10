@@ -15,7 +15,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 - Next.js 16 (App Router, TypeScript, `src/`), Tailwind CSS v4. Read `node_modules/next/dist/docs/` before using Next APIs; this version differs from older training data.
 - Supabase for auth, Postgres, and file storage. `@supabase/ssr` for cookies.
 - Roles enforced with Row Level Security in Postgres, not just hidden in the UI.
-- Deploy target: Vercel (GitHub integration, push to `main` deploys). Repo: `idontreallyknow-20/hosa-bayview` (**public** since 2026-10-10, so cloud sessions on the shared Claude account can clone it). Everything committed is world-readable: secrets stay in Vercel/Supabase env, never in the repo, and new code comments name roles ("an executive"), not people or emails.
+- Deploy target: Vercel (GitHub integration, push to `main` deploys). Repo: `claudemaxforeveryone-hue/hosa-bayview` (moved from idontreallyknow-20 on 2026-10-10; old URLs redirect, idontreallyknow-20 keeps write access) (**public** since 2026-10-10, so cloud sessions on the shared Claude account can clone it). Everything committed is world-readable: secrets stay in Vercel/Supabase env, never in the repo, and new code comments name roles ("an executive"), not people or emails.
 - Migrations live in `supabase/migrations/` and are applied with the Supabase MCP.
 
 ## Authentication
@@ -118,7 +118,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 
 ## Deploy
 
-- Vercel project `hosa-bayview` on the chapter account (josephislockedin@gmail.com, Hobby), linked to GitHub `idontreallyknow-20/hosa-bayview`. Push to `main` deploys to https://hosa-bayview.vercel.app.
+- Vercel project `hosa-bayview` on the chapter account (josephislockedin@gmail.com, Hobby), linked to GitHub `claudemaxforeveryone-hue/hosa-bayview` (reconnected after the 2026-10-10 transfer). Push to `main` deploys to https://hosa-bayview.vercel.app.
 - Env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (all envs), NEXT_PUBLIC_SITE_URL (production).
 - The old personal Vercel team (idontreallyknow-20's projects) is fair-use blocked; don't deploy there.
 - Supabase: project `vxlaswushshckxoblkyb`, org "chess", ca-central-1, Postgres 17.
