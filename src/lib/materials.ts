@@ -267,3 +267,16 @@ export function uploadType(type: string): string {
   const t = type.trim().toLowerCase();
   return SAFE_TYPES.has(t) ? t : "application/octet-stream";
 }
+
+// Fragment ids for section groups, in display order: "section-week-2", null is "section-general". Names that
+// slug the same get -2, -3. The hub and the Resources tab group the same rows, so their ids line up.
+export function sectionAnchors(sections: (string | null)[]): string[] {
+  const used = new Set<string>();
+  return sections.map((s) => {
+    const base = `section-${s === null ? "general" : asciiSlug(s) || "x"}`;
+    let id = base;
+    for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
+    used.add(id);
+    return id;
+  });
+}

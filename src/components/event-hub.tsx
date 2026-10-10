@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
-import { groupBySection } from "@/lib/materials";
+import { groupBySection, sectionAnchors } from "@/lib/materials";
 
 // The event page's middle: what to read (resources by section) and what to practise (tests, decks, skills).
 
 export const hubHeading =
   "px-1 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase sm:px-3";
 
-// One row per section with its count; every row opens the Resources tab, where sections fold open.
+// One row per section with its count; each row opens its own section on the Resources tab.
 export function HubResources({
   base,
   rows,
@@ -20,6 +20,7 @@ export function HubResources({
 }) {
   const href = `${base}/resources`;
   const groups = groupBySection(rows);
+  const anchors = sectionAnchors(groups.map((g) => g.section));
   return (
     <section aria-labelledby="hub-resources-h" className="grid gap-4">
       <h2 id="hub-resources-h" className={hubHeading}>
@@ -27,10 +28,10 @@ export function HubResources({
       </h2>
       {groups.length ? (
         <ul className="border-t border-rule">
-          {groups.map((g) => (
+          {groups.map((g, i) => (
             <li key={g.section ?? "general"} className="border-b border-rule">
               <Link
-                href={href}
+                href={`${href}#${anchors[i]}`}
                 className="step grid min-h-12 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-1 py-3 hover:bg-band sm:px-3"
               >
                 <span className="caps text-[17px] font-semibold [overflow-wrap:anywhere]">
@@ -90,7 +91,7 @@ export function PracticeStrip({
         Practice
       </h2>
       <ul
-        className={`grid border-y border-rule ${cells.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}
+        className={`grid border-y border-rule ${cells.length === 3 ? "grid-cols-3" : cells.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
       >
         {cells.map((c) => (
           <li key={c.slug} className="border-r border-rule last:border-r-0">

@@ -3,11 +3,13 @@ import { deleteMaterial, updateMaterial } from "@/app/(app)/library/actions";
 import { ConfirmAction } from "@/components/confirm-action";
 import { EmptyState } from "@/components/empty-state";
 import { MaterialEditForm } from "@/components/material-form";
+import { OpenFromHash } from "@/components/open-from-hash";
 import {
   type MaterialItem,
   groupBySection,
   isPlaceholder,
   materialMeta,
+  sectionAnchors,
   sectionNames,
 } from "@/lib/materials";
 
@@ -30,11 +32,15 @@ export function MaterialList({
   if (groups.length === 1 && groups[0].section === null)
     return <Rows rows={rows} canManage={canManage} sections={sections} />;
 
+  // Each section has an id, so the hub can link straight to it (#section-week-2) and open it.
+  const anchors = sectionAnchors(groups.map((g) => g.section));
   return (
     <div className="border-t border-rule">
-      {groups.map((g) => (
+      <OpenFromHash />
+      {groups.map((g, i) => (
         <details
           key={g.section ?? "general"}
+          id={anchors[i]}
           open={groups.length === 1 || g.section === null}
           className="border-b border-rule"
         >

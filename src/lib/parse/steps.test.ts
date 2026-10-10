@@ -17,7 +17,11 @@ describe("parseSteps", () => {
   });
 
   it("drops list markers a pasted rating sheet brings along", () => {
-    expect(parseSteps("1. Wash hands\n2) Don gloves | 1\n- Greet patient\n• Explain")).toEqual([
+    expect(
+      parseSteps(
+        "1. Wash hands\n2) Don gloves | 1\n- Greet patient\n• Explain",
+      ),
+    ).toEqual([
       { text: "Wash hands" },
       { text: "Don gloves", points: 1 },
       { text: "Greet patient" },
@@ -26,11 +30,34 @@ describe("parseSteps", () => {
   });
 
   it("keeps numbers that are part of the step", () => {
-    expect(parseSteps("1.5 mL into the vial")).toEqual([{ text: "1.5 mL into the vial" }]);
+    expect(parseSteps("1.5 mL into the vial")).toEqual([
+      { text: "1.5 mL into the vial" },
+    ]);
+  });
+
+  it("keeps a leading dash that is part of the text, strips bullets before a word", () => {
+    expect(
+      parseSteps("- 5 mL from the total | 1\n-  Greet patient\n* 10 cm mark"),
+    ).toEqual([
+      { text: "- 5 mL from the total", points: 1 },
+      { text: "Greet patient" },
+      { text: "* 10 cm mark" },
+    ]);
+  });
+
+  it("gives a lone points line to the step above when it has none", () => {
+    expect(parseSteps("Wash hands\n| 3\nDon gloves | 1\n| 2")).toEqual([
+      { text: "Wash hands", points: 3 },
+      { text: "Don gloves", points: 1 },
+      { text: "| 2" },
+    ]);
+    expect(parseSteps("| 3")).toEqual([{ text: "| 3" }]);
   });
 
   it("keeps a pipe that is not followed by a number as text", () => {
-    expect(parseSteps("Check ID | name and DOB")).toEqual([{ text: "Check ID | name and DOB" }]);
+    expect(parseSteps("Check ID | name and DOB")).toEqual([
+      { text: "Check ID | name and DOB" },
+    ]);
   });
 
   it("reads zero points and leaves invalid point values for validation", () => {
@@ -55,7 +82,13 @@ describe("stepsToText", () => {
 
 describe("totalPoints", () => {
   it("adds the scored steps, or null when no step is scored", () => {
-    expect(totalPoints([{ text: "a", points: 2 }, { text: "b" }, { text: "c", points: 3 }])).toBe(5);
+    expect(
+      totalPoints([
+        { text: "a", points: 2 },
+        { text: "b" },
+        { text: "c", points: 3 },
+      ]),
+    ).toBe(5);
     expect(totalPoints([{ text: "a" }])).toBeNull();
     expect(totalPoints([])).toBeNull();
   });
@@ -73,7 +106,11 @@ describe("cleanSteps", () => {
         null,
         { text: "Bad points", points: "5" },
       ]),
-    ).toEqual([{ text: "Wash hands", points: 2 }, { text: "Don gloves" }, { text: "Bad points" }]);
+    ).toEqual([
+      { text: "Wash hands", points: 2 },
+      { text: "Don gloves" },
+      { text: "Bad points" },
+    ]);
   });
 
   it("reads anything that is not an array as no steps", () => {
