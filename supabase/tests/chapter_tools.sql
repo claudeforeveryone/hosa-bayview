@@ -341,11 +341,16 @@ insert into public.card_reviews (user_id, card_id, known, reviewed_at)
 select pg_temp.as_user(pg_temp.u(8));
 -- Elo is all-time, and each day's multiplier is frozen then (0080). Yesterday's 30 cards earned x1.02 (1-day
 -- streak); today makes a 2-day streak, so today's 100 counted cards earn x1.04 = 104.
--- Week: 30.6 + 104 = 134.6, shown 135; all-time elo 1335.
+-- Week: 30.6 + 104 = 134.6, shown 135; all-time elo 1335. On a Monday yesterday is last week, so the week is
+-- today alone (100 cards, 104).
 select pg_temp.check('flashcards: today counts at most 100 cards (gain 104)',
   (select reviews = 100 and gain = 104 from public.leaderboard('today', null) where user_id = pg_temp.u(8)));
-select pg_temp.check('flashcards: the cap is per day (week counts 100 + 30 = 130, elo 1335)',
-  (select reviews = 130 and gain = 135 and elo = 1335 from public.leaderboard('week', null) where user_id = pg_temp.u(8)));
+select pg_temp.check('flashcards: the cap is per day (week counts 100 + 30 = 130 unless yesterday was last week, elo 1335)',
+  (select case when (now() - interval '1 day') at time zone 'America/Toronto'
+                    >= date_trunc('week', now() at time zone 'America/Toronto')
+               then reviews = 130 and gain = 135 else reviews = 100 and gain = 104 end
+          and elo = 1335
+     from public.leaderboard('week', null) where user_id = pg_temp.u(8)));
 
 -- F2. Mock competitions: open, then closed -----------------------------------------------------------------------
 select pg_temp.as_admin();

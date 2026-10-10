@@ -1,4 +1,4 @@
--- Elo audit (Task 12, migrations 0080+): rulings R1-R9 from the audit plus the M2 farming fixes.
+-- Elo audit (Task 12, migrations 0080+, follow-ups 0083): rulings R1-R9 from the audit plus the M2 farming fixes.
 -- Runs in one transaction and rolls back. Unlike the older files it does not stop at the first failure:
 -- every check runs, and the last statement raises with the list of failures (or returns "all passed").
 -- Throwaway users only. Run with the Supabase MCP execute_sql.
@@ -109,19 +109,24 @@ insert into public.classroom_members (classroom_id, user_id)
 select pg_temp.r(1), pg_temp.u(i) from generate_series(1, 8) i where i not in (2, 3);
 
 -- t1: published practice test, 8 questions (key A). t2: the trainer's unpublished draft. t3: published, timed.
+-- t4: published, timed, 2 questions (cases 16-19; t3 is deleted in case 8).
 insert into public.tests (id, classroom_id, title, is_published, created_by) values
   (pg_temp.t(1), pg_temp.r(1), 'Elo practice', true, pg_temp.u(2)),
   (pg_temp.t(2), pg_temp.r(1), 'Elo draft', false, pg_temp.u(2));
 insert into public.tests (id, classroom_id, title, is_published, created_by, time_limit_minutes) values
-  (pg_temp.t(3), pg_temp.r(1), 'Elo timed', true, pg_temp.u(2), 10);
+  (pg_temp.t(3), pg_temp.r(1), 'Elo timed', true, pg_temp.u(2), 10),
+  (pg_temp.t(4), pg_temp.r(1), 'Elo timed 2', true, pg_temp.u(2), 10);
 insert into public.questions (id, test_id, position, prompt, options)
 select pg_temp.q(i), pg_temp.t(1), i, 'Elo Q' || i, array['a', 'b'] from generate_series(1, 8) i;
 insert into public.questions (id, test_id, position, prompt, options) values
   (pg_temp.q(11), pg_temp.t(2), 1, 'Draft Q', array['a', 'b']),
   (pg_temp.q(21), pg_temp.t(3), 1, 'Timed Q1', array['a', 'b']),
-  (pg_temp.q(22), pg_temp.t(3), 2, 'Timed Q2', array['a', 'b']);
+  (pg_temp.q(22), pg_temp.t(3), 2, 'Timed Q2', array['a', 'b']),
+  (pg_temp.q(41), pg_temp.t(4), 1, 'Timed2 Q1', array['a', 'b']),
+  (pg_temp.q(42), pg_temp.t(4), 2, 'Timed2 Q2', array['a', 'b']);
 insert into public.question_keys (question_id, correct_index, explanation)
-select q.id, 0, 'A' from public.questions q where q.test_id in (pg_temp.t(1), pg_temp.t(2), pg_temp.t(3));
+select q.id, 0, 'A' from public.questions q
+where q.test_id in (pg_temp.t(1), pg_temp.t(2), pg_temp.t(3), pg_temp.t(4));
 
 -- k1: the trainer's deck, shared to the room, 120 cards. k2: u4's private deck, 12 cards.
 insert into public.decks (id, owner_id, classroom_id, title, is_shared) values
@@ -216,7 +221,8 @@ select pg_temp.as_user(pg_temp.u(6));
 select pg_temp.ok('case 5: a broken streak keeps earned Elo (still 1208, streak now 2)', $q$
   select elo = 1208 and streak = 2 from public.leaderboard('all', null) where user_id = pg_temp.u(6)$q$);
 
--- Case 6 (R4): heartbeat minutes and sign-ins are not study days; only graded answers and card reviews are.
+-- Case 6 (R4, 0083): heartbeat minutes and sign-ins are not study days; only graded answers and card reviews
+-- that earn points are.
 select pg_temp.as_admin();
 select pg_temp.step('u7 was on the site yesterday and the day before, no study', $q$
   insert into public.activity_minutes (user_id, minute) values
@@ -276,8 +282,8 @@ select pg_temp.ok('case 9: own-deck reviews pay nothing', $q$
   select not exists (select 1 from public.elo_events where user_id = pg_temp.u(4) and source = 'review')$q$);
 select pg_temp.ok('case 13: own-deck reviews do not make a heartbeat minute count', $q$
   select not exists (select 1 from public.activity_minutes where user_id = pg_temp.u(4))$q$);
-select pg_temp.ok('case 6: own-deck reviews still make today a study day', $q$
-  select exists (select 1 from private.study_days where user_id = pg_temp.u(4) and day = private.local_day(now()))$q$);
+select pg_temp.ok('case 6: own-deck reviews make no study day (0083)', $q$
+  select not exists (select 1 from private.study_days where user_id = pg_temp.u(4) and day = private.local_day(now()))$q$);
 select pg_temp.as_user(pg_temp.u(4));
 select pg_temp.step('u4 reviews 5 room cards twice', $q$
   insert into public.card_reviews (card_id, known) select pg_temp.c(i), true from generate_series(1, 5) i;
@@ -285,6 +291,13 @@ select pg_temp.step('u4 reviews 5 room cards twice', $q$
 select pg_temp.as_admin();
 select pg_temp.ok('case 9: repeats the same day pay once (5 events)', $q$
   select count(*) = 5 from public.elo_events where user_id = pg_temp.u(4) and source = 'review'$q$);
+select pg_temp.ok('case 6: a counted review makes today a study day, at x1.02 from its first point', $q$
+  select exists (select 1 from private.study_days where user_id = pg_temp.u(4) and day = private.local_day(now()))
+     and (select bool_and(multiplier = 1.02) from public.elo_events where user_id = pg_temp.u(4) and source = 'review')$q$);
+select pg_temp.ok('case 18: a counted review holds the per-user advisory lock (two tabs queue for the 100th slot)', $q$
+  select exists (select 1 from pg_locks l
+                 where l.locktype = 'advisory' and l.pid = pg_backend_pid() and l.granted and l.objsubid = 1
+                   and l.objid = (hashtext('hosa.review:' || pg_temp.u(4)::text)::bigint & 4294967295)::oid)$q$);
 select pg_temp.as_user(pg_temp.u(4));
 select pg_temp.step('u4 reviews 110 more room cards', $q$
   insert into public.card_reviews (card_id, known) select pg_temp.c(i), true from generate_series(6, 115) i$q$);
@@ -438,6 +451,103 @@ select pg_temp.ok('case 14: no TRUNCATE for anon or authenticated on any public 
 select pg_temp.ok('case 14: no grants at all on elo_events for anon or authenticated', $q$
   select not exists (select 1 from information_schema.role_table_grants
                      where table_schema = 'public' and table_name = 'elo_events' and grantee in ('anon', 'authenticated'))$q$);
+
+-- Case 16: resubmitting pays nothing more. A second submit (double tap, second tab) returns the same score, and
+-- a late grade of a submitted run is a no-op.
+select pg_temp.as_user(pg_temp.u(6));
+select pg_temp.step('u6 timed run on t4: q41 right, q42 wrong', $q$
+  select pg_temp.save('a6t', public.start_attempt(pg_temp.t(4), 'timed'));
+  select public.answer_question(pg_temp.get('a6t'), pg_temp.q(41), 0);
+  select public.answer_question(pg_temp.get('a6t'), pg_temp.q(42), 1)$q$);
+select pg_temp.ok('case 16: first submit scores 1 of 2', $q$
+  select score = 1 and total = 2 from public.submit_attempt(pg_temp.get('a6t'))$q$);
+select pg_temp.ok('case 16: a resubmit returns the same score, no error', $q$
+  select score = 1 and total = 2 from public.submit_attempt(pg_temp.get('a6t'))$q$);
+select pg_temp.as_admin();
+select pg_temp.step('a late grade of the submitted run', $q$select private.grade_attempt(pg_temp.get('a6t'))$q$);
+select pg_temp.ok('case 16: one answer event per question and one correct, submitted once', $q$
+  select (select count(*) filter (where source = 'answer') = 2 and count(*) filter (where source = 'correct') = 1
+          from public.elo_events where user_id = pg_temp.u(6) and attempt_id = pg_temp.get('a6t'))
+     and (select score = 1 from public.attempts where id = pg_temp.get('a6t'))$q$);
+
+-- Case 17: a regrade (a manager flips is_correct after the key changes) never adds or removes points. The
+-- ledger is append-only: a wrong first answer that becomes right pays no "correct", and a right one that becomes
+-- wrong keeps its points.
+select pg_temp.step('regrade u6: q42 becomes right, q41 becomes wrong', $q$
+  update public.attempt_answers set is_correct = (question_id = pg_temp.q(42))
+  where attempt_id = pg_temp.get('a6t')$q$);
+select pg_temp.ok('case 17: still 2 answer events and the one correct event, on q41', $q$
+  select count(*) filter (where source = 'answer') = 2
+     and count(*) filter (where source = 'correct') = 1
+     and bool_and(source <> 'correct' or ref_id = pg_temp.q(41))
+  from public.elo_events where user_id = pg_temp.u(6) and attempt_id = pg_temp.get('a6t')$q$);
+select pg_temp.ok('case 17: grading a submitted run again does nothing (grade_attempt returns early)', $q$
+  select (select submitted_at is not null from public.attempts where id = pg_temp.get('a6t'))
+     and pg_get_functiondef('private.grade_attempt(uuid)'::regprocedure) ~* 'submitted_at is null for update'$q$);
+
+-- Case 18: concurrent submits. Two sessions can't be opened in one transaction, so the race is played in both
+-- orders, one after the other, and the locks that serialise it are checked: grade_attempt row-locks the attempt
+-- first, the sweep skips rows another session holds, and reviews take a per-user advisory lock (checked in case 9).
+select pg_temp.ok('case 18: grade_attempt locks the attempt row; the sweep uses skip locked', $q$
+  select pg_get_functiondef('private.grade_attempt(uuid)'::regprocedure) ~* 'for update'
+     and pg_get_functiondef('private.finalize_expired_attempts(uuid)'::regprocedure) ~* 'for update skip locked'$q$);
+select pg_temp.as_user(pg_temp.u(7));
+select pg_temp.step('u7 timed run on t4, both right', $q$
+  select pg_temp.save('a7t', public.start_attempt(pg_temp.t(4), 'timed'));
+  select public.answer_question(pg_temp.get('a7t'), pg_temp.q(41), 0);
+  select public.answer_question(pg_temp.get('a7t'), pg_temp.q(42), 0)$q$);
+select pg_temp.as_admin();
+select pg_temp.step('the run expired 5 minutes ago', $q$
+  update public.attempts set started_at = now() - interval '15 minutes', deadline = now() - interval '5 minutes'
+  where id = pg_temp.get('a7t')$q$);
+select pg_temp.as_user(pg_temp.u(1));
+select pg_temp.step('session A: u1 reads the board (the sweep grades the u7 run)', $q$select count(*) from public.leaderboard('all', null)$q$);
+select pg_temp.as_user(pg_temp.u(7));
+select pg_temp.ok('session B: the u7 submit lands after the sweep and gets the same 2 of 2', $q$
+  select score = 2 and total = 2 from public.submit_attempt(pg_temp.get('a7t'))$q$);
+select pg_temp.as_user(pg_temp.u(8));
+select pg_temp.step('u8 timed run on t4, q41 right', $q$
+  select pg_temp.save('a8t', public.start_attempt(pg_temp.t(4), 'timed'));
+  select public.answer_question(pg_temp.get('a8t'), pg_temp.q(41), 0)$q$);
+select pg_temp.ok('session A: u8 submits first', $q$select score = 1 from public.submit_attempt(pg_temp.get('a8t'))$q$);
+select pg_temp.as_admin();
+select pg_temp.step('the deadline passes', $q$
+  update public.attempts set deadline = now() - interval '5 minutes' where id = pg_temp.get('a8t')$q$);
+select pg_temp.as_user(pg_temp.u(1));
+select pg_temp.step('session B: the sweep runs after the submit', $q$select count(*) from public.leaderboard('all', null)$q$);
+select pg_temp.as_admin();
+select pg_temp.ok('case 18: each run paid once (u7 2 answer + 2 correct, u8 1 + 1), each submitted once', $q$
+  select (select count(*) = 4 from public.elo_events where attempt_id = pg_temp.get('a7t'))
+     and (select count(*) = 2 from public.elo_events where attempt_id = pg_temp.get('a8t'))
+     and (select count(*) = 2 and bool_and(submitted_at is not null) from public.attempts
+          where id in (pg_temp.get('a7t'), pg_temp.get('a8t')))$q$);
+select pg_temp.ok('case 18: the run graded by the sweep pays at its deadline', $q$
+  select bool_and(e.earned_at = a.deadline) from public.elo_events e join public.attempts a on a.id = e.attempt_id
+  where e.attempt_id = pg_temp.get('a7t')$q$);
+
+-- Case 19 (0083): the read-time sweep leaves a banned member's expired run alone, then grades it once the ban
+-- lifts, with points dated at the deadline. u5 is banned since case 14.
+select pg_temp.step('u5 left a counted timed run on t4 open before the ban; it expired 5 minutes ago', $q$
+  insert into public.attempts (id, test_id, user_id, mode, started_at, deadline, total, counts)
+  values (pg_temp.id(1207, 1), pg_temp.t(4), pg_temp.u(5), 'timed', now() - interval '15 minutes',
+          now() - interval '5 minutes', 2, true);
+  insert into public.attempt_answers (attempt_id, question_id, selected_index, answered_at)
+  values (pg_temp.id(1207, 1), pg_temp.q(41), 0, now() - interval '10 minutes')$q$);
+select pg_temp.as_user(pg_temp.u(1));
+select pg_temp.step('u1 reads the board', $q$select count(*) from public.leaderboard('all', null)$q$);
+select pg_temp.as_admin();
+select pg_temp.ok('case 19: the banned u5 run is still open and paid nothing', $q$
+  select (select submitted_at is null from public.attempts where id = pg_temp.id(1207, 1))
+     and not exists (select 1 from public.elo_events where attempt_id = pg_temp.id(1207, 1))$q$);
+select pg_temp.step('the ban lifts', $q$update public.profiles set banned_until = null where id = pg_temp.u(5)$q$);
+select pg_temp.as_user(pg_temp.u(1));
+select pg_temp.step('u1 reads the board again', $q$select count(*) from public.leaderboard('all', null)$q$);
+select pg_temp.as_admin();
+select pg_temp.ok('case 19: after the ban the run is graded, paid once at its deadline', $q$
+  select (select submitted_at is not null and score = 1 from public.attempts where id = pg_temp.id(1207, 1))
+     and (select count(*) = 2 and bool_and(e.earned_at = a.deadline)
+          from public.elo_events e join public.attempts a on a.id = e.attempt_id
+          where e.attempt_id = pg_temp.id(1207, 1))$q$);
 
 -- Case 15 (R1 backfill + deleting a classroom): every sign-in day, bonus and first counted graded answer in the
 -- database has its event, and deleting a room keeps the points (classroom set null).
