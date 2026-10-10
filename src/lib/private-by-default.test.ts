@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { config } from "@/proxy";
+import { AVATAR_LINK_SECONDS, MATERIAL_LINK_SECONDS } from "./link-lifetimes";
 import { PUBLIC_PATHS, routeGate } from "./route-gate";
 
 const matcher = new RegExp(`^${config.matcher[0]}$`);
@@ -56,11 +57,13 @@ describe("private by default", () => {
     ]);
   });
 
-  it("signed URLs live at most an hour", () => {
-    for (const f of ["src/app/(app)/library/queries.ts", "src/lib/avatar-urls.ts"]) {
-      const m = readFileSync(f, "utf8").match(/(?:LINK_SECONDS|LIFETIME_SECONDS) = ([\d* ]+);/);
-      expect(m, f).not.toBeNull();
-      expect(eval(m![1]), f).toBeLessThanOrEqual(3600);
-    }
+  it("signed URLs are short: material links 15 minutes, avatars an hour", () => {
+    expect(MATERIAL_LINK_SECONDS).toBeLessThanOrEqual(900);
+    expect(AVATAR_LINK_SECONDS).toBeLessThanOrEqual(3600);
+  });
+
+  it("storage code takes its lifetimes from link-lifetimes", () => {
+    expect(readFileSync("src/app/(app)/library/queries.ts", "utf8")).toContain("= MATERIAL_LINK_SECONDS;");
+    expect(readFileSync("src/lib/avatar-urls.ts", "utf8")).toContain("= AVATAR_LINK_SECONDS;");
   });
 });

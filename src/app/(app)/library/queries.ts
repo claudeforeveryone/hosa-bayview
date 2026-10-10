@@ -2,9 +2,10 @@ import "server-only";
 import { cache } from "react";
 import { uuid } from "@/lib/classrooms";
 import { type MaterialItem, type MaterialRow } from "@/lib/materials";
+import { MATERIAL_LINK_SECONDS } from "@/lib/link-lifetimes";
 import { createClient } from "@/lib/supabase/server";
 
-const LINK_SECONDS = 3600;
+const LINK_SECONDS = MATERIAL_LINK_SECONDS;
 
 // Chapter-wide rows when classroomId is null, otherwise that classroom's. RLS hides what you can't see.
 // Files get a signed link that downloads under the file's own name.

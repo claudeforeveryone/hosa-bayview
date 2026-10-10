@@ -1,9 +1,10 @@
 import "server-only";
 import { AVATAR_BUCKET } from "@/lib/avatar";
+import { AVATAR_LINK_SECONDS } from "@/lib/link-lifetimes";
 import { createClient } from "@/lib/supabase/server";
 
 // Pictures are private. A signed URL lasts an hour, and only a signed-in member can get one (storage policy).
-const LIFETIME_SECONDS = 60 * 60;
+const LIFETIME_SECONDS = AVATAR_LINK_SECONDS;
 
 // Signed URLs for a set of picture paths, fetched in one request. A path that can't be signed is left out,
 // so the caller falls back to initials.
