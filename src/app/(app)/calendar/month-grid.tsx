@@ -33,12 +33,14 @@ function Chip({ e, onOpen }: { e: EventRow; onOpen: () => void }) {
         ev.stopPropagation();
         onOpen();
       }}
-      className={`step flex w-full min-w-0 items-baseline gap-1.5 border-l-[3px] bg-band px-1.5 py-0.5 text-left text-[13px] leading-tight hover:bg-rule focus-visible:outline-2 focus-visible:outline-ink ${tone(e)}`}
+      title={e.title}
+      className={`step grid w-full min-w-0 max-w-full gap-px overflow-hidden border-l-[3px] bg-band px-1.5 py-1 text-left text-[12px] leading-tight hover:bg-rule focus-visible:outline-2 focus-visible:outline-ink lg:text-[13px] ${tone(e)}`}
     >
+      {/* Time on its own line and the title wrapping to two lines, so both stay inside a narrow day box. */}
       {!e.all_day ? (
-        <span className="num shrink-0 text-ink-2">{formatTime(e.starts_at).replace(/\s?[ap]\.m\./i, "")}</span>
+        <span className="num truncate text-[11px] text-ink-2 lg:text-[12px]">{formatTime(e.starts_at)}</span>
       ) : null}
-      <span className="truncate font-medium">{e.title}</span>
+      <span className="line-clamp-2 font-medium [overflow-wrap:anywhere]">{e.title}</span>
     </button>
   );
 }
@@ -113,7 +115,7 @@ export function MonthGrid({
               <li
                 key={d.key}
                 onClick={items.length ? () => show(d.key) : undefined}
-                className={`group relative min-h-14 border-r border-b border-rule-strong p-1 sm:min-h-[7.5rem] sm:p-1.5 ${
+                className={`group relative min-h-14 min-w-0 border-r border-b border-rule-strong p-1 sm:min-h-[7.5rem] sm:p-1.5 ${
                   d.inMonth ? "" : "bg-band/60 text-ink-2"
                 } ${items.length ? "cursor-pointer hover:bg-band" : ""}`}
               >
@@ -149,9 +151,9 @@ export function MonthGrid({
                     </span>
                   ) : null}
                 </div>
-                <ul className="mt-1 hidden gap-1 sm:grid">
+                <ul className="mt-1 hidden min-w-0 gap-1 sm:grid">
                   {items.slice(0, SHOWN).map((e) => (
-                    <li key={e.id}>
+                    <li key={e.id} className="min-w-0">
                       <Chip e={e} onOpen={() => show(d.key, e.id)} />
                     </li>
                   ))}
