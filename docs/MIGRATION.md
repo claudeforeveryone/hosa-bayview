@@ -1,0 +1,37 @@
+# Moving HOSA Bayview's Supabase to the other account
+
+Started 2026-10-10. The site keeps running on the old project the whole time; the switch is one env var change plus a redeploy at the end.
+
+## Source (read-only audit, 2026-10-10)
+
+- Project `vxlaswushshckxoblkyb`, org "chess", ca-central-1, Postgres 17.
+- Schemas to move: `public` and `private` (admin passcode hash, `first_executive_email` setting), plus `auth` users and identities.
+- `public`: 31 tables (all RLS on, 7 with no policies), 62 functions (57 SECURITY DEFINER), 70 policies, 37 triggers, enum `app_role`, no views.
+- Extensions: plpgsql, pg_stat_statements, uuid-ossp, pgcrypto, supabase_vault. No pg_cron, no edge functions.
+- Realtime publication: empty (battles' 0097 not applied yet).
+- Auth: 6 users, email provider only, "Confirm email" off.
+- Storage: `avatars` (private, 2 MB limit, 3 objects) and `materials` (private, 50 MB limit, type allowlist from 0057c, empty).
+- Migrations: 82 applied. Local files not applied at audit time: 0049, 0057c, 0083, 0084 (keepalive RPC), 0085, 0090, 0095-0098 (battles). 0073 is deferred on purpose. Re-check with `list_migrations` before relying on this list; other sessions apply migrations too.
+
+## Deploy side
+
+- Vercel project `hosa-bayview` on josephislockedin@gmail.com (Hobby), https://hosa-bayview.vercel.app, daily cron `/api/keepalive` 09:00 UTC.
+- Env vars that change: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`. Unchanged: `NEXT_PUBLIC_SITE_URL`, `CRON_SECRET`.
+
+## Steps (each ends when its check passes)
+
+1. **Target.** Joseph names the account/org and logs that session in (Supabase CLI `supabase login`, or the Supabase MCP on that account). Check: you can list projects in the target org.
+2. **Project.** Create it in ca-central-1, Postgres 17. Check: ACTIVE_HEALTHY.
+3. **Schema.** `pg_dump --schema-only -n public -n private` from the source (session pooler URL, password from Joseph), restore into the target. Then agree with Joseph which unapplied migrations to apply. Check: table, function, policy and trigger counts match the source (plus agreed extras).
+4. **Data.** `pg_dump --data-only` for `public` and `private`, and `auth.users` + `auth.identities` so password hashes survive. Restore auth first (profiles reference it), with triggers disabled during the load so sign-up triggers don't double-insert. Check: row counts match table by table; the 6 users can log in with their existing passwords.
+5. **Storage.** Recreate both buckets with the same limits and MIME allowlist, copy the `avatars` objects (same paths). Check: object counts match.
+6. **Auth settings.** Site URL https://hosa-bayview.vercel.app, redirect `https://hosa-bayview.vercel.app/**`, Confirm email off, leaked-password protection on. Check: password reset email links back to the site.
+7. **Tests.** Run every `supabase/tests/*.sql` against the target with `execute_sql`. Check: all pass.
+8. **Switch.** Show Joseph the exact env var changes; on his OK, update them for all environments in Vercel and redeploy. Check: live site logs in, data shows, `/api/keepalive` returns 200.
+9. **Leave the old project alone** until Joseph says to pause it.
+
+## Rules
+
+- Read and dump the source freely. Ask Joseph before anything that writes to the source project, deletes anything, or changes Vercel.
+- Never print keys, passwords or connection strings; write `<REDACTED>`.
+- This repo is public: nothing from a dump (emails, hashes, keys) gets committed.
