@@ -11,6 +11,8 @@ const securityHeaders = [
     value:
       "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
   },
+  // Nothing on this site is for search engines. Set here (not in the proxy) so static files and robots.txt get it too.
+  { key: "X-Robots-Tag", value: "noindex, nofollow" },
   // Two years, subdomains too. No preload: that list is hard to leave.
   {
     key: "Strict-Transport-Security",

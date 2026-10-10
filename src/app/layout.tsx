@@ -49,6 +49,11 @@ const montserrat = localFont({
 export const metadata: Metadata = {
   title: { default: "HOSA Bayview", template: "%s · HOSA Bayview" },
   description: "Training for HOSA Bayview members: classrooms, practice tests, flashcards, and leaderboards.",
+  // Private by default: nothing here should be indexed or previewed with member data.
+  robots: { index: false, follow: false, nocache: true },
+  // Link previews carry the chapter name and nothing else (no description, no images).
+  openGraph: { siteName: "HOSA Bayview", title: "HOSA Bayview", description: "HOSA Bayview", type: "website" },
+  twitter: { card: "summary", title: "HOSA Bayview", description: "HOSA Bayview" },
 };
 
 export const viewport: Viewport = {
