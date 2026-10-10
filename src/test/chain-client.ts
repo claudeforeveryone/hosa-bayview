@@ -26,6 +26,7 @@ export function makeClient(result: Result) {
     }),
     auth: {
       updateUser: vi.fn(async () => ({ error: result.error })),
+      signInWithPassword: vi.fn(async () => ({ error: null as { message: string } | null })),
       signOut: vi.fn(async () => ({ error: null })),
     },
   };

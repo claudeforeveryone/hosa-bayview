@@ -28,6 +28,7 @@ const VERB: Record<string, string> = {
   warned: "warned",
   removed: "removed",
   passcode: "changed the admin passcode",
+  passcode_used: "used the admin passcode, which then cleared",
 };
 
 // Who did what to whom: roles, bans, titles, warnings, removals, passcode changes. Filled by triggers.
@@ -58,13 +59,14 @@ export async function AdminLog({ now }: { now: number }) {
                   {r.actor_name || "System"}
                 </span>{" "}
                 {VERB[r.action] ?? r.action}
-                {r.target_name ? (
+                {/* A passcode claim targets the claimer themselves; the name is already there. */}
+                {r.target_name && r.action !== "passcode_used" ? (
                   <>
                     {" "}
                     <span className="font-semibold">{r.target_name}</span>
                   </>
                 ) : null}
-                {r.detail && r.action !== "passcode" ? (
+                {r.detail && r.action !== "passcode" && r.action !== "passcode_used" ? (
                   <span className="block truncate text-[15px] text-ink-2">
                     {r.detail}
                   </span>

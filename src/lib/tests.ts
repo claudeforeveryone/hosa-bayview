@@ -62,8 +62,12 @@ export type Attempt = {
   started_at: string;
   deadline: string | null;
   submitted_at: string | null;
+  // Null while running, and when the test hides answers and this run doesn't earn a score (see score_hidden).
   score: number | null;
   total: number;
+  // Submitted, but the score is withheld from the taker: answers are hidden and this was practice on a timed
+  // test or a run that skipped questions. Scores are read through attempt_list, never off the table.
+  score_hidden: boolean;
 };
 
 export type ResultRow = {
@@ -169,11 +173,7 @@ export async function getAttempt(attemptId: string): Promise<Attempt | null> {
   if (!uuid.safeParse(attemptId).success) return null;
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("attempts")
-    .select(
-      "id, test_id, user_id, mode, started_at, deadline, submitted_at, score, total",
-    )
-    .eq("id", attemptId)
+    .rpc("attempt_list", { p_attempt: attemptId })
     .maybeSingle();
   if (error) throw new Error(`Attempt lookup failed: ${error.message}`);
   return (data as Attempt | null) ?? null;
@@ -198,14 +198,9 @@ export async function getMyAttempts(
   userId: string,
 ): Promise<Attempt[]> {
   const supabase = await createClient();
+  // Newest first (the RPC orders by started_at desc).
   const { data, error } = await supabase
-    .from("attempts")
-    .select(
-      "id, test_id, user_id, mode, started_at, deadline, submitted_at, score, total",
-    )
-    .eq("test_id", testId)
-    .eq("user_id", userId)
-    .order("started_at", { ascending: false })
+    .rpc("attempt_list", { p_test: testId, p_user: userId })
     .limit(20);
   if (error) throw new Error(`Attempts lookup failed: ${error.message}`);
   return (data ?? []) as Attempt[];

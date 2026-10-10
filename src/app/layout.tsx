@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible, Barlow, Barlow_Condensed, Lexend } from "next/font/google";
 import localFont from "next/font/local";
+import { headers } from "next/headers";
 import { AppearanceSync } from "@/components/appearance";
 import { appearanceScript } from "@/lib/appearance";
 import { introScript } from "@/lib/intro";
@@ -57,7 +58,9 @@ export const viewport: Viewport = {
 };
 
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // The proxy's per-request CSP nonce. The inline scripts below run before paint, so they need it too.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
@@ -65,8 +68,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${barlow.variable} ${barlowCondensed.variable} ${atkinson.variable} ${lexend.variable} ${montserrat.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
-        <script dangerouslySetInnerHTML={{ __html: introScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: appearanceScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: introScript }} />
       </head>
       <body className="min-h-full">
         <SiteIntro />

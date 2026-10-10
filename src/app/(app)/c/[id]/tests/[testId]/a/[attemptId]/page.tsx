@@ -9,7 +9,7 @@ import type { DeckOption } from "@/components/selection-cards";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { listDecks } from "@/lib/decks";
-import { attemptsLeft, scoredMode } from "@/lib/test-settings";
+import { attemptsLeft, hiddenScoreNote, scoredMode } from "@/lib/test-settings";
 import {
   countAttempts,
   getAttempt,
@@ -110,10 +110,23 @@ export default async function AttemptPage({
         <p className="caps text-[16px] text-ink-2">
           {attempt.mode === "timed" ? "Timed" : "Practice"} · Done
         </p>
-        <p className="num font-display text-[clamp(4rem,18vw,8rem)] leading-[0.85] font-bold">
-          {score}/{attempt.total}
-        </p>
-        <p className="num caps text-[20px]">{pct}%</p>
+        {attempt.score_hidden ? (
+          <>
+            <p className="font-display text-[clamp(3rem,14vw,6rem)] leading-[0.85] font-bold uppercase">
+              Score hidden
+            </p>
+            <p className="max-w-[60ch] text-[17px] text-ink-2">
+              {hiddenScoreNote(attempt.mode, test.time_limit_minutes)}
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="num font-display text-[clamp(4rem,18vw,8rem)] leading-[0.85] font-bold">
+              {score}/{attempt.total}
+            </p>
+            <p className="num caps text-[20px]">{pct}%</p>
+          </>
+        )}
         {mine ? (
           <div className="pt-2">
             <StartTest

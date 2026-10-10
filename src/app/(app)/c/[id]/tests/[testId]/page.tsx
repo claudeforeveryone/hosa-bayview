@@ -134,7 +134,9 @@ export default async function TestPage({
                     </span>
                   </span>
                   <span className="flex items-center gap-2">
-                    {a.submitted_at ? (
+                    {a.score_hidden ? (
+                      <span className="caps text-[16px] text-ink-2">Score hidden</span>
+                    ) : a.submitted_at ? (
                       <span className="num font-display text-[24px] font-semibold">
                         {a.score}/{a.total}
                         <span className="ml-2 text-[16px] text-ink-2">

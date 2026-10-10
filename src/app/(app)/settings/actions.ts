@@ -70,6 +70,10 @@ export async function setAdminPasscode(
   _: AuthState,
   form: FormData,
 ): Promise<AuthState> {
+  // The RPC checks too; this keeps a direct POST from a non-executive from reaching it at all.
+  const profile = await requireProfile();
+  if (profile.role !== "executive")
+    return { error: "Only executives can set the passcode." };
   const code = String(form.get("new_passcode") ?? "");
   // Count characters the way Postgres char_length does (code points), not UTF-16 units.
   const length = [...code].length;
@@ -87,16 +91,19 @@ export async function setAdminPasscode(
     return { error: "Couldn't save that. Try again." };
   }
   refresh();
-  return { ok: "Passcode set. Share it only with new admins." };
+  return { ok: "Passcode set. It works once: share it only with the next new admin." };
 }
 
 export async function changePassword(
   _: AuthState,
   form: FormData,
 ): Promise<AuthState> {
-  await requireProfile();
+  const profile = await requireProfile();
+  const current = String(form.get("current") ?? "");
   const password = String(form.get("password") ?? "");
   const confirm = String(form.get("confirm") ?? "");
+  if (!current)
+    return { fieldErrors: { current: "Enter your current password." } };
   if (password.length < 8)
     return { fieldErrors: { password: "Use at least 8 characters." } };
   if (new TextEncoder().encode(password).length > 72) {
@@ -110,6 +117,16 @@ export async function changePassword(
     return { fieldErrors: { confirm: "Passwords don't match." } };
 
   const supabase = await createClient();
+  // Proves it's the account owner, not someone at an unlocked device or holding a stolen session.
+  const check = await supabase.auth.signInWithPassword({
+    email: profile.email,
+    password: current,
+  });
+  if (check.error) {
+    if (check.error.message.toLowerCase().includes("rate limit"))
+      return { error: "Too many tries. Wait a minute and try again." };
+    return { fieldErrors: { current: "That isn't your current password." } };
+  }
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
     if (error.message.toLowerCase().includes("different from the old")) {

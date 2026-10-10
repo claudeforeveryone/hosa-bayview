@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   attemptsLeft,
+  hiddenScoreNote,
   parseAttemptsAllowed,
   practiceRuleOk,
   scoredMode,
@@ -44,5 +45,22 @@ describe("practiceRuleOk", () => {
     expect(practiceRuleOk(null, false)).toBe(false);
     expect(practiceRuleOk(null, true)).toBe(true);
     expect(practiceRuleOk(20, false)).toBe(true);
+  });
+});
+
+describe("hiddenScoreNote", () => {
+  it("says practice never scores on a timed test with answers hidden", () => {
+    expect(hiddenScoreNote("practice", 30)).toBe(
+      "Answers are hidden on this test, so practice runs don't show a score.",
+    );
+  });
+
+  it("asks for every question on a scored run", () => {
+    expect(hiddenScoreNote("timed", 30)).toBe(
+      "Answers are hidden on this test. Answer every question to see your score.",
+    );
+    expect(hiddenScoreNote("practice", null)).toBe(
+      "Answers are hidden on this test. Answer every question to see your score.",
+    );
   });
 });
