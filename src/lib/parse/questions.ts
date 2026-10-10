@@ -16,11 +16,20 @@ export type ParsedQuestion = {
   source: string;
   // Each option's letter as typed (they can be out of order, which is an error).
   letters: string[];
+  // Where the answer line goes when the question is written back out: the question's own lines, which of them
+  // are answer lines, and the index just after its last option line.
+  layout: Layout;
   prompt: string;
   options: string[];
   correctIndex: number | null;
   explanation: string;
   errors: string[];
+};
+
+export type Layout = {
+  lines: string[];
+  answerLines: number[];
+  optionsEnd: number;
 };
 
 export type SkippedLine = { line: number; text: string; reason: string };
@@ -31,10 +40,17 @@ const NUMBERED = /^\s*(\d{1,3})\s*[.):](?!\d)\s*(.*)$/;
 const LABELLED =
   /^\s*(?:q\s?(\d{1,3})\s*[.):]|question\s+(\d{1,3})\b\s*[.):\-–]?)\s*(.*)$/i;
 const OPTION = /^\s*\(?([A-Ea-e])[.)](?:\s+(.*))?$/;
-// Only an explicit key form counts: "Answer: B", "Ans. B", "Answer - B", "Answer: (B)", "Correct answer is B".
-// The letter has to stand alone, so a wrapped option ("answer a short questionnaire") is never read as the key.
-const ANSWER =
-  /^\s*(?:correct\s+answer|answer|ans)\s*(?:is\s+|[:.\-–]\s*)\(?([A-Ea-e])\)?(?=$|[\s.)])/i;
+// Only an explicit key form counts. With a separator ("Answer: B", "Ans. B", "Answer - B", "Answer: (B) Femur")
+// the letter must stand alone. The "is" form ("The answer is B.", "Correct answer is: (B)") must be the whole line,
+// so wrapped option text like "answer a short questionnaire" or "answer is a judgment call" is never the key.
+const ANSWER_SEPARATED =
+  /^\s*(?:correct\s+answer|answer|ans)\s*[:.\-–]\s*\(?([A-Ea-e])\)?(?=$|[\s.)])/i;
+const ANSWER_IS =
+  /^\s*(?:the\s+)?(?:correct\s+)?answer\s+is\s*[:\-–]?\s*\(?([A-Ea-e])\)?\s*[.)]?\s*$/i;
+
+function answerLine(line: string): RegExpExecArray | null {
+  return ANSWER_IS.exec(line) ?? ANSWER_SEPARATED.exec(line);
+}
 const EXPLANATION = /^\s*(?:explanation|rationale|reason)\s*[:\-–]\s*(.*)$/i;
 const KEY_HEADING =
   /^\s*(?:answer\s*key|answer\s*sheet|answers|key)\s*[:\-–]?\s*(.*)$/i;
@@ -48,6 +64,9 @@ type Draft = {
   number: number;
   line: number;
   raw: string[];
+  // Indices into raw: answer lines, and just after the last option line (wrapped text included).
+  answerLines: number[];
+  optionsEnd: number;
   prompt: string[];
   options: { letter: string; text: string }[];
   answer: string | null;
@@ -91,14 +110,24 @@ export function isAnswerError(e: string): boolean {
   );
 }
 
-// The question's own text with its answer set to `letter`: any answer lines dropped, then "Answer: X" placed
-// before the explanation (after it, the line would read as more explanation). Used when a question goes back into
-// the paste box, so a trainer's pick survives.
-export function sourceWithAnswer(source: string, letter: string): string {
-  const lines = source.split("\n").filter((l) => !ANSWER.test(l));
-  const at = lines.findIndex((l) => EXPLANATION.test(l));
-  lines.splice(at === -1 ? lines.length : at, 0, `Answer: ${letter}`);
-  return lines.join("\n");
+// The question's lines with its answer lines dropped and "Answer: X" placed right after the last option line, by
+// the parsed position (never by matching text, so a prompt line like "Reason: chest pain" stays in the prompt, and
+// an explanation stays after the answer).
+function writeAnswer(layout: Layout, letter: string): string {
+  const drop = new Set(layout.answerLines);
+  const out: string[] = [];
+  layout.lines.forEach((l, i) => {
+    if (i === layout.optionsEnd) out.push(`Answer: ${letter}`);
+    if (!drop.has(i)) out.push(l);
+  });
+  if (layout.optionsEnd >= layout.lines.length) out.push(`Answer: ${letter}`);
+  return out.join("\n");
+}
+
+// The question as typed, with its answer set to `letter`. Used when a question goes back into the paste box, so a
+// trainer's pick survives.
+export function sourceWithAnswer(q: ParsedQuestion, letter: string): string {
+  return writeAnswer(q.layout, letter);
 }
 
 // A line can carry several options ("A. Humerus B. Femur C. Tibia"). Split at the next letters in order, but only
@@ -150,7 +179,10 @@ function finish(d: Draft): ParsedQuestion {
   if (options.some((o) => !o)) errors.push("An option is empty.");
   if (d.options.some((o, i) => o.letter !== LETTERS[i]))
     errors.push("Option letters are out of order.");
-  if (options.every(Boolean) && new Set(options.map((o) => o.toLowerCase())).size !== options.length)
+  if (
+    options.every(Boolean) &&
+    new Set(options.map((o) => o.toLowerCase())).size !== options.length
+  )
     errors.push("Two options are the same.");
 
   let correctIndex: number | null = null;
@@ -170,13 +202,20 @@ function finish(d: Draft): ParsedQuestion {
   if (explanation.length > 2000)
     errors.push("Explanation is over 2000 characters.");
 
+  const layout: Layout = {
+    lines: d.raw,
+    answerLines: d.answerLines,
+    optionsEnd: d.optionsEnd || d.raw.length,
+  };
+  // An answer from the end key is written in right after the options, where an answer line belongs.
   const source =
-    d.raw.join("\n") + (d.keyed && d.answer ? `\nAnswer: ${d.answer}` : "");
+    d.keyed && d.answer ? writeAnswer(layout, d.answer) : d.raw.join("\n");
   return {
     number: d.number,
     line: d.line,
     source,
     letters: d.options.map((o) => o.letter),
+    layout,
     prompt,
     options,
     correctIndex,
@@ -213,8 +252,7 @@ export function parseQuestions(text: string): {
           reason: `Question ${e.number} already has answer ${target.answer}`,
         });
         target.conflict = "Two answer lines. Pick the right option.";
-      }
-      else if (!target.answer) {
+      } else if (!target.answer) {
         target.answer = e.letter;
         target.keyed = true;
       }
@@ -268,6 +306,8 @@ export function parseQuestions(text: string): {
         number: q.number,
         line: lineNo,
         raw: [line.trim()],
+        answerLines: [],
+        optionsEnd: 0,
         prompt: [q.rest],
         options: [],
         answer: null,
@@ -296,16 +336,19 @@ export function parseQuestions(text: string): {
       return;
     }
 
-    const a = ANSWER.exec(line);
+    const a = answerLine(line);
     if (a && d.phase === "options") {
       d.answer = a[1].toUpperCase();
       d.phase = "answered";
+      d.answerLines.push(d.raw.length);
       d.raw.push(line.trim());
       return;
     }
     // A second answer line: don't guess which one is right.
     if (a && (d.phase === "answered" || d.phase === "explanation")) {
-      if (a[1].toUpperCase() !== d.answer) d.conflict = "Two answer lines. Pick the right option.";
+      if (a[1].toUpperCase() !== d.answer)
+        d.conflict = "Two answer lines. Pick the right option.";
+      d.answerLines.push(d.raw.length);
       d.raw.push(line.trim());
       return;
     }
@@ -329,6 +372,7 @@ export function parseQuestions(text: string): {
       d.options.push(...splitOptions(o[1].toUpperCase(), (o[2] ?? "").trim()));
       d.phase = "options";
       d.raw.push(line.trim());
+      d.optionsEnd = d.raw.length;
       return;
     }
 
@@ -339,6 +383,7 @@ export function parseQuestions(text: string): {
       const last = d.options[d.options.length - 1];
       last.text = `${last.text} ${line.trim()}`.trim();
       d.raw.push(line.trim());
+      d.optionsEnd = d.raw.length;
     } else {
       // Stray lines after the answer (page numbers, footers).
       skipped.push({

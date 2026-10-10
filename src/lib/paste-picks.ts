@@ -32,7 +32,7 @@ export function leftoverText(
     .map(({ q }) => {
       const pick = picks[pickKey(q)];
       const letter = pick === undefined ? undefined : q.letters[pick];
-      return letter ? sourceWithAnswer(q.source, letter) : q.source;
+      return letter ? sourceWithAnswer(q, letter) : q.source;
     })
     .join("\n\n");
 }

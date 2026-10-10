@@ -16,6 +16,18 @@ Answer: B`);
         source:
           '1. What does the prefix "brady-" mean?\nA. Fast\nB. Slow\nC. Large\nD. Small\nAnswer: B',
         letters: ["A", "B", "C", "D"],
+        layout: {
+          lines: [
+            '1. What does the prefix "brady-" mean?',
+            "A. Fast",
+            "B. Slow",
+            "C. Large",
+            "D. Small",
+            "Answer: B",
+          ],
+          answerLines: [5],
+          optionsEnd: 5,
+        },
         prompt: 'What does the prefix "brady-" mean?',
         options: ["Fast", "Slow", "Large", "Small"],
         correctIndex: 1,
@@ -379,21 +391,111 @@ describe("parseQuestions clinical text", () => {
   });
 });
 
-describe("sourceWithAnswer", () => {
-  it("replaces the answer line with the picked one, before the explanation", () => {
-    const fixed = sourceWithAnswer(
-      "1. Q\nA. a\nB. b\nC. c\nAnswer: B\nExplanation: Why",
-      "C",
+describe("parseQuestions 'answer is' lines", () => {
+  // Review probe: wrapped option text "answer is a ..." must not become the key.
+  it("does not read a wrapped last option 'answer is a judgment call' as the key", () => {
+    const { items } = parseQuestions(
+      "1. Which is correct?\nA. Policy says the\nB. Either way, the\nanswer is a judgment call\nAnswer: A",
     );
+    expect(items[0].options).toEqual([
+      "Policy says the",
+      "Either way, the answer is a judgment call",
+    ]);
+    expect(items[0].correctIndex).toBe(0);
+    expect(items[0].errors).toEqual([]);
+  });
+
+  it("does not read it as the key when there is no answer line either", () => {
+    const { items } = parseQuestions(
+      "1. Which is correct?\nA. Policy says the\nB. Either way, the\nanswer is a judgment call",
+    );
+    expect(items[0].options[1]).toBe(
+      "Either way, the answer is a judgment call",
+    );
+    expect(items[0].correctIndex).toBeNull();
+    expect(items[0].errors).toContain("No answer. Pick the right option.");
+  });
+
+  it("does not read 'answer is a matter of policy' mid-options as the key", () => {
+    const { items } = parseQuestions(
+      "2. Which is correct?\nA. The nurse should\nB. The nurse's\nanswer is a matter of policy\nC. Ignore it\nAnswer: C",
+    );
+    expect(items[0].options).toEqual([
+      "The nurse should",
+      "The nurse's answer is a matter of policy",
+      "Ignore it",
+    ]);
+    expect(items[0].correctIndex).toBe(2);
+    expect(items[0].errors).toEqual([]);
+  });
+
+  it("still reads a whole-line 'The answer is B.' and 'Answer is: (B)'", () => {
+    for (const line of [
+      "The answer is B.",
+      "Answer is: (B)",
+      "correct answer is b",
+    ]) {
+      expect(
+        parseQuestions(`1. Q\nA. a\nB. b\n${line}`).items[0].correctIndex,
+        line,
+      ).toBe(1);
+    }
+  });
+});
+
+describe("sourceWithAnswer", () => {
+  it("replaces the answer line with the picked one, right after the last option", () => {
+    const [q] = parseQuestions(
+      "1. Q\nA. a\nB. b\nC. c\nAnswer: B\nExplanation: Why",
+    ).items;
+    const fixed = sourceWithAnswer(q, "C");
     expect(fixed).toBe("1. Q\nA. a\nB. b\nC. c\nAnswer: C\nExplanation: Why");
     expect(parseQuestions(fixed).items[0].correctIndex).toBe(2);
   });
 
   it("adds an answer line when there was none", () => {
-    expect(
-      parseQuestions(sourceWithAnswer("1. Q\nA. a\nB. b", "A")).items[0]
-        .correctIndex,
-    ).toBe(0);
+    const [q] = parseQuestions("1. Q\nA. a\nB. b").items;
+    expect(parseQuestions(sourceWithAnswer(q, "A")).items[0].correctIndex).toBe(
+      0,
+    );
+  });
+
+  // Review probe: a prompt line that looks like an explanation ("Reason: ...") must stay in the prompt.
+  it("places the answer after the options, never by matching a prompt line", () => {
+    const [q] = parseQuestions(
+      "1. Patient presents with\nReason: chest pain. Next step?\nA. ECG\nB. Discharge\nC. Ignore",
+    ).items;
+    const again = parseQuestions(sourceWithAnswer(q, "A")).items[0];
+    expect(again.prompt).toBe(
+      "Patient presents with\nReason: chest pain. Next step?",
+    );
+    expect(again.correctIndex).toBe(0);
+    expect(again.errors).toEqual([]);
+  });
+
+  it("keeps wrapped option text above the answer line", () => {
+    const [q] = parseQuestions(
+      "1. Q\nA. a\nB. long option\nthat wraps\nAnswer: A",
+    ).items;
+    const again = parseQuestions(sourceWithAnswer(q, "B")).items[0];
+    expect(again.options).toEqual(["a", "long option that wraps"]);
+    expect(again.correctIndex).toBe(1);
+  });
+});
+
+describe("source of a question keyed at the end", () => {
+  // Review probe: an end-of-paste key plus an explanation must round-trip without "Two answer lines".
+  it("puts the key's answer after the options, before the explanation", () => {
+    const { items } = parseQuestions(
+      "1. P\nA. same\nB. Same\nC. other\nExplanation: why\n2. Q\nA. x\nB. y\nAnswer key: 1. C 2. A",
+    );
+    expect(items[0].source).toBe(
+      "1. P\nA. same\nB. Same\nC. other\nAnswer: C\nExplanation: why",
+    );
+    const again = parseQuestions(items[0].source).items[0];
+    expect(again.correctIndex).toBe(2);
+    expect(again.explanation).toBe("why");
+    expect(again.errors).toEqual(["Two options are the same."]);
   });
 });
 
