@@ -201,3 +201,12 @@ Global additions:
 
 ### Task 19: Official HOSA resources
 - Researcher finds, per event, the official hosa.org pages/PDFs (event guidelines incl. rating sheets, sample test questions, event page). Real URLs only, verified reachable. Added as link materials in section "Official HOSA". Skills note for events without steps links to that event's guidelines.
+
+### Task 20: Private by default
+- Every route except /login, /signup, /forgot-password, /reset-password, /auth/* requires a session (check src/proxy.ts covers all). `robots.txt` disallow all + `X-Robots-Tag: noindex, nofollow` header + `<meta name="robots" content="noindex">`. No public profile, file, or test URLs; storage stays private with short signed URLs. Open Graph/preview cards show only the chapter name.
+
+### Task 21: Responsive + smooth motion pass
+- Every page at 360, 390, 768, 1024, 1440 px: no horizontal scroll, tap targets >= 44 px, readable tables (stack on mobile). Motion: one entrance per page, transform/opacity only, 150-250 ms ease-out, no layout shift, reduced-motion respected; fix any janky transitions found (review-animations, improve-animations).
+
+### Task 22: "How the site works" Google Doc
+- In the user's Google Drive: a plain-language doc for execs covering: what the site is built with; where it is hosted (Vercel) and where data lives (Supabase project hosa-bayview, ca-central-1, tables, storage buckets, what is in each); accounts, roles and who can see/do what; how content gets added (files, links, tests, skills, announcements); limits (1 GB storage, 50 MB per file, free plans); secrets and where they are kept; backups and how to export; how deploys work (GitHub -> Vercel); what to do if something breaks; handover checklist for next year's execs. Facts checked against the repo and live project (fact-checker), no secrets in the doc.
