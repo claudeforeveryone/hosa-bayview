@@ -17,7 +17,8 @@ import { requireProfile } from "@/lib/auth";
 import { getClassroom, getRoomInfo, uuid } from "@/lib/classrooms";
 import { listDecks } from "@/lib/decks";
 import { createClient } from "@/lib/supabase/server";
-import { getClassroomTests } from "@/lib/tests";
+import { getClassroomFlags, getClassroomTests } from "@/lib/tests";
+import { ClassroomFlagList } from "@/components/flag-list";
 import { saveAnnouncement } from "@/app/(app)/announcements/actions";
 import { getSkills } from "./skills/queries";
 
@@ -60,6 +61,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
   const category = info?.category ?? null;
   const skills = category === "practical" ? await getSkills(id) : [];
   const canPost = Boolean(room?.can_manage);
+  const flags = canPost ? await getClassroomFlags(id) : [];
   const base = `/c/${id}`;
   // eslint-disable-next-line react-hooks/purity -- server render time, once per request
   const now = Date.now();
@@ -127,6 +129,18 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
               </div>
             </details>
           ) : null}
+        </section>
+      ) : null}
+
+      {canPost ? (
+        <section aria-labelledby="asks-h" className="grid gap-4">
+          <h2 id="asks-h" className={`${hubHeading} flex items-baseline gap-3`}>
+            Ask teacher
+            <span className="num border border-ink px-2 py-0.5 font-sans text-[16px] font-semibold tracking-normal">
+              {flags.length}
+            </span>
+          </h2>
+          <ClassroomFlagList classroomId={id} flags={flags} />
         </section>
       ) : null}
 

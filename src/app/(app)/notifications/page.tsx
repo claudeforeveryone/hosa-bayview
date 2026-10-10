@@ -6,6 +6,7 @@ import {
   Medal,
   Megaphone,
   MessageSquareReply,
+  MessageCircleQuestion,
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
@@ -20,7 +21,7 @@ export const metadata: Metadata = { title: "Notifications" };
 
 type Row = {
   id: string;
-  kind: "announcement" | "test" | "reply" | "event" | "competition" | "role";
+  kind: "announcement" | "test" | "reply" | "event" | "competition" | "role" | "question";
   title: string;
   body: string;
   link: string;
@@ -32,6 +33,7 @@ const KIND: Record<Row["kind"], { Icon: LucideIcon; label: string }> = {
   announcement: { Icon: Megaphone, label: "Announcement" },
   test: { Icon: ClipboardList, label: "New test" },
   reply: { Icon: MessageSquareReply, label: "Reply" },
+  question: { Icon: MessageCircleQuestion, label: "Ask teacher" },
   event: { Icon: CalendarDays, label: "Calendar" },
   competition: { Icon: Medal, label: "BLC" },
   role: { Icon: ShieldCheck, label: "Your role" },

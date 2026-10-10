@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { replyToFlag } from "@/app/(app)/c/[id]/tests/actions";
 import { Button, FormMessage } from "@/components/form";
-import type { TestFlag } from "@/lib/tests";
+import type { ClassroomFlag, TestFlag } from "@/lib/tests";
+
+type RowFlag = Pick<TestFlag, "id" | "full_name" | "pos" | "prompt" | "note">;
 
 // Open Ask teacher questions on one test. The trainer replies (optional) and marks each answered.
 export function FlagList({
@@ -38,13 +41,49 @@ export function FlagList({
   );
 }
 
+// Open Ask teacher questions across a classroom's tests, on the classroom page. Each row names its test.
+export function ClassroomFlagList({
+  classroomId,
+  flags,
+}: {
+  classroomId: string;
+  flags: ClassroomFlag[];
+}) {
+  const [done, setDone] = useState<Set<string>>(() => new Set());
+  const open = flags.filter((f) => !done.has(f.id));
+
+  if (!open.length) {
+    return (
+      <p className="border-y border-dashed border-rule-strong px-1 py-4 text-ink-2">
+        No open questions. When a member taps Ask teacher, it shows up here and in your notifications.
+      </p>
+    );
+  }
+
+  return (
+    <ol className="border-t border-rule">
+      {open.map((f) => (
+        <FlagRow
+          key={f.id}
+          testId={f.test_id}
+          flag={f}
+          test={{ href: `/c/${classroomId}/tests/${f.test_id}`, title: f.test_title }}
+          onAnswered={() => setDone((s) => new Set(s).add(f.id))}
+        />
+      ))}
+    </ol>
+  );
+}
+
 function FlagRow({
   testId,
   flag,
+  test,
   onAnswered,
 }: {
   testId: string;
-  flag: TestFlag;
+  flag: RowFlag;
+  test?: { href: string; title: string };
   onAnswered: () => void;
 }) {
   const [reply, setReply] = useState("");
@@ -64,7 +103,17 @@ function FlagRow({
     <li className="grid gap-3 border-b border-rule py-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="text-[17px] font-medium">{flag.full_name}</p>
-        <p className="caps num text-[15px] text-ink-2">Q{flag.pos}</p>
+        <p className="caps num text-[15px] text-ink-2">
+          {test ? (
+            <>
+              <Link href={test.href} className="underline decoration-rule-strong underline-offset-4 hover:text-ink">
+                {test.title}
+              </Link>
+              {" · "}
+            </>
+          ) : null}
+          Q{flag.pos}
+        </p>
       </div>
       <p className="whitespace-pre-line">{flag.prompt}</p>
       {flag.note ? (

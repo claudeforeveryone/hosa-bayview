@@ -239,6 +239,27 @@ export async function getTestFlags(testId: string): Promise<TestFlag[]> {
   return (data ?? []) as TestFlag[];
 }
 
+// Open Ask teacher questions across every test in a classroom. Managers only (the RPC returns nothing otherwise).
+export type ClassroomFlag = {
+  id: string;
+  test_id: string;
+  test_title: string;
+  question_id: string;
+  full_name: string;
+  pos: number;
+  prompt: string;
+  note: string;
+  created_at: string;
+};
+
+export async function getClassroomFlags(classroomId: string): Promise<ClassroomFlag[]> {
+  if (!uuid.safeParse(classroomId).success) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("classroom_flags", { cid: classroomId });
+  if (error) throw new Error(`Questions lookup failed: ${error.message}`);
+  return (data ?? []) as ClassroomFlag[];
+}
+
 // Best score per member per posted test for a classroom. Members get only their own rows (RLS in the RPC).
 export async function getClassroomGrades(
   classroomId: string,
