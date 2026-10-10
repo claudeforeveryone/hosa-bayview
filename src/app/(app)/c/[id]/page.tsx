@@ -141,6 +141,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
           rows={rankBoard(board, metric, period)}
           meId={me.id}
           empty="No one's on the board yet"
+          scope="room"
         />
       </section>
     </div>

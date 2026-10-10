@@ -106,8 +106,8 @@ insert into public.activity_minutes (user_id, minute, classroom_id) values
   (pg_temp.u(3), date_trunc('minute', now() - interval '2 minutes'), null);
 insert into public.sign_in_days (user_id, day) values (pg_temp.u(3), private.local_day(now()));
 insert into public.elo_bonuses (user_id, amount, reason, created_at) values (pg_temp.u(3), 20, 'visit', now());
-insert into public.attempts (id, test_id, user_id, mode, total) values
-  (pg_temp.a(1), pg_temp.t(1), pg_temp.u(3), 'practice', 4);
+insert into public.attempts (id, test_id, user_id, mode, total, counts) values
+  (pg_temp.a(1), pg_temp.t(1), pg_temp.u(3), 'practice', 4, true);
 insert into public.attempt_answers (attempt_id, question_id, selected_index, is_correct) values
   (pg_temp.a(1), pg_temp.q(1), 0, true), (pg_temp.a(1), pg_temp.q(2), 0, true),
   (pg_temp.a(1), pg_temp.q(3), 0, true), (pg_temp.a(1), pg_temp.q(4), 1, false);
@@ -281,8 +281,8 @@ insert into public.question_keys (question_id, correct_index, explanation) value
 select pg_temp.check('competition tests get one timed run with a 60 minute limit by default', exists (
   select 1 from public.tests where id = pg_temp.t(2) and attempts_allowed = 1 and time_limit_minutes = 60));
 -- Member 4 has already answered in the competition (not submitted). That must stay off class boards.
-insert into public.attempts (id, test_id, user_id, mode, deadline, total) values
-  (pg_temp.a(2), pg_temp.t(2), pg_temp.u(4), 'timed', now() + interval '1 hour', 1);
+insert into public.attempts (id, test_id, user_id, mode, deadline, total, counts) values
+  (pg_temp.a(2), pg_temp.t(2), pg_temp.u(4), 'timed', now() + interval '1 hour', 1, true);
 insert into public.attempt_answers (attempt_id, question_id, selected_index, is_correct) values
   (pg_temp.a(2), pg_temp.q(5), 2, true);
 select pg_temp.expect('competitions refuse join codes (membership rows)',
@@ -313,32 +313,35 @@ select pg_temp.check('exec my classes list has the classes, not the competition'
 
 -- G. Boards and the daily flashcard cap ----------------------------------------------------------------------------
 select pg_temp.as_user(pg_temp.u(3));
-select pg_temp.check('class board: room minutes (2), answers (4), right (3), elo 1217 with no sign-in or bonus',
-  (select minutes = 2 and answered = 4 and correct = 3 and elo = 1217 and gain = 17
+-- Since 0081 a class board shows room points with no 1200 base: (4 x 2 + 3 x 3) x 1.02 = 17.34.
+select pg_temp.check('class board: room minutes (2), answers (4), right (3), 17 points with no sign-in or bonus',
+  (select minutes = 2 and answered = 4 and correct = 3 and elo = 17 and gain = 17
      from public.leaderboard('all', pg_temp.r(1)) where user_id = pg_temp.u(3)));
 select pg_temp.check('chapter board: all minutes (3), sign-in and bonus (elo 1242)',
   (select minutes = 3 and elo = 1242 and gain = 42 from public.leaderboard('all', null) where user_id = pg_temp.u(3)));
 select pg_temp.check('class board ignores competition answers, chapter board counts them',
-  (select answered = 0 and minutes = 0 and elo = 1200 from public.leaderboard('all', pg_temp.r(1)) where user_id = pg_temp.u(4))
+  (select answered = 0 and minutes = 0 and elo = 0 from public.leaderboard('all', pg_temp.r(1)) where user_id = pg_temp.u(4))
   and (select answered = 1 from public.leaderboard('all', null) where user_id = pg_temp.u(4)));
 select pg_temp.check('class board holds only room members',
   not exists (select 1 from public.leaderboard('all', pg_temp.r(1)) where user_id = pg_temp.u(5)));
 
 select pg_temp.as_admin();
-insert into public.decks (id, owner_id, classroom_id, title) values (pg_temp.k(2), pg_temp.u(8), null, 'Flash deck');
+-- The deck is the trainer's: reviews on your own deck pay nothing since 0080 (R5).
+insert into public.decks (id, owner_id, classroom_id, title) values (pg_temp.k(2), pg_temp.u(2), null, 'Flash deck');
 insert into public.cards (id, deck_id, position, term, definition)
   select pg_temp.cd(i), pg_temp.k(2), i, 'T' || i, 'D' || i from generate_series(1, 150) i;
--- 120 cards today (plus repeats of card 1, which must not add), 30 more cards yesterday.
+-- 30 cards yesterday, then 120 cards today (plus repeats of card 1, which must not add).
+insert into public.card_reviews (user_id, card_id, known, reviewed_at)
+  select pg_temp.u(8), pg_temp.cd(i), true, now() - interval '1 day' from generate_series(121, 150) i;
 insert into public.card_reviews (user_id, card_id, known, reviewed_at)
   select pg_temp.u(8), pg_temp.cd(i), true, now() from generate_series(1, 120) i;
 insert into public.card_reviews (user_id, card_id, known, reviewed_at)
   select pg_temp.u(8), pg_temp.cd(1), false, now() - make_interval(secs => i) from generate_series(1, 5) i;
-insert into public.card_reviews (user_id, card_id, known, reviewed_at)
-  select pg_temp.u(8), pg_temp.cd(i), true, now() - interval '1 day' from generate_series(121, 150) i;
 
 select pg_temp.as_user(pg_temp.u(8));
--- Elo is all-time. Yesterday's 30 reviews make a 2-day streak, so study gains take x1.04.
--- Today: 100 counted cards x 1.04 = 104 gain. Week: 130 counted x 1.04 = 135 gain, all-time elo 1335.
+-- Elo is all-time, and each day's multiplier is frozen then (0080). Yesterday's 30 cards earned x1.02 (1-day
+-- streak); today makes a 2-day streak, so today's 100 counted cards earn x1.04 = 104.
+-- Week: 30.6 + 104 = 134.6, shown 135; all-time elo 1335.
 select pg_temp.check('flashcards: today counts at most 100 cards (gain 104)',
   (select reviews = 100 and gain = 104 from public.leaderboard('today', null) where user_id = pg_temp.u(8)));
 select pg_temp.check('flashcards: the cap is per day (week counts 100 + 30 = 130, elo 1335)',
