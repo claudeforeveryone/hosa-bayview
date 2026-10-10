@@ -87,7 +87,7 @@ function WeekRow({ room, week }: { room: WeekStatus; week: string }) {
             size={18}
             strokeWidth={2}
             aria-hidden
-            className="self-center text-ink-2 group-open:rotate-180 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.23,1,0.32,1)]"
+            className="self-center text-ink-2 group-open:rotate-180 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out"
           />
         </summary>
         <div className="grid gap-4 px-1 pt-1 pb-6 sm:px-3">

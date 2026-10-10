@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { SEASON } from "@/components/classic-logo";
+import { markHeroSeen, type HeroVariant } from "@/lib/hero";
 
 // Shards of the triangle (together they are the whole triangle): wedges around the point the tiger roars from, each thrown
 // outward and toward the viewer. Coordinates are percentages of the logo stage.
@@ -67,8 +68,9 @@ const shardStyle = (s: Shard) =>
 const LINES = ["Shatter", "Every limit"];
 
 // Which banners have played in this page load. Coming back to a page client-side shows it finished, but
-// signing in still plays Home's banner after the sign-in page's own.
-const played = new Set<"bare" | "panel">();
+// signing in still plays Home's banner after the sign-in page's own. Across reloads in the same session the
+// head script (src/lib/hero.ts) rests them before paint.
+const played = new Set<HeroVariant>();
 
 // The banner at the top of Home and the sign-in page. On a fresh load it drops in, the classic logo breaks
 // apart in 3D and "Shatter every limit" flips in beside the tiger; then it stays as a plain band.
@@ -82,10 +84,11 @@ export function HeroBanner({
   className?: string;
 }) {
   // Server and first client render agree (nothing has played yet), so hydration matches.
-  const variant = bare ? "bare" : "panel";
+  const variant: HeroVariant = bare ? "bare" : "panel";
   const [play] = useState(() => !played.has(variant));
   useEffect(() => {
     played.add(variant);
+    markHeroSeen(variant);
   }, [variant]);
 
   return (

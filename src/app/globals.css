@@ -165,6 +165,13 @@
   --radius-none: 0;
 }
 
+/* Motion tokens. UI moves on one strong ease-out (150-250 ms); the drawer uses an iOS-like curve. Static, so the
+   variables exist for the stylesheet below even where no utility uses them. */
+@theme static {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
 @layer base {
   html {
     background: var(--ground);
@@ -230,12 +237,21 @@
   }
 }
 
-/* Motion is a hard step, never an ease. */
+/* State changes (hover, picked, right or wrong) cross-fade their colours quickly. Buttons also give a little
+   under the finger; .press is only on real buttons, never rows or fields. */
 @media (prefers-reduced-motion: no-preference) {
   .step {
     transition-property: background-color, color, border-color;
-    transition-duration: 90ms;
-    transition-timing-function: steps(2, end);
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out);
+  }
+  .press {
+    transition-property: background-color, color, border-color, transform;
+    transition-duration: 150ms, 150ms, 150ms, 160ms;
+    transition-timing-function: var(--ease-out);
+  }
+  .press:active:not(:disabled) {
+    transform: scale(0.97);
   }
 }
 
@@ -565,15 +581,48 @@
   64%, 100% { transform: none; opacity: 1; letter-spacing: 0.32em; }
 }
 
-/* Study card: each side turns in over five hard steps, the house motion. */
+/* Study card: each side turns in from edge-on. Reduce Motion: the new side fades in instead. */
 @media (prefers-reduced-motion: no-preference) {
   .card-face {
-    animation: card-face 200ms steps(5, end) both;
+    animation: card-face 220ms var(--ease-out) both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-face {
+    animation: fade-in 150ms ease-out both;
   }
 }
 @keyframes card-face {
   from { transform: perspective(700px) rotateY(-90deg); }
   to { transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+/* A practice verdict ("Right", "Not quite") settles in as it lands. Opacity only under Reduce Motion. */
+.reveal {
+  animation: reveal 200ms var(--ease-out) both;
+}
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation-name: fade-in; }
+}
+
+/* Phone menu: the drawer slides out from the left edge it lives on; the dim fades. Fade only under Reduce Motion. */
+.drawer[open] {
+  animation: drawer-in 260ms var(--ease-drawer) both;
+}
+.drawer[open]::backdrop {
+  animation: fade-in 200ms ease-out both;
+}
+@keyframes drawer-in {
+  from { transform: translateX(-100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drawer[open] { animation: fade-in 150ms ease-out both; }
 }
 
 /* Board menus: the panel settles in from its trigger. Opacity alone under Reduce Motion. */
@@ -590,18 +639,21 @@
   from { opacity: 0; }
 }
 
-/* Page loading: held back 150 ms so quick pages never flash it, then the rail runs across in hard steps.
-   Reduced motion keeps the rail still. */
+/* Page loading: held back 150 ms so quick pages never flash it, then it fades up over 200 ms, so a page that
+   lands just after the hold swaps in over a faint skeleton instead of a hard flash. The rail sweeps steadily.
+   Reduced motion keeps the rail still. Calm motion keeps the hold (it only zeroes the fade). */
 .route-loading {
-  animation: route-loading-in 1ms 150ms both;
+  animation: route-loading-in 200ms ease-out 150ms both;
+}
+:root[data-motion="calm"] .route-loading {
+  animation-delay: 150ms !important;
 }
 @keyframes route-loading-in {
-  from { visibility: hidden; }
-  to { visibility: visible; }
+  from { opacity: 0; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .route-loading-rail > span {
-    animation: route-loading-rail 1200ms steps(8, end) 150ms infinite;
+    animation: route-loading-rail 1100ms linear 150ms infinite;
   }
 }
 @keyframes route-loading-rail {
@@ -609,7 +661,7 @@
   to { transform: translateX(400%); }
 }
 
-/* Lucky bonus: a band slams in, the number pops, pieces burst out. Transform and opacity only, in hard steps.
+/* Lucky bonus: a band slams in, the number pops, pieces burst out. Transform and opacity only.
    Reduced motion gets a plain fade of the band and nothing moves. */
 @keyframes lucky-slam {
   from {
@@ -656,14 +708,14 @@
   animation: lucky-fade 200ms linear both;
 }
 .lucky-piece {
-  animation: lucky-burst 1200ms steps(6, end) both;
+  animation: lucky-burst 900ms var(--ease-out) both;
 }
 @media (prefers-reduced-motion: no-preference) {
   .lucky-band {
-    animation: lucky-slam 240ms steps(4, end) both;
+    animation: lucky-slam 240ms var(--ease-out) both;
   }
   .lucky-num {
-    animation: lucky-pop 1200ms steps(6, end) both;
+    animation: lucky-pop 600ms var(--ease-out) both;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -812,7 +864,7 @@ html[data-intro] .intro-right {
 }
 @keyframes intro-mark {
   0%, 21% { opacity: 0; transform: scale(1.7); }
-  22% { opacity: 1; transform: scale(1.7); animation-timing-function: steps(5, end); }
+  22% { opacity: 1; transform: scale(1.7); animation-timing-function: var(--ease-out); }
   31% { opacity: 1; transform: scale(1); }
   49% { transform: none; }
   50% { transform: translate(-1.2%, 0.6%); }
@@ -852,7 +904,7 @@ html[data-intro] .intro-right {
   html:not([data-intro-played]) .hero-page[data-play] .hero-panel { animation: none; }
   html:not([data-intro-played]) .hero-page[data-play] .hero-char {
     animation-name: hero-slam;
-    animation-timing-function: steps(4, end);
+    animation-timing-function: var(--ease-out);
     animation-delay: calc(var(--i) * 26ms);
   }
   html:not([data-intro-played]) .hero-page[data-play] .hero-words { animation: hero-shake var(--hero-t) both; }
@@ -874,6 +926,16 @@ html[data-intro] .intro-right {
 @keyframes hero-rule {
   0%, 56% { transform: scaleX(0); }
   78%, 100% { transform: scaleX(1); }
+}
+
+/* Seen this session (src/lib/hero.ts): a reload shows the banner at rest instead of replaying its entrance. */
+:is(html[data-hero-rest~="bare"] .hero-bare, html[data-hero-rest~="panel"] .hero:not(.hero-bare))
+  :is(.hero-shard, .hero-season-old, .hero-flash, .hero-glint, .hero-ecg-pulse) {
+  display: none !important;
+}
+:is(html[data-hero-rest~="bare"] .hero-bare, html[data-hero-rest~="panel"] .hero:not(.hero-bare)) *,
+:is(html[data-hero-rest~="bare"] .hero-bare, html[data-hero-rest~="panel"] .hero:not(.hero-bare)) .hero-panel::after {
+  animation: none !important;
 }
 
 /* Settings > Look: accent colour. Overrides the theme's highlight ("you") in both modes. */
@@ -907,10 +969,10 @@ html[data-intro] .intro-right {
 /* The bell's count pops once when it appears. */
 @media (prefers-reduced-motion: no-preference) {
   .bell-badge {
-    animation: bell-pop 320ms cubic-bezier(0.16, 1, 0.3, 1);
+    animation: bell-pop 200ms var(--ease-out);
   }
 }
 @keyframes bell-pop {
-  from { transform: scale(0.4); opacity: 0; }
+  from { transform: scale(0.6); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }

@@ -10,6 +10,7 @@ import {
 import { AskTeacher, type FlagState } from "@/components/ask-teacher";
 import { Button, FormMessage } from "@/components/form";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
+import { feedback, primeFeedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import type { AttemptQuestion } from "@/lib/tests";
 
@@ -77,6 +78,8 @@ export function TakeTest({
   const [confirming, setConfirming] = useState(false);
   const [submitting, startSubmit] = useTransition();
   const [saving, setSaving] = useState<string | null>(null);
+  // The practice question whose verdict just came back, so only a fresh verdict animates (not one you go back to).
+  const [fresh, setFresh] = useState<string | null>(null);
   const submitted = useRef(false);
   const autoTried = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -91,12 +94,14 @@ export function TakeTest({
     if (submitted.current) return;
     submitted.current = true;
     setError(null);
+    primeFeedback();
     startSubmit(async () => {
       const r = await submitAttempt(attemptId);
       if (r.error) {
         submitted.current = false;
         setError(r.error);
       } else {
+        feedback("submit");
         void rollLuckyBonus("test");
         router.refresh();
       }
@@ -128,6 +133,7 @@ export function TakeTest({
   const go = (i: number) => {
     setCurrent(i);
     setConfirming(false);
+    setFresh(null);
     requestAnimationFrame(() => heading.current?.focus());
   };
 
@@ -136,6 +142,8 @@ export function TakeTest({
     const qid = q.question_id;
     const before = answers[qid];
     setError(null);
+    // The verdict sound comes after the server answers; wake audio now, inside the tap.
+    if (practice) primeFeedback();
     setAnswers((a) => ({
       ...a,
       [qid]: {
@@ -170,6 +178,10 @@ export function TakeTest({
         saved: true,
       },
     }));
+    if (practice && typeof r.is_correct === "boolean") {
+      setFresh(qid);
+      feedback(r.is_correct ? "correct" : "wrong");
+    }
   };
 
   const low = deadline !== null && remaining <= 60_000;
@@ -268,7 +280,10 @@ export function TakeTest({
           {locked ? (
             <>
               <p
+                key={mine?.saved ? "verdict" : "checking"}
                 className={`caps text-[18px] ${
+                  mine?.saved && fresh === q.question_id ? "reveal" : ""
+                } ${
                   mine?.saved && mine.is_correct
                     ? "text-ok"
                     : mine?.saved && mine.is_correct === false

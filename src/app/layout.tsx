@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { headers } from "next/headers";
 import { AppearanceSync } from "@/components/appearance";
 import { appearanceScript } from "@/lib/appearance";
+import { heroRestScript } from "@/lib/hero";
 import { introScript } from "@/lib/intro";
 import { SiteIntro } from "@/components/site-intro";
 import "./globals.css";
@@ -70,6 +71,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: appearanceScript }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: introScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: heroRestScript }} />
       </head>
       <body className="min-h-full">
         <SiteIntro />

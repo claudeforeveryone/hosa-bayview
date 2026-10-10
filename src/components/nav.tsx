@@ -197,7 +197,7 @@ export function MobileBar(props: Props) {
           if (target === drawer.current || target.closest("a"))
             drawer.current?.close();
         }}
-        className="m-0 h-dvh max-h-none border-0 p-0 w-[min(20rem,86vw)] max-w-none overflow-y-auto bg-field text-on-field backdrop:bg-[#0f2440]/60"
+        className="drawer m-0 h-dvh max-h-none border-0 p-0 w-[min(20rem,86vw)] max-w-none overflow-y-auto bg-field text-on-field backdrop:bg-[#0f2440]/60"
       >
         <div className="flex min-h-full flex-col">
           <div className="flex items-start justify-between px-5 pt-3 pb-6">

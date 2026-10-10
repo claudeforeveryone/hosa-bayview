@@ -103,10 +103,13 @@ export const FONTS: { id: Font; label: string }[] = [
   { id: "dyslexic", label: "Dyslexia-friendly" },
 ];
 
-export const isAccent = (v: unknown): v is Accent => ACCENTS.some((a) => a.id === v);
-export const isTextSize = (v: unknown): v is TextSize => TEXT_SIZES.some((t) => t.id === v);
+export const isAccent = (v: unknown): v is Accent =>
+  ACCENTS.some((a) => a.id === v);
+export const isTextSize = (v: unknown): v is TextSize =>
+  TEXT_SIZES.some((t) => t.id === v);
 export const isFont = (v: unknown): v is Font => FONTS.some((f) => f.id === v);
-export const isMotion = (v: unknown): v is Motion => v === "full" || v === "calm";
+export const isMotion = (v: unknown): v is Motion =>
+  v === "full" || v === "calm";
 
 export const readAccent = (): Accent => {
   const v = stored("accent");
@@ -120,7 +123,18 @@ export const readFont = (): Font => {
   const v = stored("font");
   return isFont(v) ? v : "default";
 };
-export const readMotion = (): Motion => (stored("motion") === "calm" ? "calm" : "full");
+export const readMotion = (): Motion =>
+  stored("motion") === "calm" ? "calm" : "full";
+
+// Feedback on answers, flips and submits (src/lib/feedback.ts). Sound is opt-in; haptics are on unless
+// switched off, and only do anything where the device can vibrate. Neither touches the page's look.
+export type Toggle = "on" | "off";
+export const parseSound = (v: string | null): Toggle =>
+  v === "on" ? "on" : "off";
+export const parseHaptics = (v: string | null): Toggle =>
+  v === "off" ? "off" : "on";
+export const readSound = (): Toggle => parseSound(stored("sound"));
+export const readHaptics = (): Toggle => parseHaptics(stored("haptics"));
 
 // Defaults leave the attribute off, so the stylesheet's base look applies.
 function setAttr(name: string, value: string, fallback: string) {
@@ -157,9 +171,30 @@ export function setMotion(v: Motion) {
   window.dispatchEvent(new Event("hosa:appearance"));
 }
 
+export function setSound(v: Toggle) {
+  store("sound", v);
+  window.dispatchEvent(new Event("hosa:appearance"));
+}
+export function setHaptics(v: Toggle) {
+  store("haptics", v);
+  window.dispatchEvent(new Event("hosa:appearance"));
+}
+
+// Every per-device setting, for the reset and for syncing a change made in another tab.
+export const LOOK_KEYS = [
+  "theme",
+  "palette",
+  "accent",
+  "text",
+  "font",
+  "motion",
+  "sound",
+  "haptics",
+];
+
 // Back to the shipped look on this device.
 export function resetAppearance() {
-  for (const k of ["theme", "palette", "accent", "text", "font", "motion"]) {
+  for (const k of LOOK_KEYS) {
     try {
       localStorage.removeItem(k);
     } catch {}

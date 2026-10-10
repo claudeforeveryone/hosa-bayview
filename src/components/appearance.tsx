@@ -5,6 +5,7 @@ import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
 import {
   ACCENTS,
   FONTS,
+  LOOK_KEYS,
   MODES,
   PALETTES,
   TEXT_SIZES,
@@ -12,16 +13,20 @@ import {
   applyMode,
   readAccent,
   readFont,
+  readHaptics,
   readMode,
   readMotion,
   readPalette,
+  readSound,
   readTextSize,
   resetAppearance,
   setAccent,
   setFont,
+  setHaptics,
   setMode,
   setMotion,
   setPalette,
+  setSound,
   setTextSize,
   type Accent,
   type Font,
@@ -29,7 +34,15 @@ import {
   type Motion,
   type Palette,
   type TextSize,
+  type Toggle,
 } from "@/lib/appearance";
+import { canVibrate, feedback } from "@/lib/feedback";
+
+const noop = () => () => {};
+const TOGGLES: { id: Toggle; label: string }[] = [
+  { id: "off", label: "Off" },
+  { id: "on", label: "On" },
+];
 
 function subscribe(onChange: () => void) {
   window.addEventListener("hosa:appearance", onChange);
@@ -54,7 +67,7 @@ export function AppearanceSync() {
       if (readMode() === "system") applyMode("system");
     };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === null || ["theme", "palette", "accent", "text", "font", "motion"].includes(e.key)) {
+      if (e.key === null || LOOK_KEYS.includes(e.key)) {
         applyMode(readMode());
         applyPalette(readPalette());
         applyExtras();
@@ -132,6 +145,10 @@ export function LookSection() {
   const text = useSyncExternalStore<TextSize>(subscribe, readTextSize, () => "standard");
   const font = useSyncExternalStore<Font>(subscribe, readFont, () => "default");
   const motion = useSyncExternalStore<Motion>(subscribe, readMotion, () => "full");
+  const sound = useSyncExternalStore<Toggle>(subscribe, readSound, () => "off");
+  const haptics = useSyncExternalStore<Toggle>(subscribe, readHaptics, () => "on");
+  // Only devices that can vibrate get the Haptics choice. False on the server, so hydration matches.
+  const vibrates = useSyncExternalStore(noop, canVibrate, () => false);
   const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? "#7a1f2b";
 
   return (
@@ -250,6 +267,29 @@ export function LookSection() {
           value={motion}
           onPick={setMotion}
         />
+        <Segments
+          name="look-sound"
+          label="Sound"
+          options={TOGGLES}
+          value={sound}
+          onPick={(v) => {
+            setSound(v);
+            // Switching it on plays a sample, so you know what you'll hear.
+            if (v === "on") feedback("correct");
+          }}
+        />
+        {vibrates ? (
+          <Segments
+            name="look-haptics"
+            label="Haptics"
+            options={TOGGLES}
+            value={haptics}
+            onPick={(v) => {
+              setHaptics(v);
+              if (v === "on") feedback("flip");
+            }}
+          />
+        ) : null}
         <button
           type="button"
           onClick={resetAppearance}
