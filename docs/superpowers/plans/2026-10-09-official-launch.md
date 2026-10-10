@@ -152,3 +152,41 @@
 - [ ] Meeting walkthrough script `docs/trainer-exec-walkthrough.md` (30-45 min, every function, trainer and exec views) via pge-writing.
 - [ ] Confirm exec login by email works (Kaden's report) and the login error says to use your email.
 - [ ] Hand preview link to the user. Merge to `main` only after they say so.
+
+---
+
+## Additions (user, 2026-10-09 late)
+
+Global additions:
+- Every function must be usable by a trainer without help. Trainers and execs only manage their own stuff: trainers manage only classrooms they own (announcements, tests, decks, resources, skills, attendance); execs manage chapter-wide items and any classroom. Members manage nothing but their own profile and attempts.
+- Never invent questions or answers. Only content from the provided files.
+- Copy: no extra text, no filler, no AI-sounding phrases. Labels short.
+- Motion must never glitch: no double entrances, no layout jump, respects prefers-reduced-motion.
+
+### Task 10: Permission and security audit
+- Enumerate every table, RPC, storage policy, and server action. For each: who can read, who can write. Write `supabase/tests/permissions_matrix.sql` asserting the matrix for roles executive / trainer-owner / trainer-non-owner / member / non-member / banned, covering announcements (chapter + classroom), tests, questions, question_keys, attempts, decks, cards, resources, materials (rows + storage objects), skills, attendance, events, elo tables, profiles, admin_log, notifications.
+- Fix every hole found with a new migration. Server actions must re-check auth (direct POST). Run Supabase `get_advisors` security + performance; fix new warnings.
+- Check: rate limits on join/passcode, no secrets in client bundles, signed URLs short-lived, input length caps.
+
+### Task 11: Instant question adding
+- Find why adding questions is slow (measure: per-question RPC loop? revalidation? large payload over 1 MB server-action limit?). Make paste-import one round trip (single RPC with a jsonb array), optimistic UI, live preview while typing, keyboard-first single question add (Enter to add option, Ctrl+Enter to save).
+- Tests: parser edge cases, import of 300 questions in one call under a time budget.
+
+### Task 12: ELO system audit
+- Read every ELO path (match_results, elo_bonuses, elo_rolls, leaderboard). Write unit tests for the rating math (expected score, K factor, floors, ties, retakes, deleted tests, concurrent submits) and SQL tests for the RPCs. Fix bugs: no double counting, no farming by retaking practice, atomic updates, members cannot write ratings directly.
+
+### Task 13: Chapter passcode shell
+- `private.settings` key `chapter_passcode` (hashed, like the admin passcode). Null = no gate. When set, signup requires it (server-side check, rate limited). Exec can set or clear it in Admin. Signup form shows the field only when a gate is active.
+
+### Task 14: Motion, sound, haptics
+- Audit animations (review-animations, improve-animations); fix glitches (double entrances, flicker on navigation, layout shift).
+- Add restrained feedback: short sound + haptic (`navigator.vibrate`) on answer reveal correct/incorrect in practice, flashcard flip, test submit. Setting in Look: Sound (off by default), Haptics (on by default, mobile only). Respect reduced motion. Tiny audio files generated in-repo (WebAudio synthesis, no external assets).
+
+### Task 15: Polish pass
+- impeccable audit + polish of every page a trainer or member sees, at 390px and desktop. Remove extra text. ai-slop-cleaner on the branch diff.
+
+### Task 16: Trainer usability loop
+- Playwright run as a trainer-owner on the preview: create announcement, add a resource file and link, add a section, add a test by paste and by single entry, publish it, take it as a member, view grades, run attendance, edit a skill. Fix every friction found, repeat until a full run has none.
+
+### Task 17: Two guides (pptx in Downloads)
+- `C:\Users\Educational PC\Downloads\HOSA Site - Trainer Guide.pptx` and `HOSA Site - Chapter Guide.pptx`, with real screenshots from the site (no names visible: use a clean demo classroom view or blur names), short text per slide.
