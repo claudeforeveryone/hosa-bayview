@@ -119,11 +119,11 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 
 ## Deploy
 
-- Vercel project `hosa-bayview` on the chapter account (josephislockedin@gmail.com, Hobby), linked to GitHub `claudemaxforeveryone-hue/hosa-bayview` (after the 2026-10-10 transfer the Vercel GitHub app must be installed on claudemaxforeveryone-hue and the project reconnected in Settings > Git; until then pushes do not deploy). `CRON_SECRET` must be set in Vercel or `/api/keepalive` returns 503. Push to `main` deploys to https://hosa-bayview.vercel.app.
+- Vercel project `hosa-bayview` on the chapter account (josephislockedin@gmail.com, Hobby), linked to GitHub `claudemaxforeveryone-hue/hosa-bayview` (Vercel GitHub app installed on claudemaxforeveryone-hue and the project reconnected on 2026-10-10; pushes deploy again). `CRON_SECRET` is set in Vercel (Production); without it `/api/keepalive` returns 503. Push to `main` deploys to https://hosa-bayview.vercel.app.
 - Env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (all envs), NEXT_PUBLIC_SITE_URL (production).
 - The old personal Vercel team (idontreallyknow-20's projects) is fair-use blocked; don't deploy there.
-- Supabase: project `vxlaswushshckxoblkyb`, org "chess", ca-central-1, Postgres 17.
+- Supabase: project `vxlaswushshckxoblkyb`, org "claudemaxforeveryone-hue's Org" (Free; moved from org "chess" by project transfer on 2026-10-10, same ref, URL and keys), ca-central-1, Postgres 17.
 
 ## Moving Supabase to the other account
 
-In progress from 2026-10-10: the backend moves to a new Supabase project on Joseph's other account. Before touching the database, auth, storage or the Supabase env vars, read `docs/MIGRATION.md` (inventory, order of steps, checks, rules). The old project stays live and untouched until Joseph says it can be paused.
+Done 2026-10-10 by project transfer, not a copy: the same project now lives in the other account's org, so nothing in Vercel changed. See `docs/MIGRATION.md`.

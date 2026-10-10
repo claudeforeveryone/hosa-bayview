@@ -1,5 +1,14 @@
 # Moving HOSA Bayview's Supabase to the other account
 
+## Outcome (2026-10-10): done by project transfer
+
+- `vxlaswushshckxoblkyb` was moved with the dashboard's Transfer project from org "chess" to "claudemaxforeveryone-hue's Org" (Free). Same ref, URL and keys, so Vercel env vars were not touched and the copy plan below was not needed.
+- To fit the Free plan's 2-active-project limit, the empty spare project `obhdrhdywsogglzyguah` was paused. It is unused and can be deleted.
+- Checked after: 6 auth users, all with password hashes; profiles 6, questions 55, activity_minutes 196, events 33, avatars 3 objects, 2 buckets, 83 migrations; auth health 200; /login 200.
+- Still to do: reset the database password (it was shared in a chat once). The app uses API keys, not this password.
+
+The plan below is kept for reference.
+
 Started 2026-10-10. The site keeps running on the old project the whole time; the switch is one env var change plus a redeploy at the end.
 
 ## Source (read-only audit, 2026-10-10)
