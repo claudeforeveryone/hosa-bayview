@@ -4,6 +4,7 @@ import { Check, RotateCcw } from "lucide-react";
 import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
 import {
   ACCENTS,
+  DEFAULT_VOLUME,
   FONTS,
   LOOK_KEYS,
   MODES,
@@ -21,6 +22,7 @@ import {
   readPalette,
   readSound,
   readTextSize,
+  readVolume,
   resetAppearance,
   setAccent,
   setFont,
@@ -31,6 +33,7 @@ import {
   setPalette,
   setSound,
   setTextSize,
+  setVolume,
   type Accent,
   type Font,
   type Mode,
@@ -149,7 +152,8 @@ export function LookSection() {
   const font = useSyncExternalStore<Font>(subscribe, readFont, () => "default");
   const motion = useSyncExternalStore<Motion>(subscribe, readMotion, () => "full");
   const navCase = useSyncExternalStore<NavCase>(subscribe, readNavCase, () => "upper");
-  const sound = useSyncExternalStore<Toggle>(subscribe, readSound, () => "off");
+  const sound = useSyncExternalStore<Toggle>(subscribe, readSound, () => "on");
+  const volume = useSyncExternalStore<number>(subscribe, readVolume, () => DEFAULT_VOLUME);
   const haptics = useSyncExternalStore<Toggle>(subscribe, readHaptics, () => "on");
   const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? "#7a1f2b";
 
@@ -287,6 +291,7 @@ export function LookSection() {
             if (v === "on") feedback("correct");
           }}
         />
+        {sound === "on" ? <VolumeSlider value={volume} /> : null}
         {/* Touch devices that can vibrate only. Always rendered; <html data-vibrate>, set before paint,
             shows it, so the page never shifts after load. */}
         <div className="haptics-row">
@@ -312,6 +317,33 @@ export function LookSection() {
         <p className="text-[15px] text-ink-2">Saved on this device.</p>
       </div>
     </section>
+  );
+}
+
+// Sound effect volume. Letting go plays the ding at the new level, so you hear what you picked.
+function VolumeSlider({ value }: { value: number }) {
+  return (
+    <div className="grid gap-2">
+      <label htmlFor="look-volume" className={`${legend} mb-0 flex justify-between`}>
+        <span>Volume</span>
+        <span className="num">{value}%</span>
+      </label>
+      <input
+        id="look-volume"
+        type="range"
+        min={0}
+        max={100}
+        step={10}
+        value={value}
+        onChange={(e) => setVolume(Number(e.target.value))}
+        onPointerUp={() => feedback("correct")}
+        onKeyUp={(e) => {
+          if (e.key.startsWith("Arrow") || e.key === "Home" || e.key === "End") feedback("correct");
+        }}
+        aria-valuetext={`${value} percent`}
+        className="h-11 w-full cursor-pointer accent-[var(--ink)]"
+      />
+    </div>
   );
 }
 

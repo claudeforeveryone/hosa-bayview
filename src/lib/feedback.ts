@@ -1,8 +1,8 @@
-import { readHaptics, readSound } from "@/lib/appearance";
+import { DEFAULT_VOLUME, readHaptics, readSound, readVolume } from "@/lib/appearance";
 
 // Short sound and buzz for a moment that matters: a practice answer landing, a card turning over, a test
-// going in, a battle won. Both follow Settings > Look (Sound off by default, Haptics on). Tones are synthesised
-// with WebAudio, so there are no audio files; each stays under 150 ms and quiet.
+// going in, a battle won. Both follow Settings > Look (both on by default, with a volume for sound). Tones are
+// synthesised with WebAudio, so there are no audio files. Calm on purpose: a soft bell for right, a pop for wrong.
 export type FeedbackKind = "correct" | "wrong" | "flip" | "submit" | "win";
 
 type Note = {
@@ -15,14 +15,14 @@ type Note = {
 };
 
 export const TONES: Record<FeedbackKind, Note[]> = {
-  // Two notes up a fourth: bright, quick.
+  // Ding: a small bell, its fundamental ringing out with a quieter overtone that fades first.
   correct: [
-    { at: 0, dur: 0.06, freq: 660, type: "sine", gain: 0.07 },
-    { at: 0.055, dur: 0.08, freq: 880, type: "sine", gain: 0.07 },
+    { at: 0, dur: 0.6, freq: 1047, type: "sine", gain: 0.07 },
+    { at: 0, dur: 0.25, freq: 2637, type: "sine", gain: 0.015 },
   ],
-  // One low note sliding down: soft, not a buzzer.
+  // Pop: a quick round note that drops in pitch, like a bubble. Soft, not a buzzer.
   wrong: [
-    { at: 0, dur: 0.13, freq: 240, to: 170, type: "triangle", gain: 0.08 },
+    { at: 0, dur: 0.08, freq: 520, to: 160, type: "sine", gain: 0.09 },
   ],
   // A short tick.
   flip: [
@@ -88,7 +88,10 @@ export function primeFeedback() {
   if (ctx) wake(ctx);
 }
 
+// Settings > Look > Volume. The tones above are tuned for the default level.
 function play(notes: Note[]) {
+  const scale = readVolume() / DEFAULT_VOLUME;
+  if (scale <= 0) return;
   const ctx = audioContext();
   if (!ctx) return;
   wake(ctx);
@@ -102,7 +105,7 @@ function play(notes: Note[]) {
     if (n.to) osc.frequency.exponentialRampToValueAtTime(n.to, t + n.dur);
     // A fast attack and an exponential tail, so nothing clicks.
     amp.gain.setValueAtTime(0.0001, t);
-    amp.gain.exponentialRampToValueAtTime(n.gain, t + 0.006);
+    amp.gain.exponentialRampToValueAtTime(n.gain * scale, t + 0.006);
     amp.gain.exponentialRampToValueAtTime(0.0001, t + n.dur);
     osc.connect(amp);
     amp.connect(ctx.destination);

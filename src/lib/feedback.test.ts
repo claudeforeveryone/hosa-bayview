@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { parseHaptics, parseSound } from "./appearance";
+import { DEFAULT_VOLUME, parseHaptics, parseSound, parseVolume } from "./appearance";
 import { BUZZ, TONES, type FeedbackKind } from "./feedback";
 
 // matchMedia for a touch screen (coarse pointer) or a mouse.
@@ -8,11 +8,21 @@ const touch = (coarse: boolean) => (q: string) => ({ matches: q === "(pointer: c
 const KINDS: FeedbackKind[] = ["correct", "wrong", "flip", "submit", "win"];
 
 describe("sound and haptics settings", () => {
-  it("sound is off unless it was switched on", () => {
-    expect(parseSound(null)).toBe("off");
+  it("sound is on unless it was switched off", () => {
+    expect(parseSound(null)).toBe("on");
     expect(parseSound("on")).toBe("on");
     expect(parseSound("off")).toBe("off");
-    expect(parseSound("loud")).toBe("off");
+    expect(parseSound("loud")).toBe("on");
+  });
+
+  it("volume is 0 to 100 in tens, defaulting when unset or junk", () => {
+    expect(parseVolume(null)).toBe(DEFAULT_VOLUME);
+    expect(parseVolume("")).toBe(DEFAULT_VOLUME);
+    expect(parseVolume("loud")).toBe(DEFAULT_VOLUME);
+    expect(parseVolume("0")).toBe(0);
+    expect(parseVolume("34")).toBe(30);
+    expect(parseVolume("250")).toBe(100);
+    expect(parseVolume("-5")).toBe(0);
   });
 
   it("haptics are on unless they were switched off", () => {
@@ -24,12 +34,12 @@ describe("sound and haptics settings", () => {
 });
 
 describe("tones and patterns", () => {
-  it("every kind has a tone under 150 ms and quiet", () => {
+  it("every kind has a short, quiet tone; only the ding rings past 150 ms", () => {
     for (const kind of KINDS) {
       const notes = TONES[kind];
       expect(notes.length).toBeGreaterThan(0);
       expect(Math.max(...notes.map((n) => n.at + n.dur))).toBeLessThanOrEqual(
-        0.15,
+        kind === "correct" ? 0.6 : 0.15,
       );
       for (const n of notes) expect(n.gain).toBeLessThanOrEqual(0.1);
     }
@@ -103,11 +113,22 @@ describe("feedback()", () => {
 
   const load = () => import("./feedback");
 
-  it("by default buzzes and stays silent", async () => {
+  it("by default buzzes and plays the tone", async () => {
     const { feedback } = await load();
     feedback("correct");
     expect(vibrate).toHaveBeenCalledWith(BUZZ.correct);
+    expect(audio.made).toHaveLength(TONES.correct.length);
+  });
+
+  it("stays silent when Sound is off or the volume is 0", async () => {
+    store.sound = "off";
+    const { feedback } = await load();
+    feedback("correct");
     expect(audio.FakeContext.instances).toBe(0);
+    store.sound = "on";
+    store.volume = "0";
+    feedback("wrong");
+    expect(audio.made).toHaveLength(0);
   });
 
   it("plays the tone when Sound is on, waking the context", async () => {
@@ -122,6 +143,7 @@ describe("feedback()", () => {
 
   it("does nothing when both are off", async () => {
     store.haptics = "off";
+    store.sound = "off";
     const { feedback } = await load();
     feedback("wrong");
     expect(vibrate).not.toHaveBeenCalled();
@@ -146,6 +168,7 @@ describe("feedback()", () => {
   });
 
   it("primes audio only when Sound is on", async () => {
+    store.sound = "off";
     const { primeFeedback } = await load();
     primeFeedback();
     expect(audio.FakeContext.instances).toBe(0);
@@ -162,8 +185,10 @@ describe("feedback()", () => {
     });
     const { feedback } = await load();
     expect(() => feedback("flip")).not.toThrow();
+    expect(audio.made).toHaveLength(TONES.flip.length); // sound on by default
     expect(vibrate).toHaveBeenCalledWith(BUZZ.flip); // falls back to the defaults
   });
+
   it("never buzzes on a mouse-driven device, even where vibrate exists (desktop Chrome)", async () => {
     vi.stubGlobal("window", { AudioContext: audio.FakeContext, matchMedia: touch(false) });
     const { feedback, canVibrate } = await load();
@@ -183,7 +208,6 @@ describe("feedback()", () => {
   });
 
   it("sound: false (a timer, not a tap) skips the tone but keeps the buzz", async () => {
-    store.sound = "on";
     const { feedback } = await load();
     feedback("submit", { sound: false });
     expect(audio.FakeContext.instances).toBe(0);

@@ -135,15 +135,25 @@ export const NAV_CASES: { id: NavCase; label: string }[] = [
 export const readNavCase = (): NavCase =>
   stored("navcase") === "title" ? "title" : "upper";
 
-// Feedback on answers, flips and submits (src/lib/feedback.ts). Sound is opt-in; haptics are on unless
-// switched off, and only do anything where the device can vibrate. Neither touches the page's look.
+// Feedback on answers, flips and submits (src/lib/feedback.ts). Sound and haptics are on unless switched
+// off; haptics only do anything where the device can vibrate. Neither touches the page's look.
 export type Toggle = "on" | "off";
 export const parseSound = (v: string | null): Toggle =>
-  v === "on" ? "on" : "off";
+  v === "off" ? "off" : "on";
 export const parseHaptics = (v: string | null): Toggle =>
   v === "off" ? "off" : "on";
 export const readSound = (): Toggle => parseSound(stored("sound"));
 export const readHaptics = (): Toggle => parseHaptics(stored("haptics"));
+
+// Sound effect volume, 0 to 100 in steps of 10. Scales every tone in feedback.ts.
+export const DEFAULT_VOLUME = 60;
+export const parseVolume = (v: string | null): number => {
+  const n = Number(v);
+  return v !== null && v.trim() !== "" && Number.isFinite(n)
+    ? Math.min(100, Math.max(0, Math.round(n / 10) * 10))
+    : DEFAULT_VOLUME;
+};
+export const readVolume = (): number => parseVolume(stored("volume"));
 
 // Defaults leave the attribute off, so the stylesheet's base look applies.
 function setAttr(name: string, value: string, fallback: string) {
@@ -191,6 +201,10 @@ export function setSound(v: Toggle) {
   store("sound", v);
   window.dispatchEvent(new Event("hosa:appearance"));
 }
+export function setVolume(v: number) {
+  store("volume", String(parseVolume(String(v))));
+  window.dispatchEvent(new Event("hosa:appearance"));
+}
 export function setHaptics(v: Toggle) {
   store("haptics", v);
   window.dispatchEvent(new Event("hosa:appearance"));
@@ -206,6 +220,7 @@ export const LOOK_KEYS = [
   "motion",
   "navcase",
   "sound",
+  "volume",
   "haptics",
 ];
 
