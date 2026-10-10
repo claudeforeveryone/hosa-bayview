@@ -126,6 +126,15 @@ export const readFont = (): Font => {
 export const readMotion = (): Motion =>
   stored("motion") === "calm" ? "calm" : "full";
 
+// Sidebar and drawer labels: "upper" is the shipped all-caps, "title" shows them as written ("Announcements").
+export type NavCase = "upper" | "title";
+export const NAV_CASES: { id: NavCase; label: string }[] = [
+  { id: "upper", label: "UPPERCASE" },
+  { id: "title", label: "Capitalized" },
+];
+export const readNavCase = (): NavCase =>
+  stored("navcase") === "title" ? "title" : "upper";
+
 // Feedback on answers, flips and submits (src/lib/feedback.ts). Sound is opt-in; haptics are on unless
 // switched off, and only do anything where the device can vibrate. Neither touches the page's look.
 export type Toggle = "on" | "off";
@@ -148,6 +157,7 @@ export function applyExtras() {
   setAttr("text", readTextSize(), "standard");
   setAttr("font", readFont(), "default");
   setAttr("motion", readMotion(), "full");
+  setAttr("navcase", readNavCase(), "upper");
 }
 
 export function setAccent(v: Accent) {
@@ -171,6 +181,12 @@ export function setMotion(v: Motion) {
   window.dispatchEvent(new Event("hosa:appearance"));
 }
 
+export function setNavCase(v: NavCase) {
+  store("navcase", v);
+  setAttr("navcase", v, "upper");
+  window.dispatchEvent(new Event("hosa:appearance"));
+}
+
 export function setSound(v: Toggle) {
   store("sound", v);
   window.dispatchEvent(new Event("hosa:appearance"));
@@ -188,6 +204,7 @@ export const LOOK_KEYS = [
   "text",
   "font",
   "motion",
+  "navcase",
   "sound",
   "haptics",
 ];
@@ -207,4 +224,4 @@ export function resetAppearance() {
 
 // Inline in <head> so the right colours and sizes paint first. Mirrors applyMode, setPalette and applyExtras.
 // data-vibrate (canVibrate in feedback.ts) shows Settings' Haptics row before paint, so nothing shifts.
-export const appearanceScript = `(function(){try{var d=document.documentElement,g=function(k){return localStorage.getItem(k)},t=g('theme'),p=g('palette'),a=g('accent'),x=g('text'),f=g('font'),m=g('motion');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}d.dataset.theme=t;if(p==='maroon'||p==='forest'||p==='graphite'){d.dataset.palette=p}if(/^(maroon|gold|teal|violet|ember)$/.test(a||'')){d.dataset.accent=a}if(x==='large'||x==='larger'){d.dataset.text=x}if(f==='readable'||f==='dyslexic'){d.dataset.font=f}if(m==='calm'){d.dataset.motion='calm'}if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function'&&matchMedia('(pointer: coarse)').matches){d.dataset.vibrate=''}}catch(e){}})()`;
+export const appearanceScript = `(function(){try{var d=document.documentElement,g=function(k){return localStorage.getItem(k)},t=g('theme'),p=g('palette'),a=g('accent'),x=g('text'),f=g('font'),m=g('motion'),n=g('navcase');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}d.dataset.theme=t;if(p==='maroon'||p==='forest'||p==='graphite'){d.dataset.palette=p}if(/^(maroon|gold|teal|violet|ember)$/.test(a||'')){d.dataset.accent=a}if(x==='large'||x==='larger'){d.dataset.text=x}if(f==='readable'||f==='dyslexic'){d.dataset.font=f}if(m==='calm'){d.dataset.motion='calm'}if(n==='title'){d.dataset.navcase='title'}if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function'&&matchMedia('(pointer: coarse)').matches){d.dataset.vibrate=''}}catch(e){}})()`;

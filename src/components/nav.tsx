@@ -49,7 +49,7 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
         className={`${row} ${rowState(active)}`}
       >
         <Icon size={22} strokeWidth={1.75} aria-hidden />
-        <span className="caps text-[19px]">{label}</span>
+        <span className="caps nav-label text-[19px]">{label}</span>
       </Link>
     </li>
   );
@@ -59,7 +59,7 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
         <ul>{items.filter((i) => !i.chapter).map(link)}</ul>
         <h2
           id={chapterHeading}
-          className="caps mx-5 mt-8 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
+          className="caps nav-label mx-5 mt-8 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
         >
           Chapter
         </h2>
@@ -71,7 +71,7 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
       <section aria-labelledby={roomsHeading} className="mt-8">
         <h2
           id={roomsHeading}
-          className="caps mx-5 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
+          className="caps nav-label mx-5 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
         >
           Your events
         </h2>

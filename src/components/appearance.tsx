@@ -7,6 +7,7 @@ import {
   FONTS,
   LOOK_KEYS,
   MODES,
+  NAV_CASES,
   PALETTES,
   TEXT_SIZES,
   applyExtras,
@@ -16,6 +17,7 @@ import {
   readHaptics,
   readMode,
   readMotion,
+  readNavCase,
   readPalette,
   readSound,
   readTextSize,
@@ -25,6 +27,7 @@ import {
   setHaptics,
   setMode,
   setMotion,
+  setNavCase,
   setPalette,
   setSound,
   setTextSize,
@@ -32,6 +35,7 @@ import {
   type Font,
   type Mode,
   type Motion,
+  type NavCase,
   type Palette,
   type TextSize,
   type Toggle,
@@ -144,6 +148,7 @@ export function LookSection() {
   const text = useSyncExternalStore<TextSize>(subscribe, readTextSize, () => "standard");
   const font = useSyncExternalStore<Font>(subscribe, readFont, () => "default");
   const motion = useSyncExternalStore<Motion>(subscribe, readMotion, () => "full");
+  const navCase = useSyncExternalStore<NavCase>(subscribe, readNavCase, () => "upper");
   const sound = useSyncExternalStore<Toggle>(subscribe, readSound, () => "off");
   const haptics = useSyncExternalStore<Toggle>(subscribe, readHaptics, () => "on");
   const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? "#7a1f2b";
@@ -263,6 +268,13 @@ export function LookSection() {
           ]}
           value={motion}
           onPick={setMotion}
+        />
+        <Segments
+          name="look-navcase"
+          label="Sidebar text"
+          options={NAV_CASES.map((c) => ({ ...c, className: "normal-case" }))}
+          value={navCase}
+          onPick={setNavCase}
         />
         <Segments
           name="look-sound"

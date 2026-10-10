@@ -231,6 +231,11 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
+  /* Settings > Look > Sidebar text: labels as written instead of all caps. */
+  :root[data-navcase="title"] .nav-label {
+    text-transform: none;
+    letter-spacing: 0.01em;
+  }
   .num {
     font-variant-numeric: tabular-nums lining-nums;
   }
