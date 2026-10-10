@@ -83,6 +83,8 @@ export function TakeTest({
   const submitted = useRef(false);
   const autoTried = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  // The question on screen, read when a verdict comes back after a server round trip.
+  const onScreen = useRef(current);
 
   const answered = Object.keys(answers).length;
   const left = rows.length - answered;
@@ -90,18 +92,19 @@ export function TakeTest({
   const mine = answers[q.question_id];
   const locked = practice && mine !== undefined;
 
-  const submit = useCallback(() => {
+  // byTap is false when the timer submits: no tap, so no tone (the browser would refuse it anyway).
+  const submit = useCallback((byTap = true) => {
     if (submitted.current) return;
     submitted.current = true;
     setError(null);
-    primeFeedback();
+    if (byTap) primeFeedback();
     startSubmit(async () => {
       const r = await submitAttempt(attemptId);
       if (r.error) {
         submitted.current = false;
         setError(r.error);
       } else {
-        feedback("submit");
+        feedback("submit", { sound: byTap });
         void rollLuckyBonus("test");
         router.refresh();
       }
@@ -122,7 +125,7 @@ export function TakeTest({
       // Auto-submit once; if that fails the Submit button stays for a manual retry.
       if (ms <= 0 && !autoTried.current) {
         autoTried.current = true;
-        submit();
+        submit(false);
       }
     };
     tick();
@@ -132,6 +135,7 @@ export function TakeTest({
 
   const go = (i: number) => {
     setCurrent(i);
+    onScreen.current = i;
     setConfirming(false);
     setFresh(null);
     requestAnimationFrame(() => heading.current?.focus());
@@ -178,7 +182,9 @@ export function TakeTest({
         saved: true,
       },
     }));
-    if (practice && typeof r.is_correct === "boolean") {
+    // Only for the question still on screen: a verdict that lands after you moved on is just stored, and
+    // shows quietly, without the reveal, when you go back.
+    if (practice && typeof r.is_correct === "boolean" && rows[onScreen.current]?.question_id === qid) {
       setFresh(qid);
       feedback(r.is_correct ? "correct" : "wrong");
     }
@@ -381,7 +387,7 @@ export function TakeTest({
               <Button
                 type="button"
                 variant="you"
-                onClick={submit}
+                onClick={() => submit()}
                 disabled={submitting}
               >
                 {submitting ? "Submitting" : "Submit now"}

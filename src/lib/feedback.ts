@@ -53,8 +53,13 @@ export const BUZZ: Record<FeedbackKind, number[]> = {
 type AudioCtor = new () => AudioContext;
 let context: AudioContext | null = null;
 
+// Before the first tap or key on the page, browsers refuse to start audio and log a warning; skip instead.
+const neverActive = () =>
+  (navigator as { userActivation?: { hasBeenActive: boolean } }).userActivation?.hasBeenActive === false;
+
 function audioContext(): AudioContext | null {
   if (context) return context;
+  if (neverActive()) return null;
   const w = window as unknown as {
     AudioContext?: AudioCtor;
     webkitAudioContext?: AudioCtor;
@@ -69,8 +74,10 @@ function audioContext(): AudioContext | null {
   return context;
 }
 
+// "suspended" before a gesture, "interrupted" on iOS after a call or backgrounding.
 function wake(ctx: AudioContext) {
-  if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+  const state = ctx.state as string;
+  if (state !== "running" && state !== "closed") void ctx.resume().catch(() => {});
 }
 
 // Call from the tap or key handler when the feedback itself comes later (after a server round trip):
@@ -104,25 +111,29 @@ function play(notes: Note[]) {
   }
 }
 
+// Haptics are for touch devices that can vibrate. Desktop Chrome has navigator.vibrate as a no-op, so a
+// coarse pointer is required too. The head script (appearanceScript) mirrors this for Settings.
+export const canVibrate = () =>
+  typeof navigator !== "undefined" &&
+  typeof (navigator as { vibrate?: unknown }).vibrate === "function" &&
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(pointer: coarse)").matches;
+
 function buzz(pattern: number[]) {
-  const nav = navigator as Navigator & { vibrate?: (p: number[]) => boolean };
-  if (typeof nav.vibrate !== "function") return;
+  if (!canVibrate() || neverActive()) return;
   try {
-    nav.vibrate(pattern);
+    navigator.vibrate(pattern);
   } catch {}
 }
 
-export function feedback(kind: FeedbackKind) {
+// `sound: false` for moments that aren't a tap (a timer running out): no tone, the buzz still comes.
+export function feedback(kind: FeedbackKind, { sound = true }: { sound?: boolean } = {}) {
   if (typeof window === "undefined") return;
   if (readHaptics() === "on") buzz(BUZZ[kind]);
-  if (readSound() === "on") {
+  if (sound && readSound() === "on") {
     try {
       play(TONES[kind]);
     } catch {}
   }
 }
-
-// Whether this device can vibrate at all; Settings only offers Haptics where it can.
-export const canVibrate = () =>
-  typeof navigator !== "undefined" &&
-  typeof (navigator as { vibrate?: unknown }).vibrate === "function";

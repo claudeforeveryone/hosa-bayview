@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseHaptics, parseSound } from "./appearance";
 import { BUZZ, TONES, type FeedbackKind } from "./feedback";
 
+// matchMedia for a touch screen (coarse pointer) or a mouse.
+const touch = (coarse: boolean) => (q: string) => ({ matches: q === "(pointer: coarse)" ? coarse : false });
+
 const KINDS: FeedbackKind[] = ["correct", "wrong", "flip", "submit", "win"];
 
 describe("sound and haptics settings", () => {
@@ -50,7 +53,9 @@ function fakeAudio() {
   });
   class FakeContext {
     static instances = 0;
-    state = "suspended";
+    static all: FakeContext[] = [];
+    static startState = "suspended";
+    state = FakeContext.startState;
     currentTime = 0;
     destination = {};
     resume = vi.fn(() => {
@@ -59,6 +64,7 @@ function fakeAudio() {
     });
     constructor() {
       FakeContext.instances += 1;
+      FakeContext.all.push(this);
     }
     createOscillator() {
       const osc = {
@@ -88,7 +94,7 @@ describe("feedback()", () => {
     vibrate = vi.fn(() => true);
     audio = fakeAudio();
     vi.stubGlobal("localStorage", { getItem: (k: string) => store[k] ?? null });
-    vi.stubGlobal("window", { AudioContext: audio.FakeContext });
+    vi.stubGlobal("window", { AudioContext: audio.FakeContext, matchMedia: touch(true) });
     vi.stubGlobal("navigator", { vibrate });
   });
   afterEach(() => {
@@ -132,7 +138,7 @@ describe("feedback()", () => {
   });
 
   it("stays quiet where there is no WebAudio", async () => {
-    vi.stubGlobal("window", {});
+    vi.stubGlobal("window", { matchMedia: touch(true) });
     store.sound = "on";
     const { feedback } = await load();
     expect(() => feedback("correct")).not.toThrow();
@@ -157,5 +163,40 @@ describe("feedback()", () => {
     const { feedback } = await load();
     expect(() => feedback("flip")).not.toThrow();
     expect(vibrate).toHaveBeenCalledWith(BUZZ.flip); // falls back to the defaults
+  });
+  it("never buzzes on a mouse-driven device, even where vibrate exists (desktop Chrome)", async () => {
+    vi.stubGlobal("window", { AudioContext: audio.FakeContext, matchMedia: touch(false) });
+    const { feedback, canVibrate } = await load();
+    expect(canVibrate()).toBe(false);
+    feedback("correct");
+    expect(vibrate).not.toHaveBeenCalled();
+  });
+
+  it("before any tap on the page, makes no audio context and no buzz", async () => {
+    vi.stubGlobal("navigator", { vibrate, userActivation: { hasBeenActive: false } });
+    store.sound = "on";
+    const { feedback, primeFeedback } = await load();
+    primeFeedback();
+    feedback("submit");
+    expect(audio.FakeContext.instances).toBe(0);
+    expect(vibrate).not.toHaveBeenCalled();
+  });
+
+  it("sound: false (a timer, not a tap) skips the tone but keeps the buzz", async () => {
+    store.sound = "on";
+    const { feedback } = await load();
+    feedback("submit", { sound: false });
+    expect(audio.FakeContext.instances).toBe(0);
+    expect(vibrate).toHaveBeenCalledWith(BUZZ.submit);
+  });
+
+  it("wakes an iOS-interrupted context, leaves a running one alone", async () => {
+    store.sound = "on";
+    audio.FakeContext.startState = "interrupted";
+    const { primeFeedback } = await load();
+    primeFeedback();
+    primeFeedback();
+    // Resumed once from "interrupted"; the fake is "running" after that, so no second resume.
+    expect(audio.FakeContext.all[0].resume).toHaveBeenCalledTimes(1);
   });
 });

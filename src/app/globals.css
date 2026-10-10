@@ -165,11 +165,10 @@
   --radius-none: 0;
 }
 
-/* Motion tokens. UI moves on one strong ease-out (150-250 ms); the drawer uses an iOS-like curve. Static, so the
-   variables exist for the stylesheet below even where no utility uses them. */
+/* Motion token. UI moves on one strong ease-out (150-250 ms). Static, so the variable exists for the
+   stylesheet below even where no utility uses it. */
 @theme static {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @layer base {
@@ -613,7 +612,7 @@
 
 /* Phone menu: the drawer slides out from the left edge it lives on; the dim fades. Fade only under Reduce Motion. */
 .drawer[open] {
-  animation: drawer-in 260ms var(--ease-drawer) both;
+  animation: drawer-in 240ms var(--ease-out) both;
 }
 .drawer[open]::backdrop {
   animation: fade-in 200ms ease-out both;
@@ -648,8 +647,9 @@
 :root[data-motion="calm"] .route-loading {
   animation-delay: 150ms !important;
 }
+/* Hidden too while held, so screen readers don't announce "Loading" on a quick page. */
 @keyframes route-loading-in {
-  from { opacity: 0; }
+  from { opacity: 0; visibility: hidden; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .route-loading-rail > span {
@@ -937,6 +937,10 @@ html[data-intro] .intro-right {
 :is(html[data-hero-rest~="bare"] .hero-bare, html[data-hero-rest~="panel"] .hero:not(.hero-bare)) .hero-panel::after {
   animation: none !important;
 }
+
+/* Settings > Look: the Haptics row, for touch devices that can vibrate (set before paint by appearanceScript). */
+.haptics-row { display: none; }
+:root[data-vibrate] .haptics-row { display: block; }
 
 /* Settings > Look: accent colour. Overrides the theme's highlight ("you") in both modes. */
 :root[data-accent="maroon"] { --you: #7a1f2b; --on-you: #f7ecee; }

@@ -36,9 +36,8 @@ import {
   type TextSize,
   type Toggle,
 } from "@/lib/appearance";
-import { canVibrate, feedback } from "@/lib/feedback";
+import { feedback } from "@/lib/feedback";
 
-const noop = () => () => {};
 const TOGGLES: { id: Toggle; label: string }[] = [
   { id: "off", label: "Off" },
   { id: "on", label: "On" },
@@ -147,8 +146,6 @@ export function LookSection() {
   const motion = useSyncExternalStore<Motion>(subscribe, readMotion, () => "full");
   const sound = useSyncExternalStore<Toggle>(subscribe, readSound, () => "off");
   const haptics = useSyncExternalStore<Toggle>(subscribe, readHaptics, () => "on");
-  // Only devices that can vibrate get the Haptics choice. False on the server, so hydration matches.
-  const vibrates = useSyncExternalStore(noop, canVibrate, () => false);
   const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? "#7a1f2b";
 
   return (
@@ -278,7 +275,9 @@ export function LookSection() {
             if (v === "on") feedback("correct");
           }}
         />
-        {vibrates ? (
+        {/* Touch devices that can vibrate only. Always rendered; <html data-vibrate>, set before paint,
+            shows it, so the page never shifts after load. */}
+        <div className="haptics-row">
           <Segments
             name="look-haptics"
             label="Haptics"
@@ -289,7 +288,7 @@ export function LookSection() {
               if (v === "on") feedback("flip");
             }}
           />
-        ) : null}
+        </div>
         <button
           type="button"
           onClick={resetAppearance}
