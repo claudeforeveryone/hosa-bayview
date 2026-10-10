@@ -44,7 +44,7 @@ export default async function ClassroomLayout({
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <ClassroomChrome>
+      <ClassroomChrome id={room.id}>
         <header className="-mx-4 -mt-6 grid gap-5 bg-field px-4 py-7 text-on-field sm:mx-0 sm:mt-0 sm:px-8 lg:px-10 lg:py-10">
           <div className="flex items-start justify-between gap-4">
             <h1 className="min-w-0 font-display text-[clamp(2.75rem,10vw,5.5rem)] leading-[0.92] font-bold [overflow-wrap:anywhere] uppercase">
@@ -54,7 +54,17 @@ export default async function ClassroomLayout({
               {formNumber("C", room.num)}
             </span>
           </div>
-          <p className="text-[17px] text-on-field-2">{meta}</p>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-2">
+            <p className="text-[17px] text-on-field-2">{meta}</p>
+            {isCompetition ? null : (
+              <Link
+                href="/events?all=1"
+                className="caps step inline-flex min-h-11 items-center text-[15px] text-on-field-2 underline underline-offset-4 hover:text-on-field"
+              >
+                All events
+              </Link>
+            )}
+          </div>
           {isCompetition && BLC_ENABLED ? (
             <Link
               href={`/blc/${room.id}`}

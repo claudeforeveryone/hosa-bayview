@@ -50,3 +50,24 @@ export async function getEventsInRange(from: string, to: string, limit = 500): P
   if (error) throw new Error(`Calendar lookup failed: ${error.message}`);
   return (data ?? []) as unknown as EventRow[];
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// What's next for one event room: its own events plus chapter-wide ones, from the start of today (Toronto),
+// soonest first. For the room's hub. A malformed id gets just the chapter's.
+export async function getUpcomingForRoom(classroomId: string, limit = 4): Promise<EventRow[]> {
+  const supabase = await createClient();
+  const today = torontoToIso(`${dayKey(new Date().toISOString())}T00:00`) ?? new Date().toISOString();
+  // The id goes into a filter string, so only a real uuid gets in.
+  const rooms = UUID.test(classroomId) ? [`classroom_id.eq.${classroomId}`, "classroom_id.is.null"] : ["classroom_id.is.null"];
+  const when = [`starts_at.gte.${today}`, `ends_at.gte.${today}`];
+  const either = rooms.flatMap((r) => when.map((w) => `and(${r},${w})`)).join(",");
+  const { data, error } = await supabase
+    .from("events")
+    .select(COLUMNS)
+    .or(either)
+    .order("starts_at", { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(`Calendar lookup failed: ${error.message}`);
+  return (data ?? []) as unknown as EventRow[];
+}

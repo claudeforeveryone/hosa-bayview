@@ -3,7 +3,7 @@ import { DEFAULT_VOLUME, readHaptics, readSound, readVolume } from "@/lib/appear
 // Short sound and buzz for a moment that matters: a practice answer landing, a card turning over, a test
 // going in, a battle won. Both follow Settings > Look (both on by default, with a volume for sound). Tones are
 // synthesised with WebAudio, so there are no audio files. Calm on purpose: a soft bell for right, a pop for wrong.
-export type FeedbackKind = "correct" | "wrong" | "flip" | "submit" | "win";
+export type FeedbackKind = "correct" | "wrong" | "flip" | "submit" | "win" | "notify";
 
 type Note = {
   at: number; // seconds from the start
@@ -33,6 +33,11 @@ export const TONES: Record<FeedbackKind, Note[]> = {
     { at: 0, dur: 0.06, freq: 523, type: "sine", gain: 0.06 },
     { at: 0.06, dur: 0.085, freq: 784, type: "sine", gain: 0.06 },
   ],
+  // Notification: two soft bell notes down a third, like a gentle chime.
+  notify: [
+    { at: 0, dur: 0.14, freq: 1319, type: "sine", gain: 0.05 },
+    { at: 0.09, dur: 0.055, freq: 1047, type: "sine", gain: 0.05 },
+  ],
   // Three notes up the chord.
   win: [
     { at: 0, dur: 0.05, freq: 523, type: "triangle", gain: 0.06 },
@@ -48,6 +53,7 @@ export const BUZZ: Record<FeedbackKind, number[]> = {
   flip: [8],
   submit: [18],
   win: [16, 40, 16, 40, 32],
+  notify: [12, 60, 12],
 };
 
 type AudioCtor = new () => AudioContext;
@@ -139,4 +145,15 @@ export function feedback(kind: FeedbackKind, { sound = true }: { sound?: boolean
       play(TONES[kind]);
     } catch {}
   }
+}
+
+// How long the round's closing chord waits after the last verdict, so the two read as a pair, not a clash.
+export const WIN_DELAY_MS = 280;
+
+// The last answer of a round: its verdict, then the win. Audio was woken by the tap that called this, so the
+// delayed chord still plays.
+export function feedbackThenWin(kind: FeedbackKind) {
+  feedback(kind);
+  if (typeof window === "undefined") return;
+  setTimeout(() => feedback("win"), WIN_DELAY_MS);
 }

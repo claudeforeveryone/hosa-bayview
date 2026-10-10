@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -117,10 +116,10 @@ export default async function NotificationsPage() {
         <>
           {fresh.length ? (
             <section aria-labelledby="new-h" className="grid gap-3">
-              <h2 id="new-h" className="caps text-[16px] text-ink-2">
+              <h2 id="new-h" className="caps border-b-[3px] border-ink pb-2 text-[16px]">
                 New
               </h2>
-              <ul className="border-t border-rule">
+              <ul>
                 {fresh.map((n) => (
                   <Item key={n.id} n={n} now={now} />
                 ))}
@@ -129,10 +128,10 @@ export default async function NotificationsPage() {
           ) : null}
           {earlier.length ? (
             <section aria-labelledby="earlier-h" className="grid gap-3">
-              <h2 id="earlier-h" className="caps text-[16px] text-ink-2">
+              <h2 id="earlier-h" className="caps border-b-[3px] border-ink pb-2 text-[16px]">
                 Earlier
               </h2>
-              <ul className="border-t border-rule">
+              <ul>
                 {earlier.map((n) => (
                   <Item key={n.id} n={n} now={now} />
                 ))}
@@ -141,10 +140,15 @@ export default async function NotificationsPage() {
           ) : null}
         </>
       ) : (
-        <EmptyState title="Nothing yet">
-          New tests, announcements, events, BLC runs and trainer replies land
-          here.
-        </EmptyState>
+        <div className="grid justify-items-start gap-3 border-2 border-ink bg-band px-5 py-8">
+          <p className="font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
+            Nothing yet
+          </p>
+          <p className="max-w-[60ch] text-[17px] text-ink-2">
+            New tests, announcements, events, BLC runs and trainer replies land
+            here.
+          </p>
+        </div>
       )}
     </div>
   );

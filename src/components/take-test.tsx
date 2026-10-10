@@ -146,8 +146,10 @@ export function TakeTest({
     const qid = q.question_id;
     const before = answers[qid];
     setError(null);
-    // The verdict sound comes after the server answers; wake audio now, inside the tap.
+    // Practice: the verdict sound comes after the server answers, so wake audio now, inside the tap.
+    // Timed: no verdict until the end, so the tap itself gets a soft tick.
     if (practice) primeFeedback();
+    else feedback("flip");
     setAnswers((a) => ({
       ...a,
       [qid]: {
@@ -351,7 +353,7 @@ export function TakeTest({
                   ? "border-danger text-danger"
                   : a
                     ? "border-ink bg-ink text-ground"
-                    : "border-dashed border-rule-strong text-ink-2";
+                    : "border-rule text-ink-2";
             return (
               <li key={x.question_id}>
                 <button

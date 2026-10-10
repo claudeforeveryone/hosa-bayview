@@ -21,7 +21,7 @@ export function FlagList({
 
   if (!open.length) {
     return (
-      <p className="border-y border-dashed border-rule-strong px-1 py-4 text-ink-2">
+      <p className="border-y border-rule-strong px-1 py-4 text-ink-2">
         No open questions.
       </p>
     );
@@ -54,7 +54,7 @@ export function ClassroomFlagList({
 
   if (!open.length) {
     return (
-      <p className="border-y border-dashed border-rule-strong px-1 py-4 text-ink-2">
+      <p className="border-y border-rule-strong px-1 py-4 text-ink-2">
         No open questions. When a member taps Ask teacher, it shows up here and in your notifications.
       </p>
     );

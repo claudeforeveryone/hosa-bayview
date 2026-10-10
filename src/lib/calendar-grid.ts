@@ -99,3 +99,31 @@ export function bucketByDay<T extends Spannable>(events: T[], days: GridDay[]): 
     for (const k of eventDayKeys(e)) if (wanted.has(k)) (out[k] ??= []).push(e);
   return out;
 }
+
+// Month grid or the agenda list. An explicit `?view=` wins, then a `?m=` month (a month link means the grid),
+// then the last choice remembered on this device (cookie), then the grid.
+export type CalendarView = "month" | "list";
+export const CALENDAR_VIEW_COOKIE = "calview";
+
+export function pickView(
+  view: string | string[] | undefined,
+  m: string | string[] | undefined,
+  remembered: string | undefined,
+): CalendarView {
+  const v = Array.isArray(view) ? view[0] : view;
+  if (v === "list" || v === "month") return v;
+  if (m !== undefined) return "month";
+  return remembered === "list" ? "list" : "month";
+}
+
+// Events grouped by the Toronto day they start on, keeping the incoming order (the agenda list).
+export function groupByStartDay<T extends { starts_at: string }>(rows: T[]): { key: string; first: string; items: T[] }[] {
+  const days: { key: string; first: string; items: T[] }[] = [];
+  for (const e of rows) {
+    const key = dayKey(e.starts_at);
+    const last = days.at(-1);
+    if (last?.key === key) last.items.push(e);
+    else days.push({ key, first: e.starts_at, items: [e] });
+  }
+  return days;
+}

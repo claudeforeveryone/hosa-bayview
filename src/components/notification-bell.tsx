@@ -4,15 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
 import { useEffect, useState } from "react";
+import { readNotifySound } from "@/lib/appearance";
+import { feedback } from "@/lib/feedback";
 import { createClient } from "@/lib/supabase/client";
 
 // Shared by every bell on the page, so the sidebar and the phone bar always agree.
 const listeners = new Set<(n: number) => void>();
 let current: number | null = null;
 
+// A chime when the count goes up between polls. The first poll only sets the baseline, so a page load
+// never chimes, and both bells share `current`, so one rise chimes once.
 function publish(n: number) {
+  const rose = current !== null && n > current;
   current = n;
   for (const l of listeners) l(n);
+  if (rose && readNotifySound() === "on") feedback("notify");
 }
 
 // The layout's count is a starting point; layouts don't re-render on navigation, so the bell re-checks on
@@ -78,7 +84,7 @@ export function NotificationBell({
       {count ? (
         <span
           aria-hidden
-          className="bell-badge num absolute top-0.5 right-0 grid h-5 min-w-5 place-items-center bg-you px-1 font-display text-[13px] leading-none font-bold text-on-you"
+          className="bell-badge num absolute top-0 -right-0.5 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-you px-1.5 font-display text-[13px] leading-none font-bold text-on-you"
         >
           {count > 99 ? "99+" : count}
         </span>

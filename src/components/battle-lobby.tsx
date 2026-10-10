@@ -77,7 +77,7 @@ export function Lobby({ s, mine, host, busy, error, act, heading }: Common) {
                 {Array.from({ length: open }, (_, i) => (
                   <li
                     key={`open-${i}`}
-                    className="caps m-2 grid min-h-10 place-items-center border border-dashed border-rule-strong text-[14px] text-ink-2"
+                    className="caps m-2 grid min-h-10 place-items-center border border-rule-strong text-[14px] text-ink-2"
                   >
                     Open
                   </li>

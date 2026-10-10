@@ -1,0 +1,105 @@
+// Pure helpers for the career page: filter, sort, day groups and paging. Safe on client and server.
+import { TORONTO, dayKey } from "@/lib/when";
+
+export const CAREER_FILTERS = ["all", "right", "wrong", "favorites"] as const;
+export type CareerFilter = (typeof CAREER_FILTERS)[number];
+export const CAREER_SORTS = ["newest", "oldest"] as const;
+export type CareerSort = (typeof CAREER_SORTS)[number];
+
+export const CAREER_FILTER_LABEL: Record<CareerFilter, string> = {
+  all: "All",
+  right: "Right",
+  wrong: "Wrong",
+  favorites: "Favourites",
+};
+export const CAREER_SORT_LABEL: Record<CareerSort, string> = {
+  newest: "Newest first",
+  oldest: "Oldest first",
+};
+
+// How many answers show before "Show more".
+export const CAREER_PAGE = 25;
+
+export type CareerEntry = {
+  answered_at: string;
+  is_correct: boolean | null;
+  question_id: string | null;
+};
+
+export function parseCareerFilter(value: unknown): CareerFilter {
+  // "result" links from before the career page used the same words.
+  return CAREER_FILTERS.find((f) => f === value) ?? "all";
+}
+
+export function parseCareerSort(value: unknown): CareerSort {
+  return CAREER_SORTS.find((s) => s === value) ?? "newest";
+}
+
+// Favourites are per question, so every answer to a starred question counts.
+export function filterEntries<T extends CareerEntry>(
+  rows: T[],
+  filter: CareerFilter,
+  favorites: ReadonlySet<string>,
+): T[] {
+  switch (filter) {
+    case "right":
+      return rows.filter((r) => r.is_correct === true);
+    case "wrong":
+      return rows.filter((r) => r.is_correct === false);
+    case "favorites":
+      return rows.filter((r) => r.question_id !== null && favorites.has(r.question_id));
+    default:
+      return rows;
+  }
+}
+
+export function sortEntries<T extends CareerEntry>(rows: T[], sort: CareerSort): T[] {
+  const dir = sort === "newest" ? -1 : 1;
+  return [...rows].sort((a, b) => dir * (Date.parse(a.answered_at) - Date.parse(b.answered_at)));
+}
+
+export function careerCounts<T extends CareerEntry>(
+  rows: T[],
+  favorites: ReadonlySet<string>,
+): Record<CareerFilter, number> {
+  return {
+    all: rows.length,
+    right: rows.filter((r) => r.is_correct === true).length,
+    wrong: rows.filter((r) => r.is_correct === false).length,
+    favorites: rows.filter((r) => r.question_id !== null && favorites.has(r.question_id)).length,
+  };
+}
+
+// The day before a "YYYY-MM-DD" key.
+function previousDay(key: string): string {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
+}
+
+// "Today", "Yesterday", "Mon Oct 6", or "Mon Oct 6, 2025" outside the current year. Days are Toronto days.
+export function dayLabel(key: string, todayKey: string): string {
+  if (key === todayKey) return "Today";
+  if (key === previousDay(todayKey)) return "Yesterday";
+  const [y, m, d] = key.split("-").map(Number);
+  // Noon UTC is the same calendar day in Toronto, so formatting in Toronto can't shift it.
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  const weekday = date.toLocaleDateString("en-US", { timeZone: TORONTO, weekday: "short" });
+  const month = date.toLocaleDateString("en-US", { timeZone: TORONTO, month: "short" });
+  const base = `${weekday} ${month} ${d}`;
+  return key.slice(0, 4) === todayKey.slice(0, 4) ? base : `${base}, ${y}`;
+}
+
+export type DayGroup<T> = { key: string; label: string; items: T[] };
+
+// Consecutive rows on the same Toronto day, in the order given.
+export function groupByDay<T extends CareerEntry>(rows: T[], now: Date = new Date()): DayGroup<T>[] {
+  const today = dayKey(now.toISOString());
+  const groups: DayGroup<T>[] = [];
+  for (const row of rows) {
+    const key = dayKey(row.answered_at);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.items.push(row);
+    else groups.push({ key, label: dayLabel(key, today), items: [row] });
+  }
+  return groups;
+}

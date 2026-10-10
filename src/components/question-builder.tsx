@@ -414,7 +414,7 @@ export function QuestionBuilder({
           <button
             type="button"
             onClick={addChoice}
-            className="caps step mt-1 inline-flex h-11 items-center gap-2 justify-self-start border border-dashed border-rule-strong px-4 text-[15px] text-ink-2 hover:border-ink hover:text-ink"
+            className="caps step mt-1 inline-flex h-11 items-center gap-2 justify-self-start border border-rule-strong px-4 text-[15px] text-ink-2 hover:border-ink hover:text-ink"
           >
             <Plus size={18} strokeWidth={2} aria-hidden />
             Add a choice

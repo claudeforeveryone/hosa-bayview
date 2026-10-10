@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupByCategory, tabsFor } from "./classroom-tabs";
+import { eventsLanding, groupByCategory, parseRecentRooms, pushRecentRoom, tabsFor } from "./classroom-tabs";
 
 const slugs = (tabs: { slug: string }[]) => tabs.map((t) => t.slug);
 
@@ -49,10 +49,61 @@ describe("groupByCategory", () => {
     expect(groups[0].rooms.map((r) => r.name)).toEqual(["Epidemiology", "Nutrition"]);
   });
 
-  it("shows Other only when a room is uncategorised, and omits empty groups", () => {
+  it("puts uncategorised rooms first without a heading, and omits empty groups", () => {
     expect(groupByCategory([room("A", "mc")]).map((g) => g.heading)).toEqual(["MC"]);
-    expect(groupByCategory([room("A", "mc"), room("B", null)]).map((g) => g.heading)).toEqual(["MC", "Other"]);
+    expect(groupByCategory([room("A", "mc"), room("B", null)]).map((g) => g.heading)).toEqual([null, "MC"]);
     expect(groupByCategory([])).toEqual([]);
+  });
+});
+
+describe("eventsLanding", () => {
+  const A = { id: "a", name: "Alpha" };
+  const B = { id: "b", name: "Bravo" };
+  const C = { id: "c", name: "Charlie" };
+
+  it("sends a member with one room straight into it", () => {
+    expect(eventsLanding([A], { mineIds: new Set(), seesAll: false })).toEqual({ go: A });
+  });
+
+  it("lists several rooms, most recently visited first", () => {
+    expect(eventsLanding([A, B, C], { mineIds: new Set(), recentIds: ["c"], seesAll: false })).toEqual({
+      mine: [C, A, B],
+      rest: [],
+    });
+  });
+
+  it("never redirects an executive, and puts their own rooms first", () => {
+    expect(eventsLanding([C, B, A], { mineIds: new Set(["b"]), seesAll: true })).toEqual({
+      mine: [B],
+      rest: [C, A],
+    });
+  });
+
+  it("an executive's recently visited rooms float up with their own", () => {
+    const r = eventsLanding([A, B, C], { mineIds: new Set(["a"]), recentIds: ["c"], seesAll: true });
+    expect(r).toEqual({ mine: [C, A], rest: [B] });
+  });
+
+  it("no rooms is an empty list, not a redirect", () => {
+    expect(eventsLanding([], { mineIds: new Set(), seesAll: false })).toEqual({ mine: [], rest: [] });
+  });
+});
+
+describe("recent rooms cookie", () => {
+  const u1 = "11111111-1111-4111-8111-111111111111";
+  const u2 = "22222222-2222-4222-8222-222222222222";
+
+  it("drops junk and duplicates", () => {
+    expect(parseRecentRooms(`${u1},nope,${u1},${u2}`)).toEqual([u1, u2]);
+    expect(parseRecentRooms(undefined)).toEqual([]);
+    expect(parseRecentRooms("%E0%A4%A")).toEqual([]);
+  });
+
+  it("moves a visit to the front and caps the list", () => {
+    expect(pushRecentRoom(`${u1},${u2}`, u2)).toBe(`${u2},${u1}`);
+    expect(pushRecentRoom(null, "bad")).toBe("");
+    const many = Array.from({ length: 10 }, (_, i) => `${String(i).repeat(8)}-1111-4111-8111-111111111111`);
+    expect(pushRecentRoom(many.join(","), u1).split(",")).toHaveLength(8);
   });
 });
 

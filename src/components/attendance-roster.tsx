@@ -21,7 +21,7 @@ const TONE: Record<Status | "none", string> = {
   late: "border-ink text-ink",
   absent: "border-you bg-you text-on-you",
   excused: "border-rule-strong text-ink-2",
-  none: "border-dashed border-rule-strong text-ink-2",
+  none: "border-rule-strong text-ink-2",
 };
 
 export function AttendanceRoster({

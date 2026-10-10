@@ -1,48 +1,76 @@
 import type { Metadata } from "next";
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
-import { Avatar } from "@/components/avatar";
-import { MemberCareer } from "@/components/member-career";
 import { MemberStatRows } from "@/components/member-stats";
 import { Button } from "@/components/form";
-import { parseResult } from "@/lib/activity";
-import { getCareer, getMemberStats } from "@/lib/activity-data";
+import { formatCount } from "@/lib/activity";
+import { getMemberStats } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
+import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
 import { getBattleWins } from "@/lib/battles";
 import { avatarSources } from "@/lib/avatar-urls";
+import { getCareerItems } from "@/lib/career-data";
 import { gradeLabel } from "@/lib/profile";
 import { roleLabel } from "@/lib/role-label";
+import { createClient } from "@/lib/supabase/server";
+import { formatWhen } from "@/lib/when";
+import { AvatarButton } from "./avatar-button";
+import { NameEdit } from "./name-edit";
 
 export const metadata: Metadata = { title: "Profile" };
 
-export default async function ProfilePage(props: PageProps<"/profile">) {
-  const sp = await props.searchParams;
-  const result = parseResult(sp.result);
+const H2 =
+  "border-b-[3px] border-ink pb-2 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase";
+
+// Executives' GIF size cap, as on Settings: exempt executives keep the bucket limit.
+async function gifLimitFor(userId: string, isExec: boolean): Promise<number> {
+  if (!isExec) return AVATAR_MAX_BYTES;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("gif_exempt_ids");
+  if (error) throw new Error(`GIF limits lookup failed: ${error.message}`);
+  return gifLimitBytes(((data ?? []) as string[]).includes(userId));
+}
+
+export default async function ProfilePage() {
   const profile = await requireProfile();
-  const [stats, career, sources, wins] = await Promise.all([
+  const isExec = profile.role === "executive";
+  const [stats, career, sources, wins, gifLimit] = await Promise.all([
     getMemberStats(profile.id),
-    getCareer(profile.id),
+    getCareerItems(profile.id),
     avatarSources([profile.avatar_path]),
     // Null until the battle migrations are applied; the row stays hidden then.
     getBattleWins(profile.id),
+    gifLimitFor(profile.id, isExec),
   ]);
   const picture = profile.avatar_path
     ? (sources.get(profile.avatar_path) ?? null)
     : null;
+  const right = career.filter((r) => r.is_correct === true).length;
+  const wrong = career.filter((r) => r.is_correct === false).length;
+  const starred = new Set(
+    career.filter((r) => r.favorite && r.question_id).map((r) => r.question_id),
+  ).size;
+  const recent = career.slice(0, 3);
   return (
     <div className="grid max-w-2xl gap-10">
       <div className="flex items-center gap-5">
-        <Avatar name={profile.full_name} src={picture} size="lg" />
-        <div className="min-w-0">
-          <h1 className="font-display text-[clamp(2.5rem,8vw,4.5rem)] leading-none font-bold [overflow-wrap:anywhere] uppercase">
-            {profile.full_name}
-          </h1>
-          <p className="mt-2 text-ink-2 [overflow-wrap:anywhere]">
+        <AvatarButton
+          userId={profile.id}
+          name={profile.full_name}
+          src={picture}
+          hasPicture={Boolean(profile.avatar_path)}
+          animated={isExec}
+          gifLimit={gifLimit}
+        />
+        <div className="min-w-0 flex-1">
+          <NameEdit name={profile.full_name} />
+          <p className="mt-1 text-ink-2 [overflow-wrap:anywhere]">
             {profile.email}
           </p>
         </div>
       </div>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 border-y border-rule py-4">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 border-2 border-ink bg-band p-4">
         <dt className="caps text-ink-2">Role</dt>
         <dd>{roleLabel(profile.role, profile.title)}</dd>
         <dt className="caps text-ink-2">Grade</dt>
@@ -64,23 +92,71 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
       </dl>
       {stats ? (
         <section aria-labelledby="numbers-h" className="grid gap-4">
-          <h2
-            id="numbers-h"
-            className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
-          >
+          <h2 id="numbers-h" className={H2}>
             Your numbers
           </h2>
           <MemberStatRows stats={stats} />
         </section>
       ) : null}
       <section aria-labelledby="career-h" className="grid gap-4">
-        <h2
-          id="career-h"
-          className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
-        >
+        <h2 id="career-h" className={H2}>
           Career
         </h2>
-        <MemberCareer rows={career} result={result} basePath="/profile" />
+        <ul aria-label="Career totals" className="grid grid-cols-3 border-2 border-ink">
+          {(
+            [
+              ["Right", formatCount(right), "/career?result=right"],
+              ["Wrong", formatCount(wrong), "/career?result=wrong"],
+              ["Favourites", formatCount(starred), "/career?result=favorites"],
+            ] as const
+          ).map(([label, value, href], i) => (
+            <li key={label} className={i ? "border-l-2 border-ink" : ""}>
+              <Link href={href} className="grid h-full gap-1 p-3 hover:bg-band sm:p-4">
+                <span className="caps text-[14px] text-ink-2">{label}</span>
+                <span className="num font-display text-[clamp(1.6rem,6vw,2.2rem)] leading-none font-bold">
+                  {value}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {recent.length ? (
+          <ol className="grid gap-2">
+            {recent.map((item, i) => (
+              <li
+                key={`${item.answered_at}-${i}`}
+                className={`grid gap-1 border border-l-[6px] border-rule-strong p-3 ${
+                  item.is_correct === null
+                    ? "border-l-rule-strong"
+                    : item.is_correct
+                      ? "border-l-ok"
+                      : "border-l-danger"
+                }`}
+              >
+                <p className="flex flex-wrap gap-x-3 text-[14px] text-ink-2">
+                  <span className={`caps font-semibold ${item.is_correct === null ? "" : item.is_correct ? "text-ok" : "text-danger"}`}>
+                    {item.is_correct === null ? "Answered" : item.is_correct ? "Right" : "Wrong"}
+                  </span>
+                  <span className="num">{formatWhen(item.answered_at)}</span>
+                </p>
+                <p className="line-clamp-2 text-[17px] leading-snug">{item.prompt}</p>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-[17px] text-ink-2">
+            No questions answered yet. Practise a test and every answer shows up in your career.
+          </p>
+        )}
+        <Link
+          href="/career"
+          className="caps step inline-flex h-12 items-center justify-between gap-3 bg-ink px-4 text-[17px] text-ground hover:bg-ink-2"
+        >
+          {career.length
+            ? `Open career: all ${formatCount(career.length)}`
+            : "Open career"}
+          <ArrowRight size={20} strokeWidth={2} aria-hidden />
+        </Link>
       </section>
       <form action={logout}>
         <Button variant="line" type="submit">

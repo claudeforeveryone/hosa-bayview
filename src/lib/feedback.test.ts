@@ -5,7 +5,7 @@ import { BUZZ, TONES, type FeedbackKind } from "./feedback";
 // matchMedia for a touch screen (coarse pointer) or a mouse.
 const touch = (coarse: boolean) => (q: string) => ({ matches: q === "(pointer: coarse)" ? coarse : false });
 
-const KINDS: FeedbackKind[] = ["correct", "wrong", "flip", "submit", "win"];
+const KINDS: FeedbackKind[] = ["correct", "wrong", "flip", "submit", "win", "notify"];
 
 describe("sound and haptics settings", () => {
   it("sound is on unless it was switched off", () => {
@@ -222,5 +222,20 @@ describe("feedback()", () => {
     primeFeedback();
     // Resumed once from "interrupted"; the fake is "running" after that, so no second resume.
     expect(audio.FakeContext.all[0].resume).toHaveBeenCalledTimes(1);
+  });
+
+  it("the last answer of a round plays its verdict now and the win a beat later", async () => {
+    vi.useFakeTimers();
+    try {
+      const { feedbackThenWin, WIN_DELAY_MS } = await load();
+      feedbackThenWin("correct");
+      expect(audio.made).toHaveLength(TONES.correct.length);
+      expect(vibrate).toHaveBeenLastCalledWith(BUZZ.correct);
+      vi.advanceTimersByTime(WIN_DELAY_MS);
+      expect(audio.made).toHaveLength(TONES.correct.length + TONES.win.length);
+      expect(vibrate).toHaveBeenLastCalledWith(BUZZ.win);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

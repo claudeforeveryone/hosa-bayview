@@ -191,7 +191,7 @@ export function AnswerTicks({ s }: { s: BattleState }) {
           className={`size-3.5 border ${
             p.in_round
               ? "border-ink bg-ink"
-              : "border-dashed border-rule-strong"
+              : "border-rule-strong"
           }`}
         />
       ))}

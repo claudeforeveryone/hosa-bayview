@@ -6,6 +6,7 @@ import type { MatchResult } from "@/app/(app)/flashcards/actions";
 import { Button } from "@/components/form";
 import type { StudyCard } from "@/components/study-session";
 import { STANDARD_ROUND, formatMatchTime, matchNote, type MatchOutcome } from "@/lib/match-times";
+import { feedback, feedbackThenWin } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import { permutation } from "@/lib/shuffle";
 
@@ -125,7 +126,11 @@ function MatchRound({
       setMatchedDefs((m) => new Set(m).add(id));
       setPicked(null);
       setMessage("");
-      if (nextTerms.size === total && startedAt !== null) {
+      const done = nextTerms.size === total;
+      // Played inside the tap so the browser allows it: a ding per pair, and the win chord on the last one.
+      if (done) feedbackThenWin("correct");
+      else feedback("correct");
+      if (done && startedAt !== null) {
         // Only a finished full round reaches the server. The server decides whether it counts.
         const ms = Math.round(at - startedAt);
         setFinishedMs(ms);
@@ -144,6 +149,7 @@ function MatchRound({
           );
       }
     } else {
+      feedback("wrong");
       setFlash({ term: picked, def: id });
       setPicked(null);
       setMessage("Not that one.");

@@ -43,7 +43,7 @@ export function AskTeacher({
   if (editing) {
     return (
       <form
-        className="grid max-w-2xl gap-3 border-t border-dashed border-rule-strong pt-4"
+        className="grid max-w-2xl gap-3 border-t border-rule-strong pt-4"
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -83,7 +83,7 @@ export function AskTeacher({
   }
 
   return (
-    <div className="grid max-w-2xl gap-2 border-t border-dashed border-rule-strong pt-4">
+    <div className="grid max-w-2xl gap-2 border-t border-rule-strong pt-4">
       {current ? (
         <div className="grid gap-1">
           {current.status === "answered" ? (

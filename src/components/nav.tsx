@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Menu, Plus, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Menu, Plus, X } from "lucide-react";
 import { ClassicLogo } from "@/components/classic-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Credit } from "@/components/credit";
 import { formNumber } from "@/lib/join-code";
-import { bottomItemsFor, navItemsFor } from "@/lib/nav-items";
+import { bottomItemsFor, groupOpen, navItemsFor, showJoinLink } from "@/lib/nav-items";
 
 export type NavRoom = { id: string; num: number; name: string };
 type Props = {
@@ -36,11 +36,35 @@ const rowState = (active: boolean) =>
     ? "bg-on-field text-field"
     : "text-on-field-2 hover:bg-field-2 hover:text-on-field";
 
+// A collapsible group in the panel. Starts open when you're on one of its pages; otherwise a tap away.
+function Group({
+  title,
+  open,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details open={open} className="group/nav mt-6">
+      <summary className="caps nav-label step mx-5 flex h-11 cursor-pointer list-none items-center justify-between border-b-2 border-on-field/50 text-[14px] text-on-field-2 hover:text-on-field lg:mx-6 [&::-webkit-details-marker]:hidden">
+        {title}
+        <ChevronDown
+          size={18}
+          strokeWidth={2}
+          aria-hidden
+          className="transition-transform group-open/nav:rotate-180"
+        />
+      </summary>
+      {children}
+    </details>
+  );
+}
+
 // The whole app in one column: where to go and the classrooms you are in.
 function PanelBody({ isExec, canTeach, rooms }: Props) {
   const { path, items } = useItems(isExec);
-  const roomsHeading = useId();
-  const chapterHeading = useId();
   const link = ({ href, label, Icon, active }: (typeof items)[number]) => (
     <li key={href}>
       <Link
@@ -53,72 +77,77 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
       </Link>
     </li>
   );
+  const chapter = items.filter((i) => i.chapter);
+  const roomActive = (id: string) =>
+    path === `/c/${id}` || path.startsWith(`/c/${id}/`);
+  const join = showJoinLink(isExec, rooms.length);
+  // A short list stays open; a long one (executives see every room) folds unless you're in one of them.
+  const roomsOpen =
+    rooms.length <= 5 ||
+    rooms.some((r) => roomActive(r.id)) ||
+    path === "/c/new";
   return (
     <>
       <nav aria-label="Main">
         <ul>{items.filter((i) => !i.chapter).map(link)}</ul>
-        <h2
-          id={chapterHeading}
-          className="caps nav-label mx-5 mt-8 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
-        >
-          Chapter
-        </h2>
-        <ul className="mt-1" aria-labelledby={chapterHeading}>
-          {items.filter((i) => i.chapter).map(link)}
-        </ul>
+        <Group title="Chapter" open={groupOpen(chapter, path)}>
+          <ul className="mt-1">{chapter.map(link)}</ul>
+        </Group>
       </nav>
 
-      <section aria-labelledby={roomsHeading} className="mt-8">
-        <h2
-          id={roomsHeading}
-          className="caps nav-label mx-5 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
+      <section aria-label="Your events">
+        <Group
+          title={rooms.length ? `Your events (${rooms.length})` : "Your events"}
+          open={roomsOpen}
         >
-          Your events
-        </h2>
-        <ul className="mt-1">
-          {rooms.map((room) => {
-            const active =
-              path === `/c/${room.id}` || path.startsWith(`/c/${room.id}/`);
-            return (
-              <li key={room.id}>
+          <ul className="mt-1">
+            {rooms.map((room) => {
+              const active = roomActive(room.id);
+              return (
+                <li key={room.id}>
+                  <Link
+                    href={`/c/${room.id}`}
+                    aria-current={active ? "page" : undefined}
+                    className={`${row} justify-between ${rowState(active)}`}
+                  >
+                    <span className="truncate text-[17px] font-medium">
+                      {room.name}
+                    </span>
+                    <span className="num caps shrink-0 text-[13px] opacity-80">
+                      {formNumber("C", room.num)}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+            {join ? (
+              <li>
                 <Link
-                  href={`/c/${room.id}`}
-                  aria-current={active ? "page" : undefined}
-                  className={`${row} justify-between ${rowState(active)}`}
+                  href="/join"
+                  aria-current={path === "/join" ? "page" : undefined}
+                  className={`${row} ${rowState(path === "/join")}`}
                 >
-                  <span className="truncate text-[17px] font-medium">
-                    {room.name}
-                  </span>
-                  <span className="num caps shrink-0 text-[13px] opacity-80">
-                    {formNumber("C", room.num)}
+                  <ArrowRight size={20} strokeWidth={1.75} aria-hidden />
+                  <span className="text-[17px] font-medium">
+                    Join with a code
                   </span>
                 </Link>
               </li>
-            );
-          })}
-          <li>
-            <Link
-              href="/join"
-              aria-current={path === "/join" ? "page" : undefined}
-              className={`${row} ${rowState(path === "/join")}`}
-            >
-              <ArrowRight size={20} strokeWidth={1.75} aria-hidden />
-              <span className="text-[17px] font-medium">Join with a code</span>
-            </Link>
-          </li>
-          {canTeach ? (
-            <li>
-              <Link
-                href="/c/new"
-                aria-current={path === "/c/new" ? "page" : undefined}
-                className={`${row} ${rowState(path === "/c/new")}`}
-              >
-                <Plus size={20} strokeWidth={1.75} aria-hidden />
-                <span className="text-[17px] font-medium">New classroom</span>
-              </Link>
-            </li>
-          ) : null}
-        </ul>
+            ) : null}
+            {canTeach ? (
+              <li>
+                <Link
+                  href="/c/new"
+                  aria-current={path === "/c/new" ? "page" : undefined}
+                  className={`${row} ${rowState(path === "/c/new")}`}
+                >
+                  <Plus size={20} strokeWidth={1.75} aria-hidden />
+                  <span className="text-[17px] font-medium">New classroom</span>
+                </Link>
+              </li>
+            ) : null}
+          </ul>
+        </Group>
       </section>
     </>
   );

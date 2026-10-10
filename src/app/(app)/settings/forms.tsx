@@ -26,7 +26,7 @@ function Section({
   return (
     <section
       aria-labelledby={id}
-      className="grid grid-cols-1 gap-5 border-t border-rule pt-6 lg:grid-cols-[16rem_minmax(0,32rem)]"
+      className="grid grid-cols-1 gap-5 border-t-[3px] border-ink pt-5 lg:grid-cols-[16rem_minmax(0,32rem)]"
     >
       <h2
         id={id}

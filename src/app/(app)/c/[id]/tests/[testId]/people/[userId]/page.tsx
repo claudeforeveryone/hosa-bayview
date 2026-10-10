@@ -97,7 +97,7 @@ export default async function MemberResultsPage({
           })}
         </ul>
       ) : (
-        <p className="border-y border-dashed border-rule-strong px-1 py-4 text-ink-2">
+        <p className="border-y border-rule-strong px-1 py-4 text-ink-2">
           No finished attempts yet.
         </p>
       )}

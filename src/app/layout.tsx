@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible, Barlow, Barlow_Condensed, Lexend } from "next/font/google";
+import { Barlow, Barlow_Condensed, Lexend } from "next/font/google";
 import localFont from "next/font/local";
 import { headers } from "next/headers";
 import { AppearanceSync } from "@/components/appearance";
@@ -21,14 +21,7 @@ const barlowCondensed = Barlow_Condensed({
   weight: ["500", "600", "700"],
 });
 
-// Optional faces from Settings > Look. preload: false keeps them off the wire until someone picks one.
-const atkinson = Atkinson_Hyperlegible({
-  variable: "--font-atkinson",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  preload: false,
-});
-
+// The optional dyslexia-friendly face from Settings > Look. preload: false keeps it off the wire until someone picks it.
 const lexend = Lexend({
   variable: "--font-lexend",
   subsets: ["latin"],
@@ -71,7 +64,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${barlow.variable} ${barlowCondensed.variable} ${atkinson.variable} ${lexend.variable} ${montserrat.variable} h-full antialiased`}
+      className={`${barlow.variable} ${barlowCondensed.variable} ${lexend.variable} ${montserrat.variable} h-full antialiased`}
     >
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: appearanceScript }} />

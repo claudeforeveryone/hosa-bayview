@@ -311,7 +311,7 @@ const PreviewQuestion = memo(function PreviewQuestion({
 // A line that belongs to no question: struck through, with why.
 function PreviewSkipped({ s }: { s: SkippedLine }) {
   return (
-    <li className="grid gap-0.5 border-b border-dashed border-rule-strong py-2 pl-11 text-[15px]">
+    <li className="grid gap-0.5 border-b border-rule-strong py-2 pl-11 text-[15px]">
       <span className="text-ink-2 line-through decoration-rule-strong [overflow-wrap:anywhere]">
         {s.text}
       </span>

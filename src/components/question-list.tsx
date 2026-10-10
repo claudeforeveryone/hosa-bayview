@@ -42,7 +42,7 @@ export function QuestionList({
               q.failed
                 ? "border-danger"
                 : q.pending
-                  ? "border-dashed border-rule-strong"
+                  ? "border-rule-strong"
                   : "border-rule"
             }`}
           >

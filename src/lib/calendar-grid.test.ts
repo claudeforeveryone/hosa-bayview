@@ -5,9 +5,11 @@ import {
   eventDayKeys,
   gridDays,
   gridRange,
+  groupByStartDay,
   monthLabel,
   monthParam,
   parseMonth,
+  pickView,
   shiftMonth,
 } from "./calendar-grid";
 import { torontoToIso } from "./when";
@@ -95,5 +97,31 @@ describe("which days an event lands on", () => {
     expect(Object.values(b).flat().some((e) => e.id === "out")).toBe(false);
     expect(b["2026-10-31"].map((e) => e.id)).toEqual(["span"]); // last grid day
     expect(b["2026-11-01"]).toBeUndefined();
+  });
+});
+
+describe("calendar view", () => {
+  it("an explicit view wins, then a month link, then the remembered choice", () => {
+    expect(pickView("list", "2026-10", "month")).toBe("list");
+    expect(pickView("month", undefined, "list")).toBe("month");
+    expect(pickView(undefined, "2026-10", "list")).toBe("month");
+    expect(pickView(undefined, undefined, "list")).toBe("list");
+    expect(pickView(undefined, undefined, undefined)).toBe("month");
+    expect(pickView("weird", undefined, "nonsense")).toBe("month");
+    expect(pickView(["list", "month"], undefined, undefined)).toBe("list");
+  });
+});
+
+describe("agenda days", () => {
+  it("groups by the Toronto start day, in order", () => {
+    const rows = [
+      { id: "a", starts_at: at("2026-10-14T09:00") },
+      { id: "b", starts_at: at("2026-10-14T23:30") },
+      { id: "c", starts_at: at("2026-10-15T00:30") },
+    ];
+    const days = groupByStartDay(rows);
+    expect(days.map((d) => d.key)).toEqual(["2026-10-14", "2026-10-15"]);
+    expect(days[0].items.map((e) => e.id)).toEqual(["a", "b"]);
+    expect(groupByStartDay([])).toEqual([]);
   });
 });

@@ -2,12 +2,14 @@
 
 import { Check, X } from "lucide-react";
 import { AskTeacher, type FlagState } from "@/components/ask-teacher";
+import { FavoriteStar } from "@/components/favorite-star";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
 import type { AttemptQuestion } from "@/lib/tests";
 
 const LETTERS = "ABCDE";
 
-// One question in a finished attempt. Takers get selection-to-flashcard and Ask teacher; trainers read it.
+// One question in a finished attempt. Takers get selection-to-flashcard, a favourite star and Ask teacher;
+// trainers read it. The star loads its own state (one batched request per page).
 export function ReviewItem({
   q,
   mine,
@@ -49,6 +51,9 @@ export function ReviewItem({
             <p className="text-[17px] whitespace-pre-line">{q.prompt}</p>
           </SelectionCards>
         </div>
+        {mine ? (
+          <FavoriteStar questionId={q.question_id} label={`Favourite question ${q.pos}`} />
+        ) : null}
       </div>
       <ul className="grid gap-1 pl-11">
         {q.choice_order.map((original, shown) => {

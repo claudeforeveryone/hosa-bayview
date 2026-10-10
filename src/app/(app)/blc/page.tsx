@@ -34,7 +34,7 @@ function StateMark({ state }: { state: CompetitionState }) {
   // Solid maroon is live, dashed is pending, grey is over. Same rule language as the rest of the app.
   const style = {
     open: "bg-you",
-    upcoming: "border border-dashed border-ink-2",
+    upcoming: "border border-ink-2",
     closed: "bg-rule-strong",
   }[state];
   return (

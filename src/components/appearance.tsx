@@ -1,9 +1,11 @@
 "use client";
 
-import { Check, RotateCcw } from "lucide-react";
-import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
+import { Check, Pipette, RotateCcw } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import {
   ACCENTS,
+  DEFAULT_ACCENT_HEX,
+  DEFAULT_FIELD_HEX,
   DEFAULT_VOLUME,
   FONTS,
   LOOK_KEYS,
@@ -13,23 +15,30 @@ import {
   TEXT_SIZES,
   applyExtras,
   applyMode,
+  applyPalette,
+  parseHex,
   readAccent,
+  readAccentHex,
+  readFieldHex,
   readFont,
   readHaptics,
   readMode,
-  readMotion,
   readNavCase,
+  readNotifySound,
   readPalette,
   readSound,
   readTextSize,
   readVolume,
+  readableOn,
   resetAppearance,
   setAccent,
+  setAccentHex,
+  setFieldHex,
   setFont,
   setHaptics,
   setMode,
-  setMotion,
   setNavCase,
+  setNotifySound,
   setPalette,
   setSound,
   setTextSize,
@@ -37,10 +46,9 @@ import {
   type Accent,
   type Font,
   type Mode,
-  type Motion,
   type NavCase,
-  type Palette,
   type TextSize,
+  type ThemeChoice,
   type Toggle,
 } from "@/lib/appearance";
 import { feedback } from "@/lib/feedback";
@@ -59,12 +67,7 @@ function subscribe(onChange: () => void) {
   };
 }
 
-function applyPalette(palette: Palette) {
-  if (palette === "bayview") delete document.documentElement.dataset.palette;
-  else document.documentElement.dataset.palette = palette;
-}
-
-// In the root layout. On Auto, follows the device when it switches between light and dark, and picks up a
+// In the root layout. On Device, follows the device when it switches between light and dark, and picks up a
 // change made in another tab.
 export function AppearanceSync() {
   useEffect(() => {
@@ -92,7 +95,6 @@ export function AppearanceSync() {
 // Each option is set in its own face. The variables come from the root layout's next/font loaders.
 const FONT_FAMILIES: Record<Font, string> = {
   default: "var(--font-barlow), system-ui, sans-serif",
-  readable: "var(--font-atkinson), system-ui, sans-serif",
   dyslexic: "var(--font-lexend), system-ui, sans-serif",
 };
 
@@ -105,17 +107,20 @@ function Segments<T extends string>({
   options,
   value,
   onPick,
+  hint,
 }: {
   name: string;
   label: string;
   options: { id: T; label: string; className?: string; style?: CSSProperties }[];
   value: T;
   onPick: (v: T) => void;
+  hint?: string;
 }) {
+  const hintId = hint ? `${name}-hint` : undefined;
   return (
-    <fieldset>
+    <fieldset aria-describedby={hintId}>
       <legend className={legend}>{label}</legend>
-      <div className="grid auto-cols-fr grid-flow-col border border-rule-strong">
+      <div className="grid auto-cols-fr grid-flow-col border-2 border-ink">
         {options.map((o) => (
           <label key={o.id} className="relative border-r border-rule-strong last:border-r-0">
             <input
@@ -135,122 +140,248 @@ function Segments<T extends string>({
           </label>
         ))}
       </div>
+      {hint ? (
+        <p id={hintId} className="mt-2 text-[15px] text-ink-2">
+          {hint}
+        </p>
+      ) : null}
     </fieldset>
+  );
+}
+
+// A settings tab's panel: a heavy rule, a big heading, then its controls.
+function Panel({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section
+      aria-labelledby={id}
+      className="grid grid-cols-1 gap-5 border-t-[3px] border-ink pt-5 lg:grid-cols-[16rem_minmax(0,32rem)]"
+    >
+      <h2
+        id={id}
+        className="font-display text-[clamp(1.75rem,5vw,2.25rem)] leading-none font-bold uppercase"
+      >
+        {title}
+      </h2>
+      <div className="grid gap-7">{children}</div>
+    </section>
+  );
+}
+
+// A labelled group inside a panel, boxed off from its neighbours by a solid rule.
+function Group({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="grid gap-5 border-t border-rule-strong pt-4">
+      <h3 className="caps text-[16px] text-ink">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+// One square swatch backed by a native radio, with its name underneath.
+function Swatch({
+  name,
+  value,
+  label,
+  on,
+  onPick,
+  background,
+  corner,
+  icon,
+}: {
+  name: string;
+  value: string;
+  label: string;
+  on: boolean;
+  onPick: () => void;
+  background: string;
+  corner?: string;
+  icon?: ReactNode;
+}) {
+  const mark = readableOn(parseHex(background) ?? "#000000");
+  return (
+    <label className="group grid cursor-pointer justify-items-stretch gap-1.5">
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={on}
+        onChange={onPick}
+        className="peer sr-only"
+      />
+      <span
+        className={`relative grid aspect-square w-full place-items-center outline-solid outline-offset-2 peer-focus-visible:outline-[3px] peer-focus-visible:outline-ink ${
+          on ? "outline-[3px] outline-ink" : "outline-1 outline-rule-strong group-hover:outline-ink"
+        }`}
+        style={{ background }}
+      >
+        {corner ? (
+          <span className="absolute right-0 bottom-0 size-[30%]" style={{ background: corner }} />
+        ) : null}
+        {on ? (
+          <Check size={20} strokeWidth={2.5} aria-hidden style={{ color: mark }} />
+        ) : icon ? (
+          <span style={{ color: mark }}>{icon}</span>
+        ) : null}
+      </span>
+      <span className={`caps text-center text-[13px] sm:text-[14px] ${on ? "text-ink" : "text-ink-2"}`}>
+        {label}
+      </span>
+    </label>
+  );
+}
+
+// A colour picker plus a hex field. The field only saves once it holds a whole #rgb or #rrggbb, and goes back
+// to the saved colour when you leave it half typed.
+function HexPicker({
+  id,
+  label,
+  value,
+  onPick,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onPick: (hex: string) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? value;
+  const bad = draft !== null && parseHex(draft) === null;
+  return (
+    <div className="grid gap-2 border-2 border-ink bg-band p-3">
+      <label htmlFor={`${id}-hex`} className="caps text-[14px] text-ink-2">
+        {label}
+      </label>
+      <div className="flex items-stretch gap-2">
+        <input
+          type="color"
+          aria-label={`${label}: pick a colour`}
+          value={value}
+          onChange={(e) => {
+            setDraft(null);
+            onPick(e.target.value);
+          }}
+          className="h-12 w-16 shrink-0 cursor-pointer border-2 border-ink bg-ground p-1"
+        />
+        <input
+          id={`${id}-hex`}
+          type="text"
+          value={shown.toUpperCase()}
+          onChange={(e) => {
+            const v = e.target.value;
+            setDraft(v);
+            const hex = parseHex(v);
+            if (hex) onPick(hex);
+          }}
+          onBlur={() => setDraft(null)}
+          maxLength={7}
+          autoComplete="off"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          aria-invalid={bad ? true : undefined}
+          aria-describedby={bad ? `${id}-err` : undefined}
+          className="num h-12 w-0 min-w-0 flex-1 border-2 border-ink bg-ground px-3 font-display text-[22px] font-semibold tracking-[0.06em] text-ink outline-none focus:border-you aria-invalid:border-danger sm:max-w-44"
+        />
+      </div>
+      {bad ? (
+        <p id={`${id}-err`} role="alert" className="text-[15px] text-danger">
+          Use a hex colour like #1E3D62 or #FC0.
+        </p>
+      ) : null}
+    </div>
   );
 }
 
 // Native radios, so Tab lands on the group once and the arrow keys move the choice.
 export function LookSection() {
   const mode = useSyncExternalStore<Mode>(subscribe, readMode, () => "system");
-  const palette = useSyncExternalStore<Palette>(
-    subscribe,
-    readPalette,
-    () => "bayview",
-  );
+  const palette = useSyncExternalStore<ThemeChoice>(subscribe, readPalette, () => "bayview");
+  const fieldHex = useSyncExternalStore<string>(subscribe, readFieldHex, () => DEFAULT_FIELD_HEX);
   const accent = useSyncExternalStore<Accent>(subscribe, readAccent, () => "theme");
+  const accentHex = useSyncExternalStore<string>(subscribe, readAccentHex, () => DEFAULT_ACCENT_HEX);
   const text = useSyncExternalStore<TextSize>(subscribe, readTextSize, () => "standard");
   const font = useSyncExternalStore<Font>(subscribe, readFont, () => "default");
-  const motion = useSyncExternalStore<Motion>(subscribe, readMotion, () => "full");
   const navCase = useSyncExternalStore<NavCase>(subscribe, readNavCase, () => "upper");
-  const sound = useSyncExternalStore<Toggle>(subscribe, readSound, () => "on");
-  const volume = useSyncExternalStore<number>(subscribe, readVolume, () => DEFAULT_VOLUME);
-  const haptics = useSyncExternalStore<Toggle>(subscribe, readHaptics, () => "on");
-  const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? "#7a1f2b";
+  const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? DEFAULT_ACCENT_HEX;
 
   return (
-    <section
-      aria-labelledby="look-h"
-      className="grid grid-cols-1 gap-5 border-t border-rule pt-6 lg:grid-cols-[16rem_minmax(0,32rem)]"
-    >
-      <h2
-        id="look-h"
-        className="font-display text-[clamp(1.75rem,5vw,2.25rem)] leading-none font-bold uppercase"
-      >
-        Look
-      </h2>
-      <div className="grid gap-6">
-        <Preview />
-        <Segments name="look-mode" label="Mode" options={MODES} value={mode} onPick={setMode} />
-        <fieldset className="grid grid-cols-4 gap-2 sm:gap-3">
+    <Panel id="look-h" title="Look">
+      <Preview />
+      <Group title="Colour">
+        <Segments
+          name="look-mode"
+          label="Mode"
+          options={MODES}
+          value={mode}
+          onPick={setMode}
+          hint="Device follows your phone or computer's light/dark setting."
+        />
+        <fieldset className="grid gap-3">
           <legend className={legend}>Theme</legend>
-          {PALETTES.map((p) => {
-            const on = p.id === palette;
-            return (
-              <label key={p.id} className="group grid cursor-pointer gap-2">
-                <input
-                  type="radio"
-                  name="look-palette"
-                  value={p.id}
-                  checked={on}
-                  onChange={() => setPalette(p.id)}
-                  className="peer sr-only"
-                />
-                <span
-                  className={`relative block aspect-square outline-solid outline-offset-2 peer-focus-visible:outline-[3px] peer-focus-visible:outline-ink ${
-                    on
-                      ? "outline-2 outline-ink"
-                      : "outline-1 outline-rule group-hover:outline-rule-strong"
-                  }`}
-                  style={{ background: p.field }}
-                >
-                  <span
-                    className="absolute right-0 bottom-0 size-[30%]"
-                    style={{ background: p.accent }}
-                  />
-                  {on ? (
-                    <Check
-                      size={22}
-                      strokeWidth={2.25}
-                      aria-hidden
-                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white"
-                    />
-                  ) : null}
-                </span>
-                <span
-                  className={`caps text-[14px] sm:text-[15px] ${on ? "text-ink" : "text-ink-2"}`}
-                >
-                  {p.label}
-                </span>
-              </label>
-            );
-          })}
-        </fieldset>
-        <fieldset>
-          <legend className={legend}>Highlight</legend>
-          <div className="grid grid-cols-6 gap-2 sm:gap-3">
-            {ACCENTS.map((a) => {
-              const on = a.id === accent;
-              const colour = a.id === "theme" ? themeAccent : a.swatch;
-              return (
-                <label key={a.id} className="group grid cursor-pointer justify-items-center gap-1.5">
-                  <input
-                    type="radio"
-                    name="look-accent"
-                    value={a.id}
-                    checked={on}
-                    onChange={() => setAccent(a.id)}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className={`relative grid aspect-square w-full place-items-center outline-solid outline-offset-2 peer-focus-visible:outline-[3px] peer-focus-visible:outline-ink ${
-                      on ? "outline-2 outline-ink" : "outline-1 outline-rule group-hover:outline-rule-strong"
-                    }`}
-                    style={{ background: colour }}
-                  >
-                    {on ? <Check size={18} strokeWidth={2.5} aria-hidden className="text-white" /> : null}
-                  </span>
-                  <span className={`caps text-[12px] sm:text-[13px] ${on ? "text-ink" : "text-ink-2"}`}>{a.label}</span>
-                </label>
-              );
-            })}
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+            {PALETTES.map((p) => (
+              <Swatch
+                key={p.id}
+                name="look-palette"
+                value={p.id}
+                label={p.label}
+                on={p.id === palette}
+                onPick={() => setPalette(p.id)}
+                background={p.field}
+                corner={p.accent}
+              />
+            ))}
+            <Swatch
+              name="look-palette"
+              value="custom"
+              label="Custom"
+              on={palette === "custom"}
+              onPick={() => setFieldHex(fieldHex)}
+              background={fieldHex}
+              icon={<Pipette size={20} strokeWidth={2} aria-hidden />}
+            />
           </div>
+          {palette === "custom" ? (
+            <HexPicker id="look-field" label="Theme colour" value={fieldHex} onPick={setFieldHex} />
+          ) : null}
         </fieldset>
+        <fieldset className="grid gap-3">
+          <legend className={legend}>Highlight</legend>
+          <div className="grid grid-cols-4 gap-3 sm:grid-cols-7">
+            {ACCENTS.map((a) => (
+              <Swatch
+                key={a.id}
+                name="look-accent"
+                value={a.id}
+                label={a.label}
+                on={a.id === accent}
+                onPick={() => setAccent(a.id)}
+                background={a.id === "theme" ? themeAccent : a.swatch}
+              />
+            ))}
+            <Swatch
+              name="look-accent"
+              value="custom"
+              label="Custom"
+              on={accent === "custom"}
+              onPick={() => setAccentHex(accentHex)}
+              background={accentHex}
+              icon={<Pipette size={18} strokeWidth={2} aria-hidden />}
+            />
+          </div>
+          {accent === "custom" ? (
+            <HexPicker id="look-accent" label="Highlight colour" value={accentHex} onPick={setAccentHex} />
+          ) : null}
+        </fieldset>
+      </Group>
+      <Group title="Text">
         <Segments
           name="look-text"
           label="Text size"
           options={TEXT_SIZES.map((t, i) => ({ ...t, className: `normal-case tracking-normal ${["text-[15px]", "text-[18px]", "text-[21px]"][i]}` }))}
           value={text}
           onPick={setTextSize}
+          hint="Makes the words bigger. Pictures stay their usual size."
         />
         <Segments
           name="look-font"
@@ -264,22 +395,38 @@ export function LookSection() {
           onPick={setFont}
         />
         <Segments
-          name="look-motion"
-          label="Motion"
-          options={[
-            { id: "full", label: "Lively" },
-            { id: "calm", label: "Calm" },
-          ]}
-          value={motion}
-          onPick={setMotion}
-        />
-        <Segments
           name="look-navcase"
           label="Sidebar text"
           options={NAV_CASES.map((c) => ({ ...c, className: "normal-case" }))}
           value={navCase}
           onPick={setNavCase}
         />
+      </Group>
+      <div className="grid gap-1 border-t border-rule-strong pt-4">
+        <button
+          type="button"
+          onClick={resetAppearance}
+          className="caps step inline-flex h-11 items-center gap-2 justify-self-start text-[15px] text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
+        >
+          <RotateCcw size={16} strokeWidth={1.75} aria-hidden />
+          Reset look and sound
+        </button>
+        <p className="text-[15px] text-ink-2">Saved on this device.</p>
+      </div>
+    </Panel>
+  );
+}
+
+// Sound effects, the bell's chime, and vibration. Saved on this device like the look.
+export function SoundSection() {
+  const sound = useSyncExternalStore<Toggle>(subscribe, readSound, () => "on");
+  const volume = useSyncExternalStore<number>(subscribe, readVolume, () => DEFAULT_VOLUME);
+  const haptics = useSyncExternalStore<Toggle>(subscribe, readHaptics, () => "on");
+  const notify = useSyncExternalStore<Toggle>(subscribe, readNotifySound, () => "on");
+
+  return (
+    <Panel id="sound-h" title="Sound">
+      <Group title="Effects">
         <Segments
           name="look-sound"
           label="Sound"
@@ -290,8 +437,20 @@ export function LookSection() {
             // Switching it on plays a sample, so you know what you'll hear.
             if (v === "on") feedback("correct");
           }}
+          hint="Dings and pops when you answer, flip cards and finish."
         />
         {sound === "on" ? <VolumeSlider value={volume} /> : null}
+        <Segments
+          name="look-notifysound"
+          label="Notification sound"
+          options={TOGGLES}
+          value={notify}
+          onPick={(v) => {
+            setNotifySound(v);
+            if (v === "on") feedback("notify");
+          }}
+          hint="A chime when something new lands in your notifications."
+        />
         {/* Touch devices that can vibrate only. Always rendered; <html data-vibrate>, set before paint,
             shows it, so the page never shifts after load. */}
         <div className="haptics-row">
@@ -306,17 +465,9 @@ export function LookSection() {
             }}
           />
         </div>
-        <button
-          type="button"
-          onClick={resetAppearance}
-          className="caps step inline-flex h-11 items-center gap-2 justify-self-start text-[15px] text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
-        >
-          <RotateCcw size={16} strokeWidth={1.75} aria-hidden />
-          Reset to the Bayview look
-        </button>
-        <p className="text-[15px] text-ink-2">Saved on this device.</p>
-      </div>
-    </section>
+      </Group>
+      <p className="text-[15px] text-ink-2">Saved on this device.</p>
+    </Panel>
   );
 }
 
@@ -350,7 +501,7 @@ function VolumeSlider({ value }: { value: number }) {
 // A slice of the app in the current look, so every choice shows up as you make it.
 function Preview() {
   return (
-    <div aria-hidden className="grid border border-rule-strong">
+    <div aria-hidden className="grid border-2 border-ink">
       <div className="flex items-center justify-between gap-3 bg-field px-4 py-3 text-on-field">
         <span className="font-display text-[26px] leading-none font-bold uppercase">Leaderboard</span>
         <span className="caps num bg-you px-2 py-1 text-[13px] leading-none text-on-you">#3</span>

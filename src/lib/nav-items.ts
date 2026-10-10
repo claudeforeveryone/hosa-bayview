@@ -1,21 +1,24 @@
 // The app's navigation, as data. Pure, so which links each role sees is testable apart from the nav component.
 import {
   CalendarDays,
+  ChartLine,
+  Ellipsis,
   Grid2x2,
   House,
   LibraryBig,
   Medal,
   Megaphone,
-  Settings,
   ShieldCheck,
+  Trophy,
   Users,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { BLC_ENABLED } from "@/lib/features";
 
-// `more`: sidebar and drawer only, not the phone shortcut bar. `chapter`: listed under Chapter.
-// Leaderboard, Tests and Flashcards have no entry: their routes still work (deep links, classroom tabs).
+// `chapter`: listed in the Chapter group (a dropdown in the sidebar). `bottom`: one of the phone shortcut bar's five.
+// Settings, Help and Log out live on /more, so the panel stays short. Tests and Flashcards have no entry:
+// their routes still work (deep links, classroom tabs).
 export type NavItem = {
   href: string;
   label: string;
@@ -23,8 +26,8 @@ export type NavItem = {
   Icon: LucideIcon;
   match: (p: string) => boolean;
   exec?: boolean;
-  more?: boolean;
   chapter?: boolean;
+  bottom?: boolean;
 };
 
 const ITEMS: NavItem[] = [
@@ -34,6 +37,7 @@ const ITEMS: NavItem[] = [
     short: "Home",
     Icon: House,
     match: (p) => p === "/",
+    bottom: true,
   },
   {
     href: "/events",
@@ -41,6 +45,14 @@ const ITEMS: NavItem[] = [
     short: "Events",
     Icon: Grid2x2,
     match: (p) => p.startsWith("/events") || p === "/c" || p.startsWith("/c/") || p.startsWith("/battle/"),
+    bottom: true,
+  },
+  {
+    href: "/career",
+    label: "Career",
+    short: "Career",
+    Icon: ChartLine,
+    match: (p) => p.startsWith("/career"),
   },
   {
     href: "/announcements",
@@ -57,6 +69,15 @@ const ITEMS: NavItem[] = [
     Icon: CalendarDays,
     match: (p) => p.startsWith("/calendar"),
     chapter: true,
+    bottom: true,
+  },
+  {
+    href: "/leaderboard",
+    label: "Leaderboard",
+    short: "Ranks",
+    Icon: Trophy,
+    match: (p) => p.startsWith("/leaderboard"),
+    chapter: true,
   },
   {
     href: "/blc",
@@ -64,7 +85,6 @@ const ITEMS: NavItem[] = [
     short: "BLC",
     Icon: Medal,
     match: (p) => p.startsWith("/blc"),
-    more: true,
     chapter: true,
   },
   {
@@ -73,7 +93,6 @@ const ITEMS: NavItem[] = [
     short: "Resources",
     Icon: LibraryBig,
     match: (p) => p.startsWith("/library"),
-    more: true,
     chapter: true,
   },
   {
@@ -83,7 +102,6 @@ const ITEMS: NavItem[] = [
     Icon: Users,
     match: (p) => p.startsWith("/members"),
     exec: true,
-    more: true,
   },
   {
     href: "/profile",
@@ -91,14 +109,7 @@ const ITEMS: NavItem[] = [
     short: "Profile",
     Icon: UserRound,
     match: (p) => p.startsWith("/profile"),
-  },
-  {
-    href: "/settings",
-    label: "Settings",
-    short: "Settings",
-    Icon: Settings,
-    match: (p) => p.startsWith("/settings"),
-    more: true,
+    bottom: true,
   },
   {
     href: "/admin",
@@ -108,6 +119,15 @@ const ITEMS: NavItem[] = [
     match: (p) => p.startsWith("/admin"),
     exec: true,
   },
+  {
+    href: "/more",
+    label: "More",
+    short: "More",
+    Icon: Ellipsis,
+    // Settings and Help are reached from More, so it stays lit there.
+    match: (p) => p.startsWith("/more") || p.startsWith("/settings") || p.startsWith("/help"),
+    bottom: true,
+  },
 ];
 
 export function navItemsFor(isExec: boolean): NavItem[] {
@@ -116,7 +136,18 @@ export function navItemsFor(isExec: boolean): NavItem[] {
   );
 }
 
-// The phone shortcut bar: the five places people use most.
+// The phone shortcut bar: the five places people use most, More last.
 export function bottomItemsFor(isExec: boolean): NavItem[] {
-  return navItemsFor(isExec).filter((i) => !i.exec && !i.more);
+  return navItemsFor(isExec).filter((i) => i.bottom);
+}
+
+// "Join with a code" is for people who aren't in any event yet; after that, Settings > Events has it.
+// Executives see every room already, so they never need it in the panel.
+export function showJoinLink(isExec: boolean, roomCount: number): boolean {
+  return !isExec && roomCount === 0;
+}
+
+// A sidebar dropdown starts open when the page you're on is inside it.
+export function groupOpen(items: { match: (p: string) => boolean }[], path: string): boolean {
+  return items.some((i) => i.match(path));
 }

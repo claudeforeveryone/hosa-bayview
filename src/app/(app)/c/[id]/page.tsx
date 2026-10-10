@@ -1,9 +1,10 @@
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { AnnouncementForm } from "@/components/announcement-form";
 import { AnnouncementList } from "@/components/announcement-list";
 import { BattleEntry } from "@/components/battle-entry";
 import { BoardView } from "@/components/board-view";
 import {
+  HubComingUp,
   HubResources,
   PracticeStrip,
   hubHeading,
@@ -15,6 +16,7 @@ import { getAnnouncements } from "@/lib/announcements";
 import { getOpenBattles } from "@/lib/battles";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom, getRoomInfo, uuid } from "@/lib/classrooms";
+import { getUpcomingForRoom } from "@/lib/events";
 import { listDecks } from "@/lib/decks";
 import { createClient } from "@/lib/supabase/server";
 import { getClassroomFlags, getClassroomTests } from "@/lib/tests";
@@ -38,14 +40,15 @@ async function getMaterialSections(
   return (data ?? []) as { section: string | null }[];
 }
 
-// The event's hub: class news (pinned first), resources by section, what there is to practise, then this
-// room's board, which ranks only work done here. Every count is what this viewer can open.
+// The event's hub: class news (pinned first), open Ask teacher questions (folded, managers), what's coming up,
+// resources by section, what there is to practise, then this room's board, which ranks only work done here.
+// Every count is what this viewer can open.
 export default async function BoardTab(props: PageProps<"/c/[id]">) {
   const { id } = await props.params;
   const sp = await props.searchParams;
   const metric = sp.metric ? parseMetric(sp.metric) : "answered";
   const period = parsePeriod(sp.period);
-  const [me, board, room, info, news, sections, tests, decks, battles] =
+  const [me, board, room, info, news, sections, tests, decks, battles, upcoming] =
     await Promise.all([
       requireProfile(),
       getBoard(period, id),
@@ -57,6 +60,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
       listDecks(id),
       // Null until the battle migrations are applied: then there's no Battle button at all.
       getOpenBattles(id),
+      getUpcomingForRoom(id),
     ]);
   const category = info?.category ?? null;
   const skills = category === "practical" ? await getSkills(id) : [];
@@ -133,16 +137,37 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
       ) : null}
 
       {canPost ? (
-        <section aria-labelledby="asks-h" className="grid gap-4">
-          <h2 id="asks-h" className={`${hubHeading} flex items-baseline gap-3`}>
-            Ask teacher
-            <span className="num border border-ink px-2 py-0.5 font-sans text-[16px] font-semibold tracking-normal">
-              {flags.length}
+        // Open questions stay folded away so they don't push the page down; ?asks=1 opens them.
+        <details
+          className="group border-[3px] border-ink"
+          open={sp.asks === "1"}
+        >
+          <summary className="caps step flex min-h-14 cursor-pointer items-center justify-between gap-3 px-3 py-2 text-[17px] hover:bg-band [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-3">
+              Ask teacher
+              <span
+                className={`num px-2 py-0.5 font-sans text-[15px] font-semibold tracking-normal ${flags.length ? "bg-you text-on-you" : "border border-rule-strong text-ink-2"}`}
+              >
+                {flags.length}
+              </span>
+              <span className="sr-only">
+                {flags.length === 1 ? "open question" : "open questions"}
+              </span>
             </span>
-          </h2>
-          <ClassroomFlagList classroomId={id} flags={flags} />
-        </section>
+            <ChevronDown
+              size={22}
+              strokeWidth={1.75}
+              aria-hidden
+              className="shrink-0 group-open:rotate-180"
+            />
+          </summary>
+          <div className="border-t-2 border-ink px-1 pt-2 pb-4 sm:px-3">
+            <ClassroomFlagList classroomId={id} flags={flags} />
+          </div>
+        </details>
       ) : null}
+
+      <HubComingUp rows={upcoming} />
 
       <HubResources base={base} rows={sections} canManage={canPost} />
 

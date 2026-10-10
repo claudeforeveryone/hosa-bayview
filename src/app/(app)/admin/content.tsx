@@ -85,7 +85,7 @@ export async function AdminLog({ now }: { now: number }) {
           ))}
         </ol>
       ) : (
-        <p className="border-y border-dashed border-rule-strong px-1 py-6 text-[17px] text-ink-2 sm:px-3">
+        <p className="border-y border-rule-strong px-1 py-6 text-[17px] text-ink-2 sm:px-3">
           Nothing logged yet. Role changes, bans, titles, warnings and passcode
           changes show up here.
         </p>

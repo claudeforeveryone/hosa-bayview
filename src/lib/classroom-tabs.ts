@@ -24,15 +24,78 @@ export function tabsFor(category: Category | null, isManager: boolean): Tab[] {
 
 export const CATEGORY_HEADINGS: Record<Category, string> = { mc: "MC", practical: "Practical", showcase: "Showcase" };
 
-// Rooms under their category heading, A to Z. "Other" holds uncategorised rooms and only appears when it has some.
+// Rooms under their category heading, A to Z. Uncategorised rooms come first with no heading at all
+// (heading null), so the page reads as one main list instead of ending in an "Other" bucket.
 export function groupByCategory<T extends { name: string; category: Category | null }>(
   rooms: T[],
-): { heading: string; rooms: T[] }[] {
+): { heading: string | null; rooms: T[] }[] {
   const byName = (a: T, b: T) => a.name.localeCompare(b.name);
-  const groups = (["mc", "practical", "showcase"] as const).map((c) => ({
-    heading: CATEGORY_HEADINGS[c],
-    rooms: rooms.filter((r) => r.category === c).sort(byName),
-  }));
-  groups.push({ heading: "Other", rooms: rooms.filter((r) => r.category === null).sort(byName) });
+  const groups: { heading: string | null; rooms: T[] }[] = [
+    { heading: null, rooms: rooms.filter((r) => r.category === null).sort(byName) },
+  ];
+  for (const c of ["mc", "practical", "showcase"] as const) {
+    groups.push({ heading: CATEGORY_HEADINGS[c], rooms: rooms.filter((r) => r.category === c).sort(byName) });
+  }
   return groups.filter((g) => g.rooms.length > 0);
+}
+
+// Where tapping Events lands. `mineIds` are the class rooms you own or belong to; `seesAll` is an executive,
+// who can list every room. Not an executive and exactly one room: straight into it. Otherwise your rooms
+// first (most recently visited first, then A to Z), then everything else. An executive's recently visited
+// rooms count as theirs, so the rooms they work in float up.
+export type EventsLanding<T> = { go: T } | { mine: T[]; rest: T[] };
+
+export function eventsLanding<T extends { id: string; name: string }>(
+  rooms: T[],
+  {
+    mineIds,
+    recentIds = [],
+    seesAll,
+  }: { mineIds: ReadonlySet<string>; recentIds?: readonly string[]; seesAll: boolean },
+): EventsLanding<T> {
+  // Without the executive view, every room you can list is yours.
+  const isMine = (r: T) => !seesAll || mineIds.has(r.id) || recentIds.includes(r.id);
+  const rank = (r: T) => {
+    const i = recentIds.indexOf(r.id);
+    return i === -1 ? Number.POSITIVE_INFINITY : i;
+  };
+  const order = (a: T, b: T) => {
+    const ra = rank(a);
+    const rb = rank(b);
+    if (ra !== rb) return ra < rb ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  };
+  const mine = rooms.filter(isMine).sort(order);
+  const rest = rooms.filter((r) => !isMine(r));
+  if (!seesAll && mine.length === 1) return { go: mine[0] };
+  return { mine, rest };
+}
+
+// The recently visited rooms cookie: ids, newest first, comma separated. Anything that isn't a uuid is dropped.
+export const RECENT_ROOMS_COOKIE = "recent_rooms";
+const RECENT_MAX = 8;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function parseRecentRooms(value: string | undefined | null): string[] {
+  if (!value) return [];
+  let raw = value;
+  try {
+    raw = decodeURIComponent(value);
+  } catch {
+    // Leave it as typed; the uuid check below drops anything odd.
+  }
+  const out: string[] = [];
+  for (const part of raw.split(",")) {
+    const id = part.trim().toLowerCase();
+    if (UUID.test(id) && !out.includes(id)) out.push(id);
+  }
+  return out.slice(0, RECENT_MAX);
+}
+
+// Puts `id` at the front and keeps at most eight.
+export function pushRecentRoom(value: string | undefined | null, id: string): string {
+  const key = id.toLowerCase();
+  const kept = parseRecentRooms(value);
+  if (!UUID.test(key)) return kept.join(",");
+  return [key, ...kept.filter((x) => x !== key)].slice(0, RECENT_MAX).join(",");
 }

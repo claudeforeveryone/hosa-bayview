@@ -15,7 +15,7 @@ export function BattleEnded({
   heading?: RefObject<HTMLHeadingElement | null>;
 }) {
   return (
-    <div className="reveal grid justify-items-start gap-4 border-y border-dashed border-rule-strong px-1 py-8 sm:px-3">
+    <div className="reveal grid justify-items-start gap-4 border-y border-rule-strong px-1 py-8 sm:px-3">
       <h1
         ref={heading}
         tabIndex={-1}

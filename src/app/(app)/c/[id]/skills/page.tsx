@@ -38,7 +38,7 @@ export default async function SkillsTab({
               defaultOpen={skills.length === 1}
             >
               {room.can_manage ? (
-                <div className="grid gap-4 border-t border-dashed border-rule-strong pt-5">
+                <div className="grid gap-4 border-t border-rule-strong pt-5">
                   <details className="group">
                     <summary className="caps step inline-flex h-10 cursor-pointer items-center border border-ink px-4 text-[15px] hover:bg-band">
                       Edit

@@ -144,7 +144,7 @@ export default async function TestPage({
                         </span>
                       </span>
                     ) : (
-                      <span className="caps border border-dashed border-rule-strong px-2 py-0.5 text-[14px] text-ink-2">
+                      <span className="caps border border-rule-strong px-2 py-0.5 text-[14px] text-ink-2">
                         Keep going
                       </span>
                     )}
@@ -247,7 +247,7 @@ export default async function TestPage({
               </tbody>
             </table>
           ) : (
-            <p className="border-y border-dashed border-rule-strong px-1 py-4 text-ink-2">
+            <p className="border-y border-rule-strong px-1 py-4 text-ink-2">
               No one has finished it yet.
             </p>
           )}

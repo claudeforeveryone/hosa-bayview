@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { recordReview } from "@/app/(app)/flashcards/actions";
 import { Button } from "@/components/form";
-import { feedback } from "@/lib/feedback";
+import { feedback, feedbackThenWin } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import { permutation } from "@/lib/shuffle";
 
@@ -48,6 +48,11 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
   const mark = (known: boolean) => {
     const id = card.id;
     const last = index + 1 >= order.length;
+    // Inside the tap, so the browser lets the sound start: a ding for Know it, a soft pop for Still learning,
+    // and the win chord after the last card of the round.
+    const verdict = known ? "correct" : "wrong";
+    if (last) feedbackThenWin(verdict);
+    else feedback(verdict);
     moved.current = true;
     setError(null);
     setTally((t) => ({ known: t.known + (known ? 1 : 0), learning: t.learning + (known ? 0 : 1) }));
