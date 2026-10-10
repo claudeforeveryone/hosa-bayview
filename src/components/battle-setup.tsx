@@ -74,7 +74,11 @@ export function BattleSetup({
   const [count, setCount] = useState<number>(
     Number(state.values?.count) || DEFAULT_QUESTIONS,
   );
-  const total = sources.reduce((n, s) => n + s.questions, 0);
+  // Tests that hide answers or cap attempts are listed by the server but can't be battled (their keys stay
+  // private); say so once instead of offering them.
+  const playable = sources.filter((s) => s.playable);
+  const skipped = sources.length - playable.length;
+  const total = playable.reduce((n, s) => n + s.questions, 0);
   return (
     <form action={submit} className="grid max-w-xl gap-7" noValidate>
       <Tiles
@@ -89,9 +93,14 @@ export function BattleSetup({
         label="Questions from"
         name="source"
         defaultValue={state.values?.source ?? "all"}
+        hint={
+          skipped
+            ? "Tests that hide answers or cap attempts can't be used."
+            : undefined
+        }
       >
         <option value="all">All questions in this event ({total})</option>
-        {sources.map((s) => (
+        {playable.map((s) => (
           <option key={s.test_id} value={s.test_id}>
             {s.title} ({s.questions})
           </option>

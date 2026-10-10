@@ -39,6 +39,8 @@ create table public.battle_players (
   joined_at timestamptz not null default now(),
   -- Set when a player leaves; cleared when they rejoin. Left players don't hold up a round.
   left_at timestamptz,
+  -- Last ping from the player's screen. Anyone unseen for 15 s doesn't hold up "everyone answered" either.
+  last_seen_at timestamptz not null default now(),
   won boolean not null default false,
   primary key (battle_id, user_id)
 );
@@ -46,7 +48,9 @@ create index battle_players_user_idx on public.battle_players (user_id);
 alter table public.battle_players enable row level security;
 
 -- One row per question in the battle, written at start. A round is visible once it has started.
--- No key column here: this table is on the realtime publication.
+-- No key column here, and question_id is not granted to clients: this table is on the realtime publication, and
+-- a question id would let a player look the question up elsewhere mid-round. Prompt and options come from
+-- battle_state.
 create table public.battle_rounds (
   battle_id uuid not null references public.battles (id) on delete cascade,
   round_no smallint not null check (round_no between 1 and 30),
@@ -57,6 +61,9 @@ create table public.battle_rounds (
   primary key (battle_id, round_no)
 );
 create index battle_rounds_question_idx on public.battle_rounds (question_id);
+-- Live rounds, for the practice key guard (0098).
+create index battle_rounds_live_idx on public.battle_rounds (question_id)
+  where started_at is not null and closed_at is null;
 alter table public.battle_rounds enable row level security;
 
 -- Picks. answered_at is the server's clock. Graded (is_correct, points) only when the round closes.
@@ -117,7 +124,9 @@ grant execute on function private.battle_room_ok(uuid), private.can_see_battle(u
 -- Privileges and policies ----------------------------------------------------------------------------------------
 
 revoke all on public.battles, public.battle_players, public.battle_rounds, public.battle_answers from anon, authenticated;
-grant select on public.battles, public.battle_players, public.battle_rounds to authenticated;
+grant select on public.battles, public.battle_players to authenticated;
+-- Column grant: no question_id (Realtime honours column privileges in postgres_changes payloads too).
+grant select (battle_id, round_no, started_at, ends_at, closed_at) on public.battle_rounds to authenticated;
 
 create policy "battles: room viewers read"
   on public.battles for select to authenticated

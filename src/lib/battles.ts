@@ -7,7 +7,7 @@ import {
   type BattleState,
 } from "@/lib/battle";
 
-// Server reads for battles. Battles ship with migrations 0095-0097; until those are applied the RPCs don't
+// Server reads for battles. Battles ship with migrations 0095-0098; until those are applied the RPCs don't
 // exist, and every read here returns null so the entry points stay hidden instead of showing a broken feature.
 
 export type OpenBattle = {
@@ -26,6 +26,8 @@ export type BattleSource = {
   test_id: string;
   title: string;
   questions: number;
+  // False for tests that hide answers or cap attempts; those can't be battled (their keys stay private).
+  playable: boolean;
 };
 
 // PostgREST says PGRST202 for a function it doesn't know; Postgres says 42883.

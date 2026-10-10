@@ -5,6 +5,8 @@ import {
   battlePoints,
   msLeft,
   normalizeBattleCode,
+  nudgeStep,
+  pollMs,
   parseBattleState,
   roundTeamPoints,
   startCheck,
@@ -23,6 +25,7 @@ const p = (over: Partial<BattlePlayer>): BattlePlayer => ({
   correct: 0,
   answered: 0,
   in_round: false,
+  seen: true,
   ...over,
 });
 
@@ -31,6 +34,7 @@ const base: BattleState = {
   code: "AB2C",
   format: "1v1",
   status: "lobby",
+  stale: false,
   round: 0,
   total: 10,
   host_id: "u1",
@@ -114,7 +118,79 @@ describe("battlePhase", () => {
         current: { ...round, closed_at: base.now },
       }),
     ).toBe("reveal");
-    expect(battlePhase({ ...base, status: "done" })).toBe("results");
+    expect(
+      battlePhase({ ...base, status: "done", round: 3, total: 3 }),
+    ).toBe("results");
+  });
+  it("a lobby that closed before it started reads as ended, not results", () => {
+    expect(battlePhase({ ...base, status: "done" })).toBe("ended");
+  });
+  it("a battle nobody touched for 30 minutes reads as ended", () => {
+    expect(battlePhase({ ...base, stale: true })).toBe("ended");
+    expect(
+      battlePhase({ ...base, status: "playing", stale: true, current: round }),
+    ).toBe("ended");
+  });
+});
+
+describe("nudgeStep", () => {
+  const t0 = Date.parse(base.now);
+  const at = (ms: number) => new Date(t0 + ms).toISOString();
+  const playing = (over: Partial<BattleState["current"] & object> = {}) => ({
+    ...base,
+    status: "playing" as const,
+    round: 3,
+    players: [
+      p({ user_id: "u1" }),
+      p({ user_id: "u2", team: 2 }),
+    ],
+    current: {
+      no: 3,
+      prompt: "Q",
+      options: ["a", "b"],
+      started_at: at(0),
+      ends_at: at(20_000),
+      closed_at: null,
+      answered: 0,
+      my_choice: null,
+      correct_index: null,
+      results: null,
+      ...over,
+    },
+  });
+  it("waits out the 20 s and the 1.5 s grace before asking to close", () => {
+    expect(nudgeStep(playing(), t0 + 21_000)).toBeNull();
+    expect(nudgeStep(playing(), t0 + 21_800)).toEqual({
+      round: 3,
+      step: "question",
+    });
+  });
+  it("asks to close early once every player still here has answered", () => {
+    const s = playing();
+    s.players = [
+      p({ user_id: "u1", in_round: true }),
+      p({ user_id: "u2", team: 2, seen: false }),
+      p({ user_id: "u3", team: 2, active: false }),
+    ];
+    expect(nudgeStep(s, t0 + 4_000)).toEqual({ round: 3, step: "question" });
+  });
+  it("shows the reveal for its full 5 s before moving on", () => {
+    const s = playing({ closed_at: at(21_500) });
+    expect(nudgeStep(s, t0 + 26_000)).toBeNull();
+    expect(nudgeStep(s, t0 + 26_800)).toEqual({ round: 3, step: "reveal" });
+  });
+  it("leaves watchers, lobbies, finished and stale battles alone", () => {
+    expect(nudgeStep({ ...playing(), me: "x" }, t0 + 30_000)).toBeNull();
+    expect(nudgeStep(base, t0 + 30_000)).toBeNull();
+    expect(nudgeStep({ ...playing(), status: "done" }, t0 + 30_000)).toBeNull();
+    expect(nudgeStep({ ...playing(), stale: true }, t0 + 30_000)).toBeNull();
+  });
+});
+
+describe("pollMs", () => {
+  it("polls every 10 s on a live channel, every 3 s without one", () => {
+    expect(pollMs(true)).toBe(10_000);
+    expect(pollMs(false)).toBe(3_000);
   });
 });
 

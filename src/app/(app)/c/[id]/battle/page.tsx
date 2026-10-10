@@ -31,7 +31,7 @@ export default async function NewBattlePage(
       <h2 id="battle-h" className={hubHeading}>
         Battle
       </h2>
-      {sources.length ? (
+      {sources.some((s) => s.playable) ? (
         <div className="px-1 sm:px-3">
           <BattleSetup action={createBattle.bind(null, id)} sources={sources} />
         </div>

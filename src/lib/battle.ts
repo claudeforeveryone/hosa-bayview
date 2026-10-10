@@ -5,6 +5,13 @@ import { z } from "zod";
 
 export const ROUND_MS = 20_000;
 export const REVEAL_MS = 5_000;
+// Answers sent in the last 1.5 s still count (they score 100, no speed bonus); mirrors private.battle_grace.
+export const GRACE_MS = 1_500;
+// A player not heard from in 15 s is away and doesn't hold up a round. Each screen pings every 5 s.
+export const AWAY_MS = 15_000;
+export const PING_MS = 5_000;
+// Asks the server a little after its clock should agree, to allow for skew.
+const NUDGE_SLACK_MS = 250;
 export const MIN_QUESTIONS = 5;
 export const MAX_QUESTIONS = 30;
 export const DEFAULT_QUESTIONS = 10;
@@ -42,6 +49,7 @@ const player = z.object({
   correct: z.number(),
   answered: z.number(),
   in_round: z.boolean(),
+  seen: z.boolean(),
 });
 export type BattlePlayer = z.infer<typeof player>;
 
@@ -71,6 +79,7 @@ const state = z.object({
   code: z.string(),
   format: z.enum(FORMATS),
   status: z.enum(["lobby", "playing", "done"]),
+  stale: z.boolean(),
   round: z.number(),
   total: z.number(),
   host_id: z.string().nullable(),
@@ -92,14 +101,46 @@ export function parseBattleState(raw: unknown): BattleState | null {
   return r.success ? r.data : null;
 }
 
-export type Phase = "lobby" | "question" | "reveal" | "results";
+export type Phase = "lobby" | "question" | "reveal" | "results" | "ended";
 
-// Which screen to show. A round past its 20 s mark reads as closed only once the server says so.
+// Which screen to show. A round past its 20 s mark reads as closed only once the server says so. A battle
+// nobody touched for 30 minutes is over even before the sweep marks it done, and so is a lobby that closed
+// without starting (everyone left, or the host opened another).
 export function battlePhase(s: BattleState): Phase {
+  if (s.stale || (s.status === "done" && s.round === 0)) return "ended";
   if (s.status === "lobby") return "lobby";
   if (s.status === "done") return "results";
   return s.current?.closed_at ? "reveal" : "question";
 }
+
+// What this screen should ask advance_battle for, if anything, at server time `now`. The server re-checks
+// everything and ignores a step for a round or phase that has moved on, so a late call can't skip a reveal.
+// 'question' closes a round once the 20 s and the grace are up, or once every player still here has answered.
+// 'reveal' moves on once the reveal has been up its full 5 s (only the host's Next can cut it short).
+export function nudgeStep(
+  s: BattleState,
+  now: number,
+): { round: number; step: "question" | "reveal" } | null {
+  const cur = s.current;
+  if (s.status !== "playing" || s.stale || !cur) return null;
+  const mine = s.players.find((p) => p.user_id === s.me);
+  if (!mine?.active) return null;
+  if (cur.closed_at) {
+    return now >= Date.parse(cur.closed_at) + REVEAL_MS + NUDGE_SLACK_MS
+      ? { round: cur.no, step: "reveal" }
+      : null;
+  }
+  const over =
+    cur.ends_at !== null &&
+    now >= Date.parse(cur.ends_at) + GRACE_MS + NUDGE_SLACK_MS;
+  const allIn = s.players
+    .filter((p) => p.active && p.seen)
+    .every((p) => p.in_round);
+  return over || allIn ? { round: cur.no, step: "question" } : null;
+}
+
+// Realtime does the work while the channel is up; the poll is only a safety net then.
+export const pollMs = (connected: boolean) => (connected ? 10_000 : 3_000);
 
 export const me = (s: BattleState) =>
   s.players.find((p) => p.user_id === s.me) ?? null;

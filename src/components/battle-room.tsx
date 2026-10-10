@@ -1,32 +1,36 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Lobby,
-  Question,
-  Results,
-  Reveal,
-  type Actions,
-} from "@/components/battle-screens";
+import { BattleEnded } from "@/components/battle-ended";
+import { Lobby } from "@/components/battle-lobby";
+import type { Actions } from "@/components/battle-parts";
+import { Question } from "@/components/battle-question";
+import { Results } from "@/components/battle-results";
+import { Reveal } from "@/components/battle-reveal";
 import { createClient } from "@/lib/supabase/client";
 import { feedback, primeFeedback } from "@/lib/feedback";
 import {
-  REVEAL_MS,
+  PING_MS,
   battlePhase,
   isHost,
   me as findMe,
+  nudgeStep,
   parseBattleState,
+  pollMs,
   type BattleState,
 } from "@/lib/battle";
 
 // A live battle. The server owns the game; this screen keeps a copy of battle_state fresh and calls the RPCs.
-// Fresh comes from three places, any one of which is enough: the private realtime channel (a 'sync' broadcast
-// and round changes), a poll every few seconds, and a re-read when the tab comes back. Every player's screen
-// nudges the game on (advance_battle) when its clock says a round or reveal is over; the server checks the time.
+// Fresh comes from three places, any one of which is enough: the private realtime channel (one 'sync' broadcast
+// per action, plus round changes), a poll (every 10 s while the channel is up, 3 s while it's down), and a
+// re-read when the tab comes back. Reads asked for within 250 ms of each other run once. Each player's screen
+// pings every 5 s so a round doesn't wait on someone who closed the tab, and nudges the game on
+// (advance_battle with the round and step it saw) when its clock says a round or reveal is over. The server
+// checks the time and ignores a step that has moved on, so a late call can't skip a reveal.
 
-const POLL_MS = 3000;
+const DEBOUNCE_MS = 250;
+const NUDGE_RETRY_MS = 2000;
 
 // Server errors arrive as plain sentences without a full stop.
 const sentence = (m: string) => (/[.!?]$/.test(m) ? m : `${m}.`);
@@ -90,7 +94,24 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
     }
   }, [supabase, id]);
 
+  // Coalesce: a burst of broadcasts, polls and action replies becomes one read.
+  const pending = useRef<number | null>(null);
+  const schedule = useCallback(() => {
+    if (pending.current !== null) return;
+    pending.current = window.setTimeout(() => {
+      pending.current = null;
+      void refresh();
+    }, DEBOUNCE_MS);
+  }, [refresh]);
+  useEffect(
+    () => () => {
+      if (pending.current !== null) window.clearTimeout(pending.current);
+    },
+    [],
+  );
+
   // Realtime: one private channel per battle.
+  const [connected, setConnected] = useState(false);
   useEffect(() => {
     let cancelled = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -101,7 +122,7 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
       if (cancelled) return;
       channel = supabase
         .channel(`battle:${id}`, { config: { private: true } })
-        .on("broadcast", { event: "sync" }, () => void refresh())
+        .on("broadcast", { event: "sync" }, schedule)
         .on(
           "postgres_changes",
           {
@@ -110,33 +131,53 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
             table: "battle_rounds",
             filter: `battle_id=eq.${id}`,
           },
-          () => void refresh(),
+          schedule,
         )
         .subscribe((status) => {
           // Joined or rejoined after a drop: catch up on anything missed.
-          if (status === "SUBSCRIBED") void refresh();
+          setConnected(status === "SUBSCRIBED");
+          if (status === "SUBSCRIBED") schedule();
         });
     })();
     return () => {
       cancelled = true;
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [supabase, id, refresh]);
+  }, [supabase, id, schedule]);
 
-  // Poll as a fallback, and re-read when the tab comes back.
-  const done = s.status === "done";
+  // Poll as a fallback, and re-read when the tab comes back. A finished or ended battle stops polling.
+  const done = s.status === "done" || phase === "ended";
   useEffect(() => {
     if (done) return;
-    const t = setInterval(() => void refresh(), POLL_MS);
+    const t = setInterval(schedule, pollMs(connected));
     const onShow = () => {
-      if (document.visibilityState === "visible") void refresh();
+      if (document.visibilityState === "visible") schedule();
     };
     document.addEventListener("visibilitychange", onShow);
     return () => {
       clearInterval(t);
       document.removeEventListener("visibilitychange", onShow);
     };
-  }, [done, refresh]);
+  }, [done, connected, schedule]);
+
+  // Heartbeat while you're in the game and looking at it.
+  const pinging = !done && Boolean(mine?.active);
+  useEffect(() => {
+    if (!pinging) return;
+    const ping = () => {
+      if (document.visibilityState !== "visible") return;
+      void supabase.rpc("battle_ping", { bid: id }).then(
+        () => {},
+        () => {},
+      );
+    };
+    const t = setInterval(ping, PING_MS);
+    document.addEventListener("visibilitychange", ping);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", ping);
+    };
+  }, [pinging, supabase, id]);
 
   // The clock the screens read: four ticks a second is plenty for whole seconds.
   useEffect(() => {
@@ -155,38 +196,39 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
       if (e) {
         // A double tap's second answer: the first one stands, nothing to say.
         if (e.code === "23505") {
-          void refresh();
+          schedule();
           return { data: null, ok: true };
         }
         if (e.code === "42501" && fn !== "answer_battle")
           setError("You can't do that in this battle.");
         else setError(sentence(e.message));
-        void refresh();
+        schedule();
         return { data: null, ok: false };
       }
-      void refresh();
+      schedule();
       return { data, ok: true };
     },
-    [supabase, refresh],
+    [supabase, schedule],
   );
 
-  // Nudge the game on when this clock says the round (20 s) or the reveal (5 s) is over. Retried every 2 s while
-  // the server disagrees (clock skew), never more often.
+  // Nudge the game on when this clock says the round (20 s plus the grace, or everyone's in) or the reveal (5 s)
+  // is over. Retried every 2 s while the server disagrees (clock skew), never more often.
   const nudged = useRef<{ key: string; at: number }>({ key: "", at: 0 });
   useEffect(() => {
-    if (s.status !== "playing" || !cur || !mine) return;
-    const due = cur.closed_at
-      ? Date.parse(cur.closed_at) + REVEAL_MS
-      : Date.parse(cur.ends_at ?? s.now);
-    const key = `${cur.no}:${cur.closed_at ? "reveal" : "question"}`;
-    if (now < due + 250) return;
-    if (nudged.current.key === key && now - nudged.current.at < 2000) return;
+    const step = nudgeStep(s, now);
+    if (!step) return;
+    const key = `${step.round}:${step.step}`;
+    if (nudged.current.key === key && now - nudged.current.at < NUDGE_RETRY_MS)
+      return;
     nudged.current = { key, at: now };
-    void supabase.rpc("advance_battle", { bid: id }).then(
-      () => refresh(),
-      () => refresh(),
-    );
-  }, [now, s.status, s.now, cur, mine, supabase, id, refresh]);
+    void supabase
+      .rpc("advance_battle", {
+        bid: id,
+        p_round: step.round,
+        p_step: step.step,
+      })
+      .then(schedule, schedule);
+  }, [now, s, supabase, id, schedule]);
 
   // Sound and buzz when a round you answered is revealed, and when your side wins. Not on a reload.
   const heard = useRef(phase === "reveal" ? (cur?.no ?? 0) : 0);
@@ -252,7 +294,9 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
       void run("leave_battle").then((r) => {
         if (r.ok) router.push(`/c/${s.classroom_id}`);
       }),
-    next: () => void run("advance_battle"),
+    // The host's Next: the only way to cut a reveal short.
+    next: () =>
+      void run("advance_battle", { p_round: cur?.no ?? 0, p_step: "reveal" }),
     again: () => {
       setBusy(true);
       void call("rematch_battle", { bid: id }).then((r) => {
@@ -290,16 +334,22 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
 
   if (gone) {
     return (
-      <div className="grid justify-items-start gap-4 border-y border-dashed border-rule-strong px-1 py-8 sm:px-3">
-        <p className="font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
-          This battle is closed to you
-        </p>
-        <Link
-          href="/events"
-          className="caps step inline-flex h-12 items-center border border-ink px-5 text-[17px] hover:bg-band"
-        >
-          Back to events
-        </Link>
+      <BattleEnded
+        title="This battle is closed to you"
+        href="/events"
+        label="Back to events"
+      />
+    );
+  }
+  if (phase === "ended") {
+    return (
+      <div className="mx-auto grid w-full max-w-2xl gap-6">
+        <BattleEnded
+          title="This battle ended"
+          href={`/c/${s.classroom_id}`}
+          label={`Back to ${s.classroom_name ?? "the event"}`}
+          heading={heading}
+        />
       </div>
     );
   }
@@ -309,9 +359,17 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
     <div className="mx-auto grid w-full max-w-2xl gap-6">
       {phase === "lobby" ? <Lobby {...common} /> : null}
       {phase === "question" ? (
-        <Question {...common} choice={choice} clock={clock} now={now} timeUp={timeUp} />
+        <Question
+          {...common}
+          choice={choice}
+          clock={clock}
+          now={now}
+          timeUp={timeUp}
+        />
       ) : null}
-      {phase === "reveal" ? <Reveal {...common} clock={clock} now={now} /> : null}
+      {phase === "reveal" ? (
+        <Reveal {...common} clock={clock} now={now} />
+      ) : null}
       {phase === "results" ? <Results {...common} /> : null}
     </div>
   );

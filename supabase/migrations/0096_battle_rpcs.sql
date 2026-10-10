@@ -1,19 +1,42 @@
--- Task 18: battle RPCs. The server owns every rule: who may join, team sizes, the 20 s clock, one answer per
--- round, grading at close, and the order of rounds. Any player may call advance_battle; it only does what the
--- clock allows. Errors: 42501 not allowed, P0002 no such battle, 22023 bad move, 23505 answered already.
--- Battles write no elo_events and no attempts.
+-- Task 18: battle RPCs. The server owns every rule: who may join, team sizes, the 20 s clock (plus 1.5 s grace
+-- for the network), one answer per round, grading at close, the 5 s reveal, and the order of rounds. Any player
+-- may call advance_battle; it names the round and step it means to move on from, and does nothing if the battle
+-- has already moved, so a late call can never skip a reveal. Errors: 42501 not allowed, P0002 no such battle,
+-- 22023 bad move, 23505 answered already. Battles write no elo_events and no attempts.
+-- Each action sends one 'sync' broadcast on the battle's private channel (private.battle_poke).
 
--- Points: 100 for a right answer plus a speed bonus of up to 50, linear in the time left (20 s window).
--- Mirrored by battlePoints in src/lib/battle.ts.
+-- Points: 100 for a right answer plus a speed bonus of up to 50, linear in the time left in the 20 s window
+-- (answers in the grace period get no bonus). Mirrored by battlePoints in src/lib/battle.ts.
 create function private.battle_points(time_left interval)
 returns integer language sql immutable set search_path = '' as $$
   select 100 + round(50 * least(greatest(extract(epoch from time_left) * 1000, 0), 20000) / 20000)::integer
+$$;
+
+-- Answers still land this long after the 20 s mark (taps in flight on a slow phone).
+create function private.battle_grace()
+returns interval language sql immutable set search_path = '' as $$
+  select interval '1.5 seconds'
 $$;
 
 -- Most players per team for a format.
 create function private.battle_team_cap(fmt text)
 returns integer language sql immutable set search_path = '' as $$
   select case fmt when '1v1' then 1 when '2v2' then 2 when '3v3' then 3 else 20 end
+$$;
+
+-- A live battle nobody touched for 30 minutes is over, whether or not the sweep has marked it yet.
+create function private.battle_stale(b public.battles)
+returns boolean language sql stable set search_path = '' as $$
+  select b.status <> 'done' and b.touched_at < now() - interval '30 minutes'
+$$;
+
+-- One 'sync' poke on the battle's channel. The payload is only the id; screens re-read battle_state.
+-- realtime.send never raises (failures become a warning), so a broadcast hiccup can't undo a move.
+create function private.battle_poke(bid uuid)
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
+  perform realtime.send(jsonb_build_object('battle', bid), 'sync', 'battle:' || bid::text, true);
+end
 $$;
 
 create function private.new_battle_code()
@@ -31,11 +54,22 @@ begin
 end
 $$;
 
--- Live battles nobody touched for 30 minutes are over; frees their codes.
+-- Mark abandoned battles done, freeing their codes. One sweeper at a time (anyone else skips), and rows another
+-- call has locked are left for the next sweep, so sweeps never wait on each other or deadlock.
 create function private.sweep_battles()
-returns void language sql volatile security definer set search_path = '' as $$
-  update public.battles set status = 'done', ended_at = now()
-  where status <> 'done' and touched_at < now() - interval '30 minutes'
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
+  if not pg_try_advisory_xact_lock(hashtext('hosa.battle_sweep')) then
+    return;
+  end if;
+  update public.battles b set status = 'done', ended_at = now()
+  where b.id in (
+    select x.id from public.battles x
+    where x.status <> 'done' and x.touched_at < now() - interval '30 minutes'
+    order by x.id
+    for update skip locked
+  );
+end
 $$;
 
 -- Questions a battle can draw from: one eligible test, or every eligible test in the room. Keyed questions only.
@@ -50,17 +84,19 @@ returns setof uuid language sql stable security definer set search_path = '' as 
     and private.battle_test_ok(t.id)
 $$;
 
--- In the battle and not walked away. A lobby leaver who comes back after the start isn't "in" it.
+-- In the battle and not walked away.
 create function private.battle_active(bid uuid, uid uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (select 1 from public.battle_players p where p.battle_id = bid and p.user_id = uid and p.left_at is null)
 $$;
 
+-- Everyone still here has answered. Players whose screen hasn't pinged for 15 s (phone locked, tab closed)
+-- don't hold the round up.
 create function private.battle_all_answered(bid uuid, n smallint)
 returns boolean language sql stable security definer set search_path = '' as $$
   select not exists (
     select 1 from public.battle_players p
-    where p.battle_id = bid and p.left_at is null
+    where p.battle_id = bid and p.left_at is null and p.last_seen_at > now() - interval '15 seconds'
       and not exists (select 1 from public.battle_answers a
                       where a.battle_id = bid and a.round_no = n and a.user_id = p.user_id)
   )
@@ -106,27 +142,35 @@ returns integer language sql stable security definer set search_path = '' as $$
   where a.battle_id = bid and p.team = tm and r.closed_at is not null
 $$;
 
--- The end: the higher team wins (a tie has no winner). Winners who answered at least once get the win.
+-- The end: the higher team wins (a tie has no winner). The win counts on profiles only when every player in the
+-- game answered at least half the rounds, so two friends can't farm wins with one never answering.
 create function private.battle_finish(bid uuid)
 returns void language plpgsql volatile security definer set search_path = '' as $$
 declare
+  b public.battles;
   one integer := private.battle_team_points(bid, 1::smallint);
   two integer := private.battle_team_points(bid, 2::smallint);
   w smallint := case when one > two then 1 when two > one then 2 end;
 begin
+  select * into b from public.battles where id = bid;
   update public.battles set status = 'done', ended_at = now(), touched_at = now(), winner = w where id = bid;
-  if w is not null then
+  if w is not null and not exists (
+    select 1 from public.battle_players p
+    where p.battle_id = bid and (p.left_at is null or p.left_at >= b.started_at)
+      and (select count(*) from public.battle_answers a where a.battle_id = bid and a.user_id = p.user_id) * 2
+          < b.question_count
+  ) then
     update public.battle_players p set won = true
-      where p.battle_id = bid and p.team = w
-        and exists (select 1 from public.battle_answers a where a.battle_id = bid and a.user_id = p.user_id);
+      where p.battle_id = bid and p.team = w and (p.left_at is null or p.left_at >= b.started_at);
   end if;
 end
 $$;
 
-revoke all on function private.battle_points(interval), private.battle_team_cap(text), private.new_battle_code(),
-  private.sweep_battles(), private.battle_pool(uuid, uuid), private.battle_active(uuid, uuid),
-  private.battle_all_answered(uuid, smallint), private.battle_close_round(uuid, smallint),
-  private.battle_start_round(uuid, smallint), private.battle_team_points(uuid, smallint), private.battle_finish(uuid)
+revoke all on function private.battle_points(interval), private.battle_grace(), private.battle_team_cap(text),
+  private.battle_stale(public.battles), private.battle_poke(uuid), private.new_battle_code(), private.sweep_battles(),
+  private.battle_pool(uuid, uuid), private.battle_active(uuid, uuid), private.battle_all_answered(uuid, smallint),
+  private.battle_close_round(uuid, smallint), private.battle_start_round(uuid, smallint),
+  private.battle_team_points(uuid, smallint), private.battle_finish(uuid)
   from public, anon, authenticated;
 
 -- Public RPCs ----------------------------------------------------------------------------------------------------
@@ -137,6 +181,7 @@ returns uuid language plpgsql volatile security definer set search_path = '' as 
 declare
   uid uuid := (select auth.uid());
   bid uuid;
+  prev uuid;
 begin
   if uid is null or not private.can_view_classroom(cid) then
     raise exception 'You can''t battle in this event' using errcode = '42501';
@@ -160,7 +205,11 @@ begin
   end if;
 
   perform private.sweep_battles();
-  update public.battles set status = 'done', ended_at = now() where host_id = uid and status = 'lobby';
+  for prev in
+    update public.battles set status = 'done', ended_at = now() where host_id = uid and status = 'lobby' returning id
+  loop
+    perform private.battle_poke(prev);
+  end loop;
   insert into public.battles (classroom_id, code, host_id, format, source_test_id, question_count)
   values (cid, private.new_battle_code(), uid, p_format, p_test, p_count)
   returning id into bid;
@@ -185,17 +234,19 @@ begin
     raise exception 'You can''t join this battle' using errcode = '42501';
   end if;
   select * into b from public.battles where id = bid for update;
-  if b.status = 'done' or b.touched_at < now() - interval '30 minutes' then
-    raise exception 'This battle is over' using errcode = '22023';
+  if b.status = 'done' or private.battle_stale(b) then
+    raise exception 'This battle ended' using errcode = '22023';
   end if;
   select * into mine from public.battle_players p where p.battle_id = bid and p.user_id = uid;
   if found and mine.left_at is null then
+    update public.battle_players set last_seen_at = now() where battle_id = bid and user_id = uid;
     return mine.team;
   end if;
   -- Rejoin mid-game: same team, same points. A lobby leaver can't slip back in once it's started.
   if found and b.status = 'playing' and mine.left_at >= b.started_at then
-    update public.battle_players set left_at = null where battle_id = bid and user_id = uid;
+    update public.battle_players set left_at = null, last_seen_at = now() where battle_id = bid and user_id = uid;
     update public.battles set touched_at = now() where id = bid;
+    perform private.battle_poke(bid);
     return mine.team;
   end if;
   if b.status <> 'lobby' then
@@ -212,8 +263,10 @@ begin
     raise exception 'This battle is full' using errcode = '22023';
   end if;
   insert into public.battle_players (battle_id, user_id, team) values (bid, uid, tm)
-    on conflict (battle_id, user_id) do update set team = excluded.team, left_at = null, joined_at = now();
+    on conflict (battle_id, user_id) do update
+      set team = excluded.team, left_at = null, joined_at = now(), last_seen_at = now();
   update public.battles set touched_at = now() where id = bid;
+  perform private.battle_poke(bid);
   return tm;
 end
 $$;
@@ -229,13 +282,20 @@ begin
     raise exception 'You can''t join this battle' using errcode = '42501';
   end if;
   perform private.sweep_battles();
-  select b.id into bid from public.battles b where b.code = c and b.status <> 'done';
+  select b.id into bid from public.battles b where b.code = c and b.status <> 'done' and not private.battle_stale(b);
   if bid is null or not private.can_see_battle(bid) then
     raise exception 'No battle with that code' using errcode = 'P0002';
   end if;
   perform public.join_battle(bid);
   return bid;
 end
+$$;
+
+-- The screen's heartbeat, every few seconds while it's open.
+create function public.battle_ping(bid uuid)
+returns void language sql volatile security definer set search_path = '' as $$
+  update public.battle_players set last_seen_at = now()
+  where battle_id = bid and user_id = (select auth.uid()) and left_at is null and private.can_see_battle(bid)
 $$;
 
 -- Switch team in the lobby.
@@ -249,7 +309,7 @@ begin
     raise exception 'You can''t join this battle' using errcode = '42501';
   end if;
   select * into b from public.battles where id = bid for update;
-  if b.status <> 'lobby' then
+  if b.status <> 'lobby' or private.battle_stale(b) then
     raise exception 'Teams are set once it starts' using errcode = '22023';
   end if;
   if p_team is null or p_team not in (1, 2) then
@@ -263,8 +323,9 @@ begin
      >= private.battle_team_cap(b.format) then
     raise exception 'That team is full' using errcode = '22023';
   end if;
-  update public.battle_players set team = p_team where battle_id = bid and user_id = uid;
+  update public.battle_players set team = p_team, last_seen_at = now() where battle_id = bid and user_id = uid;
   update public.battles set touched_at = now() where id = bid;
+  perform private.battle_poke(bid);
 end
 $$;
 
@@ -296,13 +357,14 @@ begin
   end if;
   if not exists (select 1 from public.battle_players p where p.battle_id = bid and p.left_at is null) then
     update public.battles set status = 'done', ended_at = now(), touched_at = now() where id = bid;
-    return;
+  else
+    update public.battles set touched_at = now() where id = bid;
+    -- The ones still here may all have answered already.
+    if b.status = 'playing' and private.battle_all_answered(bid, b.current_round) then
+      perform private.battle_close_round(bid, b.current_round);
+    end if;
   end if;
-  update public.battles set touched_at = now() where id = bid;
-  -- The ones still here may all have answered already.
-  if b.status = 'playing' and private.battle_all_answered(bid, b.current_round) then
-    perform private.battle_close_round(bid, b.current_round);
-  end if;
+  perform private.battle_poke(bid);
 end
 $$;
 
@@ -324,6 +386,9 @@ begin
   if b.host_id is distinct from uid then
     raise exception 'Only the host can start' using errcode = '42501';
   end if;
+  if private.battle_stale(b) then
+    raise exception 'This battle ended' using errcode = '22023';
+  end if;
   if b.status <> 'lobby' then
     raise exception 'This battle already started' using errcode = '22023';
   end if;
@@ -344,12 +409,14 @@ begin
     raise exception 'No questions to play yet' using errcode = '22023';
   end if;
   update public.battles set status = 'playing', started_at = now(), question_count = n where id = bid;
+  update public.battle_players set last_seen_at = now() where battle_id = bid and user_id = uid;
   perform private.battle_start_round(bid, 1::smallint);
+  perform private.battle_poke(bid);
 end
 $$;
 
--- One answer per round, inside the 20 s window, timed by the server. Says nothing about right or wrong:
--- that comes from battle_state once the round closes. Closes the round when everyone still here has answered.
+-- One answer per round, inside the 20 s window plus 1.5 s grace, timed by the server. Says nothing about right or
+-- wrong: that comes from battle_state once the round closes. Closes the round when everyone still here has answered.
 create function public.answer_battle(bid uuid, p_round integer, p_choice integer)
 returns void language plpgsql volatile security definer set search_path = '' as $$
 declare
@@ -362,7 +429,7 @@ begin
     raise exception 'You can''t play this battle' using errcode = '42501';
   end if;
   select * into b from public.battles where id = bid for update;
-  if b.status <> 'playing' then
+  if b.status <> 'playing' or private.battle_stale(b) then
     raise exception 'This battle isn''t running' using errcode = '22023';
   end if;
   if not private.battle_active(bid, uid) then
@@ -375,7 +442,7 @@ begin
   if exists (select 1 from public.battle_answers a where a.battle_id = bid and a.round_no = r.round_no and a.user_id = uid) then
     raise exception 'You already answered this one' using errcode = '23505';
   end if;
-  if r.closed_at is not null or now() >= r.ends_at then
+  if r.closed_at is not null or now() >= r.ends_at + private.battle_grace() then
     raise exception 'Time is up' using errcode = '22023';
   end if;
   select cardinality(q.options) into opts from public.questions q where q.id = r.question_id;
@@ -384,17 +451,21 @@ begin
   end if;
   insert into public.battle_answers (battle_id, round_no, user_id, choice, answered_at)
   values (bid, r.round_no, uid, p_choice, now());
+  update public.battle_players set last_seen_at = now() where battle_id = bid and user_id = uid;
   update public.battles set touched_at = now() where id = bid;
   if private.battle_all_answered(bid, r.round_no) then
     perform private.battle_close_round(bid, r.round_no);
   end if;
+  perform private.battle_poke(bid);
 end
 $$;
 
--- Moves the battle on as far as the clock allows. Safe for every player to call at once.
--- Open round: closes it at the 20 s mark, or once everyone still here has answered.
--- Closed round: the host may go on straight away; anyone may after the 5 s reveal. After the last round, the end.
-create function public.advance_battle(bid uuid)
+-- Moves the battle on from the round and step the caller is looking at, as far as the clock allows. Does nothing
+-- when the battle has already moved past that round or step, so every player can call it at once.
+-- 'question': close the open round once its time (plus grace) is up, or once everyone still here has answered.
+-- 'reveal': after a closed round, the host may go on straight away (their Next button); anyone may after the 5 s
+-- reveal. After the last round, the end.
+create function public.advance_battle(bid uuid, p_round integer, p_step text)
 returns void language plpgsql volatile security definer set search_path = '' as $$
 declare
   uid uuid := (select auth.uid());
@@ -404,21 +475,26 @@ begin
   if uid is null or not private.can_see_battle(bid) then
     raise exception 'You can''t play this battle' using errcode = '42501';
   end if;
+  if p_step is null or p_step not in ('question', 'reveal') then
+    raise exception 'Unknown step' using errcode = '22023';
+  end if;
   select * into b from public.battles where id = bid for update;
-  if b.status <> 'playing' then
+  if b.status <> 'playing' or private.battle_stale(b) or p_round is distinct from b.current_round then
     return;
   end if;
   if not exists (select 1 from public.battle_players p where p.battle_id = bid and p.user_id = uid) then
     raise exception 'You''re not in this battle' using errcode = '42501';
   end if;
   select * into r from public.battle_rounds where battle_id = bid and round_no = b.current_round;
-  if r.closed_at is null then
-    if now() >= r.ends_at or private.battle_all_answered(bid, r.round_no) then
+  if p_step = 'question' then
+    if r.closed_at is null
+       and (now() >= r.ends_at + private.battle_grace() or private.battle_all_answered(bid, r.round_no)) then
       perform private.battle_close_round(bid, r.round_no);
+      perform private.battle_poke(bid);
     end if;
     return;
   end if;
-  if b.host_id is distinct from uid and now() < r.closed_at + interval '5 seconds' then
+  if r.closed_at is null or (b.host_id is distinct from uid and now() < r.closed_at + interval '5 seconds') then
     return;
   end if;
   if b.current_round < b.question_count then
@@ -426,11 +502,12 @@ begin
   else
     perform private.battle_finish(bid);
   end if;
+  perform private.battle_poke(bid);
 end
 $$;
 
 -- Everything a screen needs, in one read. Picks, points and the key appear only for a closed round;
--- scores count closed rounds only.
+-- scores count closed rounds only. The question id never leaves the server.
 create function public.battle_state(bid uuid)
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -474,6 +551,7 @@ begin
     'code', b.code,
     'format', b.format,
     'status', b.status,
+    'stale', private.battle_stale(b),
     'round', b.current_round,
     'total', b.question_count,
     'host_id', b.host_id,
@@ -482,7 +560,8 @@ begin
     'classroom_name', (select c.name from public.classrooms c where c.id = b.classroom_id),
     'source_title', (select t.title from public.tests t where t.id = b.source_test_id),
     'winner', b.winner,
-    'rematch_id', (select x.id from public.battles x where x.id = b.rematch_id and x.status = 'lobby'),
+    'rematch_id', (select x.id from public.battles x where x.id = b.rematch_id and x.status = 'lobby'
+                   and not private.battle_stale(x)),
     'now', now(),
     'players', coalesce((
       select jsonb_agg(jsonb_build_object(
@@ -490,6 +569,7 @@ begin
         'name', coalesce(pr.full_name, 'Member'),
         'team', p.team,
         'active', p.left_at is null,
+        'seen', p.last_seen_at > now() - interval '15 seconds',
         'points', coalesce(s.points, 0),
         'correct', coalesce(s.correct, 0),
         'answered', coalesce(s.answered, 0),
@@ -529,7 +609,7 @@ language sql stable security definer set search_path = '' as $$
   from public.battles b
   join public.classrooms c on c.id = b.classroom_id
   where b.status <> 'done'
-    and b.touched_at > now() - interval '30 minutes'
+    and not private.battle_stale(b)
     and (cid is null or b.classroom_id = cid)
     and private.can_see_battle(b.id)
     and (b.status = 'lobby' or exists (
@@ -539,16 +619,17 @@ language sql stable security definer set search_path = '' as $$
   limit 10
 $$;
 
--- Tests a host can pick as the source, with how many questions each has.
+-- The event's published tests with questions, and whether each can be played (answers shown, no attempt cap).
 create function public.battle_sources(cid uuid)
-returns table(test_id uuid, title text, questions bigint)
+returns table(test_id uuid, title text, questions bigint, playable boolean)
 language sql stable security definer set search_path = '' as $$
-  select t.id, t.title, count(*)
+  select t.id, t.title,
+    (select count(*) from public.questions q join public.question_keys k on k.question_id = q.id where q.test_id = t.id),
+    private.battle_test_ok(t.id)
   from public.tests t
-  join private.battle_pool(cid, null) p(id) on true
-  join public.questions q on q.id = p.id and q.test_id = t.id
-  where t.classroom_id = cid and private.can_view_classroom(cid)
-  group by t.id, t.title, t.created_at
+  where t.classroom_id = cid and t.is_published
+    and private.can_view_classroom(cid) and private.battle_room_ok(cid)
+    and exists (select 1 from public.questions q where q.test_id = t.id)
   order by t.created_at desc
 $$;
 
@@ -573,7 +654,7 @@ begin
   end if;
   if b.rematch_id is not null
      and exists (select 1 from public.battles x where x.id = b.rematch_id and x.status = 'lobby'
-                 and x.touched_at > now() - interval '30 minutes') then
+                 and not private.battle_stale(x)) then
     perform public.join_battle(b.rematch_id);
     return b.rematch_id;
   end if;
@@ -581,6 +662,8 @@ begin
     case when b.source_test_id is not null and private.battle_test_ok(b.source_test_id) then b.source_test_id end,
     greatest(b.question_count, 5));
   update public.battles set rematch_id = nb where id = bid;
+  -- The others on the results screen hear about the new lobby.
+  perform private.battle_poke(bid);
   return nb;
 end
 $$;
@@ -593,14 +676,14 @@ returns integer language sql stable security definer set search_path = '' as $$
 $$;
 
 revoke all on function public.create_battle(uuid, text, uuid, integer), public.join_battle(uuid),
-  public.join_battle_code(text), public.pick_battle_team(uuid, integer), public.leave_battle(uuid),
-  public.start_battle(uuid), public.answer_battle(uuid, integer, integer), public.advance_battle(uuid),
-  public.battle_state(uuid), public.open_battles(uuid), public.battle_sources(uuid), public.rematch_battle(uuid),
-  public.battle_wins(uuid)
+  public.join_battle_code(text), public.battle_ping(uuid), public.pick_battle_team(uuid, integer),
+  public.leave_battle(uuid), public.start_battle(uuid), public.answer_battle(uuid, integer, integer),
+  public.advance_battle(uuid, integer, text), public.battle_state(uuid), public.open_battles(uuid),
+  public.battle_sources(uuid), public.rematch_battle(uuid), public.battle_wins(uuid)
   from public, anon;
 grant execute on function public.create_battle(uuid, text, uuid, integer), public.join_battle(uuid),
-  public.join_battle_code(text), public.pick_battle_team(uuid, integer), public.leave_battle(uuid),
-  public.start_battle(uuid), public.answer_battle(uuid, integer, integer), public.advance_battle(uuid),
-  public.battle_state(uuid), public.open_battles(uuid), public.battle_sources(uuid), public.rematch_battle(uuid),
-  public.battle_wins(uuid)
+  public.join_battle_code(text), public.battle_ping(uuid), public.pick_battle_team(uuid, integer),
+  public.leave_battle(uuid), public.start_battle(uuid), public.answer_battle(uuid, integer, integer),
+  public.advance_battle(uuid, integer, text), public.battle_state(uuid), public.open_battles(uuid),
+  public.battle_sources(uuid), public.rematch_battle(uuid), public.battle_wins(uuid)
   to authenticated;
