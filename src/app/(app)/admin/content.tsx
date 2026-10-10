@@ -28,6 +28,7 @@ const VERB: Record<string, string> = {
   warned: "warned",
   removed: "removed",
   passcode: "changed the admin passcode",
+  passcode_used: "used the admin passcode, which then cleared",
 };
 
 // Who did what to whom: roles, bans, titles, warnings, removals, passcode changes. Filled by triggers.
@@ -58,13 +59,14 @@ export async function AdminLog({ now }: { now: number }) {
                   {r.actor_name || "System"}
                 </span>{" "}
                 {VERB[r.action] ?? r.action}
-                {r.target_name ? (
+                {/* A passcode claim targets the claimer themselves; the name is already there. */}
+                {r.target_name && r.action !== "passcode_used" ? (
                   <>
                     {" "}
                     <span className="font-semibold">{r.target_name}</span>
                   </>
                 ) : null}
-                {r.detail && r.action !== "passcode" ? (
+                {r.detail && r.action !== "passcode" && r.action !== "passcode_used" ? (
                   <span className="block truncate text-[15px] text-ink-2">
                     {r.detail}
                   </span>
@@ -173,6 +175,7 @@ type Material = {
   id: string;
   title: string;
   url: string | null;
+  note: string;
   file_name: string | null;
   room: { name: string } | null;
 };
@@ -202,7 +205,7 @@ export async function ContentLists() {
     supabase
       .from("materials")
       .select(
-        "id, title, url, file_name, room:classrooms!materials_classroom_id_fkey(name)",
+        "id, title, url, note, file_name, room:classrooms!materials_classroom_id_fkey(name)",
       )
       .order("created_at", { ascending: false }),
   ]);
@@ -286,7 +289,7 @@ export async function ContentLists() {
               key={m.id}
               href={null}
               title={m.title}
-              meta={[m.room?.name ?? "Library", m.file_name ?? m.url]
+              meta={[m.room?.name ?? "Resources", m.file_name ?? m.url ?? (m.note || "Placeholder")]
                 .filter(Boolean)
                 .join(" · ")}
               del={del(deleteMaterial.bind(null, m.id), m.title)}

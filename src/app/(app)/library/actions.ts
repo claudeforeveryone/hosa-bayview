@@ -5,11 +5,13 @@ import { z } from "zod";
 import type { FormState } from "@/app/(app)/c/actions";
 import { requireProfile } from "@/lib/auth";
 import {
-  MAX_BYTES,
+  MAX_MATERIAL_BYTES,
+  SECTION_MAX,
   buildStoragePath,
   cleanFileName,
   isStoragePath,
   storageFolder,
+  TOO_BIG,
   tooBigMessage,
 } from "@/lib/materials";
 import { cleanUrl } from "@/lib/resources";
@@ -45,6 +47,9 @@ function readDetails(form: FormData) {
     note: String(form.get("note") ?? "")
       .replace(/\r\n?/g, "\n")
       .trim(),
+    section: String(form.get("section") ?? "")
+      .replace(/\s+/g, " ")
+      .trim(),
   };
   const fieldErrors: Record<string, string> = {};
   if (!values.title) fieldErrors.title = "Give it a title.";
@@ -52,6 +57,8 @@ function readDetails(form: FormData) {
     fieldErrors.title = "Keep the title under 120 characters.";
   if (values.note.length > 500)
     fieldErrors.note = "Keep the note under 500 characters.";
+  if (values.section.length > SECTION_MAX)
+    fieldErrors.section = `Keep the section under ${SECTION_MAX} characters.`;
   return { values, fieldErrors };
 }
 
@@ -112,8 +119,8 @@ export async function saveMaterial(
     const size = String(form.get("size_bytes") ?? "");
     if (!isStoragePath(path, storageFolder(classroomId)))
       return { error: "That upload didn't finish. Try again.", values };
-    if (!/^\d+$/.test(size) || Number(size) > MAX_BYTES)
-      return { error: "That file is over 25 MB. Pick a smaller one.", values };
+    if (!/^\d+$/.test(size) || Number(size) > MAX_MATERIAL_BYTES)
+      return { error: TOO_BIG, values };
     const mime = String(form.get("mime") ?? "").slice(0, 120);
     extra = {
       path,
@@ -149,9 +156,9 @@ export async function saveMaterial(
     const meta = (object.metadata ?? {}) as { size?: number; mimetype?: string };
     if (typeof meta.size !== "number")
       return { error: "That upload didn't finish. Try again.", values };
-    if (meta.size > MAX_BYTES) {
+    if (meta.size > MAX_MATERIAL_BYTES) {
       await discard();
-      return { error: "That file is over 25 MB. Pick a smaller one.", values };
+      return { error: TOO_BIG, values };
     }
     extra.size_bytes = meta.size;
     extra.mime = typeof meta.mimetype === "string" ? meta.mimetype.slice(0, 120) : null;
@@ -164,6 +171,7 @@ export async function saveMaterial(
       classroom_id: classroomId,
       title: values.title,
       note: values.note,
+      section: values.section || null,
     });
   if (error) {
     await discard();
@@ -193,7 +201,11 @@ export async function updateMaterial(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("materials")
-    .update({ title: values.title, note: values.note })
+    .update({
+      title: values.title,
+      note: values.note,
+      section: values.section || null,
+    })
     .eq("id", materialId)
     .select("id");
   if (error) {

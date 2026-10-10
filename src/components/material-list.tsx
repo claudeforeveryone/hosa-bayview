@@ -1,9 +1,15 @@
-import { FileText, Link2 } from "lucide-react";
+import { Clock, FileText, Link2 } from "lucide-react";
 import { deleteMaterial, updateMaterial } from "@/app/(app)/library/actions";
 import { ConfirmAction } from "@/components/confirm-action";
 import { EmptyState } from "@/components/empty-state";
 import { MaterialEditForm } from "@/components/material-form";
-import { type MaterialItem, materialMeta } from "@/lib/materials";
+import {
+  type MaterialItem,
+  groupBySection,
+  isPlaceholder,
+  materialMeta,
+  sectionNames,
+} from "@/lib/materials";
 
 // Files and links, newest first. Files open their signed link; links open in a new tab.
 // canManage adds Edit and Delete, the same controls the links list has.
@@ -18,10 +24,49 @@ export function MaterialList({
 }) {
   if (!rows.length) return <EmptyState title={empty} />;
 
+  const sections = sectionNames(rows);
+  const groups = groupBySection(rows);
+  // One unsectioned group reads as a plain list; otherwise each section folds open and shut.
+  if (groups.length === 1 && groups[0].section === null)
+    return <Rows rows={rows} canManage={canManage} sections={sections} />;
+
+  return (
+    <div className="border-t border-rule">
+      {groups.map((g) => (
+        <details
+          key={g.section ?? "general"}
+          open={groups.length === 1 || g.section === null}
+          className="border-b border-rule"
+        >
+          <summary className="step flex min-h-12 cursor-pointer items-center justify-between gap-4 px-1 py-3 sm:px-3">
+            <span className="caps text-[17px] font-semibold [overflow-wrap:anywhere]">
+              {g.section ?? "General"}
+            </span>
+            <span className="num shrink-0 text-[15px] text-ink-2">
+              {g.items.length}
+            </span>
+          </summary>
+          <Rows rows={g.items} canManage={canManage} sections={sections} />
+        </details>
+      ))}
+    </div>
+  );
+}
+
+function Rows({
+  rows,
+  canManage,
+  sections,
+}: {
+  rows: MaterialItem[];
+  canManage: boolean;
+  sections: string[];
+}) {
   return (
     <ul className="border-t border-rule">
       {rows.map((r) => {
-        const Icon = r.path ? FileText : Link2;
+        const placeholder = isPlaceholder(r);
+        const Icon = placeholder ? Clock : r.path ? FileText : Link2;
         const unavailable = Boolean(r.path) && !r.href;
         return (
           <li
@@ -36,7 +81,11 @@ export function MaterialList({
                 className="mt-2 shrink-0 text-ink-2"
               />
               <div className="grid min-w-0 gap-1">
-                {r.href ? (
+                {placeholder ? (
+                  <span className="text-[19px] font-semibold text-ink-2 [overflow-wrap:anywhere]">
+                    {r.title}
+                  </span>
+                ) : r.href ? (
                   <a
                     href={r.href}
                     target="_blank"
@@ -55,9 +104,9 @@ export function MaterialList({
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
-                {r.note ? (
+                {r.note || placeholder ? (
                   <p className="text-[17px] whitespace-pre-line text-ink-2 [overflow-wrap:anywhere]">
-                    {r.note}
+                    {r.note || "Link coming soon"}
                   </p>
                 ) : null}
               </div>
@@ -71,7 +120,8 @@ export function MaterialList({
                   <div className="pt-5">
                     <MaterialEditForm
                       action={updateMaterial.bind(null, r.id)}
-                      initial={{ title: r.title, note: r.note }}
+                      initial={{ title: r.title, note: r.note, section: r.section ?? "" }}
+                      sections={sections}
                     />
                   </div>
                 </details>

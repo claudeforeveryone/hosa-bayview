@@ -5,13 +5,14 @@ import { BoardMenu } from "@/components/board-menu";
 import {
   ELO_SUMMARY,
   METRICS,
-  METRIC_LABEL,
   PERIODS,
   PERIOD_LABEL,
   formatCount,
   formatPercent,
   formatValue,
+  metricLabel,
   periodSince,
+  type BoardScope,
   type Metric,
   type Period,
   type RankedRow,
@@ -28,6 +29,7 @@ type Props = {
   more?: { href: string; text: string }; // link to the full board when the list is cut short
   elo?: boolean; // show the Elo footnote
   metrics?: readonly Metric[]; // measures to offer; a single one hides the measure switch
+  scope?: BoardScope; // a room board calls its score Points, the chapter board Elo
 };
 
 const toggleHref = (base: string, metric: Metric, period: Period) =>
@@ -38,11 +40,13 @@ function BoardLine({
   metric,
   period,
   you,
+  scope,
 }: {
   row: RankedRow;
   metric: Metric;
   period: Period;
   you: boolean;
+  scope: BoardScope;
 }) {
   const count = (n: number, word: string) =>
     `${formatCount(n)} ${word}${n === 1 ? "" : "s"}`;
@@ -50,7 +54,7 @@ function BoardLine({
     count(row.reviews, "card"),
     count(row.answered, "question"),
     row.accuracy === null ? null : formatPercent(row.accuracy),
-    `Elo ${formatCount(row.elo)}`,
+    `${metricLabel("elo", scope)} ${formatCount(row.elo)}`,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -99,6 +103,7 @@ export function BoardView({
   more,
   elo,
   metrics = METRICS,
+  scope = "chapter",
 }: Props) {
   const shown = limit ? rows.slice(0, limit) : rows;
   const since = periodSince(period, new Date());
@@ -112,7 +117,7 @@ export function BoardView({
             current={metric}
             items={metrics.map((m) => ({
               value: m,
-              text: METRIC_LABEL[m],
+              text: metricLabel(m, scope),
               href: toggleHref(base, m, period),
             }))}
           />
@@ -142,6 +147,7 @@ export function BoardView({
               metric={metric}
               period={period}
               you={row.user_id === meId}
+              scope={scope}
             />
           ))}
         </ol>

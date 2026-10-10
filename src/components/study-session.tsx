@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { recordReview } from "@/app/(app)/flashcards/actions";
 import { Button } from "@/components/form";
+import { feedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import { permutation } from "@/lib/shuffle";
 
@@ -105,7 +106,10 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
       <button
         ref={cardRef}
         type="button"
-        onClick={() => setFlipped((f) => !f)}
+        onClick={() => {
+          setFlipped((f) => !f);
+          feedback("flip");
+        }}
         aria-label={flipped ? `Definition: ${card.definition}. Tap to show the term.` : `Term: ${card.term}. Tap to show the definition.`}
         className="step grid min-h-64 w-full place-items-center gap-3 border border-rule-strong bg-band px-6 py-10 text-center hover:border-ink"
       >
@@ -126,7 +130,8 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
           <Button onClick={() => mark(true)}>Know it</Button>
         </div>
       ) : (
-        <p className="text-[15px] text-ink-2">Tap the card to see the definition.</p>
+        // Same height as the buttons that replace it, so nothing under the card jumps on a flip.
+        <p className="flex min-h-12 items-center text-[15px] text-ink-2">Tap the card to see the definition.</p>
       )}
 
       {error ? <p role="alert" className="text-[15px] text-danger">{error}</p> : null}

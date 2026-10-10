@@ -3,6 +3,8 @@ import { PageTitle } from "@/components/page-title";
 import { requireRole, type Role } from "@/lib/auth";
 import { gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
+import { storageMeter, usedOfLimit } from "@/lib/format-bytes";
+import { formatBytes } from "@/lib/materials";
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceSummary } from "./attendance-overview";
 import { AdminLog, ContentLists } from "./content";
@@ -10,6 +12,71 @@ import { PeopleList } from "./people-list";
 import type { PersonRow, WarningRow } from "./person-dialog";
 
 export const metadata: Metadata = { title: "Admin" };
+
+type UsageRow = { bucket: string; files: number; bytes: number };
+
+// Free plan storage: used of 1 GB, then each bucket. Executives only (the RPC raises for anyone else).
+async function StorageMeter() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("storage_usage");
+  if (error) throw new Error(`Storage lookup failed: ${error.message}`);
+  // bigint columns can arrive as strings, so coerce.
+  const rows = ((data ?? []) as UsageRow[]).map((r) => ({
+    bucket: r.bucket,
+    files: Number(r.files),
+    bytes: Number(r.bytes),
+  }));
+  const used = rows.reduce((sum, r) => sum + r.bytes, 0);
+  const { percent, warn } = storageMeter(used);
+
+  return (
+    <section aria-labelledby="storage-h" className="grid gap-4">
+      <h2
+        id="storage-h"
+        className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
+      >
+        Storage
+      </h2>
+      <p className="num font-display text-[32px] leading-none font-bold">
+        {usedOfLimit(used)}
+      </p>
+      <div
+        role="progressbar"
+        aria-label="Storage used"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        className="h-2 border border-rule"
+      >
+        <div
+          className={`h-full ${warn ? "bg-danger" : "bg-ink"}`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      {warn ? (
+        <p className="caps text-[15px] font-semibold text-danger">
+          Storage almost full
+        </p>
+      ) : null}
+      {rows.length > 0 ? (
+        <ul className="border-t border-rule">
+          {rows.map((r) => (
+            <li
+              key={r.bucket}
+              className="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-rule py-2"
+            >
+              <span>{r.bucket}</span>
+              <span className="num text-ink-2">
+                {r.files} {r.files === 1 ? "file" : "files"},{" "}
+                {formatBytes(r.bytes)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
 
 export default async function AdminPage() {
   const me = await requireRole("executive");
@@ -108,6 +175,7 @@ export default async function AdminPage() {
           isDemo={isDemo}
         />
       </section>
+      {isDemo ? null : <StorageMeter />}
       <AttendanceSummary canWarn={!isDemo} />
       {isDemo ? null : <AdminLog now={now} />}
       {isDemo ? null : <ContentLists />}

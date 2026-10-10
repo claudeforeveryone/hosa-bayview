@@ -29,14 +29,19 @@ function fieldErrors(error: z.ZodError) {
   return out;
 }
 
+// Optional: a room with no category picked yet (older rooms) sends none, and the column is left as it is.
+const category = z.enum(["mc", "practical", "showcase"], { error: "Pick MC, Practical or Showcase." });
+
 function readClassroom(form: FormData) {
   const values = {
     name: String(form.get("name") ?? ""),
     event: String(form.get("event") ?? ""),
     // Browsers send textarea newlines as CRLF but count them as one character for maxLength.
     description: String(form.get("description") ?? "").replace(/\r\n?/g, "\n"),
+    category: String(form.get("category") ?? ""),
   };
-  return { values, parsed: classroomFields.safeParse(values) };
+  const schema = values.category ? classroomFields.extend({ category }) : classroomFields;
+  return { values, parsed: schema.safeParse(values) };
 }
 
 function failed(where: string, message: string): FormState {

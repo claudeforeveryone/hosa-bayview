@@ -13,6 +13,12 @@ describe("routeGate", () => {
     }
   });
 
+  it("exempts exactly /api/keepalive and nothing under or beside it", () => {
+    expect(routeGate("/api/keepalive", "", false)).toBeNull();
+    expect(routeGate("/api/keepalive/x", "", false)).not.toBeNull();
+    expect(routeGate("/api/keepalive2", "", false)).not.toBeNull();
+  });
+
   it("does not treat lookalike paths as public", () => {
     expect(routeGate("/login-admin", "", false)).not.toBeNull();
     expect(routeGate("/authx", "", false)).not.toBeNull();

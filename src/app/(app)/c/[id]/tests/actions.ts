@@ -7,6 +7,7 @@ import type { FormState } from "@/app/(app)/c/actions";
 import { canTeach, requireProfile } from "@/lib/auth";
 import { UNTITLED_TEST } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
+import { IMPORT_MAX, checkQuestion } from "@/lib/question-rules";
 import { parseAttemptsAllowed, practiceRuleOk } from "@/lib/test-settings";
 
 const id = z.string().uuid();
@@ -217,18 +218,6 @@ export async function deleteTest(
   redirect(`/c/${classroomId}/tests`);
 }
 
-const questionFields = z.object({
-  prompt: z
-    .string()
-    .trim()
-    .min(1, "Write the question.")
-    .max(2000, "Keep the question under 2000 characters."),
-  explanation: z
-    .string()
-    .trim()
-    .max(2000, "Keep the explanation under 2000 characters."),
-});
-
 // The editor sends the choices in the order typed, and which one is right (its position).
 // Saved exactly as given, so the right answer is never always option A.
 export async function saveQuestion(
@@ -254,34 +243,24 @@ export async function saveQuestion(
   ) {
     return { error: "That question doesn't exist.", values };
   }
-  const fields: Record<string, string> = {};
-  const parsed = questionFields.safeParse(values);
-  if (!parsed.success) Object.assign(fields, fieldErrors(parsed.error));
-
   const trimmed = choices.map((c) => c.trim());
-  if (trimmed.length < 2) fields.choices = "Add at least two choices.";
-  else if (trimmed.length > 5) fields.choices = "5 choices at most.";
-  else if (trimmed.some((c) => c === ""))
-    fields.choices = "Fill in every choice, or remove it.";
-  else if (trimmed.some((c) => c.length > 500))
-    fields.choices = "Keep choices under 500 characters.";
-  else if (new Set(trimmed.map((o) => o.toLowerCase())).size !== trimmed.length)
-    fields.choices = "Two choices are the same.";
-
   const correct = /^\d+$/.test(correctRaw) ? Number(correctRaw) : -1;
-  if (!fields.choices && (correct < 0 || correct >= trimmed.length))
-    fields.correct = "Mark the right answer.";
-  if (!parsed.success || Object.keys(fields).length)
-    return { fieldErrors: fields, values };
+  const fields = checkQuestion({
+    prompt: values.prompt,
+    choices,
+    correct,
+    explanation: values.explanation,
+  });
+  if (Object.keys(fields).length) return { fieldErrors: fields, values };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_question", {
     tid: testId,
     qid: questionId,
-    prompt: parsed.data.prompt,
+    prompt: values.prompt.trim(),
     options: trimmed,
     correct,
-    explanation: parsed.data.explanation,
+    explanation: values.explanation.trim(),
   });
   if (error) return { ...rpcError("save question", error), values };
   refresh();
@@ -306,6 +285,12 @@ const importItem = z.object({
   explanation: z.string().trim().max(2000),
 });
 
+// The old per-question import takes 300 at a time.
+const LEGACY_IMPORT_MAX = 300;
+
+// One round trip: import_questions_bulk (0085) inserts the whole batch in one statement, all or nothing.
+// Until that migration is applied the function is missing (PGRST202 from the API, 42883 from Postgres), so this
+// falls back to import_questions in chunks of 300.
 export async function importQuestions(
   testId: string,
   items: unknown,
@@ -316,7 +301,7 @@ export async function importQuestions(
   const parsed = z
     .array(importItem)
     .min(1, "Nothing to add.")
-    .max(300, "Add at most 300 questions at a time.")
+    .max(IMPORT_MAX, `Add at most ${IMPORT_MAX} questions at a time.`)
     .safeParse(items);
   if (!parsed.success)
     return {
@@ -326,17 +311,48 @@ export async function importQuestions(
     };
   if (parsed.data.some((q) => q.correct >= q.options.length))
     return { error: "Every question needs a right answer." };
+  // Same rule as adding one question.
+  const dup = parsed.data.findIndex(
+    (q) =>
+      new Set(q.options.map((o) => o.toLowerCase())).size !== q.options.length,
+  );
+  if (dup !== -1)
+    return { error: `Question ${dup + 1} has two choices the same.` };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("import_questions", {
+  const bulk = await supabase.rpc("import_questions_bulk", {
     tid: testId,
     items: parsed.data,
   });
-  if (error) return rpcError("import", error);
+  let added = 0;
+  if (!bulk.error) {
+    added = Number(bulk.data);
+  } else if (bulk.error.code === "PGRST202" || bulk.error.code === "42883") {
+    for (let at = 0; at < parsed.data.length; at += LEGACY_IMPORT_MAX) {
+      const { data, error } = await supabase.rpc("import_questions", {
+        tid: testId,
+        items: parsed.data.slice(at, at + LEGACY_IMPORT_MAX),
+      });
+      if (error) {
+        if (!added) return rpcError("import", error);
+        refresh();
+        const why = error.code === "22023" ? `${error.message}.` : "Try again.";
+        if (error.code !== "22023")
+          console.error("[tests:import]", error.message);
+        return {
+          error: `Added ${added} of ${parsed.data.length}. The rest didn't save: ${why}`,
+          added,
+        };
+      }
+      added += Number(data);
+    }
+  } else {
+    return rpcError("import", bulk.error);
+  }
   refresh();
   return {
-    ok: `Added ${data} question${data === 1 ? "" : "s"}.`,
-    added: Number(data),
+    ok: `Added ${added} question${added === 1 ? "" : "s"}.`,
+    added,
   };
 }
 

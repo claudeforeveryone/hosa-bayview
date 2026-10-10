@@ -20,10 +20,31 @@ import { rollLuckyBonus } from "@/lib/lucky-client";
 
 type Bonus = { id: number; amount: number; reason: LuckyReason };
 
+const sleep = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
+
+// Resolves once no page entrance is playing: the opener, a banner, or a page still loading under it. One
+// entrance at a time, so the band never lands on top of the banner. Gives up after 5 s.
+async function entrancesDone() {
+  const end = Date.now() + 5000;
+  while (Date.now() < end) {
+    if (document.querySelector(".route-loading")) {
+      await sleep(150);
+      continue;
+    }
+    const running = [...document.querySelectorAll<HTMLElement>(".intro, .hero[data-play]")]
+      .flatMap((el) => (typeof el.getAnimations === "function" ? el.getAnimations({ subtree: true }) : []))
+      .filter((a) => a.playState === "running");
+    if (!running.length) return;
+    await Promise.race([Promise.allSettled(running.map((a) => a.finished)), sleep(end - Date.now())]);
+  }
+}
+
 // Mounted once in the app layout. Rolls the daily visit bonus, then shows every bonus that pays,
 // one at a time, as a full-width band across the top. Tap to clear; it clears itself otherwise.
 export function LuckyBonus() {
   const [queue, setQueue] = useState<Bonus[]>([]);
+  // False until the page's own entrance has finished; bonuses wait in the queue till then.
+  const [clear, setClear] = useState(false);
   const nextId = useRef(0);
 
   useEffect(() => {
@@ -40,7 +61,17 @@ export function LuckyBonus() {
     return () => window.removeEventListener(LUCKY_EVENT, onBonus);
   }, []);
 
-  const current = queue[0];
+  const waiting = queue.length > 0 && !clear;
+  useEffect(() => {
+    if (!waiting) return;
+    let live = true;
+    void entrancesDone().then(() => live && setClear(true));
+    return () => {
+      live = false;
+    };
+  }, [waiting]);
+
+  const current = clear ? queue[0] : undefined;
   const dismiss = useCallback(() => setQueue((q) => q.slice(1)), []);
 
   useEffect(() => {

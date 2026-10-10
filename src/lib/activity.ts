@@ -1,5 +1,6 @@
 // Pure helpers for activity, Elo, leaderboards and the honor roll. No database or server imports, so they test directly.
-// The numbers themselves come from migrations 0017, 0030 and 0036; this file only ranks, filters and formats them.
+// The numbers themselves come from the database (elo_events, migrations 0080-0082); this file only ranks, filters
+// and formats them.
 
 // All time leads: it is the default and the first choice in the period menu.
 export const PERIODS = ["all", "today", "week", "month"] as const;
@@ -27,12 +28,19 @@ export const METRIC_LABEL: Record<Metric, string> = {
   elo: "Elo",
 };
 
+// The chapter board ranks Elo: 1200 plus every point, sign-ins and lucky bonuses included. A room board counts
+// only what was earned in that room, with no base, so it is called Points there.
+export type BoardScope = "chapter" | "room";
+export function metricLabel(metric: Metric, scope: BoardScope = "chapter"): string {
+  return metric === "elo" && scope === "room" ? "Points" : METRIC_LABEL[metric];
+}
+
 export const RESULTS = ["all", "right", "wrong"] as const;
 export type Result = (typeof RESULTS)[number];
 
 // What the Elo score is made of. Shown under the club board so the number isn't a mystery.
 export const ELO_SUMMARY =
-  "Everyone starts at 1200. A flashcard is 1 Elo, a question 2, and 3 more when it's right. Each card or question counts once a day, up to 100 cards a day. Each day you sign in adds 5. A study streak boosts study gains, up to 1.6× at 30 days. Lucky bonuses land at random.";
+  "Everyone starts at 1200. A question is 2 Elo the first time you answer it, and 3 more if that answer is right. A card from someone else's deck is 1, once a day, up to 100 a day. Each day you sign in adds 5. A study streak boosts what you earn that day, up to 1.6× at 30 days. Lucky bonuses land at random.";
 
 export type BoardRow = {
   user_id: string;
@@ -42,8 +50,8 @@ export type BoardRow = {
   answered: number;
   correct: number;
   accuracy: number | null;
-  elo: number; // all-time Elo
-  gain: number; // Elo earned inside the chosen period
+  elo: number; // all-time Elo (chapter) or all-time points (room)
+  gain: number; // earned inside the chosen period
   streak: number;
   avatar_url?: string | null;
 };

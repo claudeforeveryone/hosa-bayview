@@ -150,7 +150,7 @@ function MeetingRowOpen({
               size={18}
               strokeWidth={2}
               aria-hidden
-              className="text-ink-2 motion-safe:transition-transform motion-safe:duration-200 group-open:rotate-180"
+              className="text-ink-2 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out group-open:rotate-180"
             />
           }
         />

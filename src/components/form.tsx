@@ -139,7 +139,7 @@ export function Button({
   }[variant];
   return (
     <button
-      className={`caps step inline-flex h-12 items-center justify-center gap-2 px-6 text-[17px] disabled:cursor-not-allowed disabled:opacity-60 ${styles} ${className}`}
+      className={`caps step press inline-flex h-12 items-center justify-center gap-2 px-6 text-[17px] disabled:cursor-not-allowed disabled:opacity-60 ${styles} ${className}`}
       {...props}
     />
   );

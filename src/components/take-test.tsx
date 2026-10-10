@@ -10,6 +10,7 @@ import {
 import { AskTeacher, type FlagState } from "@/components/ask-teacher";
 import { Button, FormMessage } from "@/components/form";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
+import { feedback, primeFeedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import type { AttemptQuestion } from "@/lib/tests";
 
@@ -77,9 +78,13 @@ export function TakeTest({
   const [confirming, setConfirming] = useState(false);
   const [submitting, startSubmit] = useTransition();
   const [saving, setSaving] = useState<string | null>(null);
+  // The practice question whose verdict just came back, so only a fresh verdict animates (not one you go back to).
+  const [fresh, setFresh] = useState<string | null>(null);
   const submitted = useRef(false);
   const autoTried = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
+  // The question on screen, read when a verdict comes back after a server round trip.
+  const onScreen = useRef(current);
 
   const answered = Object.keys(answers).length;
   const left = rows.length - answered;
@@ -87,16 +92,19 @@ export function TakeTest({
   const mine = answers[q.question_id];
   const locked = practice && mine !== undefined;
 
-  const submit = useCallback(() => {
+  // byTap is false when the timer submits: no tap, so no tone (the browser would refuse it anyway).
+  const submit = useCallback((byTap = true) => {
     if (submitted.current) return;
     submitted.current = true;
     setError(null);
+    if (byTap) primeFeedback();
     startSubmit(async () => {
       const r = await submitAttempt(attemptId);
       if (r.error) {
         submitted.current = false;
         setError(r.error);
       } else {
+        feedback("submit", { sound: byTap });
         void rollLuckyBonus("test");
         router.refresh();
       }
@@ -117,7 +125,7 @@ export function TakeTest({
       // Auto-submit once; if that fails the Submit button stays for a manual retry.
       if (ms <= 0 && !autoTried.current) {
         autoTried.current = true;
-        submit();
+        submit(false);
       }
     };
     tick();
@@ -127,7 +135,9 @@ export function TakeTest({
 
   const go = (i: number) => {
     setCurrent(i);
+    onScreen.current = i;
     setConfirming(false);
+    setFresh(null);
     requestAnimationFrame(() => heading.current?.focus());
   };
 
@@ -136,6 +146,8 @@ export function TakeTest({
     const qid = q.question_id;
     const before = answers[qid];
     setError(null);
+    // The verdict sound comes after the server answers; wake audio now, inside the tap.
+    if (practice) primeFeedback();
     setAnswers((a) => ({
       ...a,
       [qid]: {
@@ -170,6 +182,12 @@ export function TakeTest({
         saved: true,
       },
     }));
+    // Only for the question still on screen: a verdict that lands after you moved on is just stored, and
+    // shows quietly, without the reveal, when you go back.
+    if (practice && typeof r.is_correct === "boolean" && rows[onScreen.current]?.question_id === qid) {
+      setFresh(qid);
+      feedback(r.is_correct ? "correct" : "wrong");
+    }
   };
 
   const low = deadline !== null && remaining <= 60_000;
@@ -268,7 +286,10 @@ export function TakeTest({
           {locked ? (
             <>
               <p
+                key={mine?.saved ? "verdict" : "checking"}
                 className={`caps text-[18px] ${
+                  mine?.saved && fresh === q.question_id ? "reveal" : ""
+                } ${
                   mine?.saved && mine.is_correct
                     ? "text-ok"
                     : mine?.saved && mine.is_correct === false
@@ -366,7 +387,7 @@ export function TakeTest({
               <Button
                 type="button"
                 variant="you"
-                onClick={submit}
+                onClick={() => submit()}
                 disabled={submitting}
               >
                 {submitting ? "Submitting" : "Submit now"}

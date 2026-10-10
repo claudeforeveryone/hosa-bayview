@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow, Barlow_Condensed } from "next/font/google";
+import { Atkinson_Hyperlegible, Barlow, Barlow_Condensed, Lexend } from "next/font/google";
 import localFont from "next/font/local";
+import { headers } from "next/headers";
 import { AppearanceSync } from "@/components/appearance";
 import { appearanceScript } from "@/lib/appearance";
+import { heroRestScript } from "@/lib/hero";
 import { introScript } from "@/lib/intro";
 import { SiteIntro } from "@/components/site-intro";
 import "./globals.css";
@@ -19,6 +21,20 @@ const barlowCondensed = Barlow_Condensed({
   weight: ["500", "600", "700"],
 });
 
+// Optional faces from Settings > Look. preload: false keeps them off the wire until someone picks one.
+const atkinson = Atkinson_Hyperlegible({
+  variable: "--font-atkinson",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  preload: false,
+});
+
+const lexend = Lexend({
+  variable: "--font-lexend",
+  subsets: ["latin"],
+  preload: false,
+});
+
 // The chapter mark's wordmark face. Static files, one per weight: Google serves Montserrat as a single
 // variable font, and some WebKit builds draw that at its thinnest weight whatever weight is asked for.
 const montserrat = localFont({
@@ -33,6 +49,11 @@ const montserrat = localFont({
 export const metadata: Metadata = {
   title: { default: "HOSA Bayview", template: "%s · HOSA Bayview" },
   description: "Training for HOSA Bayview members: classrooms, practice tests, flashcards, and leaderboards.",
+  // Private by default: nothing here should be indexed or previewed with member data.
+  robots: { index: false, follow: false, nocache: true },
+  // Link previews carry the chapter name and nothing else (no description, no images).
+  openGraph: { siteName: "HOSA Bayview", title: "HOSA Bayview", description: "HOSA Bayview", type: "website" },
+  twitter: { card: "summary", title: "HOSA Bayview", description: "HOSA Bayview" },
 };
 
 export const viewport: Viewport = {
@@ -43,16 +64,19 @@ export const viewport: Viewport = {
 };
 
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // The proxy's per-request CSP nonce. The inline scripts below run before paint, so they need it too.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${barlow.variable} ${barlowCondensed.variable} ${montserrat.variable} h-full antialiased`}
+      className={`${barlow.variable} ${barlowCondensed.variable} ${atkinson.variable} ${lexend.variable} ${montserrat.variable} h-full antialiased`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
-        <script dangerouslySetInnerHTML={{ __html: introScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: appearanceScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: introScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: heroRestScript }} />
       </head>
       <body className="min-h-full">
         <SiteIntro />

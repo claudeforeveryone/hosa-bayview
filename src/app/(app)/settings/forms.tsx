@@ -162,6 +162,14 @@ export function PasswordSection() {
         {(state) => (
           <>
             <Field
+              label="Current password"
+              name="current"
+              type="password"
+              autoComplete="current-password"
+              required
+              error={state.fieldErrors?.current}
+            />
+            <Field
               label="New password"
               name="password"
               type="password"
@@ -247,8 +255,8 @@ export function PasscodeSection({ isSet }: { isSet: boolean }) {
             error={state.fieldErrors?.new_passcode}
             hint={
               isSet
-                ? "Anyone who enters it at Admin sign-up becomes an executive. Changing it stops the old one working."
-                : "Not set, so no one can sign up as an admin. Anyone who enters it becomes an executive."
+                ? "Works once. The first person to enter it becomes an executive, every executive is told, and it clears. Changing it stops the old one working."
+                : "Not set, so no one can become an admin. Set one for the next new admin: it works once, then clears."
             }
           />
         )}

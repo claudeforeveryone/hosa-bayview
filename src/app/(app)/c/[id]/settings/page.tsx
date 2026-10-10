@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { ClassroomForm } from "@/components/classroom-form";
 import { ConfirmAction } from "@/components/confirm-action";
-import { getClassroom } from "@/lib/classrooms";
+import { getClassroom, getRoomInfo } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
 import { deleteClassroom, updateClassroom } from "../../actions";
 
 export default async function SettingsTab({ params }: PageProps<"/c/[id]/settings">) {
   const { id } = await params;
-  const room = await getClassroom(id);
+  const [room, info] = await Promise.all([getClassroom(id), getRoomInfo(id)]);
   if (!room) notFound();
   if (!room.can_manage) redirect(`/c/${id}`);
 
@@ -15,7 +15,12 @@ export default async function SettingsTab({ params }: PageProps<"/c/[id]/setting
     <div className="grid grid-cols-1 gap-12">
       <ClassroomForm
         action={updateClassroom.bind(null, room.id)}
-        initial={{ name: room.name, event: room.event, description: room.description }}
+        initial={{
+          name: room.name,
+          event: room.event,
+          description: room.description,
+          category: info?.category ?? "",
+        }}
         submitLabel="Save changes"
         pendingLabel="Saving"
       />

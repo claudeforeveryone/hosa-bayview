@@ -1,4 +1,4 @@
--- Activity, Elo, leaderboard, member and career checks (migration 0017).
+-- Activity, Elo, leaderboard, member and career checks (migration 0017; Elo rules since 0080/0081, see elo_audit.sql).
 -- Runs in one transaction and rolls back; raises on the first failure. Throwaway users only.
 begin;
 
@@ -62,10 +62,11 @@ insert into public.question_keys (question_id, correct_index, explanation) value
 -- a1: practice, two graded answers (one right, one wrong) in room one.
 -- a2: practice, one right answer in room two.
 -- a3: timed and never submitted, answer not yet graded: must not count.
-insert into public.attempts (id, test_id, user_id, mode, total) values
-  ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000b1', 'practice', 2),
-  ('00000000-0000-4000-8000-0000000000a2', '00000000-0000-4000-8000-0000000000e2', '00000000-0000-4000-8000-0000000000b1', 'practice', 1),
-  ('00000000-0000-4000-8000-0000000000a3', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000b1', 'timed', 2);
+-- counts: what start_attempt stores for a member on a published test (0081).
+insert into public.attempts (id, test_id, user_id, mode, total, counts) values
+  ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000b1', 'practice', 2, true),
+  ('00000000-0000-4000-8000-0000000000a2', '00000000-0000-4000-8000-0000000000e2', '00000000-0000-4000-8000-0000000000b1', 'practice', 1, true),
+  ('00000000-0000-4000-8000-0000000000a3', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000b1', 'timed', 2, true);
 insert into public.attempt_answers (attempt_id, question_id, selected_index, is_correct) values
   ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000f1', 0, true),
   ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000f2', 1, false),
@@ -84,8 +85,8 @@ insert into public.card_reviews (user_id, card_id, known, reviewed_at) values
   ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000ac', false, now());
 
 -- Farming guard: a repeat practice attempt and a repeat review later the same day must not add credit.
-insert into public.attempts (id, test_id, user_id, mode, total) values
-  ('00000000-0000-4000-8000-0000000000a4', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000b1', 'practice', 2);
+insert into public.attempts (id, test_id, user_id, mode, total, counts) values
+  ('00000000-0000-4000-8000-0000000000a4', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000b1', 'practice', 2, true);
 insert into public.attempt_answers (attempt_id, question_id, selected_index, is_correct, answered_at) values
   ('00000000-0000-4000-8000-0000000000a4', '00000000-0000-4000-8000-0000000000f1', 1, false, now() + interval '1 second');
 insert into public.card_reviews (user_id, card_id, known, reviewed_at) values
@@ -114,7 +115,9 @@ select pg_temp.check('three heartbeats record one sign-in day for today',
   (select count(*) = 1 from public.sign_in_days
      where user_id = '00000000-0000-4000-8000-0000000000b1' and day = private.local_day(now())));
 
--- An outsider's room id is ignored: the minute counts as chapter time only.
+-- An outsider's room id is ignored: the minute counts as chapter time only. (b2 studied just now, so the
+-- minute counts at all: since 0081 minutes need study in the last 10 minutes.)
+insert into private.study_pulse (user_id, last_at) values ('00000000-0000-4000-8000-0000000000b2', now());
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
 select public.heartbeat('00000000-0000-4000-8000-0000000000c1');
 select pg_temp.as_admin();
@@ -166,14 +169,15 @@ select pg_temp.check('room board holds only room members',
   not exists (select 1 from public.leaderboard('all', '00000000-0000-4000-8000-0000000000c1') where user_id = '00000000-0000-4000-8000-0000000000b2'));
 
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1');
-select pg_temp.check('chapter board: b1 answered 3 right 2, 2 reviews',
-  (select answered = 3 and correct = 2 and reviews = 2 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+-- Reviews: only the room deck card counts; d2 is b1's own deck and pays nothing (R5).
+select pg_temp.check('chapter board: b1 answered 3 right 2, 1 counted review',
+  (select answered = 3 and correct = 2 and reviews = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 select pg_temp.check('streak counts today for b1',
   (select streak = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
--- Study gains: 2 reviews + 3 answered x 2 + 2 right x 3 = 14 (minutes do not count); streak 1 gives x1.02 => 14.28, rounds to 14.
--- Plus 5 for today's sign-in: 1200 + 14 + 5 = 1219. Everything happened today, so the gain is 19 too.
-select pg_temp.check('elo in the board matches the formula (1219, gain 19)',
-  (select elo = 1219 and gain = 19 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+-- Study gains: 1 counted review + 3 answered x 2 + 2 right x 3 = 13 (minutes do not count); streak 1 gives x1.02 => 13.26.
+-- Plus 5 for today's sign-in: 1200 + 18.26 = 1218. Everything happened today, so the gain is 18 too.
+select pg_temp.check('elo in the board matches the formula (1218, gain 18)',
+  (select elo = 1218 and gain = 18 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
 -- Career: own answers; trainers see answers in their rooms; executives see all; trainees never see others'
 select pg_temp.check('career keeps every graded answer, repeats included (history, not score)',
@@ -201,8 +205,8 @@ select pg_temp.check('executive sees all answers',
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
 select pg_temp.check('profile stats visible to another member, with a rank',
   (select count(*) = 1 and bool_and(rank >= 1) from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
-select pg_temp.check('profile shows sign-in streak (1, today) and all-time elo 1219',
-  (select sign_in_streak = 1 and elo = 1219 from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
+select pg_temp.check('profile shows sign-in streak (1, today) and all-time elo 1218',
+  (select sign_in_streak = 1 and elo = 1218 from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
 select pg_temp.check('profile for a missing member is empty',
   (select count(*) from public.member_stats('00000000-0000-4000-8000-0000000000ff')) = 0);
 select pg_temp.check('directory lists members by name',
@@ -214,10 +218,17 @@ insert into public.activity_minutes (user_id, minute, classroom_id) values
   ('00000000-0000-4000-8000-0000000000b4', date_trunc('minute', now() - interval '1 day'), null),
   ('00000000-0000-4000-8000-0000000000b4', date_trunc('minute', now() - interval '2 days'), null),
   ('00000000-0000-4000-8000-0000000000b6', date_trunc('minute', now() - interval '3 days'), null);
-select pg_temp.check('streak: yesterday and the day before still count (exec)',
-  private.streak_of('00000000-0000-4000-8000-0000000000b4') = 2);
-select pg_temp.check('streak: a single old day has ended',
-  private.streak_of('00000000-0000-4000-8000-0000000000b6') = 0);
+-- Since 0080 the streak is study days only (R4): minutes on the site alone make none.
+select pg_temp.check('streak: minutes alone make no study streak (exec b4)',
+  (select streak = 0 from private.standings('-infinity', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
+insert into private.study_days (user_id, day) values
+  ('00000000-0000-4000-8000-0000000000b4', private.local_day(now() - interval '1 day')),
+  ('00000000-0000-4000-8000-0000000000b4', private.local_day(now() - interval '2 days')),
+  ('00000000-0000-4000-8000-0000000000b6', private.local_day(now() - interval '3 days'));
+select pg_temp.check('streak: study yesterday and the day before still count (exec)',
+  (select streak = 2 from private.standings('-infinity', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
+select pg_temp.check('streak: a single old study day has ended',
+  (select streak = 0 from private.standings('-infinity', null) where user_id = '00000000-0000-4000-8000-0000000000b6'));
 
 -- Sign-in days: b4 signed in yesterday and the day before, b6 for the last three days, b1 today (from heartbeat).
 insert into public.sign_in_days (user_id, day) values
@@ -240,11 +251,11 @@ select pg_temp.check('gain today leaves out past days (b4 gains 0 today, elo 121
   (select gain = 0 and elo = 1210 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
 select pg_temp.check('gain all time counts every day, minutes excluded (b4 gains 10)',
   (select gain = 10 and elo = 1210 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
-select pg_temp.check('gain today for b1 is today activity plus today sign-in (19, elo 1219)',
-  (select gain = 19 and elo = 1219 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
-select pg_temp.check('week and month gains for b1 are 19 (all of it is this week)',
-  (select bool_and(gain = 19) from public.leaderboard('week', null) where user_id = '00000000-0000-4000-8000-0000000000b1')
-  and (select bool_and(gain = 19) from public.leaderboard('month', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+select pg_temp.check('gain today for b1 is today activity plus today sign-in (18, elo 1218)',
+  (select gain = 18 and elo = 1218 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+select pg_temp.check('week and month gains for b1 are 18 (all of it is this week)',
+  (select bool_and(gain = 18) from public.leaderboard('week', null) where user_id = '00000000-0000-4000-8000-0000000000b1')
+  and (select bool_and(gain = 18) from public.leaderboard('month', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 select pg_temp.check('hours stat still reported on the board (b1 has 1 minute)',
   (select minutes = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
@@ -320,21 +331,8 @@ select pg_temp.check('lucky: middle win is 15', private.lucky_amount(0.1, 0.5, 0
 select pg_temp.check('lucky: jackpot pays 50 (1 in 50 of wins)', private.lucky_amount(0.1, 0.0199, 0) = 50);
 select pg_temp.check('lucky: 0.02 is not the jackpot', private.lucky_amount(0.1, 0.02, 0) = 5);
 
--- Elo formula ---------------------------------------------------------------------------
--- Gains: 1 a review, 2 a question, 3 more when right, times the streak multiplier (max x1.6 at 30 days).
--- Sign-ins: +5 each, added after the multiplier. Lucky bonuses: flat. Minutes do not count. Everyone starts at 1200.
-select pg_temp.check('elo: base is 1200', private.elo_score(0, 0, 0, 0, 0, 0) = 1200);
-select pg_temp.check('elo: 10 reviews is +10', private.elo_score(10, 0, 0, 0, 0, 0) = 1210);
-select pg_temp.check('elo: 10 answered with 5 right is +35', private.elo_score(0, 10, 5, 0, 0, 0) = 1235);
-select pg_temp.check('elo: streak multiplies gains, not the base', private.elo_score(0, 0, 0, 30, 0, 0) = 1200);
-select pg_temp.check('elo: 30-day streak is x1.6 on gains', private.elo_score(100, 0, 0, 30, 0, 0) = 1360);
-select pg_temp.check('elo: streak above 30 is capped', private.elo_score(100, 0, 0, 90, 0, 0) = 1360);
-select pg_temp.check('elo: each sign-in day is +5', private.elo_score(0, 0, 0, 0, 3, 0) = 1215);
-select pg_temp.check('elo: sign-ins are not multiplied by the streak', private.elo_score(100, 0, 0, 30, 1, 0) = 1365);
-select pg_temp.check('elo: lucky bonus is added flat', private.elo_score(0, 0, 0, 0, 0, 25) = 1225);
-select pg_temp.check('elo: lucky bonus is not multiplied by the streak', private.elo_score(100, 0, 0, 30, 0, 25) = 1385);
-select pg_temp.check('elo: jackpot adds 50', private.elo_score(0, 0, 0, 0, 0, 50) = 1250);
-select pg_temp.check('elo gain is the score minus the base', private.elo_gain(100, 0, 0, 30, 1, 0) = 165);
+-- The Elo formula now lives in public.elo_events (0080): points are written when earned, with the streak
+-- multiplier frozen then. supabase/tests/elo_audit.sql checks it.
 
 -- Leftover rollback
 rollback;

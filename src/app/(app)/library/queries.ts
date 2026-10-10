@@ -2,9 +2,10 @@ import "server-only";
 import { cache } from "react";
 import { uuid } from "@/lib/classrooms";
 import { type MaterialItem, type MaterialRow } from "@/lib/materials";
+import { MATERIAL_LINK_SECONDS } from "@/lib/link-lifetimes";
 import { createClient } from "@/lib/supabase/server";
 
-const LINK_SECONDS = 3600;
+const LINK_SECONDS = MATERIAL_LINK_SECONDS;
 
 // Chapter-wide rows when classroomId is null, otherwise that classroom's. RLS hides what you can't see.
 // Files get a signed link that downloads under the file's own name.
@@ -13,7 +14,7 @@ export const getMaterials = cache(async (classroomId: string | null): Promise<Ma
   const supabase = await createClient();
   const base = supabase
     .from("materials")
-    .select("id, classroom_id, title, note, url, path, file_name, size_bytes, mime, created_at");
+    .select("id, classroom_id, title, note, section, url, path, file_name, size_bytes, mime, created_at");
   const { data, error } = await (classroomId === null
     ? base.is("classroom_id", null)
     : base.eq("classroom_id", classroomId)
@@ -33,6 +34,8 @@ export const getMaterials = cache(async (classroomId: string | null): Promise<Ma
   }
 
   return rows.map((r) => {
+    // Placeholders ("Link coming soon") have nothing to open.
+    if (!r.url && !r.path) return { ...r, href: null };
     if (r.url) return { ...r, href: r.url };
     const url = r.path ? signed.get(r.path) : undefined;
     // The download param is added after signing, the same way the client library does it.

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/auth";
+import { type Category, parseCategory } from "@/lib/classroom-tabs";
 
 export type ClassroomSummary = {
   id: string;
@@ -16,6 +17,7 @@ export type ClassroomSummary = {
   can_manage: boolean;
   join_code: string | null;
   created_at: string;
+  category: Category | null;
 };
 
 export type ClassroomDetail = ClassroomSummary & { owner_id: string | null; is_member: boolean };
@@ -29,7 +31,11 @@ export const getMyClassrooms = cache(async (): Promise<ClassroomSummary[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("my_classrooms");
   if (error) throw new Error(`Classrooms lookup failed: ${error.message}`);
-  return (data ?? []) as ClassroomSummary[];
+  // The category comes back raw; anything unknown reads as uncategorised.
+  return ((data ?? []) as (Omit<ClassroomSummary, "category"> & { category: string | null })[]).map((r) => ({
+    ...r,
+    category: parseCategory(r.category),
+  }));
 });
 
 // Null when the id is malformed or you can't see the classroom; both read as "not found".
@@ -41,6 +47,23 @@ export const getClassroom = cache(async (id: string): Promise<ClassroomDetail | 
   if (error) throw new Error(`Classroom lookup failed: ${error.message}`);
   return (data as ClassroomDetail | null) ?? null;
 });
+
+// Kind (class or competition) and event category, read straight off the row. Cached per request:
+// the classroom layout, its tabs and the hub all need them. Null when malformed or not visible.
+export const getRoomInfo = cache(
+  async (id: string): Promise<{ kind: string | null; category: Category | null } | null> => {
+    if (!uuid.safeParse(id).success) return null;
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("classrooms")
+      .select("kind, category")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error(`Classroom lookup failed: ${error.message}`);
+    if (!data) return null;
+    return { kind: data.kind ?? null, category: parseCategory(data.category) };
+  },
+);
 
 export async function getRoster(id: string): Promise<RosterRow[]> {
   if (!uuid.safeParse(id).success) return [];

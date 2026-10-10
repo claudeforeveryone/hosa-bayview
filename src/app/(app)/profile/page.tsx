@@ -8,6 +8,7 @@ import { Button } from "@/components/form";
 import { parseResult } from "@/lib/activity";
 import { getCareer, getMemberStats } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
+import { getBattleWins } from "@/lib/battles";
 import { avatarSources } from "@/lib/avatar-urls";
 import { gradeLabel } from "@/lib/profile";
 import { roleLabel } from "@/lib/role-label";
@@ -18,10 +19,12 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
   const sp = await props.searchParams;
   const result = parseResult(sp.result);
   const profile = await requireProfile();
-  const [stats, career, sources] = await Promise.all([
+  const [stats, career, sources, wins] = await Promise.all([
     getMemberStats(profile.id),
     getCareer(profile.id),
     avatarSources([profile.avatar_path]),
+    // Null until the battle migrations are applied; the row stays hidden then.
+    getBattleWins(profile.id),
   ]);
   const picture = profile.avatar_path
     ? (sources.get(profile.avatar_path) ?? null)
@@ -52,6 +55,12 @@ export default async function ProfilePage(props: PageProps<"/profile">) {
             day: "numeric",
           })}
         </dd>
+        {wins !== null ? (
+          <>
+            <dt className="caps text-ink-2">Battle wins</dt>
+            <dd className="num">{wins}</dd>
+          </>
+        ) : null}
       </dl>
       {stats ? (
         <section aria-labelledby="numbers-h" className="grid gap-4">

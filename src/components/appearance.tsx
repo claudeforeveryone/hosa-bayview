@@ -1,31 +1,47 @@
 "use client";
 
 import { Check, RotateCcw } from "lucide-react";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
 import {
   ACCENTS,
+  FONTS,
+  LOOK_KEYS,
   MODES,
   PALETTES,
   TEXT_SIZES,
   applyExtras,
   applyMode,
   readAccent,
+  readFont,
+  readHaptics,
   readMode,
   readMotion,
   readPalette,
+  readSound,
   readTextSize,
   resetAppearance,
   setAccent,
+  setFont,
+  setHaptics,
   setMode,
   setMotion,
   setPalette,
+  setSound,
   setTextSize,
   type Accent,
+  type Font,
   type Mode,
   type Motion,
   type Palette,
   type TextSize,
+  type Toggle,
 } from "@/lib/appearance";
+import { feedback } from "@/lib/feedback";
+
+const TOGGLES: { id: Toggle; label: string }[] = [
+  { id: "off", label: "Off" },
+  { id: "on", label: "On" },
+];
 
 function subscribe(onChange: () => void) {
   window.addEventListener("hosa:appearance", onChange);
@@ -50,7 +66,7 @@ export function AppearanceSync() {
       if (readMode() === "system") applyMode("system");
     };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === null || ["theme", "palette", "accent", "text", "motion"].includes(e.key)) {
+      if (e.key === null || LOOK_KEYS.includes(e.key)) {
         applyMode(readMode());
         applyPalette(readPalette());
         applyExtras();
@@ -66,6 +82,13 @@ export function AppearanceSync() {
   return null;
 }
 
+// Each option is set in its own face. The variables come from the root layout's next/font loaders.
+const FONT_FAMILIES: Record<Font, string> = {
+  default: "var(--font-barlow), system-ui, sans-serif",
+  readable: "var(--font-atkinson), system-ui, sans-serif",
+  dyslexic: "var(--font-lexend), system-ui, sans-serif",
+};
+
 const legend = "caps mb-2 text-[14px] text-ink-2";
 
 // A row of square segments backed by native radios.
@@ -78,7 +101,7 @@ function Segments<T extends string>({
 }: {
   name: string;
   label: string;
-  options: { id: T; label: string; className?: string }[];
+  options: { id: T; label: string; className?: string; style?: CSSProperties }[];
   value: T;
   onPick: (v: T) => void;
 }) {
@@ -98,6 +121,7 @@ function Segments<T extends string>({
             />
             <span
               className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink ${o.className ?? ""}`}
+              style={o.style}
             >
               {o.label}
             </span>
@@ -118,7 +142,10 @@ export function LookSection() {
   );
   const accent = useSyncExternalStore<Accent>(subscribe, readAccent, () => "theme");
   const text = useSyncExternalStore<TextSize>(subscribe, readTextSize, () => "standard");
+  const font = useSyncExternalStore<Font>(subscribe, readFont, () => "default");
   const motion = useSyncExternalStore<Motion>(subscribe, readMotion, () => "full");
+  const sound = useSyncExternalStore<Toggle>(subscribe, readSound, () => "off");
+  const haptics = useSyncExternalStore<Toggle>(subscribe, readHaptics, () => "on");
   const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? "#7a1f2b";
 
   return (
@@ -217,6 +244,17 @@ export function LookSection() {
           onPick={setTextSize}
         />
         <Segments
+          name="look-font"
+          label="Font"
+          options={FONTS.map((f) => ({
+            ...f,
+            className: "px-1 text-center leading-tight normal-case tracking-normal text-[15px] sm:text-[16px]",
+            style: { fontFamily: FONT_FAMILIES[f.id] },
+          }))}
+          value={font}
+          onPick={setFont}
+        />
+        <Segments
           name="look-motion"
           label="Motion"
           options={[
@@ -226,6 +264,31 @@ export function LookSection() {
           value={motion}
           onPick={setMotion}
         />
+        <Segments
+          name="look-sound"
+          label="Sound"
+          options={TOGGLES}
+          value={sound}
+          onPick={(v) => {
+            setSound(v);
+            // Switching it on plays a sample, so you know what you'll hear.
+            if (v === "on") feedback("correct");
+          }}
+        />
+        {/* Touch devices that can vibrate only. Always rendered; <html data-vibrate>, set before paint,
+            shows it, so the page never shifts after load. */}
+        <div className="haptics-row">
+          <Segments
+            name="look-haptics"
+            label="Haptics"
+            options={TOGGLES}
+            value={haptics}
+            onPick={(v) => {
+              setHaptics(v);
+              if (v === "on") feedback("flip");
+            }}
+          />
+        </div>
         <button
           type="button"
           onClick={resetAppearance}

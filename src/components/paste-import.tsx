@@ -1,10 +1,21 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import { importQuestions } from "@/app/(app)/c/[id]/tests/actions";
 import { Button, FormMessage } from "@/components/form";
-import { parseQuestions } from "@/lib/parse/questions";
+import type { AddManyFn } from "@/components/questions-editor";
+import { leftoverText, pickKey, withPick, type Picks } from "@/lib/paste-picks";
+import {
+  parseQuestions,
+  type ParsedQuestion,
+  type SkippedLine,
+} from "@/lib/parse/questions";
+import {
+  IMPORT_BYTES_MAX,
+  IMPORT_MAX,
+  importBytes,
+} from "@/lib/question-rules";
 
 const LETTERS = "ABCDE";
 const EXAMPLE = `1. Which bone is the longest in the body?
@@ -15,37 +26,123 @@ D. Fibula
 Answer: B
 Explanation: The femur runs from hip to knee.`;
 
-// Paste past BLC or competition questions; the preview shows exactly what will be saved.
-// Tapping an option sets (or fixes) the answer for that question.
-export function PasteImport({ testId }: { testId: string }) {
+// Paste a whole past test; the preview below shows, as you type, exactly what will be added and what won't (and
+// why). Tapping an option sets or fixes that question's answer. Adding is one call for the whole batch; the
+// questions show in the list at once, and anything not added stays in the box to fix.
+export function PasteImport({
+  testId,
+  add,
+  unsaved,
+}: {
+  testId: string;
+  add: AddManyFn;
+  // Single questions waiting in the list after a failed save; a paste goes in after them, so it waits.
+  unsaved: number;
+}) {
   const [text, setText] = useState("");
-  const [picks, setPicks] = useState<Record<number, number>>({});
-  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
-  const [pending, start] = useTransition();
+  // Taps in the preview, keyed by each question's own text (src/lib/paste-picks.ts).
+  const [picks, setPicks] = useState<Picks>({});
+  const [message, setMessage] = useState<{
+    tone: "ok" | "error";
+    text: string;
+  } | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const parsed = useMemo(() => parseQuestions(text), [text]);
-  const items = parsed.items.map((q, i) => {
-    const correct = picks[i] ?? q.correctIndex;
-    const errors = q.errors.filter((e) => !(picks[i] !== undefined && (e.startsWith("No answer") || e.startsWith("Answer "))));
-    return { ...q, correct, errors };
-  });
-  const ready = items.filter((q) => !q.errors.length && q.correct !== null);
-  const broken = items.length - ready.length;
+  // Typing stays smooth on a 300-question paste: the preview catches up between keystrokes.
+  const deferred = useDeferredValue(text);
+  const stale = deferred !== text;
+  const parsed = useMemo(() => parseQuestions(deferred), [deferred]);
 
-  const add = () => {
+  const items = parsed.items.map((q, i) => ({
+    q,
+    i,
+    ...withPick(q, picks[pickKey(q)]),
+  }));
+  const ready = items.filter((x) => !x.errors.length && x.correct !== null);
+  const leftOut = items.length - ready.length;
+  const tooMany = ready.length > IMPORT_MAX;
+
+  const pick = useCallback(
+    (key: string, j: number) => setPicks((p) => ({ ...p, [key]: j })),
+    [],
+  );
+
+  // Questions and skipped lines in the order they were pasted.
+  const rows = useMemo(
+    () =>
+      [
+        ...parsed.items.map((q, i) => ({ line: q.line, q, i })),
+        ...parsed.skipped.map((s) => ({ line: s.line, s })),
+      ].sort((a, b) => a.line - b.line),
+    [parsed],
+  );
+
+  const addAll = () => {
+    const sending = ready.map((x) => ({
+      prompt: x.q.prompt,
+      options: x.q.options,
+      correct: x.correct as number,
+      explanation: x.q.explanation,
+    }));
+    if (importBytes(sending) > IMPORT_BYTES_MAX) {
+      setMessage({
+        tone: "error",
+        text: "That's too much text for one go. Add it in two parts.",
+      });
+      return;
+    }
+    const before = { text, picks };
+    const readySet = new Set(ready.map((x) => x.i));
+    // What stays in the box: the questions that weren't ready, as typed, with any answer the trainer picked.
+    const leftovers = (keep: Set<number>) =>
+      leftoverText(parsed.items, keep, picks);
+    const notReady = new Set(
+      items.filter((x) => !readySet.has(x.i)).map((x) => x.i),
+    );
+
+    setBusy(true);
     setMessage(null);
-    start(async () => {
-      const result = await importQuestions(
-        testId,
-        ready.map((q) => ({ prompt: q.prompt, options: q.options, correct: q.correct, explanation: q.explanation })),
-      );
-      if (result.error) setMessage({ tone: "error", text: result.error });
-      else {
-        setMessage({ tone: "ok", text: result.ok ?? "Added." });
-        setText("");
-        setPicks({});
-      }
-    });
+    setText(leftovers(notReady));
+    setPicks({});
+    add(
+      ready.map((x) => ({
+        prompt: x.q.prompt.trim(),
+        options: x.q.options,
+        correct_index: x.correct,
+        explanation: x.q.explanation,
+      })),
+      () => importQuestions(testId, sending),
+    )
+      .then((result) => {
+        const added = result.added ?? 0;
+        if (result.error && !added) {
+          setText(before.text);
+          setPicks(before.picks);
+          setMessage({ tone: "error", text: result.error });
+        } else if (result.error) {
+          // Only the old import path stops part way, and it adds in order: the first `added` went in.
+          const unsaved = new Set([
+            ...notReady,
+            ...ready.slice(added).map((x) => x.i),
+          ]);
+          setText(leftovers(unsaved));
+          setMessage({ tone: "error", text: result.error });
+        } else {
+          setMessage({
+            tone: "ok",
+            text: `Added ${added} question${added === 1 ? "" : "s"}.${notReady.size ? ` ${notReady.size} left below to fix.` : ""}`,
+          });
+        }
+      })
+      .catch(() => {
+        setText(before.text);
+        setPicks(before.picks);
+        setMessage({
+          tone: "error",
+          text: "That didn't save. Check your connection and try again.",
+        });
+      })
+      .finally(() => setBusy(false));
   };
 
   return (
@@ -57,68 +154,170 @@ export function PasteImport({ testId }: { testId: string }) {
         <textarea
           id="paste-text"
           value={text}
+          readOnly={busy}
           onChange={(e) => {
             setText(e.target.value);
-            setPicks({});
             setMessage(null);
           }}
           rows={8}
           placeholder={EXAMPLE}
           spellCheck={false}
+          aria-describedby="paste-summary"
           className="step min-h-40 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-[16px] leading-relaxed outline-none placeholder:text-ink-2/70 focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
         />
       </div>
 
-      {items.length ? (
-        <>
-          <p className="caps text-[15px] text-ink-2" aria-live="polite">
-            {ready.length} ready{broken ? ` · ${broken} to fix` : ""}
-            {parsed.ignored ? ` · ${parsed.ignored} line${parsed.ignored === 1 ? "" : "s"} skipped` : ""}
-          </p>
-          <ol className="grid border-t border-rule">
-            {items.map((q, i) => (
-              <li key={i} className={`grid gap-2 border-b py-4 ${q.errors.length ? "border-danger" : "border-rule"}`}>
-                <p className="flex gap-3">
-                  <span className="num shrink-0 font-display text-[20px] font-semibold text-ink-2">{q.number}</span>
-                  <span className="whitespace-pre-line">{q.prompt || <em className="text-ink-2">No question text</em>}</span>
-                </p>
-                <ul className="grid gap-1 pl-8">
-                  {q.options.map((o, j) => {
-                    const right = q.correct === j;
-                    return (
-                      <li key={j}>
-                        <button
-                          type="button"
-                          onClick={() => setPicks((p) => ({ ...p, [i]: j }))}
-                          aria-pressed={right}
-                          className={`step flex w-full items-start gap-2 px-2 py-1 text-left text-[16px] ${
-                            right ? "bg-ok/15 font-medium text-ink" : "text-ink-2 hover:bg-band"
-                          }`}
-                        >
-                          <span className="num w-5 shrink-0 font-semibold">{LETTERS[j]}</span>
-                          <span className="min-w-0 flex-1">{o || <em>empty</em>}</span>
-                          {right ? <Check size={18} strokeWidth={2.25} className="mt-0.5 shrink-0 text-ok" aria-label="Right answer" /> : null}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {q.explanation ? <p className="pl-8 text-[15px] text-ink-2">{q.explanation}</p> : null}
-                {q.errors.length ? (
-                  <p className="pl-8 text-[15px] text-danger">{q.errors.join(" ")}</p>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        </>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <Button
+          type="button"
+          onClick={addAll}
+          disabled={busy || stale || !ready.length || tooMany || unsaved > 0}
+        >
+          {busy
+            ? "Adding"
+            : ready.length
+              ? `Add ${ready.length} question${ready.length === 1 ? "" : "s"}`
+              : "Add questions"}
+        </Button>
+        <p
+          id="paste-summary"
+          className={`caps num text-[15px] text-ink-2 ${stale ? "opacity-60" : ""}`}
+          aria-live="polite"
+        >
+          {items.length || parsed.skipped.length
+            ? [
+                `${ready.length} ready`,
+                leftOut ? `${leftOut} left out` : "",
+                parsed.skipped.length
+                  ? `${parsed.skipped.length} line${parsed.skipped.length === 1 ? "" : "s"} skipped`
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")
+            : ""}
+        </p>
+      </div>
+      {unsaved > 0 && ready.length ? (
+        <p className="text-[15px] text-ink-2">
+          Retry or remove the question{unsaved === 1 ? "" : "s"} that
+          didn&rsquo;t save first, so the order stays right.
+        </p>
+      ) : null}
+      {tooMany ? (
+        <FormMessage tone="error">{`${IMPORT_MAX} at a time. Paste the rest after.`}</FormMessage>
+      ) : null}
+      {message ? (
+        <FormMessage tone={message.tone}>{message.text}</FormMessage>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-4">
-        <Button type="button" onClick={add} disabled={pending || !ready.length}>
-          {pending ? "Adding" : ready.length ? `Add ${ready.length} question${ready.length === 1 ? "" : "s"}` : "Add questions"}
-        </Button>
-        {message ? <FormMessage tone={message.tone}>{message.text}</FormMessage> : null}
-      </div>
+      {rows.length ? (
+        <ol
+          aria-label="Preview"
+          className={`grid border-t border-rule ${stale ? "opacity-60" : ""}`}
+        >
+          {rows.map((r, n) =>
+            "q" in r ? (
+              <PreviewQuestion
+                key={`q${r.line}`}
+                q={r.q}
+                pickId={pickKey(r.q)}
+                pick={picks[pickKey(r.q)]}
+                onPick={pick}
+              />
+            ) : (
+              <PreviewSkipped key={`s${r.line}-${n}`} s={r.s} />
+            ),
+          )}
+        </ol>
+      ) : null}
     </div>
+  );
+}
+
+// One parsed question, compact. Memoized so tapping an answer re-renders only its own row.
+const PreviewQuestion = memo(function PreviewQuestion({
+  q,
+  pickId,
+  pick,
+  onPick,
+}: {
+  q: ParsedQuestion;
+  pickId: string;
+  pick: number | undefined;
+  onPick: (key: string, j: number) => void;
+}) {
+  const { correct, errors } = withPick(q, pick);
+  const broken = errors.length > 0 || correct === null;
+  return (
+    <li
+      className={`grid gap-2 border-b py-3 ${broken ? "border-danger" : "border-rule"}`}
+    >
+      <div className="flex gap-3">
+        <span className="num w-8 shrink-0 font-display text-[18px] leading-snug font-semibold text-ink-2">
+          {q.number}
+        </span>
+        <p className="min-w-0 flex-1 text-[16px] whitespace-pre-line [overflow-wrap:anywhere]">
+          {q.prompt || <em className="text-ink-2">No question text</em>}
+        </p>
+      </div>
+      <ul role="radiogroup" aria-label={`Right answer for question ${q.number}`} className="flex flex-wrap gap-1.5 pl-11">
+        {q.options.map((o, j) => {
+          const right = correct === j;
+          return (
+            <li key={j} role="none" className="max-w-full">
+              <button
+                type="button"
+                role="radio"
+                onClick={() => onPick(pickId, j)}
+                aria-checked={right}
+                aria-label={`${q.letters[j] ?? LETTERS[j]}: ${o || "empty"}`}
+                className={`step flex min-h-10 max-w-full items-center gap-1.5 border px-2 py-1 text-left text-[15px] ${
+                  right
+                    ? "border-ok bg-ok/15 font-medium text-ink"
+                    : "border-rule text-ink-2 hover:border-ink hover:text-ink"
+                }`}
+              >
+                <span className="num font-semibold">{q.letters[j] ?? LETTERS[j]}</span>
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  {o || <em>empty</em>}
+                </span>
+                {right ? (
+                  <Check
+                    size={16}
+                    strokeWidth={2.25}
+                    className="shrink-0 text-ok"
+                    aria-hidden
+                  />
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {q.explanation ? (
+        <p className="line-clamp-2 pl-11 text-[15px] text-ink-2">
+          {q.explanation}
+        </p>
+      ) : null}
+      {broken ? (
+        <p className="pl-11 text-[15px] text-danger">
+          Left out. {errors.join(" ")}
+        </p>
+      ) : null}
+    </li>
+  );
+});
+
+// A line that belongs to no question: struck through, with why.
+function PreviewSkipped({ s }: { s: SkippedLine }) {
+  return (
+    <li className="grid gap-0.5 border-b border-dashed border-rule-strong py-2 pl-11 text-[15px]">
+      <span className="text-ink-2 line-through decoration-rule-strong [overflow-wrap:anywhere]">
+        {s.text}
+      </span>
+      <span className="text-ink">
+        Skipped, line <span className="num">{s.line}</span>. {s.reason}.
+      </span>
+    </li>
   );
 }

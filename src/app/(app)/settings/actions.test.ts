@@ -7,7 +7,8 @@ const ME = "11111111-1111-4111-8111-111111111111";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => client }));
 vi.mock("next/cache", () => ({ refresh: () => refresh() }));
-vi.mock("@/lib/auth", () => ({ requireProfile: async () => ({ id: ME, role: "trainee" }) }));
+let role = "trainee";
+vi.mock("@/lib/auth", () => ({ requireProfile: async () => ({ id: ME, email: "me@example.com", role }) }));
 
 const { updateName, setAdminPasscode, changePassword } = await import("./actions");
 
@@ -19,6 +20,7 @@ const form = (fields: Record<string, string>) => {
 
 beforeEach(() => {
   client = makeClient({ data: null, error: null });
+  role = "trainee";
   refresh.mockClear();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -38,14 +40,22 @@ describe("updateName", () => {
 });
 
 describe("setAdminPasscode", () => {
+  it("refuses a non-executive before calling the database (direct POST)", async () => {
+    const state = await setAdminPasscode({}, form({ new_passcode: "long-enough-passcode" }));
+    expect(state.error).toMatch(/Only executives/);
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+
   it("needs 12 characters, counted like Postgres", async () => {
+    role = "executive";
     expect((await setAdminPasscode({}, form({ new_passcode: "short-one" }))).fieldErrors?.new_passcode).toMatch(/12/);
     // 12 emoji are 24 UTF-16 units but 12 characters: allowed.
     expect((await setAdminPasscode({}, form({ new_passcode: "🦷".repeat(12) }))).ok).toBeTruthy();
     expect((await setAdminPasscode({}, form({ new_passcode: "🦷".repeat(73) }))).fieldErrors?.new_passcode).toMatch(/72/);
   });
 
-  it("explains a non-executive refusal", async () => {
+  it("explains a database refusal", async () => {
+    role = "executive";
     client = makeClient({ data: null, error: { code: "42501", message: "Only executives" } });
     expect((await setAdminPasscode({}, form({ new_passcode: "long-enough-passcode" }))).error).toMatch(/Only executives/);
   });
@@ -53,14 +63,29 @@ describe("setAdminPasscode", () => {
 
 describe("changePassword", () => {
   it("stays on the page and confirms", async () => {
-    const state = await changePassword({}, form({ password: "new-password", confirm: "new-password" }));
+    const state = await changePassword({}, form({ current: "old-password", password: "new-password", confirm: "new-password" }));
     expect(state.ok).toBe("Password changed.");
+    expect(client.auth.signInWithPassword).toHaveBeenCalledWith({ email: "me@example.com", password: "old-password" });
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: "others" });
   });
 
   it("checks the two match", async () => {
-    const state = await changePassword({}, form({ password: "new-password", confirm: "new-passw0rd" }));
+    const state = await changePassword({}, form({ current: "old-password", password: "new-password", confirm: "new-passw0rd" }));
     expect(state.fieldErrors?.confirm).toBe("Passwords don't match.");
     expect(client.auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("needs the current password", async () => {
+    const state = await changePassword({}, form({ password: "new-password", confirm: "new-password" }));
+    expect(state.fieldErrors?.current).toBe("Enter your current password.");
+    expect(client.auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("refuses a wrong current password without changing anything", async () => {
+    client.auth.signInWithPassword.mockResolvedValueOnce({ error: { message: "Invalid login credentials" } });
+    const state = await changePassword({}, form({ current: "guess", password: "new-password", confirm: "new-password" }));
+    expect(state.fieldErrors?.current).toBe("That isn't your current password.");
+    expect(client.auth.updateUser).not.toHaveBeenCalled();
+    expect(client.auth.signOut).not.toHaveBeenCalled();
   });
 });

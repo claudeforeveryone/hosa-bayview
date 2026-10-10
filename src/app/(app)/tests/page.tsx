@@ -33,14 +33,18 @@ export default async function TestsPage() {
   if (error) throw new Error(`Tests lookup failed: ${error.message}`);
   const tests = (data ?? []) as unknown as Row[];
 
-  // Your best finished run per test, so the list shows what's left to do. RLS keeps it to your own attempts.
-  const { data: mine } = await supabase
-    .from("attempts")
-    .select("test_id, score, total")
-    .eq("user_id", profile.id)
-    .not("submitted_at", "is", null);
+  // Your best finished run per test, so the list shows what's left to do. attempt_list masks scores a test
+  // with hidden answers withholds; those runs don't count as a best.
+  const { data: mine } = await supabase.rpc("attempt_list", { p_user: profile.id });
   const best = new Map<string, { score: number; total: number }>();
-  for (const a of (mine ?? []) as { test_id: string; score: number | null; total: number }[]) {
+  for (const a of (mine ?? []) as {
+    test_id: string;
+    submitted_at: string | null;
+    score: number | null;
+    total: number;
+    score_hidden: boolean;
+  }[]) {
+    if (!a.submitted_at || a.score_hidden) continue;
     const prev = best.get(a.test_id);
     const score = a.score ?? 0;
     if (!prev || score / Math.max(a.total, 1) > prev.score / Math.max(prev.total, 1))

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_BYTES,
+  MAX_MATERIAL_BYTES,
   uploadType,
   buildStoragePath,
   cleanFileName,
   fileKind,
+  groupBySection,
+  isPlaceholder,
   formatBytes,
   formatDay,
   isStoragePath,
@@ -109,7 +111,7 @@ describe("formatBytes", () => {
     expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(1024)).toBe("1 KB");
     expect(formatBytes(2516582)).toBe("2.4 MB");
-    expect(formatBytes(MAX_BYTES)).toBe("25 MB");
+    expect(formatBytes(MAX_MATERIAL_BYTES)).toBe("50 MB");
     expect(formatBytes(3 * 1024 ** 3)).toBe("3 GB");
   });
 
@@ -124,11 +126,11 @@ describe("formatBytes", () => {
 });
 
 describe("tooBigMessage", () => {
-  it("allows up to 25 MB and refuses empty or larger files", () => {
+  it("allows up to 50 MB and refuses empty or larger files", () => {
     expect(tooBigMessage(1)).toBeNull();
-    expect(tooBigMessage(MAX_BYTES)).toBeNull();
-    expect(tooBigMessage(MAX_BYTES + 1)).toBe(
-      "That file is over 25 MB. Pick a smaller one.",
+    expect(tooBigMessage(MAX_MATERIAL_BYTES)).toBeNull();
+    expect(tooBigMessage(MAX_MATERIAL_BYTES + 1)).toBe(
+      "Files can be up to 50 MB. Add big files as a link instead.",
     );
     expect(tooBigMessage(0)).toBe("That file is empty.");
   });
@@ -165,6 +167,7 @@ describe("materialMeta", () => {
   const base: MaterialRow = {
     id: ID,
     classroom_id: null,
+    section: null,
     title: "Notes",
     note: "",
     url: null,
@@ -199,5 +202,53 @@ describe("uploadType", () => {
     expect(uploadType("text/html")).toBe("application/octet-stream");
     expect(uploadType("image/svg+xml")).toBe("application/octet-stream");
     expect(uploadType("")).toBe("application/octet-stream");
+  });
+});
+
+describe("MAX_MATERIAL_BYTES", () => {
+  it("is 50 MB, the bucket limit", () => {
+    expect(MAX_MATERIAL_BYTES).toBe(52428800);
+    expect(tooBigMessage(49 * 1024 * 1024)).toBeNull();
+    expect(tooBigMessage(51 * 1024 * 1024)).not.toBeNull();
+  });
+});
+
+describe("groupBySection", () => {
+  const item = (id: string, section: string | null) => ({ id, section });
+
+  it("puts the unsectioned group first, named sections in natural order, Textbooks and Videos last", () => {
+    const groups = groupBySection([
+      item("a", "Videos"),
+      item("b", "Week 10"),
+      item("c", null),
+      item("d", "Textbooks"),
+      item("e", "Week 2"),
+      item("f", "  "),
+      item("g", "Guides"),
+    ]);
+    expect(groups.map((g) => g.section)).toEqual([
+      null,
+      "Guides",
+      "Week 2",
+      "Week 10",
+      "Textbooks",
+      "Videos",
+    ]);
+    expect(groups[0].items.map((i) => i.id)).toEqual(["c", "f"]);
+  });
+
+  it("keeps the incoming order inside a section and skips empty groups", () => {
+    const groups = groupBySection([item("1", "A"), item("2", "A"), item("3", "A")]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].items.map((i) => i.id)).toEqual(["1", "2", "3"]);
+    expect(groupBySection([])).toEqual([]);
+  });
+});
+
+describe("isPlaceholder", () => {
+  it("is true only when there is neither a file nor a link", () => {
+    expect(isPlaceholder({ path: null, url: null })).toBe(true);
+    expect(isPlaceholder({ path: "x/y", url: null })).toBe(false);
+    expect(isPlaceholder({ path: null, url: "https://a.b" })).toBe(false);
   });
 });

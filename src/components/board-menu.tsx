@@ -38,7 +38,7 @@ export function BoardMenu({
             size={16}
             strokeWidth={2}
             aria-hidden
-            className="text-ink-2 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-180"
+            className="text-ink-2 group-open:rotate-180 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out"
           />
         </summary>
         <ul
