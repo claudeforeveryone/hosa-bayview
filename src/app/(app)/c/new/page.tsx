@@ -3,7 +3,7 @@ import { ClassroomForm } from "@/components/classroom-form";
 import { requireRole } from "@/lib/auth";
 import { createClassroom } from "../actions";
 
-export const metadata: Metadata = { title: "New classroom" };
+export const metadata: Metadata = { title: "New event" };
 
 export default async function NewClassroomPage() {
   await requireRole("trainer", "executive");
@@ -13,7 +13,7 @@ export default async function NewClassroomPage() {
       <ClassroomForm
         action={createClassroom}
         initial={{ name: "", event: "", description: "", category: "mc" }}
-        submitLabel="Make classroom"
+        submitLabel="Make event"
         pendingLabel="Making it"
       />
     </div>

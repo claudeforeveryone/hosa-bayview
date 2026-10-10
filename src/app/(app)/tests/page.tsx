@@ -66,7 +66,7 @@ export default async function TestsPage() {
       href="/c/new"
       className="caps step inline-flex h-11 shrink-0 items-center border border-ink px-4 text-[16px] hover:bg-band"
     >
-      Make a classroom first
+      Make an event first
     </Link>
   );
 
@@ -120,11 +120,11 @@ export default async function TestsPage() {
           title="No tests yet"
           action={
             <Link href="/join" className="caps step text-[17px] underline underline-offset-4">
-              Join a classroom
+              Join an event
             </Link>
           }
         >
-          Tests show up here once you&apos;re in a classroom that has some.
+          Tests show up here once you&apos;re in an event that has some.
         </EmptyState>
       )}
     </div>

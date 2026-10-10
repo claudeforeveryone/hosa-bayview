@@ -73,7 +73,7 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
           id={roomsHeading}
           className="caps mx-5 border-b border-on-field-2/40 pb-2 text-[14px] text-on-field-2 lg:mx-6"
         >
-          Classrooms
+          Your events
         </h2>
         <ul className="mt-1">
           {rooms.map((room) => {

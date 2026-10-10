@@ -81,7 +81,7 @@ export default async function MembersTab({ params }: PageProps<"/c/[id]/members"
       {room.is_member ? (
         <ConfirmAction
           action={leaveClassroom.bind(null, room.id)}
-          label="Leave classroom"
+          label="Leave event"
           confirmLabel="Leave"
           pendingLabel="Leaving"
           question="Leave? You'll need the code to rejoin."

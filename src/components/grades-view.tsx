@@ -13,7 +13,7 @@ const slug = (s: string) =>
   s
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "") || "classroom";
+    .replace(/^-|-$/g, "") || "event";
 
 function Score({ cell }: { cell: GradeCell | null | undefined }) {
   if (!cell) return <span className="text-ink-2">No attempt</span>;

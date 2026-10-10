@@ -93,9 +93,9 @@ describe("joinClassroom", () => {
     expect(state.values?.code).toBe("K7PQ2M");
   });
 
-  it("says when no classroom matches", async () => {
+  it("says when no event matches", async () => {
     const state = await actions.joinClassroom({}, form({ code: "K7PQ2M" }));
-    expect(state.fieldErrors?.code).toMatch(/No classroom/);
+    expect(state.fieldErrors?.code).toMatch(/No event/);
     expect(state.values?.code).toBe("K7PQ2M");
   });
 

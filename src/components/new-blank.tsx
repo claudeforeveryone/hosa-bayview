@@ -32,7 +32,7 @@ export function NewBlank({
         {many ? (
           <div className="grid min-w-0 gap-1.5">
             <label htmlFor={`${uid}-room`} className="text-[15px] font-medium">
-              Classroom
+              Event
             </label>
             <select
               id={`${uid}-room`}

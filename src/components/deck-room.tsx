@@ -22,7 +22,7 @@ export function DeckRoom({
   return (
     <div className="grid justify-items-start gap-2">
       <label htmlFor="deck-room" className="text-[16px] text-ink-2">
-        Classroom
+        Event
       </label>
       <select
         id="deck-room"

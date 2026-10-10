@@ -71,7 +71,7 @@ function TestTile({
       <Link
         href="/c/new"
         className={tile}
-        aria-label="New test: make a classroom first"
+        aria-label="New test: make an event first"
       >
         <Face text="Test" />
       </Link>
@@ -113,7 +113,7 @@ function TestTile({
         className="board-menu-panel absolute top-full left-0 z-20 mt-1 grid max-h-72 w-[min(18rem,calc(100vw-2rem))] overflow-y-auto border border-ink bg-ground py-1.5"
       >
         <p className="caps px-4 pt-1 pb-2 text-[13px] text-ink-2">
-          Which classroom
+          Which event
         </p>
         {rooms.map((r) => (
           <button
@@ -188,7 +188,7 @@ export function CreateBar({
           </button>
         </form>
         <Link href="/c/new" className={tile}>
-          <Face text="Class" />
+          <Face text="Event" />
         </Link>
       </div>
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}

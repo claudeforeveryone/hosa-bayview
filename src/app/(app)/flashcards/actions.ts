@@ -63,7 +63,7 @@ export async function createDeck(
       ? values.classroom_id
       : null;
   if (values.classroom_id && !classroom)
-    return { error: "That classroom doesn't exist.", values };
+    return { error: "That event doesn't exist.", values };
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -78,7 +78,7 @@ export async function createDeck(
     .single();
   if (error) {
     if (error.code === "42501")
-      return { error: "You can't share a deck to that classroom.", values };
+      return { error: "You can't share a deck to that event.", values };
     return { ...failed("create", error.message), values };
   }
   redirect(`/flashcards/${data.id}`);
@@ -143,15 +143,15 @@ export async function setShared(
     .select("id");
   if (error) {
     if (error.code === "23514")
-      return { error: "Pick a classroom to share this deck to first." };
+      return { error: "Pick an event to share this deck to first." };
     if (error.code === "42501")
-      return { error: "You can't share this deck to that classroom." };
+      return { error: "You can't share this deck to that event." };
     return failed("share", error.message);
   }
   if (!data?.length) return { error: "You can't change sharing on this deck." };
   refresh();
   return {
-    ok: shared ? "Shared with the classroom." : "Only you can see it now.",
+    ok: shared ? "Shared with the event." : "Only you can see it now.",
   };
 }
 
@@ -219,7 +219,7 @@ export async function addCards(
     if (error.code === "22023") return { error: `${error.message}.` };
     if (error.code === "42501")
       return {
-        error: "Only the owner or the classroom trainer can add cards here.",
+        error: "Only the owner or the event's trainer can add cards here.",
       };
     return failed("add cards", error.message);
   }
@@ -410,7 +410,7 @@ export async function moveDeck(
   if (!id.safeParse(deckId).success)
     return { error: "That deck doesn't exist." };
   if (classroomId !== null && !id.safeParse(classroomId).success)
-    return { error: "Pick one of your classrooms." };
+    return { error: "Pick one of your events." };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("decks")
@@ -419,14 +419,14 @@ export async function moveDeck(
     .select("id");
   if (error) {
     if (error.code === "42501")
-      return { error: "You can't move this deck to that classroom." };
+      return { error: "You can't move this deck to that event." };
     return failed("move", error.message);
   }
   if (!data?.length) return { error: "You can't move this deck." };
   refresh();
   return {
     ok: classroomId
-      ? "Moved. Share it when you want the class to see it."
-      : "Taken out of the classroom. Only you can see it.",
+      ? "Moved. Share it when you want the event to see it."
+      : "Taken out of the event. Only you can see it.",
   };
 }

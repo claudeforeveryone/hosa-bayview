@@ -125,7 +125,7 @@ export async function createBlankTest(
     return { error: "Only trainers and executives can add tests." };
   const classroomId = String(form.get("classroom_id") ?? "");
   if (!id.safeParse(classroomId).success)
-    return { error: "That classroom doesn't exist." };
+    return { error: "That event doesn't exist." };
 
   const supabase = await createClient();
   const { data, error } = await supabase

@@ -19,7 +19,7 @@ function failed(where: string, message: string): FormState {
 // Replaces the whole breakdown at once. Fields repeat per row: "topic" and "percent".
 export async function saveTopics(classroomId: string, _: FormState, form: FormData): Promise<FormState> {
   await requireProfile();
-  if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist." };
+  if (!id.safeParse(classroomId).success) return { error: "That event doesn't exist." };
   const topics = form.getAll("topic").map((v) => String(v ?? ""));
   const percents = form.getAll("percent").map((v) => String(v ?? ""));
   const parsed = parseTopics(topics.map((topic, i) => ({ topic, percent: percents[i] ?? "" })));
