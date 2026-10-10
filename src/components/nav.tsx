@@ -107,8 +107,8 @@ const ITEMS: Item[] = [
   },
   {
     href: "/library",
-    label: "Library",
-    short: "Library",
+    label: "Resources",
+    short: "Resources",
     Icon: LibraryBig,
     match: (p) => p.startsWith("/library"),
     more: true,

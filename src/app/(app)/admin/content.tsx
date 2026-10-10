@@ -173,6 +173,7 @@ type Material = {
   id: string;
   title: string;
   url: string | null;
+  note: string;
   file_name: string | null;
   room: { name: string } | null;
 };
@@ -202,7 +203,7 @@ export async function ContentLists() {
     supabase
       .from("materials")
       .select(
-        "id, title, url, file_name, room:classrooms!materials_classroom_id_fkey(name)",
+        "id, title, url, note, file_name, room:classrooms!materials_classroom_id_fkey(name)",
       )
       .order("created_at", { ascending: false }),
   ]);
@@ -286,7 +287,7 @@ export async function ContentLists() {
               key={m.id}
               href={null}
               title={m.title}
-              meta={[m.room?.name ?? "Library", m.file_name ?? m.url]
+              meta={[m.room?.name ?? "Resources", m.file_name ?? m.url ?? (m.note || "Placeholder")]
                 .filter(Boolean)
                 .join(" · ")}
               del={del(deleteMaterial.bind(null, m.id), m.title)}

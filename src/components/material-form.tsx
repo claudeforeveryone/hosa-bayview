@@ -12,7 +12,7 @@ import type { FormState } from "@/app/(app)/c/actions";
 import { prepareUpload } from "@/app/(app)/library/actions";
 import { Button, Field, FormMessage, TextArea } from "@/components/form";
 import { createClient } from "@/lib/supabase/client";
-import { formatBytes, tooBigMessage, titleFromFile, uploadType } from "@/lib/materials";
+import { SECTION_MAX, formatBytes, tooBigMessage, titleFromFile, uploadType } from "@/lib/materials";
 
 type Mode = "file" | "link";
 type Action = (state: FormState, form: FormData) => Promise<FormState>;
@@ -23,10 +23,12 @@ export function MaterialForm({
   action,
   classroomId,
   modes = ["file", "link"],
+  sections = [],
 }: {
   action: Action;
   classroomId: string | null;
   modes?: Mode[];
+  sections?: string[];
 }) {
   const uid = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -192,7 +194,7 @@ export function MaterialForm({
                 <span className="num">{formatBytes(file.size)}</span>
               </>
             ) : (
-              "Any type, up to 25 MB."
+              "Any type, up to 50 MB."
             )}
           </p>
         </div>
@@ -225,6 +227,23 @@ export function MaterialForm({
         />
       ) : null}
 
+      <Field
+        id={`${uid}-section`}
+        label="Section"
+        name="section"
+        maxLength={SECTION_MAX}
+        list={`${uid}-sections`}
+        autoComplete="off"
+        disabled={locked}
+        error={result.fieldErrors?.section}
+        hint="Optional. Groups files together, like Past tests or Textbooks."
+      />
+      <datalist id={`${uid}-sections`}>
+        {sections.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
+
       <TextArea
         id={`${uid}-note`}
         label="Note"
@@ -249,9 +268,11 @@ export function MaterialForm({
 export function MaterialEditForm({
   action,
   initial,
+  sections = [],
 }: {
   action: Action;
-  initial: { title: string; note: string };
+  initial: { title: string; note: string; section: string };
+  sections?: string[];
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     action,
@@ -273,6 +294,22 @@ export function MaterialEditForm({
         defaultValue={v.title}
         error={state.fieldErrors?.title}
       />
+      <Field
+        id={`${uid}-section`}
+        label="Section"
+        name="section"
+        maxLength={SECTION_MAX}
+        list={`${uid}-sections`}
+        autoComplete="off"
+        defaultValue={v.section}
+        error={state.fieldErrors?.section}
+        hint="Optional."
+      />
+      <datalist id={`${uid}-sections`}>
+        {sections.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
       <TextArea
         id={`${uid}-note`}
         label="Note"

@@ -13,7 +13,7 @@ export const getMaterials = cache(async (classroomId: string | null): Promise<Ma
   const supabase = await createClient();
   const base = supabase
     .from("materials")
-    .select("id, classroom_id, title, note, url, path, file_name, size_bytes, mime, created_at");
+    .select("id, classroom_id, title, note, section, url, path, file_name, size_bytes, mime, created_at");
   const { data, error } = await (classroomId === null
     ? base.is("classroom_id", null)
     : base.eq("classroom_id", classroomId)
@@ -33,6 +33,8 @@ export const getMaterials = cache(async (classroomId: string | null): Promise<Ma
   }
 
   return rows.map((r) => {
+    // Placeholders ("Link coming soon") have nothing to open.
+    if (!r.url && !r.path) return { ...r, href: null };
     if (r.url) return { ...r, href: r.url };
     const url = r.path ? signed.get(r.path) : undefined;
     // The download param is added after signing, the same way the client library does it.

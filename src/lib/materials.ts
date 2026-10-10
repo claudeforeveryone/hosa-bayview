@@ -1,7 +1,7 @@
 // Pure helpers for the file and link library: names, storage paths, sizes, labels. Safe on client and server.
 import { hostOf } from "@/lib/resources";
 
-export const MAX_BYTES = 26214400; // 25 MB, the bucket limit too.
+export const MAX_MATERIAL_BYTES = 52428800; // 50 MB, the bucket limit too.
 export const MAX_PATH_NAME = 100;
 
 export type MaterialRow = {
@@ -9,6 +9,7 @@ export type MaterialRow = {
   classroom_id: string | null;
   title: string;
   note: string;
+  section: string | null;
   url: string | null;
   path: string | null;
   file_name: string | null;
@@ -100,10 +101,55 @@ export function titleFromFile(fileName: string): string {
   return (stem || name).slice(0, 120);
 }
 
+export const TOO_BIG = "Files can be up to 50 MB. Add big files as a link instead.";
+
+// A row with neither a file nor a link: a titled slot that says what is coming ("Link coming soon").
+export function isPlaceholder(row: { path: string | null; url: string | null }): boolean {
+  return !row.path && !row.url;
+}
+
+export const SECTION_MAX = 80;
+const LAST_SECTIONS = ["Textbooks", "Videos"];
+
+// Groups rows by section for display. Rows without a section come first (shown as "General"), named sections
+// follow in natural order (Week 2 before Week 10), Textbooks then Videos last. Row order inside a group is kept.
+export function groupBySection<T extends { section: string | null }>(
+  items: T[],
+): { section: string | null; items: T[] }[] {
+  const groups = new Map<string | null, T[]>();
+  for (const item of items) {
+    const key = item.section?.trim() || null;
+    const list = groups.get(key);
+    if (list) list.push(item);
+    else groups.set(key, [item]);
+  }
+  const rank = (s: string) => {
+    const i = LAST_SECTIONS.indexOf(s);
+    return i === -1 ? -1 : i;
+  };
+  const named = [...groups.keys()]
+    .filter((k): k is string => k !== null)
+    .sort((a, b) => {
+      const ra = rank(a);
+      const rb = rank(b);
+      if (ra !== rb) return (ra === -1 ? -1 : ra + 1) - (rb === -1 ? -1 : rb + 1);
+      return a.localeCompare(b, "en", { numeric: true, sensitivity: "base" });
+    });
+  const order: (string | null)[] = groups.has(null) ? [null, ...named] : named;
+  return order.map((section) => ({ section, items: groups.get(section)! }));
+}
+
+// Distinct section names in use, for the form's suggestions.
+export function sectionNames(rows: { section: string | null }[]): string[] {
+  return [...new Set(rows.flatMap((r) => (r.section?.trim() ? [r.section.trim()] : [])))].sort((a, b) =>
+    a.localeCompare(b, "en", { numeric: true, sensitivity: "base" }),
+  );
+}
+
 // Client and server both check this before uploading.
 export function tooBigMessage(size: number): string | null {
   if (size <= 0) return "That file is empty.";
-  if (size > MAX_BYTES) return "That file is over 25 MB. Pick a smaller one.";
+  if (size > MAX_MATERIAL_BYTES) return TOO_BIG;
   return null;
 }
 
