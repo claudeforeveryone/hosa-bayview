@@ -110,7 +110,7 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
     [],
   );
 
-  // Realtime: one private channel per battle.
+  // Realtime: one private channel per battle. Broadcast pokes only (no table changes), then an RPC read.
   const [connected, setConnected] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -123,16 +123,6 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
       channel = supabase
         .channel(`battle:${id}`, { config: { private: true } })
         .on("broadcast", { event: "sync" }, schedule)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "battle_rounds",
-            filter: `battle_id=eq.${id}`,
-          },
-          schedule,
-        )
         .subscribe((status) => {
           // Joined or rejoined after a drop: catch up on anything missed.
           setConnected(status === "SUBSCRIBED");

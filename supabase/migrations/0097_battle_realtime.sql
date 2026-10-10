@@ -1,11 +1,8 @@
 -- Task 18: realtime for battles. One private channel per battle, topic 'battle:<id>'.
--- 1. battle_rounds is on the supabase_realtime publication; clients hear round changes as postgres_changes.
---    RLS applies (only started rounds, only room viewers) and so do column grants: question_id is not granted
---    (0095), so it never appears in a payload.
+-- 1. No battle table is on the supabase_realtime publication: column grants may not filter postgres_changes
+--    payloads, and battle_rounds holds question_id. Clients rely on broadcast pokes and RPC reads only.
 -- 2. Each battle RPC sends one bare 'sync' broadcast (private.battle_poke, 0096); clients re-read battle_state.
 -- 3. Only room viewers (never banned) may join the channel; nobody may send on it from a client.
-
-alter publication supabase_realtime add table public.battle_rounds;
 
 -- Channel access: the topic names a battle the caller can see.
 create function private.battle_topic_ok(topic text)

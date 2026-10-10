@@ -291,11 +291,18 @@ begin
 end
 $$;
 
--- The screen's heartbeat, every few seconds while it's open.
+-- The screen's heartbeat, every few seconds while it's open. A player still looking at a live battle keeps it
+-- live, so a lobby waiting on friends never reads as abandoned; a battle already stale stays ended.
 create function public.battle_ping(bid uuid)
-returns void language sql volatile security definer set search_path = '' as $$
+returns void language plpgsql volatile security definer set search_path = '' as $$
+begin
   update public.battle_players set last_seen_at = now()
-  where battle_id = bid and user_id = (select auth.uid()) and left_at is null and private.can_see_battle(bid)
+  where battle_id = bid and user_id = (select auth.uid()) and left_at is null and private.can_see_battle(bid);
+  if found then
+    update public.battles b set touched_at = now()
+    where b.id = bid and b.status <> 'done' and not private.battle_stale(b);
+  end if;
+end
 $$;
 
 -- Switch team in the lobby.

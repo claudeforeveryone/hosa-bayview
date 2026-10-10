@@ -116,12 +116,13 @@ select pg_temp.r(1), pg_temp.u(i) from generate_series(2, 6) i;
 insert into public.classroom_members (classroom_id, user_id) values (pg_temp.r(2), pg_temp.u(2));
 
 -- t1 published, timed (10 min) with practice on and no cap (6 questions, key A). t2 a draft. t3 published with answers hidden. t4 a capped timed test.
--- t5 in the showcase room.
+-- t5 in the showcase room. t6 published, answers shown, uncapped, but no key on any question.
 insert into public.tests (id, classroom_id, title, is_published, created_by, time_limit_minutes) values
   (pg_temp.t(1), pg_temp.r(1), 'Battle set', true, pg_temp.u(1), 10);
 insert into public.tests (id, classroom_id, title, is_published, created_by) values
   (pg_temp.t(2), pg_temp.r(1), 'Draft set', false, pg_temp.u(1)),
-  (pg_temp.t(5), pg_temp.r(2), 'Showcase set', true, pg_temp.u(1));
+  (pg_temp.t(5), pg_temp.r(2), 'Showcase set', true, pg_temp.u(1)),
+  (pg_temp.t(6), pg_temp.r(1), 'Keyless set', true, pg_temp.u(1));
 insert into public.tests (id, classroom_id, title, is_published, created_by, show_answers) values
   (pg_temp.t(3), pg_temp.r(1), 'Hidden set', true, pg_temp.u(1), false);
 insert into public.tests (id, classroom_id, title, is_published, created_by, time_limit_minutes, attempts_allowed) values
@@ -132,7 +133,8 @@ insert into public.questions (id, test_id, position, prompt, options) values
   (pg_temp.q(21), pg_temp.t(2), 1, 'Draft Q', array['a', 'b']),
   (pg_temp.q(31), pg_temp.t(3), 1, 'Hidden Q', array['a', 'b']),
   (pg_temp.q(41), pg_temp.t(4), 1, 'Capped Q', array['a', 'b']),
-  (pg_temp.q(51), pg_temp.t(5), 1, 'Showcase Q', array['a', 'b']);
+  (pg_temp.q(51), pg_temp.t(5), 1, 'Showcase Q', array['a', 'b']),
+  (pg_temp.q(61), pg_temp.t(6), 1, 'Keyless Q', array['a', 'b']);
 insert into public.question_keys (question_id, correct_index)
 select q.id, 0 from public.questions q where q.test_id in (pg_temp.t(1), pg_temp.t(2), pg_temp.t(3), pg_temp.t(4), pg_temp.t(5));
 
@@ -154,9 +156,9 @@ select pg_temp.ok('schema: battle_rounds has no key column, and question_id is n
                      and column_name in ('correct_index', 'explanation', 'is_correct'))
      and not has_column_privilege('authenticated', 'public.battle_rounds', 'question_id', 'SELECT')
      and has_column_privilege('authenticated', 'public.battle_rounds', 'ends_at', 'SELECT')$q$);
-select pg_temp.ok('realtime: battle_rounds is on the supabase_realtime publication', $q$
-  select exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime'
-                 and schemaname = 'public' and tablename = 'battle_rounds')$q$);
+select pg_temp.ok('realtime: no battle table is on the supabase_realtime publication (no WAL payloads)', $q$
+  select not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime'
+                     and schemaname = 'public' and tablename like 'battle%')$q$);
 select pg_temp.ok('realtime: channel read policy exists, no client send policy', $q$
   select exists (select 1 from pg_policies where schemaname = 'realtime' and tablename = 'messages'
                  and policyname = 'battle channel: room viewers receive' and cmd = 'SELECT')
@@ -180,10 +182,12 @@ select pg_temp.expect('no battles in a showcase event', $q$select public.create_
 select pg_temp.expect('a draft test is not a source', $q$select public.create_battle(pg_temp.r(1), '1v1', pg_temp.t(2), 5)$q$, '22023');
 select pg_temp.expect('a test with answers hidden is not a source', $q$select public.create_battle(pg_temp.r(1), '1v1', pg_temp.t(3), 5)$q$, '22023');
 select pg_temp.expect('a capped timed test is not a source', $q$select public.create_battle(pg_temp.r(1), '1v1', pg_temp.t(4), 5)$q$, '22023');
+select pg_temp.expect('a test with no keyed questions is not a source', $q$select public.create_battle(pg_temp.r(1), '1v1', pg_temp.t(6), 5)$q$, '22023');
 select pg_temp.expect('question count below 5 refused', $q$select public.create_battle(pg_temp.r(1), '1v1', null, 4)$q$, '22023');
 select pg_temp.expect('unknown format refused', $q$select public.create_battle(pg_temp.r(1), '4v4', null, 5)$q$, '22023');
-select pg_temp.ok('sources: published tests listed; only the answers-shown, uncapped one is playable', $q$
-  select count(*) = 3 and count(*) filter (where playable) = 1
+select pg_temp.ok('sources: published tests listed; only the answers-shown, uncapped, keyed one is playable', $q$
+  select count(*) = 4 and count(*) filter (where playable) = 1
+     and bool_and(test_id <> pg_temp.t(6) or (questions = 0 and not playable))
      and bool_and(playable = (test_id = pg_temp.t(1))) and bool_and(test_id <> pg_temp.t(2))
      and bool_and(test_id <> pg_temp.t(1) or questions = 6)
   from public.battle_sources(pg_temp.r(1))$q$);
@@ -498,6 +502,24 @@ select pg_temp.as_user(pg_temp.u(5));
 select pg_temp.step('the next create sweeps it', $q$select pg_temp.save('b5', public.create_battle(pg_temp.r(1), '1v1', null, 5))$q$);
 select pg_temp.as_admin();
 select pg_temp.ok('swept: marked done', $q$select status = 'done' from public.battles where id = pg_temp.get('b4')$q$);
+
+-- Pings keep a live lobby live; they never revive a stale one ---------------------------------------------------
+select pg_temp.step('b5 last touched 29 minutes ago', $q$
+  update public.battles set touched_at = now() - interval '29 minutes' where id = pg_temp.get('b5')$q$);
+select pg_temp.as_user(pg_temp.u(5));
+select pg_temp.step('host u5 is still on the lobby screen and pings', $q$select public.battle_ping(pg_temp.get('b5'))$q$);
+select pg_temp.as_admin();
+select pg_temp.ok('ping: the lobby was touched just now, so it will not flip to ended', $q$
+  select touched_at = now() and status = 'lobby' from public.battles where id = pg_temp.get('b5')$q$);
+select pg_temp.as_user(pg_temp.u(7));
+select pg_temp.step('a non-member pings', $q$select public.battle_ping(pg_temp.get('b5'))$q$);
+select pg_temp.as_admin();
+select pg_temp.step('b5 goes stale (31 minutes)', $q$
+  update public.battles set touched_at = now() - interval '31 minutes' where id = pg_temp.get('b5')$q$);
+select pg_temp.as_user(pg_temp.u(5));
+select pg_temp.step('u5 pings the stale lobby', $q$select public.battle_ping(pg_temp.get('b5'))$q$);
+select pg_temp.ok('ping: a stale lobby stays ended', $q$
+  select (s ->> 'stale')::boolean from public.battle_state(pg_temp.get('b5')) s$q$);
 
 -- Realtime channel ----------------------------------------------------------------------------------------------
 -- realtime.send writes to realtime.messages, a table partitioned by day that the Realtime service creates once
