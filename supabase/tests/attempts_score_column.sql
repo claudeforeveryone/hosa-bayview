@@ -1,4 +1,4 @@
--- Migration 0073 (apply after the official-launch deploy): attempts.score is not readable off the table,
+-- Deferred migration supabase/deferred/0073 (apply after the official-launch deploy): attempts.score is not readable off the table,
 -- only through attempt_list, which masks hidden-answer probe scores. Rolled back; raises on failure.
 begin;
 

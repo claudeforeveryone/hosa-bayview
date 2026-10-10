@@ -5,8 +5,10 @@
 --   E  executive               TO trainer who owns room 1     TN trainer in room 1 who doesn't own it (owns room 2)
 --   M  member of room 1        N  signed-in non-member        B  banned member of room 1
 --   BT banned trainer (owns room 3)                           A  anon (no session)
--- Y = the read returns the row / the write succeeds and touches a row. N = denied, empty or zero rows.
--- Writes run in a subtransaction that is always rolled back, so one cell never changes the next.
+-- Y = the read returns the row / the write succeeds and touches a row / the call runs. N = empty or zero
+-- rows, or a permission error (42501, which RLS violations use too). Any other error fails the cell, so a
+-- typo or a NOT NULL slip can't pass as "denied".
+-- Every cell runs in a subtransaction that is always rolled back, so one cell never changes the next.
 begin;
 
 create function pg_temp.u(n integer) returns uuid language sql immutable as $$
@@ -31,6 +33,7 @@ insert into public.classrooms (id, name, owner_id) values
   (pg_temp.r(1), 'PM Room', pg_temp.u(2)),
   (pg_temp.r(2), 'PM Other Room', pg_temp.u(3)),
   (pg_temp.r(3), 'PM Banned Room', pg_temp.u(7));
+insert into public.classrooms (id, name, owner_id, kind) values (pg_temp.r(4), 'PM Competition', pg_temp.u(2), 'competition');
 insert into public.classroom_members (classroom_id, user_id) values
   (pg_temp.r(1), pg_temp.u(3)), (pg_temp.r(1), pg_temp.u(4)), (pg_temp.r(1), pg_temp.u(6));
 
@@ -166,7 +169,17 @@ insert into pm_checks (label, kind, stmt, expected) values
 ('notifications: direct insert', 'write', 'insert into public.notifications (user_id, kind, title, link) values (''{me}'', ''role'', ''x'', ''/'')', 'NNNNNNNN'),
 -- Board RPCs read through can_read_board / can_view_classroom
 ('rpc: classroom_roster(room 1)', 'read', 'select 1 from public.classroom_roster(''{r1}'')', 'YYYYNNNN'),
-('rpc: classroom_tests(room 1)', 'read', 'select 1 from public.classroom_tests(''{r1}'')', 'YYYYNNNN');
+('rpc: classroom_tests(room 1)', 'read', 'select 1 from public.classroom_tests(''{r1}'')', 'YYYYNNNN'),
+-- Chapter-wide directory and board RPCs: every signed-in member, never a banned one or anon.
+('rpc: member_directory()', 'read', 'select 1 from public.member_directory() where user_id = ''{u4}''', 'YYYYYNNN'),
+('rpc: member_details()', 'read', 'select 1 from public.member_details() where user_id = ''{u4}''', 'YYYYYNNN'),
+('rpc: competitions()', 'read', 'select 1 from public.competitions() where id = ''{r4}''', 'YYYYYNNN'),
+('rpc: honor_roll()', 'call', 'select * from public.honor_roll()', 'YYYYYNNN'),
+('rpc: member_stats(member)', 'call', 'select * from public.member_stats(''{u4}'')', 'YYYYYNNN'),
+('rpc: leaderboard(all, chapter)', 'call', 'select * from public.leaderboard(''all'', null)', 'YYYYYNNN'),
+('rpc: leaderboard(week, room 1)', 'call', 'select * from public.leaderboard(''week'', ''{r1}'')', 'YYYYNNNN'),
+('rpc: members_online(chapter)', 'call', 'select * from public.members_online(null)', 'YYYYYNNN'),
+('rpc: members_online(room 1)', 'call', 'select * from public.members_online(''{r1}'')', 'YYYYNNNN');
 
 -- Runner -----------------------------------------------------------------------------------------
 create function pg_temp.pm_run() returns text[] language plpgsql as $$
@@ -179,6 +192,8 @@ declare
   sql text;
   got boolean;
   n bigint;
+  st text;
+  msg text;
   fails text[] := '{}';
 begin
   select array_agg(x order by x.n) into checks from pm_checks x;
@@ -205,11 +220,16 @@ begin
       sql := replace(replace(replace(replace(sql,
         '{r50}', pg_temp.r(50)::text), '{r51}', pg_temp.r(51)::text), '{r60}', pg_temp.r(60)::text),
         '{r61}', pg_temp.r(61)::text);
+      sql := replace(sql, '{r4}', pg_temp.r(4)::text);
+      st := null;
       begin
         if c.kind = 'read' then
           execute 'select exists (' || sql || ')' into got;
           -- Reads never change anything, but roll back anyway so every cell starts clean.
           raise exception using errcode = 'P0099', message = case when got then '1' else '0' end;
+        elsif c.kind = 'call' then
+          execute 'select count(*) from (' || sql || ') x' into n;
+          raise exception using errcode = 'P0099', message = '1';
         else
           execute sql;
           get diagnostics n = row_count;
@@ -217,9 +237,12 @@ begin
         end if;
       exception
         when sqlstate 'P0099' then got := sqlerrm::bigint > 0;
-        when others then got := false;
+        when others then got := false; st := sqlstate; msg := sqlerrm;
       end;
-      if got <> (substr(c.expected, i, 1) = 'Y') then
+      if st is not null and st <> '42501' then
+        fails := fails || format('%s [%s] expected %s, got error %s (%s): only a permission error counts as denied',
+          c.label, names[i], substr(c.expected, i, 1), st, msg);
+      elsif got <> (substr(c.expected, i, 1) = 'Y') then
         fails := fails || format('%s [%s] expected %s, got %s', c.label, names[i],
           substr(c.expected, i, 1), case when got then 'Y' else 'N' end);
       end if;

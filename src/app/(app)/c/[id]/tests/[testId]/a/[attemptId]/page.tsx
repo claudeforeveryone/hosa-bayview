@@ -9,7 +9,7 @@ import type { DeckOption } from "@/components/selection-cards";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { listDecks } from "@/lib/decks";
-import { attemptsLeft, hiddenScoreNote, scoredMode } from "@/lib/test-settings";
+import { attemptsLeft, HIDDEN_SCORE_NOTE, scoredMode } from "@/lib/test-settings";
 import {
   countAttempts,
   getAttempt,
@@ -113,10 +113,10 @@ export default async function AttemptPage({
         {attempt.score_hidden ? (
           <>
             <p className="font-display text-[clamp(3rem,14vw,6rem)] leading-[0.85] font-bold uppercase">
-              Score hidden
+              Submitted
             </p>
             <p className="max-w-[60ch] text-[17px] text-ink-2">
-              {hiddenScoreNote(attempt.mode, test.time_limit_minutes)}
+              {HIDDEN_SCORE_NOTE}
             </p>
           </>
         ) : (

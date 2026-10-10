@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   attemptsLeft,
-  hiddenScoreNote,
+  HIDDEN_SCORE_NOTE,
   parseAttemptsAllowed,
   practiceRuleOk,
   scoredMode,
@@ -48,19 +48,10 @@ describe("practiceRuleOk", () => {
   });
 });
 
-describe("hiddenScoreNote", () => {
-  it("says practice never scores on a timed test with answers hidden", () => {
-    expect(hiddenScoreNote("practice", 30)).toBe(
-      "Answers are hidden on this test, so practice runs don't show a score.",
-    );
-  });
-
-  it("asks for every question on a scored run", () => {
-    expect(hiddenScoreNote("timed", 30)).toBe(
-      "Answers are hidden on this test. Answer every question to see your score.",
-    );
-    expect(hiddenScoreNote("practice", null)).toBe(
-      "Answers are hidden on this test. Answer every question to see your score.",
+describe("HIDDEN_SCORE_NOTE", () => {
+  it("says only the first complete run shows a score", () => {
+    expect(HIDDEN_SCORE_NOTE).toBe(
+      "Answers are hidden on this test, so only your first run with every question answered shows a score.",
     );
   });
 });

@@ -60,10 +60,7 @@ export function practiceRuleOk(
   return timeLimit !== null || allowPractice;
 }
 
-// Shown in place of a score the database withheld (answers hidden on the test). Practice on a timed test never
-// scores; a scored run shows its score only when every question was answered.
-export function hiddenScoreNote(mode: "timed" | "practice", timeLimit: number | null): string {
-  return mode === "practice" && scoredMode(timeLimit) === "timed"
-    ? "Answers are hidden on this test, so practice runs don't show a score."
-    : "Answers are hidden on this test. Answer every question to see your score.";
-}
+// Shown in place of a score the database withheld. With answers hidden, only a taker's first run with every
+// question answered shows a score; later runs would let someone diff scores to rebuild the key.
+export const HIDDEN_SCORE_NOTE =
+  "Answers are hidden on this test, so only your first run with every question answered shows a score.";
