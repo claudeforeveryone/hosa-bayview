@@ -1,26 +1,30 @@
 "use client";
 
 import { Check, RotateCcw } from "lucide-react";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore, type CSSProperties } from "react";
 import {
   ACCENTS,
+  FONTS,
   MODES,
   PALETTES,
   TEXT_SIZES,
   applyExtras,
   applyMode,
   readAccent,
+  readFont,
   readMode,
   readMotion,
   readPalette,
   readTextSize,
   resetAppearance,
   setAccent,
+  setFont,
   setMode,
   setMotion,
   setPalette,
   setTextSize,
   type Accent,
+  type Font,
   type Mode,
   type Motion,
   type Palette,
@@ -50,7 +54,7 @@ export function AppearanceSync() {
       if (readMode() === "system") applyMode("system");
     };
     const onStorage = (e: StorageEvent) => {
-      if (e.key === null || ["theme", "palette", "accent", "text", "motion"].includes(e.key)) {
+      if (e.key === null || ["theme", "palette", "accent", "text", "font", "motion"].includes(e.key)) {
         applyMode(readMode());
         applyPalette(readPalette());
         applyExtras();
@@ -66,6 +70,13 @@ export function AppearanceSync() {
   return null;
 }
 
+// Each option is set in its own face. The variables come from the root layout's next/font loaders.
+const FONT_FAMILIES: Record<Font, string> = {
+  default: "var(--font-barlow), system-ui, sans-serif",
+  readable: "var(--font-atkinson), system-ui, sans-serif",
+  dyslexic: "var(--font-lexend), system-ui, sans-serif",
+};
+
 const legend = "caps mb-2 text-[14px] text-ink-2";
 
 // A row of square segments backed by native radios.
@@ -78,7 +89,7 @@ function Segments<T extends string>({
 }: {
   name: string;
   label: string;
-  options: { id: T; label: string; className?: string }[];
+  options: { id: T; label: string; className?: string; style?: CSSProperties }[];
   value: T;
   onPick: (v: T) => void;
 }) {
@@ -98,6 +109,7 @@ function Segments<T extends string>({
             />
             <span
               className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink ${o.className ?? ""}`}
+              style={o.style}
             >
               {o.label}
             </span>
@@ -118,6 +130,7 @@ export function LookSection() {
   );
   const accent = useSyncExternalStore<Accent>(subscribe, readAccent, () => "theme");
   const text = useSyncExternalStore<TextSize>(subscribe, readTextSize, () => "standard");
+  const font = useSyncExternalStore<Font>(subscribe, readFont, () => "default");
   const motion = useSyncExternalStore<Motion>(subscribe, readMotion, () => "full");
   const themeAccent = PALETTES.find((p) => p.id === palette)?.accent ?? "#7a1f2b";
 
@@ -215,6 +228,17 @@ export function LookSection() {
           options={TEXT_SIZES.map((t, i) => ({ ...t, className: `normal-case tracking-normal ${["text-[15px]", "text-[18px]", "text-[21px]"][i]}` }))}
           value={text}
           onPick={setTextSize}
+        />
+        <Segments
+          name="look-font"
+          label="Font"
+          options={FONTS.map((f) => ({
+            ...f,
+            className: "px-1 text-center leading-tight normal-case tracking-normal text-[15px] sm:text-[16px]",
+            style: { fontFamily: FONT_FAMILIES[f.id] },
+          }))}
+          value={font}
+          onPick={setFont}
         />
         <Segments
           name="look-motion"

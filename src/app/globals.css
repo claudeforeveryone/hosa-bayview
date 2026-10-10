@@ -130,6 +130,20 @@
   --on-you: #f7ecee;
 }
 
+/* Typefaces. Settings > Look swaps these two via data-font; the Montserrat wordmark never changes. */
+:root {
+  --face-sans: var(--font-barlow), system-ui, sans-serif;
+  --face-display: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+}
+:root[data-font="readable"] {
+  --face-sans: var(--font-atkinson), system-ui, sans-serif;
+  --face-display: var(--font-atkinson), system-ui, sans-serif;
+}
+:root[data-font="dyslexic"] {
+  --face-sans: var(--font-lexend), system-ui, sans-serif;
+  --face-display: var(--font-lexend), system-ui, sans-serif;
+}
+
 @theme inline {
   --color-ground: var(--ground);
   --color-band: var(--band);
@@ -146,8 +160,8 @@
   --color-on-you: var(--on-you);
   --color-danger: var(--danger);
   --color-ok: var(--ok);
-  --font-sans: var(--font-barlow), system-ui, sans-serif;
-  --font-display: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+  --font-sans: var(--face-sans);
+  --font-display: var(--face-display);
   --radius-none: 0;
 }
 

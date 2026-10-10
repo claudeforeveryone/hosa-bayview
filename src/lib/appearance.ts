@@ -1,5 +1,5 @@
 // Look settings, saved per device. "theme" is light, dark or system; "palette" is a colour theme; "accent"
-// overrides the theme's highlight colour; "text" scales the page; "motion" can switch animation off.
+// overrides the theme's highlight colour; "text" scales the page; "font" swaps the typeface; "motion" can switch animation off.
 // The root layout's inline script applies both before first paint; these helpers change them live.
 
 export type Mode = "light" | "dark" | "system";
@@ -95,8 +95,17 @@ export const TEXT_SIZES: { id: TextSize; label: string }[] = [
 
 export type Motion = "full" | "calm";
 
+// "readable" is Atkinson Hyperlegible, "dyslexic" is Lexend. The stylesheet maps each to its family.
+export type Font = "default" | "readable" | "dyslexic";
+export const FONTS: { id: Font; label: string }[] = [
+  { id: "default", label: "Default" },
+  { id: "readable", label: "Readable" },
+  { id: "dyslexic", label: "Dyslexia-friendly" },
+];
+
 export const isAccent = (v: unknown): v is Accent => ACCENTS.some((a) => a.id === v);
 export const isTextSize = (v: unknown): v is TextSize => TEXT_SIZES.some((t) => t.id === v);
+export const isFont = (v: unknown): v is Font => FONTS.some((f) => f.id === v);
 export const isMotion = (v: unknown): v is Motion => v === "full" || v === "calm";
 
 export const readAccent = (): Accent => {
@@ -106,6 +115,10 @@ export const readAccent = (): Accent => {
 export const readTextSize = (): TextSize => {
   const v = stored("text");
   return isTextSize(v) ? v : "standard";
+};
+export const readFont = (): Font => {
+  const v = stored("font");
+  return isFont(v) ? v : "default";
 };
 export const readMotion = (): Motion => (stored("motion") === "calm" ? "calm" : "full");
 
@@ -119,6 +132,7 @@ function setAttr(name: string, value: string, fallback: string) {
 export function applyExtras() {
   setAttr("accent", readAccent(), "theme");
   setAttr("text", readTextSize(), "standard");
+  setAttr("font", readFont(), "default");
   setAttr("motion", readMotion(), "full");
 }
 
@@ -132,6 +146,11 @@ export function setTextSize(v: TextSize) {
   setAttr("text", v, "standard");
   window.dispatchEvent(new Event("hosa:appearance"));
 }
+export function setFont(v: Font) {
+  store("font", v);
+  setAttr("font", v, "default");
+  window.dispatchEvent(new Event("hosa:appearance"));
+}
 export function setMotion(v: Motion) {
   store("motion", v);
   setAttr("motion", v, "full");
@@ -140,7 +159,7 @@ export function setMotion(v: Motion) {
 
 // Back to the shipped look on this device.
 export function resetAppearance() {
-  for (const k of ["theme", "palette", "accent", "text", "motion"]) {
+  for (const k of ["theme", "palette", "accent", "text", "font", "motion"]) {
     try {
       localStorage.removeItem(k);
     } catch {}
@@ -152,4 +171,4 @@ export function resetAppearance() {
 }
 
 // Inline in <head> so the right colours and sizes paint first. Mirrors applyMode, setPalette and applyExtras.
-export const appearanceScript = `(function(){try{var d=document.documentElement,g=function(k){return localStorage.getItem(k)},t=g('theme'),p=g('palette'),a=g('accent'),x=g('text'),m=g('motion');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}d.dataset.theme=t;if(p==='maroon'||p==='forest'||p==='graphite'){d.dataset.palette=p}if(/^(maroon|gold|teal|violet|ember)$/.test(a||'')){d.dataset.accent=a}if(x==='large'||x==='larger'){d.dataset.text=x}if(m==='calm'){d.dataset.motion='calm'}}catch(e){}})()`;
+export const appearanceScript = `(function(){try{var d=document.documentElement,g=function(k){return localStorage.getItem(k)},t=g('theme'),p=g('palette'),a=g('accent'),x=g('text'),f=g('font'),m=g('motion');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}d.dataset.theme=t;if(p==='maroon'||p==='forest'||p==='graphite'){d.dataset.palette=p}if(/^(maroon|gold|teal|violet|ember)$/.test(a||'')){d.dataset.accent=a}if(x==='large'||x==='larger'){d.dataset.text=x}if(f==='readable'||f==='dyslexic'){d.dataset.font=f}if(m==='calm'){d.dataset.motion='calm'}}catch(e){}})()`;

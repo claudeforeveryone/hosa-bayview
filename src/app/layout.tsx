@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow, Barlow_Condensed } from "next/font/google";
+import { Atkinson_Hyperlegible, Barlow, Barlow_Condensed, Lexend } from "next/font/google";
 import localFont from "next/font/local";
 import { AppearanceSync } from "@/components/appearance";
 import { appearanceScript } from "@/lib/appearance";
@@ -17,6 +17,20 @@ const barlowCondensed = Barlow_Condensed({
   variable: "--font-barlow-condensed",
   subsets: ["latin"],
   weight: ["500", "600", "700"],
+});
+
+// Optional faces from Settings > Look. preload: false keeps them off the wire until someone picks one.
+const atkinson = Atkinson_Hyperlegible({
+  variable: "--font-atkinson",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  preload: false,
+});
+
+const lexend = Lexend({
+  variable: "--font-lexend",
+  subsets: ["latin"],
+  preload: false,
 });
 
 // The chapter mark's wordmark face. Static files, one per weight: Google serves Montserrat as a single
@@ -48,7 +62,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${barlow.variable} ${barlowCondensed.variable} ${montserrat.variable} h-full antialiased`}
+      className={`${barlow.variable} ${barlowCondensed.variable} ${atkinson.variable} ${lexend.variable} ${montserrat.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: appearanceScript }} />
