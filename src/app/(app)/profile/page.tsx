@@ -23,25 +23,28 @@ export const metadata: Metadata = { title: "Profile" };
 const H2 =
   "border-b-[3px] border-ink pb-2 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase";
 
-// Executives' GIF size cap, as on Settings: exempt executives keep the bucket limit.
-async function gifLimitFor(userId: string, isExec: boolean): Promise<number> {
-  if (!isExec) return AVATAR_MAX_BYTES;
+// GIF pictures are for a few named accounts (0101). Returns whether this account may use one, and its size cap
+// as on Settings (exempt accounts keep the bucket limit).
+async function gifAccess(userId: string): Promise<{ canGif: boolean; gifLimit: number }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("gif_exempt_ids");
-  if (error) throw new Error(`GIF limits lookup failed: ${error.message}`);
-  return gifLimitBytes(((data ?? []) as string[]).includes(userId));
+  const [powers, exempt] = await Promise.all([supabase.rpc("my_powers"), supabase.rpc("gif_exempt_ids")]);
+  if (exempt.error) throw new Error(`GIF limits lookup failed: ${exempt.error.message}`);
+  const canGif = Boolean((powers.data as { gif: boolean }[] | null)?.[0]?.gif);
+  return {
+    canGif,
+    gifLimit: canGif ? gifLimitBytes(((exempt.data ?? []) as string[]).includes(userId)) : AVATAR_MAX_BYTES,
+  };
 }
 
 export default async function ProfilePage() {
   const profile = await requireProfile();
-  const isExec = profile.role === "executive";
-  const [stats, career, sources, wins, gifLimit] = await Promise.all([
+  const [stats, career, sources, wins, { canGif, gifLimit }] = await Promise.all([
     getMemberStats(profile.id),
     getCareerItems(profile.id),
     avatarSources([profile.avatar_path]),
     // Null until the battle migrations are applied; the row stays hidden then.
     getBattleWins(profile.id),
-    gifLimitFor(profile.id, isExec),
+    gifAccess(profile.id),
   ]);
   const picture = profile.avatar_path
     ? (sources.get(profile.avatar_path) ?? null)
@@ -60,7 +63,7 @@ export default async function ProfilePage() {
           name={profile.full_name}
           src={picture}
           hasPicture={Boolean(profile.avatar_path)}
-          animated={isExec}
+          animated={canGif}
           gifLimit={gifLimit}
         />
         <div className="min-w-0 flex-1">

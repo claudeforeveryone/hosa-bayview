@@ -25,6 +25,7 @@ export async function setRole(userId: string, _: RoleState, form: FormData): Pro
     .select("id");
   if (error) {
     if (error.code === "P0001") return { error: "There has to be at least one executive." };
+    if (error.code === "42501") return { error: "Only the chapter leads can give or remove executive." };
     console.error("[admin] role:", error.message);
     return { error: "Couldn't change that. Try again." };
   }

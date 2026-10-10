@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { ChevronDown } from "lucide-react";
 import { Button, Field, FormMessage, Select } from "@/components/form";
 import { GRADES } from "@/lib/profile";
 import { signup, type AuthState } from "../actions";
@@ -76,26 +75,7 @@ export function SignupForm({ chapterGate }: { chapterGate: boolean }) {
         error={state.fieldErrors?.password}
         hint="At least 8 characters."
       />
-      <details className="group border-y border-rule">
-        <summary className="caps step flex h-12 cursor-pointer items-center justify-between text-[16px] text-ink-2 hover:text-ink">
-          Signing up as an admin?
-          <ChevronDown
-            size={20}
-            strokeWidth={1.75}
-            aria-hidden
-            className="group-open:rotate-180"
-          />
-        </summary>
-        <div className="pb-5">
-          <Field
-            label="Admin passcode"
-            name="passcode"
-            type="password"
-            autoComplete="off"
-            hint="Optional. From a chapter executive. Leave it blank to join as a member."
-          />
-        </div>
-      </details>
+      <p className="text-[15px] text-ink-2">Everyone joins as a member. The chapter leads give out executive access.</p>
       <Button type="submit" disabled={pending} className="mt-1 w-full">
         {pending ? "Making account" : "Make account"}
       </Button>

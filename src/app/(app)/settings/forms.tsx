@@ -3,11 +3,10 @@
 import { useActionState, type ReactNode } from "react";
 import { AvatarForm } from "@/components/avatar-form";
 import { Button, Field, FormMessage, Select } from "@/components/form";
-import { claimAdmin, type AuthState } from "@/app/(auth)/actions";
+import type { AuthState } from "@/app/(auth)/actions";
 import { GRADES } from "@/lib/profile";
 import {
   changePassword,
-  setAdminPasscode,
   updateGrade,
   updateName,
 } from "./actions";
@@ -188,77 +187,6 @@ export function PasswordSection() {
               error={state.fieldErrors?.confirm}
             />
           </>
-        )}
-      </SettingsForm>
-    </Section>
-  );
-}
-
-const NOTICE = {
-  wrong:
-    "Your account is made, but that passcode wasn't right. Try it again here.",
-  slow: "Your account is made, but there were too many wrong passcodes. Try again here in 10 minutes.",
-  retry:
-    "Your account is made, but the passcode check didn't go through. Try it again here.",
-} as const;
-export type PasscodeNotice = keyof typeof NOTICE;
-
-export function ClaimAdminSection({
-  notice,
-}: {
-  notice: PasscodeNotice | null;
-}) {
-  return (
-    <Section id="admin-h" title="Admin">
-      {notice ? (
-        <div className="mb-5">
-          <FormMessage tone="error">{NOTICE[notice]}</FormMessage>
-        </div>
-      ) : null}
-      <SettingsForm
-        action={claimAdmin}
-        submit="Become an admin"
-        pendingLabel="Checking"
-      >
-        {(state) => (
-          <Field
-            label="Admin passcode"
-            name="passcode"
-            type="password"
-            autoComplete="off"
-            required
-            error={state.fieldErrors?.passcode}
-            hint="From a chapter executive."
-          />
-        )}
-      </SettingsForm>
-    </Section>
-  );
-}
-
-export function PasscodeSection({ isSet }: { isSet: boolean }) {
-  return (
-    <Section id="passcode-h" title="Admin passcode">
-      <SettingsForm
-        action={setAdminPasscode}
-        submit={isSet ? "Change passcode" : "Set passcode"}
-        pendingLabel="Saving"
-      >
-        {(state) => (
-          <Field
-            label={isSet ? "New passcode" : "Passcode"}
-            name="new_passcode"
-            type="password"
-            autoComplete="new-password"
-            required
-            minLength={12}
-            error={state.fieldErrors?.new_passcode}
-            hint={
-              isSet
-                ? "Works once. The first person to enter it becomes an executive, every executive is told, and it clears. Changing it stops the old one working."
-                : "Not set, so no one can become an admin. Set one for the next new admin: it works once, then clears."
-            }
-          />
         )}
       </SettingsForm>
     </Section>

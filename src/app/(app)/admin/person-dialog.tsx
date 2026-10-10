@@ -42,6 +42,10 @@ export type PersonRow = {
   avatar_src: string | null;
   // Largest GIF this person may upload, in bytes: 1 MB for executives, the bucket limit for the exempt.
   gif_limit: number;
+  // May this person have a GIF picture (a few named accounts, 0101)?
+  gif: boolean;
+  // Can the viewer give or remove executive (the chapter leads only)? Same for every row.
+  can_grant_exec: boolean;
   grade: number | null;
   banned_until: string | null;
   ban_reason: string | null;
@@ -373,6 +377,7 @@ function PersonBody({
           name={person.full_name}
           role={person.role}
           isMe={isMe}
+          canGrantExec={person.can_grant_exec}
         />
       </Section>
 
@@ -382,7 +387,7 @@ function PersonBody({
           name={person.full_name}
           src={person.avatar_src}
           hasPicture={person.avatar_path !== null}
-          animated={person.role === "executive"}
+          animated={person.gif}
           gifLimit={person.gif_limit}
         />
       </Section>

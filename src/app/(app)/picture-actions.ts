@@ -74,8 +74,10 @@ export async function savePicture(
     };
   }
 
-  // Moving pictures are for executives. The name can't be trusted, so look at the bytes.
-  if (current.role !== "executive") {
+  // Moving pictures are for a few named accounts (0101). The name can't be trusted, so look at the bytes.
+  const { data: gifOk, error: gifError } = await supabase.rpc("can_use_gif", { uid: userId });
+  if (gifError) console.error("[picture] gif check:", gifError.message);
+  if (gifOk !== true) {
     const { data: file, error: fileError } = await supabase.storage
       .from(AVATAR_BUCKET)
       .download(path);
@@ -91,7 +93,7 @@ export async function savePicture(
       if (removeError) console.error("[picture] drop:", removeError.message);
       return {
         error: animated
-          ? "Animated pictures are for executives."
+          ? "Animated pictures are limited to a few accounts. Pick a still picture."
           : "Couldn't save that. Try again.",
       };
     }

@@ -10,17 +10,7 @@ import { requireProfile } from "@/lib/auth";
 import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
 import { createClient } from "@/lib/supabase/server";
-import {
-  ClaimAdminSection,
-  GradeSection,
-  NameSection,
-  PasscodeSection,
-  PasswordSection,
-  PictureSection,
-  type PasscodeNotice,
-} from "./forms";
-
-const NOTICES: PasscodeNotice[] = ["wrong", "slow", "retry"];
+import { GradeSection, NameSection, PasswordSection, PictureSection } from "./forms";
 
 const TABS = [
   { id: "look", label: "Look" },
@@ -36,10 +26,7 @@ export default async function SettingsPage({
   searchParams,
 }: PageProps<"/settings">) {
   const [profile, sp] = await Promise.all([requireProfile(), searchParams]);
-  const notice = NOTICES.find((n) => n === sp.passcode) ?? null;
-  // A passcode miss from sign-up lands here with ?passcode=, so it opens on Account where the retry lives.
-  const tab: Tab =
-    TABS.find((t) => t.id === sp.tab)?.id ?? (notice ? "account" : "look");
+  const tab: Tab = TABS.find((t) => t.id === sp.tab)?.id ?? "look";
 
   return (
     <div className="grid grid-cols-1 gap-8">
@@ -67,38 +54,30 @@ export default async function SettingsPage({
       </nav>
       {tab === "look" ? <LookSection /> : null}
       {tab === "sound" ? <SoundSection /> : null}
-      {tab === "account" ? <AccountTab notice={notice} /> : null}
+      {tab === "account" ? <AccountTab /> : null}
       {tab === "events" ? <EventsTab /> : null}
     </div>
   );
 }
 
-async function AccountTab({ notice }: { notice: PasscodeNotice | null }) {
+// Executive access is given by the chapter leads from /admin (0101), so there's no passcode section here.
+async function AccountTab() {
   const profile = await requireProfile();
   const picture = (await avatarSources([profile.avatar_path])).get(
     profile.avatar_path ?? "",
   );
-  const isExec = profile.role === "executive";
-  let passcodeSet = false;
-  let isDemo = false;
-  let gifLimit = AVATAR_MAX_BYTES;
-  if (isExec) {
-    const supabase = await createClient();
-    const [passcode, me, exempt] = await Promise.all([
-      supabase.rpc("admin_passcode_is_set"),
-      supabase.rpc("am_demo"),
-      supabase.rpc("gif_exempt_ids"),
-    ]);
-    if (exempt.error)
-      throw new Error(`GIF limits lookup failed: ${exempt.error.message}`);
-    gifLimit = gifLimitBytes(
-      ((exempt.data ?? []) as string[]).includes(profile.id),
-    );
-    isDemo = me.data !== false;
-    if (passcode.error)
-      throw new Error(`Passcode lookup failed: ${passcode.error.message}`);
-    passcodeSet = Boolean(passcode.data);
-  }
+  // GIF pictures are for a few named accounts (0101), not every executive.
+  const supabase = await createClient();
+  const [powers, exempt] = await Promise.all([
+    supabase.rpc("my_powers"),
+    supabase.rpc("gif_exempt_ids"),
+  ]);
+  if (exempt.error)
+    throw new Error(`GIF limits lookup failed: ${exempt.error.message}`);
+  const canGif = Boolean((powers.data as { gif: boolean }[] | null)?.[0]?.gif);
+  const gifLimit = canGif
+    ? gifLimitBytes(((exempt.data ?? []) as string[]).includes(profile.id))
+    : AVATAR_MAX_BYTES;
 
   return (
     <div className="grid grid-cols-1 gap-10">
@@ -109,15 +88,10 @@ async function AccountTab({ notice }: { notice: PasscodeNotice | null }) {
         name={profile.full_name}
         src={picture ?? null}
         hasPicture={profile.avatar_path !== null}
-        animated={isExec}
+        animated={canGif}
         gifLimit={gifLimit}
       />
       <PasswordSection />
-      {isDemo ? null : isExec ? (
-        <PasscodeSection isSet={passcodeSet} />
-      ) : (
-        <ClaimAdminSection notice={notice} />
-      )}
       <section className="border-t-[3px] border-ink pt-5">
         <form action={logout}>
           <Button variant="line" type="submit">

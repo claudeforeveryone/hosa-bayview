@@ -12,7 +12,21 @@ const ROLES: { value: Role; label: string }[] = [
 const NAME: Record<Role, string> = { trainee: "a trainee", trainer: "a trainer", executive: "an executive" };
 
 // Three-way switch: the current role is filled. Picking another one asks once before it saves.
-export function RoleSwitch({ userId, name, role, isMe }: { userId: string; name: string; role: Role; isMe: boolean }) {
+// Giving or removing executive is for the chapter leads only (0101): others don't get the Exec option, and an
+// executive's role is shown but locked for them.
+export function RoleSwitch({
+  userId,
+  name,
+  role,
+  isMe,
+  canGrantExec,
+}: {
+  userId: string;
+  name: string;
+  role: Role;
+  isMe: boolean;
+  canGrantExec: boolean;
+}) {
   const [picked, setPick] = useState<Role | null>(null);
   // A pick that already matches the saved role (changed elsewhere) is no pick at all.
   const pick = picked && picked !== role ? picked : null;
@@ -55,6 +69,15 @@ export function RoleSwitch({ userId, name, role, isMe }: { userId: string; name:
     setPick(null);
   };
 
+  if (role === "executive" && !canGrantExec) {
+    return (
+      <p className="text-[15px] text-ink-2">
+        <span className="caps text-ink">Exec.</span> Only the chapter leads can change an executive&apos;s role.
+      </p>
+    );
+  }
+  const options = canGrantExec ? ROLES : ROLES.filter((r) => r.value !== "executive");
+
   return (
     <form action={action} className="grid justify-items-start gap-2 sm:justify-items-end">
       {pick ? (
@@ -95,7 +118,7 @@ export function RoleSwitch({ userId, name, role, isMe }: { userId: string; name:
         </div>
       ) : (
         <div ref={switchRef} role="group" aria-label={`Role for ${name}`} className="flex border border-ink">
-          {ROLES.map((r) => {
+          {options.map((r) => {
             const current = r.value === role;
             return (
               <button
