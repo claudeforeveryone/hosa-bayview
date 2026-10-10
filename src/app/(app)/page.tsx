@@ -38,7 +38,7 @@ function Hello({
 }) {
   const line = [
     roleLabel(role, title),
-    rooms ? plural(rooms, "classroom") : null,
+    rooms ? plural(rooms, "event") : null,
     `${formatCount(online)} online`,
   ]
     .filter(Boolean)
@@ -113,7 +113,7 @@ function Setup({ steps }: { steps: Step[] }) {
         id="setup-h"
         className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
       >
-        Get your room running
+        Get your event running
       </h2>
       <ol className="grid">
         {steps.map((step, i) => {
@@ -201,7 +201,7 @@ function JoinLink() {
       href="/join"
       className="caps step flex h-14 items-center justify-between border-y border-rule px-1 text-[17px] hover:bg-band sm:px-3"
     >
-      Got a code? Join a classroom
+      Got a code? Join an event
       <ArrowRight size={20} strokeWidth={2} aria-hidden />
     </Link>
   );
@@ -250,7 +250,7 @@ function Classrooms({ rooms }: { rooms: ClassroomSummary[] }) {
         id="rooms-h"
         className="px-1 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase sm:px-3"
       >
-        Your classrooms
+        Your events
       </h2>
       <ul className="border-t border-rule">
         {rooms.map((room) => (
@@ -282,7 +282,7 @@ export default async function HomePage(props: PageProps<"/">) {
   const firstOwned = owned[0];
   const steps: Step[] = [
     {
-      title: "Make a classroom",
+      title: "Make an event",
       done: owned.length > 0,
       href: "/c/new",
       action: "Make one",

@@ -48,9 +48,9 @@ create index battle_players_user_idx on public.battle_players (user_id);
 alter table public.battle_players enable row level security;
 
 -- One row per question in the battle, written at start. A round is visible once it has started.
--- No key column here, and question_id is not granted to clients: this table is on the realtime publication, and
--- a question id would let a player look the question up elsewhere mid-round. Prompt and options come from
--- battle_state.
+-- No key column here, and question_id is not granted to clients: a question id would let a player look the
+-- question up elsewhere mid-round. No battle table is on the realtime publication (column grants may not filter
+-- WAL payloads); screens hear a broadcast poke and re-read battle_state. Prompt and options come from battle_state.
 create table public.battle_rounds (
   battle_id uuid not null references public.battles (id) on delete cascade,
   round_no smallint not null check (round_no between 1 and 30),
@@ -103,9 +103,9 @@ returns boolean language sql stable security definer set search_path = '' as $$
   ), false)
 $$;
 
--- A test whose questions may be played: published, answers shown after a run, and not a capped timed test
--- (those keep keys hidden until the timed runs are used up, 0048). Battles reveal the key after each round,
--- so anything that hides keys is left out.
+-- A test whose questions may be played: published, answers shown after a run, not a capped timed test
+-- (those keep keys hidden until the timed runs are used up, 0048), and at least one keyed question. Battles
+-- reveal the key after each round, so anything that hides keys is left out.
 create function private.battle_test_ok(tid uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (
@@ -113,6 +113,8 @@ returns boolean language sql stable security definer set search_path = '' as $$
     where t.id = tid and t.is_published and t.show_answers
       and not (t.time_limit_minutes is not null and t.attempts_allowed is not null)
       and private.battle_room_ok(t.classroom_id)
+      and exists (select 1 from public.questions q join public.question_keys k on k.question_id = q.id
+                  where q.test_id = t.id)
   )
 $$;
 
@@ -125,7 +127,7 @@ grant execute on function private.battle_room_ok(uuid), private.can_see_battle(u
 
 revoke all on public.battles, public.battle_players, public.battle_rounds, public.battle_answers from anon, authenticated;
 grant select on public.battles, public.battle_players to authenticated;
--- Column grant: no question_id (Realtime honours column privileges in postgres_changes payloads too).
+-- Column grant: no question_id.
 grant select (battle_id, round_no, started_at, ends_at, closed_at) on public.battle_rounds to authenticated;
 
 create policy "battles: room viewers read"

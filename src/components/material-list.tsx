@@ -3,15 +3,17 @@ import { deleteMaterial, updateMaterial } from "@/app/(app)/library/actions";
 import { ConfirmAction } from "@/components/confirm-action";
 import { EmptyState } from "@/components/empty-state";
 import { MaterialEditForm } from "@/components/material-form";
+import { OpenFromHash } from "@/components/open-from-hash";
 import {
   type MaterialItem,
   groupBySection,
   isPlaceholder,
   materialMeta,
+  sectionAnchors,
   sectionNames,
 } from "@/lib/materials";
 
-// Files and links, newest first. Files open their signed link; links open in a new tab.
+// Files and links, newest first. Both open in a new tab through /files/<id>, which signs a fresh link per click.
 // canManage adds Edit and Delete, the same controls the links list has.
 export function MaterialList({
   rows,
@@ -30,11 +32,15 @@ export function MaterialList({
   if (groups.length === 1 && groups[0].section === null)
     return <Rows rows={rows} canManage={canManage} sections={sections} />;
 
+  // Each section has an id, so the hub can link straight to it (#section-week-2) and open it.
+  const anchors = sectionAnchors(groups.map((g) => g.section));
   return (
     <div className="border-t border-rule">
-      {groups.map((g) => (
+      <OpenFromHash />
+      {groups.map((g, i) => (
         <details
           key={g.section ?? "general"}
+          id={anchors[i]}
           open={groups.length === 1 || g.section === null}
           className="border-b border-rule"
         >
@@ -67,7 +73,6 @@ function Rows({
       {rows.map((r) => {
         const placeholder = isPlaceholder(r);
         const Icon = placeholder ? Clock : r.path ? FileText : Link2;
-        const unavailable = Boolean(r.path) && !r.href;
         return (
           <li
             key={r.id}
@@ -100,9 +105,7 @@ function Rows({
                   </span>
                 )}
                 <span className="text-[15px] text-ink-2">
-                  {[materialMeta(r), unavailable && "File unavailable"]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {materialMeta(r)}
                 </span>
                 {r.note || placeholder ? (
                   <p className="text-[17px] whitespace-pre-line text-ink-2 [overflow-wrap:anywhere]">

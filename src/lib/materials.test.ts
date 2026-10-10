@@ -11,6 +11,7 @@ import {
   formatDay,
   isStoragePath,
   materialMeta,
+  sectionAnchors,
   storageFolder,
   tooBigMessage,
   titleFromFile,
@@ -250,5 +251,36 @@ describe("isPlaceholder", () => {
     expect(isPlaceholder({ path: null, url: null })).toBe(true);
     expect(isPlaceholder({ path: "x/y", url: null })).toBe(false);
     expect(isPlaceholder({ path: null, url: "https://a.b" })).toBe(false);
+  });
+});
+
+describe("sectionAnchors", () => {
+  it("slugs section names into fragment ids, General first", () => {
+    expect(sectionAnchors([null, "Week 2", "Official HOSA", "Textbooks"])).toEqual([
+      "section-general",
+      "section-week-2",
+      "section-official-hosa",
+      "section-textbooks",
+    ]);
+  });
+
+  it("keeps ids unique when names slug the same, and gives non-ascii names an id", () => {
+    expect(sectionAnchors([null, "General", "week 2", "Week-2", "Week 2 2", "日本"])).toEqual([
+      "section-general",
+      "section-general-2",
+      "section-week-2",
+      "section-week-2-2",
+      "section-week-2-2-2",
+      "section-x",
+    ]);
+  });
+
+  it("matches the order groupBySection shows, so hub links and Resources ids line up", () => {
+    const rows = [{ section: "Week 10" }, { section: null }, { section: "Week 2" }];
+    expect(sectionAnchors(groupBySection(rows).map((g) => g.section))).toEqual([
+      "section-general",
+      "section-week-2",
+      "section-week-10",
+    ]);
   });
 });

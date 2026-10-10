@@ -3,13 +3,22 @@ import { mockSupabase } from "@/test/supabase-mock";
 
 let client = mockSupabase();
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => client }));
+// The code check runs with the secret key; the same mock answers it. Null: the key isn't set.
+let adminClient: (() => typeof client) | null = () => client;
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => {
+    if (!adminClient) throw new Error("SUPABASE_SECRET_KEY is not set");
+    return adminClient();
+  },
+}));
 // A tiny cookie jar, so the "Stay signed in" choice can be read back.
 const jar = new Map<
   string,
   { value: string; options?: Record<string, unknown> }
 >();
+let requestHeaders = new Headers({ origin: "null" });
 vi.mock("next/headers", () => ({
-  headers: async () => new Headers({ origin: "null" }),
+  headers: async () => requestHeaders,
   cookies: async () => ({
     set: (name: string, value: string, options?: Record<string, unknown>) =>
       jar.set(name, { value, options }),
@@ -41,6 +50,8 @@ const redirectOf = async (p: Promise<unknown>) => {
 
 beforeEach(() => {
   client = mockSupabase();
+  adminClient = () => client;
+  requestHeaders = new Headers({ origin: "null" });
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://hosa.example/");
 });
 
@@ -157,8 +168,13 @@ describe("signup", () => {
 });
 
 describe("admin passcode", () => {
+  // Only claim_admin answers; the chapter code RPCs are missing, so there's no gate.
   const withRpc = (result: { data: unknown; error: unknown }) => {
-    const rpc = vi.fn(async () => result);
+    const rpc = vi.fn(async (fn: string) =>
+      fn === "claim_admin"
+        ? result
+        : { data: null, error: { code: "PGRST202", message: "missing" } },
+    );
     Object.assign(client, { rpc });
     return rpc;
   };
@@ -167,7 +183,7 @@ describe("admin passcode", () => {
   it("skips the check for a normal sign-up", async () => {
     const rpc = withRpc({ data: true, error: null });
     await redirectOf(signup({}, form(fields)));
-    expect(rpc).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalledWith("claim_admin", expect.anything());
   });
 
   it("explains a wrong or throttled passcode in settings", async () => {
@@ -183,6 +199,205 @@ describe("admin passcode", () => {
     expect(
       await redirectOf(claimAdmin({}, form({ passcode: "chapter-code" }))),
     ).toBe("/admin");
+  });
+});
+
+describe("chapter code", () => {
+  type Result = {
+    data: unknown;
+    error: { code?: string; message: string } | null;
+  };
+  // Each RPC answers from the table; anything not listed is a missing function (0090 not applied).
+  const withRpcs = (answers: Record<string, Result>) => {
+    const rpc = vi.fn(async (fn: string, args?: Record<string, unknown>) => {
+      void args;
+      return (
+        answers[fn] ?? {
+          data: null,
+          error: { code: "PGRST202", message: "missing" },
+        }
+      );
+    });
+    Object.assign(client, { rpc });
+    return rpc;
+  };
+  const gateOn = { chapter_gate_active: { data: true, error: null } };
+  const fields = { full_name: "Sam", email: "s@b.co", password: "longenough" };
+  const signUpData = () =>
+    (
+      client.auth.signUp.mock.calls[0] as unknown as [
+        { options: { data: Record<string, string> } },
+      ]
+    )[0].options.data;
+
+  it("signs up as before while migration 0090 isn't applied", async () => {
+    const rpc = withRpcs({});
+    expect(await redirectOf(signup({}, form(fields)))).toBe("/");
+    expect(rpc).toHaveBeenCalledWith("chapter_gate_active");
+    expect(rpc).not.toHaveBeenCalledWith(
+      "check_chapter_code",
+      expect.anything(),
+    );
+    expect(signUpData()).toEqual({ full_name: "Sam" });
+  });
+
+  it("skips the code when no gate is set, even if one is typed", async () => {
+    const rpc = withRpcs({ chapter_gate_active: { data: false, error: null } });
+    expect(
+      await redirectOf(
+        signup({}, form({ ...fields, chapter_code: "whatever" })),
+      ),
+    ).toBe("/");
+    expect(rpc).not.toHaveBeenCalledWith(
+      "check_chapter_code",
+      expect.anything(),
+    );
+    expect(signUpData()).toEqual({ full_name: "Sam" });
+  });
+
+  it("asks for the code when a gate is on and none was typed", async () => {
+    const rpc = withRpcs(gateOn);
+    const state = await signup({}, form(fields));
+    expect(state.fieldErrors?.chapter_code).toBe("Enter the chapter code.");
+    expect(state.chapterGate).toBe(true);
+    expect(rpc).not.toHaveBeenCalledWith(
+      "check_chapter_code",
+      expect.anything(),
+    );
+    expect(client.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it("shows the code field with the other field errors, without spending a try", async () => {
+    const rpc = withRpcs(gateOn);
+    const state = await signup(
+      {},
+      form({
+        full_name: "",
+        email: "s@b.co",
+        password: "short",
+        chapter_code: "bayview",
+      }),
+    );
+    expect(state.fieldErrors?.full_name).toBeTruthy();
+    expect(state.fieldErrors?.chapter_code).toBeUndefined();
+    expect(state.chapterGate).toBe(true);
+    expect(rpc).not.toHaveBeenCalledWith(
+      "check_chapter_code",
+      expect.anything(),
+    );
+  });
+
+  it("refuses a wrong code with the generic error and never makes the account", async () => {
+    withRpcs({ ...gateOn, check_chapter_code: { data: null, error: null } });
+    const state = await signup(
+      {},
+      form({ ...fields, chapter_code: "nope-nope" }),
+    );
+    expect(state.fieldErrors?.chapter_code).toBe("Wrong chapter code");
+    expect(state.chapterGate).toBe(true);
+    expect(JSON.stringify(state.values)).not.toContain("nope-nope");
+    expect(client.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it("says to wait when the network is rate limited", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    withRpcs({
+      ...gateOn,
+      check_chapter_code: {
+        data: null,
+        error: { code: "54000", message: "Too many wrong chapter codes" },
+      },
+    });
+    const state = await signup(
+      {},
+      form({ ...fields, chapter_code: "bayview-2026" }),
+    );
+    expect(state.fieldErrors?.chapter_code).toBe(
+      "Too many tries. Wait 10 minutes.",
+    );
+    expect(state.chapterGate).toBe(true);
+    expect(client.auth.signUp).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it("stops with a plain error when the server key is missing", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const rpc = withRpcs(gateOn);
+    adminClient = null;
+    const state = await signup(
+      {},
+      form({ ...fields, chapter_code: "bayview-2026" }),
+    );
+    expect(state.error).toBe("Something went wrong. Try again.");
+    expect(state.chapterGate).toBe(true);
+    expect(rpc).not.toHaveBeenCalledWith(
+      "check_chapter_code",
+      expect.anything(),
+    );
+    expect(client.auth.signUp).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it("checks the code against the caller's IP and signs up with the ticket", async () => {
+    requestHeaders = new Headers({
+      origin: "null",
+      "x-forwarded-for": "203.0.113.7, 10.0.0.1",
+    });
+    const rpc = withRpcs({
+      ...gateOn,
+      check_chapter_code: { data: "t".repeat(48), error: null },
+    });
+    expect(
+      await redirectOf(
+        signup(
+          {},
+          form({ ...fields, grade: "10", chapter_code: "  bayview-2026 " }),
+        ),
+      ),
+    ).toBe("/");
+    expect(rpc).toHaveBeenCalledWith("check_chapter_code", {
+      code: "bayview-2026",
+      ip: "203.0.113.7",
+    });
+    expect(signUpData()).toEqual({
+      full_name: "Sam",
+      grade: "10",
+      chapter_ticket: "t".repeat(48),
+    });
+  });
+
+  it("says wrong code when the database refuses the account (ticket expired or code changed)", async () => {
+    withRpcs({
+      ...gateOn,
+      check_chapter_code: { data: "t".repeat(48), error: null },
+    });
+    const signUp = client.auth.signUp;
+    signUp.mockResolvedValueOnce({
+      data: { session: null },
+      error: { message: "Database error saving new user" },
+    } as never);
+    const state = await signup(
+      {},
+      form({ ...fields, chapter_code: "bayview-2026" }),
+    );
+    expect(state.fieldErrors?.chapter_code).toBe("Wrong chapter code");
+    expect(state.chapterGate).toBe(true);
+  });
+
+  it("stops with a plain error when the gate can't be read", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    withRpcs({
+      chapter_gate_active: {
+        data: null,
+        error: { code: "57014", message: "timeout" },
+      },
+    });
+    const state = await signup({}, form(fields));
+    expect(state.error).toBe("Something went wrong. Try again.");
+    expect(client.auth.signUp).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalled();
+    log.mockRestore();
   });
 });
 

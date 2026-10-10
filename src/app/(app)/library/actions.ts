@@ -21,7 +21,7 @@ const id = z.string().uuid();
 
 const NOT_MANAGER = "Only the trainer or an executive can change this.";
 const NOT_POSTER = "Only the trainer or an executive can add here.";
-const NOT_EXEC = "Only executives can add to the library.";
+const NOT_EXEC = "Only executives can add to Resources.";
 const DIDNT_SAVE = "That didn't save. Try again.";
 
 function failed(where: string, message: string): FormState {
@@ -71,7 +71,7 @@ export async function prepareUpload(
 ): Promise<{ path: string; token: string } | { error: string }> {
   await requireProfile();
   if (classroomId !== null && !id.safeParse(classroomId).success)
-    return { error: "That classroom doesn't exist." };
+    return { error: "That event doesn't exist." };
   if (!Number.isInteger(size))
     return { error: "That file didn't come through. Pick it again." };
   const sizeError = tooBigMessage(size);
@@ -105,7 +105,7 @@ export async function saveMaterial(
 ): Promise<FormState> {
   await requireProfile();
   if (classroomId !== null && !id.safeParse(classroomId).success)
-    return { error: "That classroom doesn't exist." };
+    return { error: "That event doesn't exist." };
   const { values, fieldErrors } = readDetails(form);
   const kind = String(form.get("kind") ?? "");
 
@@ -181,7 +181,7 @@ export async function saveMaterial(
   }
   refresh();
   return {
-    ok: classroomId === null ? "Added to the library." : "Added.",
+    ok: classroomId === null ? "Added to Resources." : "Added.",
     values: {},
   };
 }

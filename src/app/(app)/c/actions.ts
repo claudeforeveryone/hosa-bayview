@@ -62,13 +62,13 @@ export async function joinClassroom(_: FormState, form: FormData): Promise<FormS
     if (error.code === "54000") return { error: "Too many wrong codes. Wait 10 minutes and try again.", values };
     return { ...failed("join", error.message), values };
   }
-  if (!data) return { fieldErrors: { code: "No classroom has that code. Double-check it with your trainer." }, values };
+  if (!data) return { fieldErrors: { code: "No event has that code. Check it with your trainer." }, values };
   redirect(`/c/${data}`);
 }
 
 export async function createClassroom(_: FormState, form: FormData): Promise<FormState> {
   const profile = await requireProfile();
-  if (!canTeach(profile)) return { error: "Only trainers and executives can make classrooms." };
+  if (!canTeach(profile)) return { error: "Only trainers and executives can make events." };
   const { values, parsed } = readClassroom(form);
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
@@ -81,31 +81,31 @@ export async function createClassroom(_: FormState, form: FormData): Promise<For
 export async function updateClassroom(classroomId: string, _: FormState, form: FormData): Promise<FormState> {
   await requireProfile();
   const { values, parsed } = readClassroom(form);
-  if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist.", values };
+  if (!id.safeParse(classroomId).success) return { error: "That event doesn't exist.", values };
   if (!parsed.success) return { fieldErrors: fieldErrors(parsed.error), values };
 
   const supabase = await createClient();
   const { data, error } = await supabase.from("classrooms").update(parsed.data).eq("id", classroomId).select("id");
   if (error) return { ...failed("update", error.message), values };
-  if (!data?.length) return { error: "You can't edit this classroom.", values };
+  if (!data?.length) return { error: "You can't edit this event.", values };
   refresh();
   return { ok: "Saved.", values };
 }
 
 export async function deleteClassroom(classroomId: string): Promise<FormState> {
   await requireProfile();
-  if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist." };
+  if (!id.safeParse(classroomId).success) return { error: "That event doesn't exist." };
   const supabase = await createClient();
   await removeClassroomFiles(supabase, classroomId);
   const { data, error } = await supabase.from("classrooms").delete().eq("id", classroomId).select("id");
   if (error) return failed("delete", error.message);
-  if (!data?.length) return { error: "You can't delete this classroom." };
+  if (!data?.length) return { error: "You can't delete this event." };
   redirect("/");
 }
 
 export async function regenerateCode(classroomId: string): Promise<FormState> {
   await requireProfile();
-  if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist." };
+  if (!id.safeParse(classroomId).success) return { error: "That event doesn't exist." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("regenerate_join_code", { cid: classroomId });
   if (error) {
@@ -134,7 +134,7 @@ export async function removeMember(classroomId: string, userId: string): Promise
 
 export async function leaveClassroom(classroomId: string): Promise<FormState> {
   const profile = await requireProfile();
-  if (!id.safeParse(classroomId).success) return { error: "That classroom doesn't exist." };
+  if (!id.safeParse(classroomId).success) return { error: "That event doesn't exist." };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("classroom_members")
@@ -143,6 +143,6 @@ export async function leaveClassroom(classroomId: string): Promise<FormState> {
     .eq("user_id", profile.id)
     .select("user_id");
   if (error) return failed("leave", error.message);
-  if (!data?.length) return { error: "You're not a member of this classroom." };
+  if (!data?.length) return { error: "You're not in this event." };
   redirect("/");
 }

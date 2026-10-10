@@ -21,7 +21,7 @@ STORY: A member opens the app, sees their rank this week huge, snaps to the boar
 
 FIRST VIEWPORT: Logo top left at about 96px tall on phone, 120px desktop. Below it the STANDING panel: your slice of this week's board, two rows above you and two below in plain Barlow, your own row set at poster scale in condensed type on a maroon band ("3 Joseph 142 answered"), and one plain sentence anchored low-left naming the gap ("12 more answered passes Priya"). Right rail with join, theme, profile. Bottom tab bar on phone; on desktop the rail stays right and tabs move top right.
 
-FORM: Vertical feed surface, dealt challenger (pop-culture-shelf-vertical-video-feed-surface), chosen by the user over my list's #5 assignment; seed 59dea833. Signature interaction: scroll-snap feed with the next item preloaded, rail glyph fills and its count steps up on tap. Motion grammar: hard snaps and two-frame steps, no easing.
+FORM: Vertical feed surface, dealt challenger (pop-culture-shelf-vertical-video-feed-surface), chosen by the user over my list's #5 assignment; seed 59dea833. Signature interaction: scroll-snap feed with the next item preloaded, rail glyph fills and its count steps up on tap. Motion grammar: transform and opacity only, 150-250 ms ease-out, one entrance per page, reduced motion respected (data-motion="calm" and prefers-reduced-motion stop it).
 
 Raises carried from the round: state reads in rule form as well as colour (solid live, dashed pending, struck done); every artifact carries a small form number (T-014, D-007); one reserved accent for you.
 

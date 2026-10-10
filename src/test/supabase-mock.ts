@@ -30,5 +30,11 @@ export function mockSupabase(opts: {
     eq: () => query,
     maybeSingle: async () => ({ data: opts.profile ?? null, error: opts.profileError ?? null }),
   };
-  return { auth, from: vi.fn(() => query) };
+  // No RPCs by default: every call answers like a function that doesn't exist yet.
+  const rpc = vi.fn(async (fn: string, args?: Record<string, unknown>) => {
+    void fn;
+    void args;
+    return { data: null as unknown, error: { code: "PGRST202", message: "missing" } as { code?: string; message: string } | null };
+  });
+  return { auth, from: vi.fn(() => query), rpc };
 }

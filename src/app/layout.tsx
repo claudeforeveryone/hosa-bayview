@@ -48,7 +48,7 @@ const montserrat = localFont({
 
 export const metadata: Metadata = {
   title: { default: "HOSA Bayview", template: "%s · HOSA Bayview" },
-  description: "Training for HOSA Bayview members: classrooms, practice tests, flashcards, and leaderboards.",
+  description: "Training for HOSA Bayview members: events, practice tests, flashcards, and leaderboards.",
   // Private by default: nothing here should be indexed or previewed with member data.
   robots: { index: false, follow: false, nocache: true },
   // Link previews carry the chapter name and nothing else (no description, no images).

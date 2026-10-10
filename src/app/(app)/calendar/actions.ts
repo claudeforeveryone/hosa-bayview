@@ -9,7 +9,7 @@ import { torontoToIso } from "@/lib/when";
 
 const id = z.string().uuid();
 const NOT_ALLOWED =
-  "You can only add events for the chapter (executives) or classes you run.";
+  "You can only add to the calendar for the chapter (executives) or events you run.";
 
 function failed(where: string, message: string): FormState {
   console.error(`[calendar:${where}]`, message);

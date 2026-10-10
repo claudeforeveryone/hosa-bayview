@@ -14,7 +14,7 @@ export function DeckShare({ deckId, shared, classroomName }: { deckId: string; s
   return (
     <div className="grid justify-items-start gap-3">
       <p className="text-[17px]">
-        {on ? `Shared with everyone in ${classroomName}.` : `Only you can see this. Share it to ${classroomName} to let classmates study it.`}
+        {on ? `Shared with everyone in ${classroomName}.` : `Only you can see this. Share it to ${classroomName} so its members can study it.`}
       </p>
       <Button
         variant="line"
@@ -28,7 +28,7 @@ export function DeckShare({ deckId, shared, classroomName }: { deckId: string; s
           })
         }
       >
-        {pending ? "Saving" : on ? "Stop sharing" : "Share with classroom"}
+        {pending ? "Saving" : on ? "Stop sharing" : "Share with event"}
       </Button>
       {result.error ? <FormMessage tone="error">{result.error}</FormMessage> : null}
       {result.ok ? <FormMessage tone="ok">{result.ok}</FormMessage> : null}

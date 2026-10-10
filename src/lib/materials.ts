@@ -18,8 +18,25 @@ export type MaterialRow = {
   created_at: string;
 };
 
-// A row plus a link to open it: the URL itself, or a signed storage URL for files (null if signing failed).
+// A row plus a link to open it: /files/<id> for files and links, null for placeholders.
 export type MaterialItem = MaterialRow & { href: string | null };
+
+// Where the UI opens a material. /files/<id> checks the session and RLS each click, then redirects to a
+// fresh 60 s signed URL (files) or the link itself, so a page left open never holds a stale link.
+export function materialHref(row: { id: string; path: string | null; url: string | null }): string | null {
+  return isPlaceholder(row) ? null : `/files/${row.id}`;
+}
+
+// A stored link only if it is an absolute http(s) URL. javascript:, data: and the rest are refused.
+export function openableUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw.trim());
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
 
 // Storage folder for a classroom id, or the chapter-wide folder when null.
 export function storageFolder(classroomId: string | null): string {
@@ -249,4 +266,17 @@ export const SAFE_TYPES = new Set([
 export function uploadType(type: string): string {
   const t = type.trim().toLowerCase();
   return SAFE_TYPES.has(t) ? t : "application/octet-stream";
+}
+
+// Fragment ids for section groups, in display order: "section-week-2", null is "section-general". Names that
+// slug the same get -2, -3. The hub and the Resources tab group the same rows, so their ids line up.
+export function sectionAnchors(sections: (string | null)[]): string[] {
+  const used = new Set<string>();
+  return sections.map((s) => {
+    const base = `section-${s === null ? "general" : asciiSlug(s) || "x"}`;
+    let id = base;
+    for (let n = 2; used.has(id); n++) id = `${base}-${n}`;
+    used.add(id);
+    return id;
+  });
 }

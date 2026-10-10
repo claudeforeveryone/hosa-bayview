@@ -22,7 +22,7 @@ export async function saveAttendance(
 ): Promise<FormState> {
   await requireProfile();
   if (!id.safeParse(classroomId).success)
-    return { error: "That classroom doesn't exist." };
+    return { error: "That event doesn't exist." };
 
   const week = String(form.get("week") ?? "");
   if (!isWeekStart(week)) return { error: "Pick a real week." };

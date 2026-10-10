@@ -9,15 +9,14 @@ export function usedOfLimit(usedBytes: number): string {
   return `${formatBytes(usedBytes)} of ${formatBytes(STORAGE_LIMIT_BYTES)}`;
 }
 
-// Bar fill (0 to 100, whole percent) and whether to show the "almost full" warning.
+// Bar fill (0 to 100, whole percent), whether to show the "almost full" warning, and the bar's spoken value.
+// The warning reads the same rounded percent the bar shows, so a bar at 80% always warns.
 export function storageMeter(usedBytes: number): {
   percent: number;
   warn: boolean;
+  valueText: string;
 } {
-  if (!Number.isFinite(usedBytes) || usedBytes <= 0)
-    return { percent: 0, warn: false };
-  return {
-    percent: Math.min(100, Math.round((usedBytes / STORAGE_LIMIT_BYTES) * 100)),
-    warn: usedBytes >= STORAGE_LIMIT_BYTES * STORAGE_WARN_RATIO,
-  };
+  const used = Number.isFinite(usedBytes) && usedBytes > 0 ? usedBytes : 0;
+  const percent = Math.min(100, Math.round((used / STORAGE_LIMIT_BYTES) * 100));
+  return { percent, warn: percent >= STORAGE_WARN_RATIO * 100, valueText: usedOfLimit(used) };
 }

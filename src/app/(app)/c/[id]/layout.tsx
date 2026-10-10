@@ -13,7 +13,7 @@ export async function generateMetadata({
   params,
 }: LayoutProps<"/c/[id]">): Promise<Metadata> {
   const room = await getClassroom((await params).id);
-  return { title: room?.name ?? "Classroom" };
+  return { title: room?.name ?? "Event" };
 }
 
 export default async function ClassroomLayout({

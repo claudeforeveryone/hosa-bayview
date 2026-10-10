@@ -7,11 +7,12 @@ import { Button, Field, FormMessage, Select } from "@/components/form";
 import { GRADES } from "@/lib/profile";
 import { signup, type AuthState } from "../actions";
 
-export function SignupForm() {
+export function SignupForm({ chapterGate }: { chapterGate: boolean }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(
     signup,
     {},
   );
+  const askCode = chapterGate || state.chapterGate === true;
   return (
     <form action={action} className="grid gap-5" noValidate>
       <h1 className="font-display text-[44px] leading-none font-bold uppercase">
@@ -21,6 +22,18 @@ export function SignupForm() {
         <FormMessage tone="error">{state.error}</FormMessage>
       ) : null}
       {state.ok ? <FormMessage tone="ok">{state.ok}</FormMessage> : null}
+      {askCode ? (
+        <Field
+          label="Chapter code"
+          name="chapter_code"
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+          error={state.fieldErrors?.chapter_code}
+          hint="From a chapter executive."
+        />
+      ) : null}
       <Field
         label="Your name"
         name="full_name"

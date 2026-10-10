@@ -96,7 +96,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
       {news.length || canPost ? (
         <section aria-labelledby="news-h" className="grid gap-4">
           <h2 id="news-h" className={hubHeading}>
-            Class news
+            News
           </h2>
           {news.length ? (
             <AnnouncementList
@@ -109,7 +109,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
           {canPost ? (
             <details className="group border-y border-rule" open={false}>
               <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-[17px] hover:bg-band sm:px-3">
-                Post to the class
+                Post
                 <Plus
                   size={22}
                   strokeWidth={1.75}

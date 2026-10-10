@@ -20,7 +20,7 @@ export function TestPublish({ testId, published }: { testId: string; published: 
           })
         }
       >
-        {pending ? "Saving" : published ? "Hide from members" : "Post to class"}
+        {pending ? "Saving" : published ? "Hide from members" : "Post"}
       </Button>
       {message ? <FormMessage tone={message.tone}>{message.text}</FormMessage> : null}
     </div>

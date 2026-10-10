@@ -61,7 +61,7 @@ export function EventSummary({
   e: EventRow;
   compact?: boolean;
 }) {
-  const scope = e.classroom_id ? (e.room?.name ?? "Class") : "Chapter";
+  const scope = e.classroom_id ? (e.room?.name ?? "Event") : "Chapter";
   return (
     <span className="grid min-w-0 gap-1">
       <span className="caps num flex flex-wrap items-center gap-x-2 text-[14px] text-ink-2">

@@ -95,7 +95,7 @@ export function BattleSetup({
         defaultValue={state.values?.source ?? "all"}
         hint={
           skipped
-            ? "Tests that hide answers or cap attempts can't be used."
+            ? "Tests that hide answers, cap attempts or have no answer key can't be used."
             : undefined
         }
       >

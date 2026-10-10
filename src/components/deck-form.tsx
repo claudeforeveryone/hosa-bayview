@@ -59,7 +59,7 @@ export function DeckForm({
       {classrooms ? (
         <div className="grid gap-1.5">
           <label htmlFor={`${uid}-classroom`} className="text-[15px] font-medium">
-            Classroom
+            Event
           </label>
           <select
             id={`${uid}-classroom`}
@@ -85,8 +85,8 @@ export function DeckForm({
             className="mt-1 size-5 accent-[var(--you)]"
           />
           <span>
-            Share with the classroom
-            <span className="block text-[15px] text-ink-2">Classmates can study it. Only applies when a classroom is picked.</span>
+            Share with the event
+            <span className="block text-[15px] text-ink-2">Everyone in the event can study it. Pick an event first.</span>
           </span>
         </label>
       ) : null}

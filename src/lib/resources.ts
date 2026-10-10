@@ -2,7 +2,6 @@
 
 export const MAX_TOPICS = 30;
 
-export type ResourceRow = { id: string; title: string; url: string; note: string; position: number };
 export type TopicRow = { id: string; topic: string; percent: number; position: number };
 
 // Accepts a full http(s) URL, a bare host like "example.com/guide", or host:port like "localhost:3000"

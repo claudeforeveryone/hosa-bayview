@@ -7,8 +7,9 @@ export const STEP_TEXT_MAX = 500;
 export const STEPS_MAX = 100;
 export const POINTS_MAX = 100;
 
-// "1. ", "2) ", "- ", "* ", "• " at the start of a pasted rating-sheet line. Needs the space, so "1.5 mL" stays.
-const MARKER = /^(?:\d{1,3}[.)]|[-*•])\s+/;
+// "1. " and "2) " at the start of a pasted rating-sheet line (needs the space, so "1.5 mL" stays), and the
+// bullets "- ", "* ", "• " only before a letter, so "- 5 mL" keeps its dash.
+const MARKER = /^(?:\d{1,3}[.)]\s+|[-*•]\s+(?=\p{L}))/u;
 const POINTS = /\s*\|\s*(\d+(?:\.\d+)?)\s*$/;
 
 export function parseSteps(input: string): Step[] {
@@ -23,6 +24,12 @@ export function parseSteps(input: string): Step[] {
         steps.push({ text: line, points: Number(m[1]) });
         continue;
       }
+      // A lone "| 3": points that wrapped onto their own line belong to the step above, if it has none.
+      const prev = steps.at(-1);
+      if (prev && prev.points === undefined) {
+        prev.points = Number(m[1]);
+        continue;
+      }
       line = raw.trim();
     }
     steps.push({ text: line });
@@ -32,20 +39,30 @@ export function parseSteps(input: string): Step[] {
 
 // Back to the textarea form, for editing.
 export function stepsToText(steps: Step[]): string {
-  return steps.map((s) => (s.points === undefined ? s.text : `${s.text} | ${s.points}`)).join("\n");
+  return steps
+    .map((s) => (s.points === undefined ? s.text : `${s.text} | ${s.points}`))
+    .join("\n");
 }
 
 // Sum of scored steps; null when no step carries points.
 export function totalPoints(steps: Step[]): number | null {
   const scored = steps.filter((s) => s.points !== undefined);
-  return scored.length ? scored.reduce((sum, s) => sum + (s.points ?? 0), 0) : null;
+  return scored.length
+    ? scored.reduce((sum, s) => sum + (s.points ?? 0), 0)
+    : null;
 }
 
 // The database stores steps as plain jsonb, so this is the only shape check.
 export const stepsSchema = z
   .array(
     z.object({
-      text: z.string().min(1).max(STEP_TEXT_MAX, `Keep each step under ${STEP_TEXT_MAX} characters.`),
+      text: z
+        .string()
+        .min(1)
+        .max(
+          STEP_TEXT_MAX,
+          `Keep each step under ${STEP_TEXT_MAX} characters.`,
+        ),
       points: z
         .number()
         .int("Points are whole numbers.")
@@ -64,7 +81,8 @@ export function cleanSteps(value: unknown): Step[] {
     if (!item || typeof item !== "object") continue;
     const { text, points } = item as { text?: unknown; points?: unknown };
     if (typeof text !== "string" || !text.trim()) continue;
-    const ok = typeof points === "number" && Number.isFinite(points) && points >= 0;
+    const ok =
+      typeof points === "number" && Number.isFinite(points) && points >= 0;
     steps.push(ok ? { text: text.trim(), points } : { text: text.trim() });
   }
   return steps;

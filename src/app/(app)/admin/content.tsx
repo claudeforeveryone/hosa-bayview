@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ConfirmAction } from "@/components/confirm-action";
 import { deleteMaterial } from "@/app/(app)/library/actions";
 import { formNumber } from "@/lib/join-code";
+import { materialHref } from "@/lib/materials";
 import { createClient } from "@/lib/supabase/server";
 import { formatWhen, timeAgo } from "@/lib/when";
 import { adminDelete } from "./content-actions";
@@ -29,6 +30,7 @@ const VERB: Record<string, string> = {
   removed: "removed",
   passcode: "changed the admin passcode",
   passcode_used: "used the admin passcode, which then cleared",
+  chapter_code: "updated the chapter code",
 };
 
 // Who did what to whom: roles, bans, titles, warnings, removals, passcode changes. Filled by triggers.
@@ -119,23 +121,33 @@ function Group({
 
 function Row({
   href,
+  external = false,
   title,
   meta,
   del,
 }: {
   href: string | null;
+  external?: boolean;
   title: string;
   meta: string;
   del: ReactNode;
 }) {
+  const linkClass =
+    "block truncate text-[17px] font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink";
   return (
     <li className="grid gap-3 border-b border-rule px-1 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-3">
       <span className="min-w-0">
-        {href ? (
-          <Link
+        {href && external ? (
+          <a
             href={href}
-            className="block truncate text-[17px] font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClass}
           >
+            {title}
+          </a>
+        ) : href ? (
+          <Link href={href} className={linkClass}>
             {title}
           </Link>
         ) : (
@@ -175,6 +187,7 @@ type Material = {
   id: string;
   title: string;
   url: string | null;
+  path: string | null;
   note: string;
   file_name: string | null;
   room: { name: string } | null;
@@ -205,7 +218,7 @@ export async function ContentLists() {
     supabase
       .from("materials")
       .select(
-        "id, title, url, note, file_name, room:classrooms!materials_classroom_id_fkey(name)",
+        "id, title, url, path, note, file_name, room:classrooms!materials_classroom_id_fkey(name)",
       )
       .order("created_at", { ascending: false }),
   ]);
@@ -287,7 +300,8 @@ export async function ContentLists() {
           {M.map((m) => (
             <Row
               key={m.id}
-              href={null}
+              href={materialHref(m)}
+              external
               title={m.title}
               meta={[m.room?.name ?? "Resources", m.file_name ?? m.url ?? (m.note || "Placeholder")]
                 .filter(Boolean)

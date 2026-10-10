@@ -37,7 +37,7 @@ export function ClassroomTabs({
   return (
     <nav
       ref={nav}
-      aria-label="Classroom"
+      aria-label="Event"
       className="-mx-4 overflow-x-auto [scrollbar-width:none] sm:mx-0 [&::-webkit-scrollbar]:hidden"
     >
       <ul className="flex w-max min-w-full border-b border-rule px-4 sm:px-0">

@@ -3,10 +3,12 @@ import { PageTitle } from "@/components/page-title";
 import { requireRole, type Role } from "@/lib/auth";
 import { gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
+import { readChapterGate } from "@/lib/chapter-code";
 import { storageMeter, usedOfLimit } from "@/lib/format-bytes";
 import { formatBytes } from "@/lib/materials";
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceSummary } from "./attendance-overview";
+import { ChapterCodeSection } from "./chapter-code";
 import { AdminLog, ContentLists } from "./content";
 import { PeopleList } from "./people-list";
 import type { PersonRow, WarningRow } from "./person-dialog";
@@ -27,7 +29,7 @@ async function StorageMeter() {
     bytes: Number(r.bytes),
   }));
   const used = rows.reduce((sum, r) => sum + r.bytes, 0);
-  const { percent, warn } = storageMeter(used);
+  const { percent, warn, valueText } = storageMeter(used);
 
   return (
     <section aria-labelledby="storage-h" className="grid gap-4">
@@ -46,6 +48,7 @@ async function StorageMeter() {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent}
+        aria-valuetext={valueText}
         className="h-2 border border-rule"
       >
         <div
@@ -76,6 +79,12 @@ async function StorageMeter() {
       ) : null}
     </section>
   );
+}
+
+// Hidden until migration 0090 is applied (the RPC is missing, so the gate reads as null).
+async function ChapterCode() {
+  const on = await readChapterGate(await createClient());
+  return on === null ? null : <ChapterCodeSection on={on} />;
 }
 
 export default async function AdminPage() {
@@ -175,6 +184,7 @@ export default async function AdminPage() {
           isDemo={isDemo}
         />
       </section>
+      {isDemo ? null : <ChapterCode />}
       {isDemo ? null : <StorageMeter />}
       <AttendanceSummary canWarn={!isDemo} />
       {isDemo ? null : <AdminLog now={now} />}
