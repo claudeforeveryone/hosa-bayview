@@ -40,7 +40,7 @@ const ITEMS: NavItem[] = [
     label: "Events",
     short: "Events",
     Icon: Grid2x2,
-    match: (p) => p.startsWith("/events") || p === "/c" || p.startsWith("/c/"),
+    match: (p) => p.startsWith("/events") || p === "/c" || p.startsWith("/c/") || p.startsWith("/battle/"),
   },
   {
     href: "/announcements",

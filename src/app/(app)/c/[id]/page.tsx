@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { AnnouncementForm } from "@/components/announcement-form";
 import { AnnouncementList } from "@/components/announcement-list";
+import { BattleEntry } from "@/components/battle-entry";
 import { BoardView } from "@/components/board-view";
 import {
   HubResources,
@@ -11,6 +12,7 @@ import {
 import { parseMetric, parsePeriod, rankBoard } from "@/lib/activity";
 import { getBoard } from "@/lib/activity-data";
 import { getAnnouncements } from "@/lib/announcements";
+import { getOpenBattles } from "@/lib/battles";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom, getRoomInfo, uuid } from "@/lib/classrooms";
 import { listDecks } from "@/lib/decks";
@@ -42,7 +44,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
   const sp = await props.searchParams;
   const metric = sp.metric ? parseMetric(sp.metric) : "answered";
   const period = parsePeriod(sp.period);
-  const [me, board, room, info, news, sections, tests, decks] =
+  const [me, board, room, info, news, sections, tests, decks, battles] =
     await Promise.all([
       requireProfile(),
       getBoard(period, id),
@@ -52,6 +54,8 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
       getMaterialSections(id),
       getClassroomTests(id),
       listDecks(id),
+      // Null until the battle migrations are applied: then there's no Battle button at all.
+      getOpenBattles(id),
     ]);
   const category = info?.category ?? null;
   const skills = category === "practical" ? await getSkills(id) : [];
@@ -129,6 +133,10 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
       <HubResources base={base} rows={sections} canManage={canPost} />
 
       <PracticeStrip base={base} cells={cells} />
+
+      {battles && info?.kind === "class" && (category === "mc" || category === "practical") ? (
+        <BattleEntry classroomId={id} rows={battles} />
+      ) : null}
 
       <section aria-labelledby="board-h" className="grid gap-4">
         <h2 id="board-h" className={hubHeading}>

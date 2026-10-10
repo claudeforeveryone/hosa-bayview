@@ -39,8 +39,8 @@ describe("navItemsFor", () => {
 describe("Events active state", () => {
   const events = navItemsFor(false).find((i) => i.href === "/events")!;
 
-  it("is active on /events and every classroom path", () => {
-    for (const path of ["/events", "/c/abc", "/c/new", "/c/abc/tests"])
+  it("is active on /events, every classroom path and a battle", () => {
+    for (const path of ["/events", "/c/abc", "/c/new", "/c/abc/tests", "/battle/abc"])
       expect(events.match(path)).toBe(true);
   });
 
