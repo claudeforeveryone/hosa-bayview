@@ -210,3 +210,8 @@ Global additions:
 
 ### Task 22: "How the site works" Google Doc
 - In the user's Google Drive: a plain-language doc for execs covering: what the site is built with; where it is hosted (Vercel) and where data lives (Supabase project hosa-bayview, ca-central-1, tables, storage buckets, what is in each); accounts, roles and who can see/do what; how content gets added (files, links, tests, skills, announcements); limits (1 GB storage, 50 MB per file, free plans); secrets and where they are kept; backups and how to export; how deploys work (GitHub -> Vercel); what to do if something breaks; handover checklist for next year's execs. Facts checked against the repo and live project (fact-checker), no secrets in the doc.
+
+### Task 16/17 hardening (user: "trainers need to actually use it")
+- Trainer job list (each must succeed on the preview as a fresh trainer-owner with no help, timed): post + pin an announcement; upload a file into a section; add a link; create a test by paste (10 q) and publish; add one question by hand; take it as a member and see the score; view grades; run attendance; add a skill; start a 1v1 battle and finish it with a member; edit event settings; get the join code to members.
+- Pass bar: every job done in <= 5 clicks from the event page where possible, no dead ends, every empty state says what to do in <= 6 words, every error says how to fix it.
+- Guide-follow test: the trainer guide is one page per job (numbered steps + one screenshot). A fresh agent given ONLY the guide performs each job on the preview via Playwright. Any stuck step fails the run; fix the site or the guide, rerun until clean.
