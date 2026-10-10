@@ -12,7 +12,7 @@ const text = (markup: string) =>
     .trim();
 
 describe("HubResources", () => {
-  it("lists sections with counts, General first and Textbooks last, each opening the Resources tab", () => {
+  it("lists sections with counts, General first and Textbooks last, each opening its section on Resources", () => {
     const out = html(
       createElement(HubResources, {
         base: "/c/room",
@@ -27,7 +27,11 @@ describe("HubResources", () => {
       }),
     );
     expect(text(out)).toBe("Resources General 2 Week 2 2 Textbooks 1");
-    expect(out.match(/href="\/c\/room\/resources"/g)).toHaveLength(3);
+    expect([...out.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual([
+      "/c/room/resources#section-general",
+      "/c/room/resources#section-week-2",
+      "/c/room/resources#section-textbooks",
+    ]);
   });
 
   it("shows a calm empty state for a room with no materials", () => {
@@ -67,5 +71,16 @@ describe("PracticeStrip", () => {
     expect(text(out)).toBe("Practice 0 Tests 3 drafts 4 Decks 7 Skills");
     expect(out).toContain('href="/c/room/skills"');
     expect(out).toContain("grid-cols-3");
+  });
+
+  it("a single cell (showcase events) fills one column", () => {
+    const out = html(
+      createElement(PracticeStrip, {
+        base: "/c/room",
+        cells: [{ slug: "flashcards", label: "Decks", count: 2 }],
+      }),
+    );
+    expect(out).toContain("grid-cols-1");
+    expect(out).not.toContain("grid-cols-2");
   });
 });
