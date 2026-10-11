@@ -93,23 +93,26 @@ export function TakeTest({
   const locked = practice && mine !== undefined;
 
   // byTap is false when the timer submits: no tap, so no tone (the browser would refuse it anyway).
-  const submit = useCallback((byTap = true) => {
-    if (submitted.current) return;
-    submitted.current = true;
-    setError(null);
-    if (byTap) primeFeedback();
-    startSubmit(async () => {
-      const r = await submitAttempt(attemptId);
-      if (r.error) {
-        submitted.current = false;
-        setError(r.error);
-      } else {
-        feedback("submit", { sound: byTap });
-        void rollLuckyBonus("test");
-        router.refresh();
-      }
-    });
-  }, [attemptId, router]);
+  const submit = useCallback(
+    (byTap = true) => {
+      if (submitted.current) return;
+      submitted.current = true;
+      setError(null);
+      if (byTap) primeFeedback();
+      startSubmit(async () => {
+        const r = await submitAttempt(attemptId);
+        if (r.error) {
+          submitted.current = false;
+          setError(r.error);
+        } else {
+          feedback("submit", { sound: byTap });
+          void rollLuckyBonus("test");
+          router.refresh();
+        }
+      });
+    },
+    [attemptId, router],
+  );
 
   // Countdown against the server's clock; submits itself at zero.
   const [offset] = useState(() => serverNow - Date.now());
@@ -186,7 +189,11 @@ export function TakeTest({
     }));
     // Only for the question still on screen: a verdict that lands after you moved on is just stored, and
     // shows quietly, without the reveal, when you go back.
-    if (practice && typeof r.is_correct === "boolean" && rows[onScreen.current]?.question_id === qid) {
+    if (
+      practice &&
+      typeof r.is_correct === "boolean" &&
+      rows[onScreen.current]?.question_id === qid
+    ) {
       setFresh(qid);
       feedback(r.is_correct ? "correct" : "wrong");
     }
@@ -216,6 +223,20 @@ export function TakeTest({
         ) : (
           <p className="caps text-[16px] text-ink-2">Practice</p>
         )}
+        {/* How far through the paper you are, filling left to right as each question is answered. */}
+        <span
+          role="progressbar"
+          aria-label="Questions answered"
+          aria-valuemin={0}
+          aria-valuemax={rows.length}
+          aria-valuenow={answered}
+          className="absolute inset-x-0 bottom-0 block h-[3px] overflow-hidden bg-rule"
+        >
+          <span
+            className="progress-fill block h-full bg-you"
+            style={{ transform: `scaleX(${answered / rows.length})` }}
+          />
+        </span>
       </div>
 
       <section aria-labelledby="q-h" className="grid gap-5">
@@ -256,7 +277,7 @@ export function TakeTest({
                   onClick={() => pick(original)}
                   aria-pressed={chosen}
                   disabled={locked || submitting}
-                  className={`step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-[17px] disabled:cursor-default ${tone}`}
+                  className={`press step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-[17px] disabled:cursor-default ${tone}`}
                 >
                   <span className="num w-5 shrink-0 font-display text-[18px] font-bold">
                     {LETTERS[shown]}
@@ -266,7 +287,7 @@ export function TakeTest({
                     <Check
                       size={22}
                       strokeWidth={2.25}
-                      className="shrink-0 text-ok"
+                      className={`shrink-0 text-ok ${fresh === q.question_id ? "verdict-pop" : ""}`}
                       aria-label="Right answer"
                     />
                   ) : null}
@@ -274,7 +295,7 @@ export function TakeTest({
                     <X
                       size={22}
                       strokeWidth={2.25}
-                      className="shrink-0 text-danger"
+                      className={`shrink-0 text-danger ${fresh === q.question_id ? "verdict-pop" : ""}`}
                       aria-label="Your answer, wrong"
                     />
                   ) : null}
