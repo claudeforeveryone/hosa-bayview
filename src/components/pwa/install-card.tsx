@@ -66,21 +66,29 @@ export function InstallCard({ pushKey }: { pushKey: string | null }) {
     });
   }, [mode, env]);
 
-  // The card covers the bottom of the page, so the page gets the card's height as extra room to scroll its last
-  // lines out from under it.
+  // The card covers the bottom of the page. The page gets the card's height as extra room to scroll its last lines
+  // out from under it, and the viewport a scroll padding the height of the card plus the bar it sits on, so a link
+  // or button reached with Tab (or a switch control) is scrolled up into view above them, never left underneath.
   useLayoutEffect(() => {
     const el = card.current;
     if (!shown || !el) return;
     const body = document.body;
+    const root = document.documentElement;
     const fit = () => {
+      // The card's own bottom offset is the bar's height plus the safe area, resolved to pixels.
+      const below = parseFloat(getComputedStyle(el).bottom) || 0;
       body.style.paddingBottom = `${el.offsetHeight}px`;
+      root.style.scrollPaddingBottom = `${el.offsetHeight + below}px`;
     };
     fit();
     const watch = new ResizeObserver(fit);
     watch.observe(el);
+    window.addEventListener("resize", fit);
     return () => {
       watch.disconnect();
+      window.removeEventListener("resize", fit);
       body.style.paddingBottom = "";
+      root.style.scrollPaddingBottom = "";
     };
   }, [shown]);
 
