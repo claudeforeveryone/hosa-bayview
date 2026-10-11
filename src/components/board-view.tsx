@@ -91,7 +91,7 @@ function BoardLine({
           />
           <Link
             href={`/members/${row.user_id}`}
-            className="step min-w-0 truncate font-display text-[18px] leading-tight font-semibold uppercase hover:underline sm:text-[20px]"
+            className="step -my-1.5 min-w-0 truncate py-1.5 font-display text-[18px] leading-tight font-semibold uppercase hover:underline sm:text-[20px]"
           >
             {row.full_name || "Member"}
           </Link>
