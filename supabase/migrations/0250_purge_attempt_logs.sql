@@ -4,11 +4,15 @@
 -- (0014/0068; claim_admin no longer writes it) was never trimmed at all. The rate limits that read these logs look
 -- back 10 minutes, so nothing older than a day is needed.
 --
--- private.purge_attempt_logs() deletes rows older than a day from all three; the daily keep-alive cron (0084,
--- /api/keepalive) now calls it. Expired chapter-code tickets go too (they're hashes, but nothing reads them).
+-- public.purge_attempt_logs() deletes rows older than a day from all three, plus expired chapter-code tickets (they're
+-- hashes, but nothing reads them). The daily cron route (/api/keepalive) calls it as its own RPC right after
+-- keepalive(), so this migration doesn't redefine keepalive() and can't be undone by another migration that does.
 -- The chapter-code tables come from 0090, which may not be applied yet, so they're looked up by name.
+--
+-- Same grants as keepalive() (0084): anon may run it, because the cron route uses the publishable key. It takes
+-- nothing, returns nothing, and only ever removes rows that are past their retention.
 
-create or replace function private.purge_attempt_logs()
+create or replace function public.purge_attempt_logs()
 returns void
 language plpgsql
 security definer
@@ -25,25 +29,5 @@ begin
   end if;
 end
 $$;
-revoke all on function private.purge_attempt_logs() from public, anon, authenticated;
-
--- Same signature and grants as 0084: anon may run it, it takes nothing and returns nothing, and the purges only ever
--- remove rows past their retention. The owner console's 0230 also redefines keepalive (to purge analytics); this
--- version keeps that purge when it exists, so apply 0230 first (number order). Any later redefinition of keepalive
--- must keep calling private.purge_attempt_logs().
-create or replace function public.keepalive()
-returns void
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  perform private.purge_attempt_logs();
-  if to_regprocedure('private.purge_analytics()') is not null then
-    execute 'select private.purge_analytics()';
-  end if;
-  perform 1 from pg_catalog.pg_class limit 1;
-end
-$$;
-revoke all on function public.keepalive() from public, anon, authenticated;
-grant execute on function public.keepalive() to anon;
+revoke all on function public.purge_attempt_logs() from public, anon, authenticated;
+grant execute on function public.purge_attempt_logs() to anon;

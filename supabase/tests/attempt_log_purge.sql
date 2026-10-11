@@ -1,5 +1,6 @@
 -- Wrong-code log purge (migration 0250). Runs in one transaction and rolls back; raises on the first failure.
--- Uses one throwaway user only.
+-- Uses one throwaway user only. The cron route (/api/keepalive) calls public.purge_attempt_logs() with the publishable
+-- key right after keepalive(); src/app/api/keepalive/route.test.ts checks that side.
 begin;
 
 create function pg_temp.check(label text, ok boolean) returns void language plpgsql as $$
@@ -34,9 +35,9 @@ do $$ begin
   end if;
 end $$;
 
--- The cron's path: the anon key runs keepalive().
+-- The cron's path: the publishable (anon) key runs the purge.
 set local role anon;
-select public.keepalive();
+select public.purge_attempt_logs();
 reset role;
 
 select pg_temp.check('join: day-old try gone',
@@ -67,13 +68,10 @@ do $$ begin
   end if;
 end $$;
 
--- Only the keep-alive path is open: nobody calls the purge directly, and signed-in accounts can't run keepalive.
-set local role anon;
-select pg_temp.expect('anon cannot call the purge', 'select private.purge_attempt_logs()', '42501');
-reset role;
+-- Same grants as keepalive(): the anon key may run it, signed-in accounts may not.
+select pg_temp.check('anon may run the purge', has_function_privilege('anon', 'public.purge_attempt_logs()', 'execute'));
 set local role authenticated;
-select pg_temp.expect('members cannot call the purge', 'select private.purge_attempt_logs()', '42501');
-select pg_temp.expect('members cannot call keepalive', 'select public.keepalive()', '42501');
+select pg_temp.expect('members cannot call the purge', 'select public.purge_attempt_logs()', '42501');
 reset role;
 
 rollback;
