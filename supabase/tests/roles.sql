@@ -78,12 +78,17 @@ insert into _r select 'confirmed signup on exec email stays trainee (bootstrap r
 update public.profiles set role = 'trainer' where id = 'aaaaaaaa-0000-0000-0000-0000000000bb';
 insert into _r select 'setting is not consumed by a signup (retired)', count(*)::text, count(*) = 1
   from private.settings where key = 'first_executive_email';
+-- The first executive is now granted by uid, by hand (what a chapter lead or the SQL editor does). The executive
+-- checks further down use this account.
+update public.profiles set role = 'executive' where id = 'aaaaaaaa-0000-0000-0000-00000000000e';
 
-insert into private.settings values ('first_executive_email', 'second-exec@example.com');
+-- The setting is still there (not consumed), so this replaces it.
+insert into private.settings values ('first_executive_email', 'second-exec@example.com')
+  on conflict (key) do update set value = excluded.value;
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, email_confirmed_at, created_at, updated_at) values
   ('00000000-0000-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000011', 'authenticated', 'authenticated',
    'second-exec@example.com', '{}', now(), now(), now());
-insert into _r select 'no promotion while an executive exists', role::text, role = 'trainee'
+insert into _r select 'second email signup stays trainee too', role::text, role = 'trainee'
   from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000011';
 
 update auth.users set email = 'renamed@example.com' where id = 'aaaaaaaa-0000-0000-0000-00000000000f';
