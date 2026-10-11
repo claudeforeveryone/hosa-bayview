@@ -114,8 +114,15 @@ export default async function NotificationsPage() {
 
   return (
     <div className="grid grid-cols-1 gap-10">
+      {/* With nothing at all, the empty state below says so; the meta would only repeat it. */}
       <PageTitle
-        meta={fresh.length ? `${fresh.length} new` : "You're all caught up"}
+        meta={
+          fresh.length
+            ? `${fresh.length} new`
+            : rows.length
+              ? "You're all caught up"
+              : undefined
+        }
       >
         Notifications
       </PageTitle>

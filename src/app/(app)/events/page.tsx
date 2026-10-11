@@ -172,8 +172,9 @@ export default async function EventsPage(props: PageProps<"/events">) {
 
       {!mine.length && !groups.length ? (
         <p className="max-w-[60ch] text-[17px] text-ink-2">
-          You&apos;re not in an event yet. Get the code from your trainer and
-          enter it below.
+          {canTeach(profile)
+            ? "No events yet. Make one above, or enter a code below."
+            : "You're not in an event yet. Get the code from your trainer and enter it below."}
         </p>
       ) : null}
 
