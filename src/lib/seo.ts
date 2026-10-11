@@ -59,16 +59,33 @@ export function sitemap(base: string): MetadataRoute.Sitemap {
   }));
 }
 
-// Metadata for a page anyone may open: indexable, with its own canonical address. The social card image comes from
-// app/opengraph-image.png and app/twitter-image.png, which Next adds to every page.
+// The link-preview card (app/opengraph-image.png and twitter-image.png, made by scripts/make-og-image.py). Next adds
+// it to every page by itself, but a page that sets its own openGraph or twitter object loses it, so publicPage names
+// it again. The alt text matches the two .alt.txt files (a test checks).
+export const SOCIAL_IMAGE_ALT =
+  "The HOSA Bayview tiger mark beside the chapter tagline, Shatter every limit, and the line: practice tests, flashcards and leaderboards for chapter members.";
+const OG_IMAGE = { url: "/opengraph-image.png", width: 1200, height: 630, type: "image/png", alt: SOCIAL_IMAGE_ALT };
+const TWITTER_IMAGE = { url: "/twitter-image.png", alt: SOCIAL_IMAGE_ALT };
+
+// Metadata for a page anyone may open: indexable, with its own canonical address and the social card.
 export function publicPage({ title, description, path }: { title: string; description: string; path: string }): Metadata {
+  // The <title> gets the site name from the root template; previews don't, so it's added here.
+  const shared = `${title} · ${SITE_NAME}`;
   return {
     title,
     description,
     alternates: { canonical: path },
     robots: { index: true, follow: true },
-    openGraph: { type: "website", siteName: SITE_NAME, locale: "en_CA", title, description, url: path },
-    twitter: { card: "summary_large_image", title, description },
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      locale: "en_CA",
+      title: shared,
+      description,
+      url: path,
+      images: [OG_IMAGE],
+    },
+    twitter: { card: "summary_large_image", title: shared, description, images: [TWITTER_IMAGE] },
   };
 }
 

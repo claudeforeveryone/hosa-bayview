@@ -1,6 +1,16 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { isPublicPath } from "./route-gate";
-import { INDEXED_PATHS, jsonLdHtml, publicPage, robots, siteJsonLd, siteUrl, sitemap } from "./seo";
+import {
+  INDEXED_PATHS,
+  SOCIAL_IMAGE_ALT,
+  jsonLdHtml,
+  publicPage,
+  robots,
+  siteJsonLd,
+  siteUrl,
+  sitemap,
+} from "./seo";
 
 describe("siteUrl", () => {
   it("uses the configured origin, without a trailing slash or path", () => {
@@ -125,11 +135,28 @@ describe("publicPage", () => {
     expect(meta.alternates).toEqual({ canonical: "/terms" });
   });
 
-  it("gives link previews the page's own title, description and address", () => {
+  it("gives link previews the page's own title (with the site name), description and address", () => {
     expect(meta.title).toBe("Terms of use");
     expect(meta.description).toBe("The rules.");
-    expect(meta.openGraph).toMatchObject({ title: "Terms of use", description: "The rules.", url: "/terms" });
-    expect(meta.twitter).toMatchObject({ title: "Terms of use", description: "The rules." });
+    expect(meta.openGraph).toMatchObject({
+      title: "Terms of use · HOSA Bayview",
+      description: "The rules.",
+      url: "/terms",
+    });
+    expect(meta.twitter).toMatchObject({ title: "Terms of use · HOSA Bayview", description: "The rules." });
+  });
+
+  it("keeps the social card, which a page's own openGraph would otherwise drop", () => {
+    expect(meta.openGraph?.images).toEqual([
+      { url: "/opengraph-image.png", width: 1200, height: 630, type: "image/png", alt: SOCIAL_IMAGE_ALT },
+    ]);
+    expect(meta.twitter?.images).toEqual([{ url: "/twitter-image.png", alt: SOCIAL_IMAGE_ALT }]);
+  });
+
+  it("uses the same alt text as the card files", () => {
+    for (const f of ["src/app/opengraph-image.alt.txt", "src/app/twitter-image.alt.txt"]) {
+      expect(readFileSync(f, "utf8").trim(), f).toBe(SOCIAL_IMAGE_ALT);
+    }
   });
 
   it("only indexes pages a guest can open", () => {
