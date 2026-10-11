@@ -69,6 +69,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 - Heartbeat once a minute while the tab is visible and the user isn't idle. Stored one row per user per minute so it can't be inflated.
 - Questions answered and correct per user, per classroom.
 - Online status for "who's online" (seen in last 2 minutes).
+- Elo (0080-0083, 0105) is the sum of `elo_events` from 0, no base. Answers on published tests count for everyone (managers included): first answer to a question 2, +3 if right; answering it again 1, or 2 if right, once per question per Toronto day (`repeat`). Plus reviews, daily sign-in and lucky bonuses, scaled by the study streak multiplier.
 
 ## Executive dashboard
 

@@ -28,8 +28,8 @@ export const METRIC_LABEL: Record<Metric, string> = {
   elo: "Elo",
 };
 
-// The chapter board ranks Elo: 1200 plus every point, sign-ins and lucky bonuses included. A room board counts
-// only what was earned in that room, with no base, so it is called Points there.
+// The chapter board ranks Elo: every point earned, from 0, sign-ins and lucky bonuses included (0105). A room
+// board counts only what was earned in that room, so it is called Points there.
 export type BoardScope = "chapter" | "room";
 export function metricLabel(metric: Metric, scope: BoardScope = "chapter"): string {
   return metric === "elo" && scope === "room" ? "Points" : METRIC_LABEL[metric];
@@ -40,7 +40,7 @@ export type Result = (typeof RESULTS)[number];
 
 // What the Elo score is made of. Shown under the club board so the number isn't a mystery.
 export const ELO_SUMMARY =
-  "Everyone starts at 1200. A question is 2 Elo the first time you answer it, and 3 more if that answer is right. A card from someone else's deck is 1, once a day, up to 100 a day. Each day you sign in adds 5. A study streak boosts what you earn that day, up to 1.6× at 30 days. Lucky bonuses land at random.";
+  "Everyone starts at 0. A question is 2 Elo the first time you answer it, and 3 more if that answer is right. Answering it again later still earns 1, or 2 if right (once per question a day). A card from someone else's deck is 1, once a day, up to 100 a day. Each day you sign in adds 5. A study streak boosts what you earn that day, up to 1.6× at 30 days. Lucky bonuses land at random.";
 
 export type BoardRow = {
   user_id: string;
