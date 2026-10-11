@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { robots as rules, siteUrl } from "@/lib/seo";
 
-// Private chapter site: no crawler is welcome anywhere.
+// An allow list: the public pages (log in, sign up, terms, privacy) and what they need; the app stays out.
 export default function robots(): MetadataRoute.Robots {
-  return { rules: { userAgent: "*", disallow: "/" } };
+  return rules(siteUrl(process.env.NEXT_PUBLIC_SITE_URL));
 }

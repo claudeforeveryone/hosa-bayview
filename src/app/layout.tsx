@@ -6,6 +6,7 @@ import { AppearanceSync } from "@/components/appearance";
 import { appearanceScript } from "@/lib/appearance";
 import { heroRestScript } from "@/lib/hero";
 import { introScript } from "@/lib/intro";
+import { siteUrl } from "@/lib/seo";
 import { SiteIntro } from "@/components/site-intro";
 import "./globals.css";
 
@@ -39,14 +40,28 @@ const montserrat = localFont({
   ],
 });
 
+const SITE_DESCRIPTION =
+  "HOSA Bayview's study site: practice tests from past competition papers, flashcards, event classrooms and chapter leaderboards for members preparing for HOSA events.";
+
+// Private by default: every page is noindex unless it opts back in with publicPage() (lib/seo.ts), which also gives
+// it a canonical address. Canonical isn't set here, or every page would inherit "/". Link previews of a private
+// address show the log-in page's card, since a signed-out crawler is sent there. The card image is
+// app/opengraph-image.png and app/twitter-image.png (scripts/make-og-image.py); the icons are app/icon.png and
+// app/apple-icon.png.
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl(process.env.NEXT_PUBLIC_SITE_URL)),
   title: { default: "HOSA Bayview", template: "%s · HOSA Bayview" },
-  description: "Training for HOSA Bayview members: events, practice tests, flashcards, and leaderboards.",
-  // Private by default: nothing here should be indexed or previewed with member data.
+  description: SITE_DESCRIPTION,
+  applicationName: "HOSA Bayview",
   robots: { index: false, follow: false, nocache: true },
-  // Link previews carry the chapter name and nothing else (no description, no images).
-  openGraph: { siteName: "HOSA Bayview", title: "HOSA Bayview", description: "HOSA Bayview", type: "website" },
-  twitter: { card: "summary", title: "HOSA Bayview", description: "HOSA Bayview" },
+  openGraph: {
+    siteName: "HOSA Bayview",
+    title: "HOSA Bayview",
+    description: SITE_DESCRIPTION,
+    type: "website",
+    locale: "en_CA",
+  },
+  twitter: { card: "summary_large_image", title: "HOSA Bayview", description: SITE_DESCRIPTION },
 };
 
 export const viewport: Viewport = {
