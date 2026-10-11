@@ -14,18 +14,19 @@ import { bottomItemsFor, navItemsFor, showJoinLink } from "@/lib/nav-items";
 export type NavRoom = { id: string; num: number; name: string };
 type Props = {
   isExec: boolean;
+  canSeeStats: boolean;
   canTeach: boolean;
   rooms: NavRoom[];
   unread: number;
 };
 
-function useItems(isExec: boolean) {
+function useItems(isExec: boolean, canSeeStats: boolean) {
   const path = usePathname();
   const withActive = (list: ReturnType<typeof navItemsFor>) =>
     list.map((i) => ({ ...i, active: i.match(path) }));
   return {
     path,
-    items: withActive(navItemsFor(isExec)),
+    items: withActive(navItemsFor(isExec, canSeeStats)),
     bottom: withActive(bottomItemsFor(isExec)),
   };
 }
@@ -63,8 +64,8 @@ function Group({
 }
 
 // The whole app in one column: where to go and the classrooms you are in.
-function PanelBody({ isExec, canTeach, rooms }: Props) {
-  const { path, items } = useItems(isExec);
+function PanelBody({ isExec, canSeeStats, canTeach, rooms }: Props) {
+  const { path, items } = useItems(isExec, canSeeStats);
   const link = ({ href, label, Icon, active }: (typeof items)[number]) => (
     <li key={href}>
       <Link
@@ -251,7 +252,7 @@ export function MobileBar(props: Props) {
 
 // Phone: fixed navy bar with the five main places; the active glyph fills.
 export function BottomNav({ isExec }: { isExec: boolean }) {
-  const { bottom } = useItems(isExec);
+  const { bottom } = useItems(isExec, false);
   return (
     <nav
       aria-label="Shortcuts"

@@ -8,6 +8,7 @@ import {
   LibraryBig,
   Medal,
   Megaphone,
+  ChartNoAxesColumn,
   ShieldCheck,
   Trophy,
   Users,
@@ -26,6 +27,8 @@ export type NavItem = {
   Icon: LucideIcon;
   match: (p: string) => boolean;
   exec?: boolean;
+  // Only the site owner (private.stats_viewers, 0104) sees this.
+  stats?: boolean;
   chapter?: boolean;
   bottom?: boolean;
 };
@@ -44,7 +47,11 @@ const ITEMS: NavItem[] = [
     label: "Events",
     short: "Events",
     Icon: Grid2x2,
-    match: (p) => p.startsWith("/events") || p === "/c" || p.startsWith("/c/") || p.startsWith("/battle/"),
+    match: (p) =>
+      p.startsWith("/events") ||
+      p === "/c" ||
+      p.startsWith("/c/") ||
+      p.startsWith("/battle/"),
     bottom: true,
   },
   {
@@ -120,25 +127,43 @@ const ITEMS: NavItem[] = [
     exec: true,
   },
   {
+    href: "/developer",
+    label: "Developer",
+    short: "Dev",
+    Icon: ChartNoAxesColumn,
+    match: (p) => p.startsWith("/developer"),
+    stats: true,
+  },
+  {
     href: "/more",
     label: "More",
     short: "More",
     Icon: Ellipsis,
     // Settings and Help are reached from More, so it stays lit there.
-    match: (p) => p.startsWith("/more") || p.startsWith("/settings") || p.startsWith("/help"),
+    match: (p) =>
+      p.startsWith("/more") ||
+      p.startsWith("/settings") ||
+      p.startsWith("/help"),
     bottom: true,
   },
 ];
 
-export function navItemsFor(isExec: boolean): NavItem[] {
+// `canSeeStats` is the developer stats viewer (the site owner), checked in the database too.
+export function navItemsFor(isExec: boolean, canSeeStats = false): NavItem[] {
   return ITEMS.filter(
-    (i) => (!i.exec || isExec) && (BLC_ENABLED || i.href !== "/blc"),
+    (i) =>
+      (!i.exec || isExec) &&
+      (!i.stats || canSeeStats) &&
+      (BLC_ENABLED || i.href !== "/blc"),
   );
 }
 
 // The phone shortcut bar: the five places people use most, More last.
-export function bottomItemsFor(isExec: boolean): NavItem[] {
-  return navItemsFor(isExec).filter((i) => i.bottom);
+export function bottomItemsFor(
+  isExec: boolean,
+  canSeeStats = false,
+): NavItem[] {
+  return navItemsFor(isExec, canSeeStats).filter((i) => i.bottom);
 }
 
 // "Join with a code" is for people who aren't in any event yet; after that, Settings > Events has it.
