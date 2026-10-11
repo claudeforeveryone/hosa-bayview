@@ -51,8 +51,8 @@ function housekeepingOn(): boolean {
   return process.env.HOUSEKEEPING?.trim().toLowerCase() === "on";
 }
 
-// Housekeeping, run after the keep-alive. Each step runs even when another fails, and
-// returns what went wrong, so a broken promise shows up as a failed cron run with a log line, never silently.
+// Housekeeping, run after the keep-alive. Each step runs even when another fails, and returns what went wrong, so a
+// broken promise shows up as a failed cron run with a log line, never silently.
 async function housekeeping(supabase: SupabaseClient): Promise<string[]> {
   const problems: string[] = [];
   // Wrong join and sign-up code logs older than 22 hours (0250). Anon may run it: it only removes rows past retention.
