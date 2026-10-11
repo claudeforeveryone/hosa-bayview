@@ -345,16 +345,28 @@ export function DataTable<T>({
   );
 }
 
-// What a section shows when its data didn't come back. "missing": the owner functions aren't on this database yet.
-export function Unavailable({ reason }: { reason: "missing" | "failed" }) {
-  return reason === "missing" ? (
+// What a section shows when its data didn't come back. "missing": its function isn't on this database yet.
+// `migration` names an older one the section needs (Members reads 0105); without it the section is one of the
+// console's own, 0230 to 0232.
+export function Unavailable({
+  reason,
+  migration,
+}: {
+  reason: "missing" | "failed";
+  migration?: string;
+}) {
+  if (reason === "failed")
+    return (
+      <Notice tone="error">
+        This section didn&rsquo;t load. Reload to try again.
+      </Notice>
+    );
+  return migration ? (
+    <Notice>This section needs migration {migration} on the database.</Notice>
+  ) : (
     <Notice>
       This section needs migrations 0230 to 0232 on the database. They are
       written and waiting to be applied.
-    </Notice>
-  ) : (
-    <Notice tone="error">
-      This section didn&rsquo;t load. Reload to try again.
     </Notice>
   );
 }

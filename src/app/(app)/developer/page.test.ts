@@ -14,7 +14,7 @@ let system: Loaded<SystemData> & { latencyMs: number | null } = {
   reason: "missing",
   latencyMs: null,
 };
-let members: unknown[] | null = null;
+let members: Loaded<unknown[]> = { ok: false, reason: "denied" };
 let audit: Loaded<AuditPage> = { ok: false, reason: "missing" };
 let role: string | null = "executive";
 const loaders = {
@@ -94,7 +94,7 @@ beforeEach(() => {
   viewer = false;
   overview = { ok: false, reason: "missing" };
   system = { ok: false, reason: "missing", latencyMs: null };
-  members = null;
+  members = { ok: false, reason: "denied" };
   audit = { ok: false, reason: "missing" };
   role = "executive";
   for (const l of Object.values(loaders)) l.mockClear();
@@ -143,6 +143,24 @@ describe("/developer", () => {
     viewer = true;
     await expect(open({ tab: "members" })).rejects.toThrow("NEXT_NOT_FOUND");
     expect(loaders.members).toHaveBeenCalled();
+  });
+
+  // A timeout or a 5xx on Members is the same passing failure as on any other tab: the console stays, with a note.
+  it("keeps the console with the didn't-load note when the member table fails", async () => {
+    viewer = true;
+    members = { ok: false, reason: "failed" };
+    const out = text(await open({ tab: "members" }));
+    expect(out).toContain("Developer");
+    expect(out).toContain("This section didn’t load. Reload to try again.");
+  });
+
+  // Members reads 0105's dev_member_stats, not 0230 to 0232, so its missing-function note names that migration.
+  it("names migration 0105 when the member table isn't on the database", async () => {
+    viewer = true;
+    members = { ok: false, reason: "missing" };
+    const out = text(await open({ tab: "members" }));
+    expect(out).toContain("needs migration 0105");
+    expect(out).not.toContain("0230 to 0232");
   });
 
   // The audit log is admin_log, which only executives may read (0052). A stats viewer with another role keeps the

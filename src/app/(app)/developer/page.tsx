@@ -51,10 +51,15 @@ export default async function DeveloperPage(props: PageProps<"/developer">) {
 }
 
 // A refusal here means the viewer row went away between the gate and the read: treat it like any non-owner.
-function settle<T>(r: Loaded<T>, render: (data: T) => ReactNode) {
+// `migration` names what a missing function needs, when it isn't one of 0230 to 0232.
+function settle<T>(
+  r: Loaded<T>,
+  render: (data: T) => ReactNode,
+  migration?: string,
+) {
   if (r.ok) return render(r.data);
   if (r.reason === "denied") notFound();
-  return <Unavailable reason={r.reason} />;
+  return <Unavailable reason={r.reason} migration={migration} />;
 }
 
 async function section(
@@ -91,16 +96,19 @@ async function section(
         getDevStats(period),
         loadSystem(),
       ]);
-      if (!rows) notFound();
       // Without 0232 the console can't tell whether battles exist, so the column stays as it always was.
       const battles = system.ok ? system.data.features.battles : true;
-      return (
-        <MembersSection
-          base={BASE}
-          period={period}
-          rows={rows}
-          battles={battles}
-        />
+      return settle(
+        rows,
+        (r) => (
+          <MembersSection
+            base={BASE}
+            period={period}
+            rows={r}
+            battles={battles}
+          />
+        ),
+        "0105",
       );
     }
     case "audit": {
