@@ -25,7 +25,7 @@ export function BattleEnded({
       </h1>
       <Link
         href={href}
-        className="caps step inline-flex h-12 items-center border border-ink px-5 text-[17px] hover:bg-band"
+        className="caps step inline-flex h-12 items-center border border-ink px-5 text-17 hover:bg-band"
       >
         {label}
       </Link>

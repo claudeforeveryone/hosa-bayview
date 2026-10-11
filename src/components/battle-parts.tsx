@@ -46,7 +46,7 @@ export function LeaveButton({
       type="button"
       onClick={onClick}
       disabled={busy}
-      className="caps step inline-flex h-12 items-center gap-2 px-3 text-[17px] text-ink-2 hover:text-ink disabled:opacity-60"
+      className="caps step inline-flex h-12 items-center gap-2 px-3 text-17 text-ink-2 hover:text-ink disabled:opacity-60"
     >
       <LogOut size={20} strokeWidth={1.75} aria-hidden />
       Leave
@@ -65,7 +65,7 @@ export function Scoreboard({
 }) {
   return (
     <div className="grid grid-cols-[auto_1fr_1fr] items-stretch border-b border-rule">
-      <p className="caps num grid place-items-center border-r border-rule px-3 text-[16px] text-ink-2">
+      <p className="caps num grid place-items-center border-r border-rule px-3 text-16 text-ink-2">
         <span>
           <span className="sr-only">Question </span>
           {s.round}/{s.total}
@@ -78,13 +78,13 @@ export function Scoreboard({
             mine?.team === team ? "border-b-3 border-b-you" : ""
           }`}
         >
-          <span className="caps text-[14px] text-ink-2">
+          <span className="caps text-14 text-ink-2">
             {teamName(team)}
             {mine?.team === team ? (
               <span className="sr-only">, your team</span>
             ) : null}
           </span>
-          <span className="num font-display text-[30px] leading-none font-bold">
+          <span className="num font-display text-30 leading-none font-bold">
             {s.teams[team - 1]}
           </span>
         </p>
@@ -154,7 +154,7 @@ export function Countdown({
           className="h-full origin-left bg-ink data-[low=1]:bg-danger"
         />
       </div>
-      <p className="caps num flex justify-end text-[15px] text-ink-2">
+      <p className="caps num flex justify-end text-15 text-ink-2">
         {label(secondsLeft)}
       </p>
     </div>

@@ -44,7 +44,7 @@ export default async function MemberResultsPage({
       <header className="grid gap-3">
         <Link
           href={`/c/${room.id}/tests/${test.id}`}
-          className="caps inline-flex items-center gap-1 justify-self-start text-[15px] text-ink-2 hover:text-ink"
+          className="caps inline-flex items-center gap-1 justify-self-start text-15 text-ink-2 hover:text-ink"
         >
           <ArrowLeft size={16} strokeWidth={2} aria-hidden />
           {test.title}
@@ -52,7 +52,7 @@ export default async function MemberResultsPage({
         <h2 className="font-display text-[clamp(2.25rem,8vw,3.75rem)] leading-[0.95] font-bold [overflow-wrap:anywhere] uppercase">
           {name}
         </h2>
-        <p className="caps text-[16px] text-ink-2">
+        <p className="caps text-16 text-ink-2">
           {finished.length} finished attempt{finished.length === 1 ? "" : "s"}
         </p>
       </header>
@@ -70,17 +70,17 @@ export default async function MemberResultsPage({
                   className="step grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-1 py-3 hover:bg-band sm:px-3"
                 >
                   <span className="min-w-0">
-                    <span className="caps block text-[16px]">
+                    <span className="caps block text-16">
                       {a.mode === "timed" ? "Timed" : "Practice"}
                     </span>
-                    <span className="num block text-[15px] text-ink-2">
+                    <span className="num block text-15 text-ink-2">
                       {when(a.submitted_at ?? a.started_at)}
                     </span>
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className="num font-display text-[24px] font-semibold">
+                    <span className="num font-display text-24 font-semibold">
                       {a.score}/{a.total}
-                      <span className="ml-2 text-[16px] text-ink-2">
+                      <span className="ml-2 text-16 text-ink-2">
                         {pct}%
                       </span>
                     </span>

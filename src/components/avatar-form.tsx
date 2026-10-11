@@ -98,7 +98,7 @@ export function AvatarForm({
       <Avatar name={name} src={src} size="lg" />
       <div className="grid gap-4">
         <div className="grid gap-1.5">
-          <label htmlFor={inputId} className="text-[15px] font-medium">
+          <label htmlFor={inputId} className="text-15 font-medium">
             {hasPicture ? "Change picture" : "Add a picture"}
           </label>
           <input
@@ -108,9 +108,9 @@ export function AvatarForm({
             disabled={busy !== null}
             onChange={onPick}
             aria-describedby={`${inputId}-hint`}
-            className="w-full min-w-0 text-[16px] file:caps file:mr-4 file:h-12 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-5 file:text-[16px] file:text-ink hover:file:bg-band focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
+            className="w-full min-w-0 text-16 file:caps file:mr-4 file:h-12 file:cursor-pointer file:border file:border-ink file:bg-transparent file:px-5 file:text-16 file:text-ink hover:file:bg-band focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:opacity-60"
           />
-          <p id={`${inputId}-hint`} className="text-[15px] text-ink-2">
+          <p id={`${inputId}-hint`} className="text-15 text-ink-2">
             {!animated
               ? "Any photo. Animated GIFs are for executives."
               : gifLimit <= EXEC_GIF_MAX_BYTES
@@ -130,7 +130,7 @@ export function AvatarForm({
             </Button>
           ) : null}
           {busy === "upload" ? (
-            <p className="text-[16px] text-ink-2" role="status">
+            <p className="text-16 text-ink-2" role="status">
               Uploading
             </p>
           ) : null}

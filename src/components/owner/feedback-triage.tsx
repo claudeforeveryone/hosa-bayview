@@ -17,7 +17,7 @@ import {
 import type { FeedbackRow } from "@/lib/owner-types";
 
 const field =
-  "step h-12 w-full border border-rule-strong bg-ground px-2 text-[16px] text-ink outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] disabled:opacity-60";
+  "step h-12 w-full border border-rule-strong bg-ground px-2 text-16 text-ink outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] disabled:opacity-60";
 
 // One piece of feedback with its triage controls. Saving writes the change and an audit row (the member never
 // sees the note). In the dev gallery the controls show but are switched off, so nothing is written. `onSaved`
@@ -61,15 +61,15 @@ export function FeedbackTriage({
       className="grid scroll-mt-6 gap-4 border-b border-rule py-5"
     >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="caps border border-ink px-2 py-0.5 text-[13px]">
+        <span className="caps border border-ink px-2 py-0.5 text-13">
           {CATEGORY_LABEL[row.category]}
         </span>
         {row.priority === "high" ? (
-          <span className="caps bg-ink px-2 py-0.5 text-[13px] text-ground">
+          <span className="caps bg-ink px-2 py-0.5 text-13 text-ground">
             High
           </span>
         ) : null}
-        <span className="text-[15px] text-ink-2">
+        <span className="text-15 text-ink-2">
           {row.sent_by} · {stampText(row.created_at)}
           {/* What the sender's side said (0231): the app sends the deployed commit, but any member can call
               send_feedback directly with another, so it is labelled as sent and never linked. */}
@@ -83,7 +83,7 @@ export function FeedbackTriage({
           ) : null}
         </span>
       </div>
-      <p className="max-w-[70ch] text-[17px] whitespace-pre-line [overflow-wrap:anywhere]">
+      <p className="max-w-[70ch] text-17 whitespace-pre-line [overflow-wrap:anywhere]">
         {row.body}
       </p>
       <form
@@ -96,7 +96,7 @@ export function FeedbackTriage({
       >
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
-            <label htmlFor={`${id}-status`} className="text-[15px] font-medium">
+            <label htmlFor={`${id}-status`} className="text-15 font-medium">
               Status
             </label>
             <select
@@ -116,7 +116,7 @@ export function FeedbackTriage({
           <div className="grid gap-1.5">
             <label
               htmlFor={`${id}-priority`}
-              className="text-[15px] font-medium"
+              className="text-15 font-medium"
             >
               Priority
             </label>
@@ -136,7 +136,7 @@ export function FeedbackTriage({
           </div>
         </div>
         <div className="grid gap-1.5">
-          <label htmlFor={`${id}-note`} className="text-[15px] font-medium">
+          <label htmlFor={`${id}-note`} className="text-15 font-medium">
             Resolution note{" "}
             <span className="font-normal text-ink-2">
               (members never see it)
@@ -149,7 +149,7 @@ export function FeedbackTriage({
             rows={2}
             disabled={readOnly || pending}
             onChange={(e) => setResolution(e.target.value)}
-            className="step w-full resize-y border border-rule-strong bg-transparent px-3 py-2 text-[16px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] disabled:opacity-60"
+            className="step w-full resize-y border border-rule-strong bg-transparent px-3 py-2 text-16 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] disabled:opacity-60"
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -161,7 +161,7 @@ export function FeedbackTriage({
             {pending ? "Saving" : "Save"}
           </Button>
           {row.triaged_at ? (
-            <span className="text-[14px] text-ink-2">
+            <span className="text-14 text-ink-2">
               Last triaged {stampText(row.triaged_at)}
             </span>
           ) : null}

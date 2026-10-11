@@ -16,7 +16,7 @@ export function MemberSearch({ members }: { members: MemberRow[] }) {
 
   return (
     <div className="grid gap-4">
-      <label htmlFor={id} className="text-[15px] font-medium">
+      <label htmlFor={id} className="text-15 font-medium">
         Search members
       </label>
       <input
@@ -25,10 +25,10 @@ export function MemberSearch({ members }: { members: MemberRow[] }) {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Name"
-        className="step h-12 w-full max-w-md border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+        className="step h-12 w-full max-w-md border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
       />
       {shown.length === 0 ? (
-        <p className="text-[17px] text-ink-2">No one matches “{q.trim()}”.</p>
+        <p className="text-17 text-ink-2">No one matches “{q.trim()}”.</p>
       ) : (
         <ul className="border-t border-rule">
           {shown.map((m) => (
@@ -37,16 +37,16 @@ export function MemberSearch({ members }: { members: MemberRow[] }) {
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b border-rule px-1 py-3 sm:px-3"
             >
               <span className="min-w-0">
-                <span className="block truncate text-[17px] font-medium">
+                <span className="block truncate text-17 font-medium">
                   {m.name}
                 </span>
                 {m.flag ? (
-                  <span className="caps text-[13px] text-ink-2">
+                  <span className="caps text-13 text-ink-2">
                     {m.flag === "perfect" ? "Perfect" : "Check in"}
                   </span>
                 ) : null}
               </span>
-              <span className="num text-right text-[16px] text-ink-2">
+              <span className="num text-right text-16 text-ink-2">
                 {m.attended} of {m.counted} weeks
                 {m.rate === null ? null : (
                   <span className="font-semibold text-ink"> · {m.rate}%</span>

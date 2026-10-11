@@ -116,7 +116,7 @@ export function SystemSection({ info }: { info: SystemInfo }) {
               ]}
             />
           ) : (
-            <p className="text-[16px] text-ink-2">
+            <p className="text-16 text-ink-2">
               {info.db === "missing"
                 ? "The database answered, but the owner functions (0230 to 0232) aren't applied yet."
                 : "The database answered with an error, so this list didn’t load. Reload to try again."}

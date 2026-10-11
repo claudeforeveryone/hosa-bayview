@@ -29,7 +29,7 @@ export default function AppPageError({
         <Button onClick={() => retry()}>Try again</Button>
         <Link
           href="/"
-          className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band"
+          className="caps step inline-flex h-12 items-center border border-ink px-6 text-17 hover:bg-band"
         >
           Home
         </Link>

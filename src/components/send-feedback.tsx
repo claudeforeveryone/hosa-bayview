@@ -48,12 +48,12 @@ export function SendFeedback({ readOnly = false }: { readOnly?: boolean }) {
       noValidate
     >
       <fieldset className="grid gap-2">
-        <legend className="mb-2 text-[15px] font-medium">What is it?</legend>
+        <legend className="mb-2 text-15 font-medium">What is it?</legend>
         <div className="flex flex-wrap gap-2">
           {FEEDBACK_CATEGORIES.map((c) => (
             <label
               key={c}
-              className={`caps step inline-flex h-11 cursor-pointer items-center border px-4 text-[15px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink ${
+              className={`caps step inline-flex h-11 cursor-pointer items-center border px-4 text-15 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink ${
                 category === c
                   ? "border-ink bg-ink text-ground"
                   : "border-rule-strong text-ink hover:bg-band"
@@ -74,7 +74,7 @@ export function SendFeedback({ readOnly = false }: { readOnly?: boolean }) {
       </fieldset>
 
       <div className="grid gap-1.5">
-        <label htmlFor={`${id}-body`} className="text-[15px] font-medium">
+        <label htmlFor={`${id}-body`} className="text-15 font-medium">
           {category === "bug"
             ? "What happened, and where?"
             : category === "idea"
@@ -89,9 +89,9 @@ export function SendFeedback({ readOnly = false }: { readOnly?: boolean }) {
           rows={4}
           onChange={(e) => setBody(e.target.value)}
           aria-describedby={`${id}-hint`}
-          className="step w-full resize-y border border-rule-strong bg-transparent px-3 py-2 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+          className="step w-full resize-y border border-rule-strong bg-transparent px-3 py-2 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
         />
-        <p id={`${id}-hint`} className="text-[14px] text-ink-2">
+        <p id={`${id}-hint`} className="text-14 text-ink-2">
           Skip passwords and anything private. Up to 1,000 characters.
         </p>
       </div>

@@ -73,7 +73,7 @@ export function AttendanceRoster({
   const unmarked = members.length - Object.keys(payload).length;
 
   const summary = (
-    <p className="caps flex flex-wrap gap-x-5 gap-y-1 text-[16px] text-ink-2">
+    <p className="caps flex flex-wrap gap-x-5 gap-y-1 text-16 text-ink-2">
       {STATUSES.map((s) => (
         <span key={s}>
           {STATUS_LABEL[s]}{" "}
@@ -89,7 +89,7 @@ export function AttendanceRoster({
 
   return (
     <div className="grid max-w-2xl gap-6">
-      <div className="grid gap-1 text-[16px] text-ink-2">
+      <div className="grid gap-1 text-16 text-ink-2">
         <p>{submittedLine ?? "Not submitted yet"}</p>
         {editedLine ? <p>{editedLine}</p> : null}
       </div>
@@ -114,11 +114,11 @@ export function AttendanceRoster({
                     onClick={() => tap(m.user_id)}
                     className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-1 py-2 text-left hover:bg-band sm:px-3"
                   >
-                    <span className="min-w-0 truncate text-[19px] font-semibold">
+                    <span className="min-w-0 truncate text-19 font-semibold">
                       {m.full_name}
                     </span>
                     <span
-                      className={`caps inline-flex h-11 w-32 items-center justify-center border text-[16px] ${TONE[s ?? "none"]}`}
+                      className={`caps inline-flex h-11 w-32 items-center justify-center border text-16 ${TONE[s ?? "none"]}`}
                     >
                       {s ? STATUS_LABEL[s] : "Not marked"}
                     </span>
@@ -171,11 +171,11 @@ export function AttendanceRoster({
                   key={m.user_id}
                   className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-rule px-1 py-2 sm:px-3"
                 >
-                  <span className="min-w-0 truncate text-[19px] font-semibold">
+                  <span className="min-w-0 truncate text-19 font-semibold">
                     {m.full_name}
                   </span>
                   <span
-                    className={`caps text-[16px] ${s ? "text-ink" : "text-ink-2"}`}
+                    className={`caps text-16 ${s ? "text-ink" : "text-ink-2"}`}
                   >
                     {s ? STATUS_LABEL[s] : "Not marked"}
                   </span>
@@ -184,7 +184,7 @@ export function AttendanceRoster({
             })}
           </ul>
           {initialNote ? (
-            <p className="text-[17px] whitespace-pre-line">{initialNote}</p>
+            <p className="text-17 whitespace-pre-line">{initialNote}</p>
           ) : null}
           <div>
             <Button

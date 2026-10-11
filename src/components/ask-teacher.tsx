@@ -17,7 +17,7 @@ export type { FlagState };
 type Mode = "idle" | "ask" | "report";
 
 const ACTION =
-  "caps step inline-flex h-10 items-center border px-4 text-[15px]";
+  "caps step inline-flex h-10 items-center border px-4 text-15";
 
 // Ask teacher, or Report this question, on one answered question. Both are the same thread (one per member per
 // question): a report is an ask with what is wrong (wrong key, unclear, typo, something else). The trainer's reply
@@ -124,7 +124,7 @@ export function AskTeacher({
             className="grid gap-2"
             aria-describedby={error ? errorId : undefined}
           >
-            <legend className="mb-2 text-[15px] font-medium">
+            <legend className="mb-2 text-15 font-medium">
               What&rsquo;s wrong with this question?
             </legend>
             <div className="flex flex-wrap gap-2">
@@ -155,7 +155,7 @@ export function AskTeacher({
             </div>
           </fieldset>
         ) : null}
-        <label htmlFor={`${uid}-note`} className="text-[15px] font-medium">
+        <label htmlFor={`${uid}-note`} className="text-15 font-medium">
           {mode === "report" ? (
             <>
               Note <span className="font-normal text-ink-2">(optional)</span>
@@ -178,10 +178,10 @@ export function AskTeacher({
                 ? "Which answer should be right?"
                 : "What should it say?"
           }
-          className="step h-12 w-full border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+          className="step h-12 w-full border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
         />
         {mode === "report" ? (
-          <p className="text-[14px] text-ink-2">
+          <p className="text-14 text-ink-2">
             {answered
               ? "Your trainer gets it with your name, and their reply stays here."
               : "Your trainer gets it with your name, like Ask teacher."}
@@ -215,18 +215,18 @@ export function AskTeacher({
         <div className="grid gap-1">
           {current.status === "answered" ? (
             <>
-              <p className="caps text-[14px] text-ink-2">
+              <p className="caps text-14 text-ink-2">
                 {reported
                   ? `Reported: ${reasonLabel(reported)}. Teacher replied`
                   : "Teacher replied"}
               </p>
-              <p className="whitespace-pre-line text-[17px]">
+              <p className="whitespace-pre-line text-17">
                 {current.reply || "Marked answered."}
               </p>
             </>
           ) : (
             <>
-              <p className="caps text-[14px] text-ink-2">
+              <p className="caps text-14 text-ink-2">
                 {reported
                   ? `Reported: ${reasonLabel(reported)}. Waiting for a reply.`
                   : "Asked. Waiting for a reply."}
@@ -236,8 +236,8 @@ export function AskTeacher({
               ) : null}
               {current.reply ? (
                 <div className="mt-2 grid gap-1">
-                  <p className="caps text-[13px] text-ink-2">Earlier reply</p>
-                  <p className="whitespace-pre-line text-[16px]">
+                  <p className="caps text-13 text-ink-2">Earlier reply</p>
+                  <p className="whitespace-pre-line text-16">
                     {current.reply}
                   </p>
                 </div>

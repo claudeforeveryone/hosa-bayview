@@ -105,7 +105,7 @@ function Fold({
   return (
     <li className="border-b border-rule">
       <details className="group/fold">
-        <summary className="caps step flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-1 py-3 text-[15px] text-ink-2 hover:bg-band hover:text-ink sm:px-3 [&::-webkit-details-marker]:hidden">
+        <summary className="caps step flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-1 py-3 text-15 text-ink-2 hover:bg-band hover:text-ink sm:px-3 [&::-webkit-details-marker]:hidden">
           <span className="group-open/fold:hidden">{closed}</span>
           <span className="hidden group-open/fold:inline">{open}</span>
           <ChevronDown
@@ -126,11 +126,11 @@ function RowHead({ item, right }: { item: MeetingItem; right: ReactNode }) {
     <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
       <span className="min-w-0">
         <span
-          className={`block truncate text-[19px] font-semibold ${item.none ? "text-ink-2" : ""}`}
+          className={`block truncate text-19 font-semibold ${item.none ? "text-ink-2" : ""}`}
         >
           {item.title}
         </span>
-        <span className="caps block text-[15px] text-ink-2">
+        <span className="caps block text-15 text-ink-2">
           {[
             meetingDateLabel(item.date),
             item.kindLabel,
@@ -160,7 +160,7 @@ function MeetingRowStatic({ item }: { item: MeetingItem }) {
   const right =
     item.none || (waiting && !own) ? null : (
       <span
-        className={`caps text-[15px] ${own ? STATUS_TONE[own] : "text-ink-2"}`}
+        className={`caps text-15 ${own ? STATUS_TONE[own] : "text-ink-2"}`}
       >
         {own ? STATUS_LABEL[own] : "Not marked"}
       </span>
@@ -169,7 +169,7 @@ function MeetingRowStatic({ item }: { item: MeetingItem }) {
     <div className="px-1 py-4 sm:px-3">
       <RowHead item={item} right={right} />
       {item.note ? (
-        <p className="mt-2 text-[16px] whitespace-pre-line text-ink-2">
+        <p className="mt-2 text-16 whitespace-pre-line text-ink-2">
           {item.note}
         </p>
       ) : null}
@@ -205,12 +205,12 @@ function MeetingRowOpen({
         />
       </summary>
       <div className="grid gap-4 px-1 pt-1 pb-6 sm:px-3">
-        <p className="caps num text-[15px] text-ink-2">
+        <p className="caps num text-15 text-ink-2">
           {STATUSES.map((s) => `${counts[s]} ${STATUS_LABEL[s]}`).join(" · ")} ·{" "}
           {unmarked} not marked
         </p>
         {members.length === 0 ? (
-          <p className="text-[16px] text-ink-2">No members yet.</p>
+          <p className="text-16 text-ink-2">No members yet.</p>
         ) : (
           <ul className="border-t border-rule">
             {members.map((m) => (
@@ -219,9 +219,9 @@ function MeetingRowOpen({
                 className="grid min-h-14 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule py-2"
               >
                 <Avatar name={m.name} src={m.src} size="sm" />
-                <span className="min-w-0 truncate text-[17px]">{m.name}</span>
+                <span className="min-w-0 truncate text-17">{m.name}</span>
                 <span
-                  className={`caps text-[15px] ${m.status ? STATUS_TONE[m.status] : "text-ink-2"}`}
+                  className={`caps text-15 ${m.status ? STATUS_TONE[m.status] : "text-ink-2"}`}
                 >
                   {m.status ? STATUS_LABEL[m.status] : "Not marked"}
                 </span>
@@ -230,14 +230,14 @@ function MeetingRowOpen({
           </ul>
         )}
         {item.note ? (
-          <p className="text-[16px] whitespace-pre-line text-ink-2">
+          <p className="text-16 whitespace-pre-line text-ink-2">
             {item.note}
           </p>
         ) : null}
         {item.sheetWeek ? (
           <Link
             href={`/c/${classroomId}/attendance?week=${item.sheetWeek}`}
-            className="caps justify-self-start text-[15px] underline underline-offset-4"
+            className="caps justify-self-start text-15 underline underline-offset-4"
           >
             Open the sheet
           </Link>

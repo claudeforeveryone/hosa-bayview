@@ -38,12 +38,12 @@ export function LegalDoc({
           aria-labelledby="short-h"
           className="grid gap-3 border-[3px] border-ink bg-band p-5 sm:p-6"
         >
-          <h2 id="short-h" className="caps text-[19px] leading-none">
+          <h2 id="short-h" className="caps text-19 leading-none">
             The short version
           </h2>
           <List>{summary}</List>
         </section>
-        <p className="text-[15px] text-ink-2">
+        <p className="text-15 text-ink-2">
           We wrote this ourselves in plain language. It has not been reviewed by
           a lawyer. If anything here conflicts with the law, the law wins.
         </p>
@@ -58,7 +58,7 @@ export function LegalDoc({
 function Contents({ sections }: { sections: { id: string; title: string }[] }) {
   return (
     <nav aria-labelledby="contents-h" className="grid gap-2">
-      <h2 id="contents-h" className="caps text-[17px] text-ink-2">
+      <h2 id="contents-h" className="caps text-17 text-ink-2">
         On this page
       </h2>
       <ol className="columns-2 gap-x-6 border-t border-rule sm:columns-3">
@@ -66,7 +66,7 @@ function Contents({ sections }: { sections: { id: string; title: string }[] }) {
           <li key={s.id} className="break-inside-avoid border-b border-rule">
             <a
               href={`#${s.id}`}
-              className="flex min-h-11 items-center py-1.5 text-[15px] leading-tight underline-offset-4 hover:underline pointer-fine:min-h-9"
+              className="flex min-h-11 items-center py-1.5 text-15 leading-tight underline-offset-4 hover:underline pointer-fine:min-h-9"
             >
               {s.title}
             </a>

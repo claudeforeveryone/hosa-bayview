@@ -41,17 +41,17 @@ export function ReviewItem({
   return (
     <li className="grid gap-3 border-b border-rule py-5">
       <div className="flex items-start gap-3">
-        <span className="num w-8 shrink-0 font-display text-[22px] leading-tight font-semibold text-ink-2">
+        <span className="num w-8 shrink-0 font-display text-22 leading-tight font-semibold text-ink-2">
           {q.pos}
         </span>
         <div className="grid min-w-0 flex-1 gap-1">
           <p
-            className={`caps text-[14px] ${verdict === "Right" ? "text-ok" : verdict === "Wrong" ? "text-danger" : "text-ink-2"}`}
+            className={`caps text-14 ${verdict === "Right" ? "text-ok" : verdict === "Wrong" ? "text-danger" : "text-ink-2"}`}
           >
             {verdict}
           </p>
           <SelectionCards decks={decks} answer={rightText} enabled={mine}>
-            <p className="text-[17px] whitespace-pre-line">{q.prompt}</p>
+            <p className="text-17 whitespace-pre-line">{q.prompt}</p>
           </SelectionCards>
         </div>
         {mine ? (
@@ -65,7 +65,7 @@ export function ReviewItem({
           return (
             <li
               key={original}
-              className={`flex items-start gap-2 px-2 py-1 text-[16px] ${
+              className={`flex items-start gap-2 px-2 py-1 text-16 ${
                 right
                   ? "bg-ok/15 font-medium"
                   : picked
@@ -98,7 +98,7 @@ export function ReviewItem({
         })}
       </ul>
       {q.explanation ? (
-        <p className="pl-11 text-[15px] text-ink-2">{q.explanation}</p>
+        <p className="pl-11 text-15 text-ink-2">{q.explanation}</p>
       ) : null}
       {mine && q.selected_index !== null ? (
         <div className="pl-11">

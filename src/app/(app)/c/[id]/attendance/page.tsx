@@ -154,8 +154,8 @@ export default async function AttendanceTab({
                   key={label}
                   className="grid gap-1 border-r border-b border-rule px-4 py-4"
                 >
-                  <dt className="caps text-[14px] text-ink-2">{label}</dt>
-                  <dd className="num font-display text-[32px] leading-none font-bold">
+                  <dt className="caps text-14 text-ink-2">{label}</dt>
+                  <dd className="num font-display text-32 leading-none font-bold">
                     {value}
                   </dd>
                 </div>
@@ -169,7 +169,7 @@ export default async function AttendanceTab({
             Meetings
           </h2>
           <MeetingList items={items} classroomId={room.id} manage={false} />
-          <p className="text-[15px] text-ink-2">
+          <p className="text-15 text-ink-2">
             Every meeting on the chapter schedule. You only see your own marks.
           </p>
         </section>
@@ -261,11 +261,11 @@ export default async function AttendanceTab({
             {week === thisWeek ? "This week" : weekLabel(week)}
           </h2>
           {weekMeeting ? (
-            <p className="caps text-[16px] text-ink-2">
+            <p className="caps text-16 text-ink-2">
               {weekMeeting.title} · {meetingDateLabel(weekMeeting.meets_on)}
             </p>
           ) : (
-            <p className="caps text-[16px] text-ink-2">{weekLabel(week)}</p>
+            <p className="caps text-16 text-ink-2">{weekLabel(week)}</p>
           )}
         </div>
         {members.length === 0 ? (
@@ -291,7 +291,7 @@ export default async function AttendanceTab({
             <h2 id="tracker-h" className={heading}>
               Weekly tracker
             </h2>
-            <p className="text-[16px] text-ink-2">
+            <p className="text-16 text-ink-2">
               The chapter sheet for this event: tap a box to mark someone
               present. It saves straight away.
             </p>
@@ -328,7 +328,7 @@ export default async function AttendanceTab({
           <h2 id="absent-h" className={heading}>
             Most absences
           </h2>
-          <p className="text-[16px] text-ink-2">
+          <p className="text-16 text-ink-2">
             Meetings that have passed and were taken. Excused doesn&apos;t
             count. Executives can send a warning from the admin page.
           </p>
@@ -349,7 +349,7 @@ export default async function AttendanceTab({
         ) : (
           <MeetingList items={items} classroomId={room.id} manage />
         )}
-        <p className="text-[15px] text-ink-2">
+        <p className="text-15 text-ink-2">
           Open a meeting to see everyone&apos;s marks. Notes are only for
           trainers.
         </p>

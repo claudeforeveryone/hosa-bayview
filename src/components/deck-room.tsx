@@ -21,7 +21,7 @@ export function DeckRoom({
 
   return (
     <div className="grid justify-items-start gap-2">
-      <label htmlFor="deck-room" className="text-[16px] text-ink-2">
+      <label htmlFor="deck-room" className="text-16 text-ink-2">
         Event
       </label>
       <select
@@ -38,7 +38,7 @@ export function DeckRoom({
             if (r.error) setValue(before);
           });
         }}
-        className="step h-12 w-full max-w-sm border border-rule-strong bg-ground px-3 text-[17px]"
+        className="step h-12 w-full max-w-sm border border-rule-strong bg-ground px-3 text-17"
       >
         <option value="">None (only you)</option>
         {rooms.map((r) => (
@@ -47,7 +47,7 @@ export function DeckRoom({
           </option>
         ))}
       </select>
-      {pending ? <p className="text-[15px] text-ink-2">Saving</p> : null}
+      {pending ? <p className="text-15 text-ink-2">Saving</p> : null}
       {result.error ? <FormMessage tone="error">{result.error}</FormMessage> : null}
       {result.ok ? <FormMessage tone="ok">{result.ok}</FormMessage> : null}
     </div>

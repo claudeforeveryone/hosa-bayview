@@ -1,8 +1,8 @@
 // The app's navigation, as data. Pure, so which links each role sees is testable apart from the nav component.
 import {
+  Award,
   CalendarDays,
   ClipboardCheck,
-  LifeBuoy,
   Settings,
   ChartLine,
   Ellipsis,
@@ -22,7 +22,7 @@ import {
 import { BLC_ENABLED } from "@/lib/features";
 
 // `chapter`: listed in the Chapter group (a dropdown in the sidebar). `bottom`: one of the phone shortcut bar's five.
-// Settings, Help and Log out live in the More dropdown (MORE_ITEMS), so the panel stays short. Tests and Flashcards have no entry:
+// Settings (Help is one of its tabs) and Log out live in the More dropdown (MORE_ITEMS), so the panel stays short. Tests and Flashcards have no entry:
 // their routes still work (deep links, classroom tabs).
 export type NavItem = {
   href: string;
@@ -66,6 +66,13 @@ const ITEMS: NavItem[] = [
     short: "Career",
     Icon: ChartLine,
     match: (p) => p.startsWith("/career"),
+  },
+  {
+    href: "/skills",
+    label: "Skills",
+    short: "Skills",
+    Icon: Award,
+    match: (p) => p.startsWith("/skills"),
   },
   {
     href: "/announcements",
@@ -145,7 +152,7 @@ const ITEMS: NavItem[] = [
     label: "More",
     short: "More",
     Icon: Ellipsis,
-    // Settings, Help and Attendance are reached from More, so it stays lit there.
+    // Settings (with Help) and Attendance are reached from More, so it stays lit there.
     match: (p) =>
       p.startsWith("/more") ||
       p.startsWith("/settings") ||
@@ -195,13 +202,6 @@ const MORE_ITEMS: NavItem[] = [
     Icon: ClipboardCheck,
     match: (p) => p.startsWith("/admin/attendance"),
     exec: true,
-  },
-  {
-    href: "/help",
-    label: "Help",
-    short: "Help",
-    Icon: LifeBuoy,
-    match: (p) => p.startsWith("/help"),
   },
   {
     // A section of Settings > Account, so it never shows as the current page (Settings does).

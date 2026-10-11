@@ -26,7 +26,7 @@ export function SettingsSection({
           {title}
         </h2>
         {description ? (
-          <p className="text-[16px] text-ink-2">{description}</p>
+          <p className="text-16 text-ink-2">{description}</p>
         ) : null}
       </div>
       {children}

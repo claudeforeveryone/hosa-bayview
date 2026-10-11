@@ -159,14 +159,14 @@ export function InstallCard({ pushKey }: { pushKey: string | null }) {
           />
           <h2
             id="install-card-h"
-            className="font-display min-w-0 flex-1 text-[22px] leading-[0.95] font-bold uppercase"
+            className="font-display min-w-0 flex-1 text-22 leading-[0.95] font-bold uppercase"
           >
             {title}
           </h2>
         </div>
 
         {mode === "android-prompt" ? (
-          <p className="text-[16px] text-ink-2">
+          <p className="text-16 text-ink-2">
             Opens full screen in one tap, and can buzz you when a new test or
             announcement drops.
           </p>
@@ -180,7 +180,7 @@ export function InstallCard({ pushKey }: { pushKey: string | null }) {
           />
         ) : null}
         {asking ? (
-          <p className="text-[16px] text-ink-2">
+          <p className="text-16 text-ink-2">
             Get a buzz on this phone when a new test, announcement or reply
             lands. Change it any time in Settings.
           </p>
@@ -190,7 +190,7 @@ export function InstallCard({ pushKey }: { pushKey: string | null }) {
           <p
             role="status"
             aria-live="polite"
-            className={`text-[16px] empty:hidden ${push.note?.tone === "error" ? "text-danger" : "text-ink"}`}
+            className={`text-16 empty:hidden ${push.note?.tone === "error" ? "text-danger" : "text-ink"}`}
           >
             {push.note?.text ?? ""}
           </p>
@@ -205,7 +205,7 @@ export function InstallCard({ pushKey }: { pushKey: string | null }) {
           {hasSteps ? (
             <Link
               href="/settings?tab=app"
-              className="caps step press inline-flex h-12 items-center justify-center bg-ink px-6 text-[17px] text-ground hover:bg-ink-2"
+              className="caps step press inline-flex h-12 items-center justify-center bg-ink px-6 text-17 text-ground hover:bg-ink-2"
             >
               Show me
             </Link>

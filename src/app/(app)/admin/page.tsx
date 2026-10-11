@@ -41,7 +41,7 @@ async function StorageMeter() {
       >
         Storage
       </h2>
-      <p className="num font-display text-[32px] leading-none font-bold">
+      <p className="num font-display text-32 leading-none font-bold">
         {usedOfLimit(used)}
       </p>
       <div
@@ -59,7 +59,7 @@ async function StorageMeter() {
         />
       </div>
       {warn ? (
-        <p className="caps text-[15px] font-semibold text-danger">
+        <p className="caps text-15 font-semibold text-danger">
           Storage almost full
         </p>
       ) : null}
@@ -176,7 +176,7 @@ export default async function AdminPage() {
         <PageTitle>Admin</PageTitle>
         <Link
           href="/admin/attendance"
-          className="caps step press inline-flex h-12 items-center gap-2 bg-ink px-5 text-[17px] text-ground hover:bg-ink-2"
+          className="caps step press inline-flex h-12 items-center gap-2 bg-ink px-5 text-17 text-ground hover:bg-ink-2"
         >
           <ClipboardCheck size={20} strokeWidth={1.75} aria-hidden />
           Attendance
@@ -188,8 +188,8 @@ export default async function AdminPage() {
             key={label}
             className="grid gap-1 border-r border-b border-rule px-4 py-4"
           >
-            <dt className="caps text-[14px] text-ink-2">{label}</dt>
-            <dd className="num font-display text-[40px] leading-none font-bold">
+            <dt className="caps text-14 text-ink-2">{label}</dt>
+            <dd className="num font-display text-40 leading-none font-bold">
               {n}
             </dd>
           </div>

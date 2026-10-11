@@ -161,14 +161,14 @@ function BanForm({ userId, name }: { userId: string; name: string }) {
     <form action={action} className="grid gap-4" noValidate>
       <input type="hidden" name="userId" value={userId} />
       <fieldset className="grid gap-2">
-        <legend className="text-[15px] font-medium">How long</legend>
+        <legend className="text-15 font-medium">How long</legend>
         <div className="flex flex-wrap gap-2">
           {BAN_CHOICES.map((c) => {
             const checked = choice === c;
             return (
               <label
                 key={c}
-                className={`caps step inline-flex min-h-11 cursor-pointer items-center border px-3 text-[15px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink ${
+                className={`caps step inline-flex min-h-11 cursor-pointer items-center border px-3 text-15 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink ${
                   checked
                     ? "border-ink bg-ink text-ground"
                     : "border-rule-strong hover:bg-band"
@@ -208,7 +208,7 @@ function BanForm({ userId, name }: { userId: string; name: string }) {
         maxLength={200}
         hint="They see it on the banned page."
       />
-      <p id={`${groupId}-preview`} className="text-[16px]">
+      <p id={`${groupId}-preview`} className="text-16">
         Ban {name} {preview}.
       </p>
       <BanButtons
@@ -238,7 +238,7 @@ function UnbanForm({ userId, name }: { userId: string; name: string }) {
       <input type="hidden" name="userId" value={userId} />
       {confirming ? (
         <div key="confirm" className="flex flex-wrap items-center gap-3">
-          <p className="text-[16px]">Lift the ban on {name}?</p>
+          <p className="text-16">Lift the ban on {name}?</p>
           <Button type="submit" disabled={pending}>
             {pending ? "Lifting" : "Yes, lift ban"}
           </Button>
@@ -289,7 +289,7 @@ function RemoveForm({
   return (
     <form action={action} className="grid gap-4" noValidate>
       <input type="hidden" name="userId" value={userId} />
-      <p id={`${inputId}-warn`} className="text-[16px] text-ink-2">
+      <p id={`${inputId}-warn`} className="text-16 text-ink-2">
         Deletes their account, sign-in and picture. Their activity goes with it.
         This can&apos;t be undone.
       </p>
@@ -341,7 +341,7 @@ function PersonBody({
           >
             {person.full_name}
           </h2>
-          <p className="mt-2 text-[16px] text-ink-2 [overflow-wrap:anywhere]">
+          <p className="mt-2 text-16 text-ink-2 [overflow-wrap:anywhere]">
             {person.email} · {roleLabel(person.role, person.title)} ·{" "}
             {gradeLabel(person.grade)}
           </p>
@@ -389,7 +389,7 @@ function PersonBody({
           <Section id={`${id}-ban`} title="Ban">
             {ban.banned ? (
               <div className="grid gap-4">
-                <p className="text-[17px]">
+                <p className="text-17">
                   Banned {banWhen(ban)}.
                   {person.ban_reason ? <> Reason: {person.ban_reason}</> : null}
                 </p>
@@ -408,20 +408,20 @@ function PersonBody({
                     key={w.id}
                     className="grid gap-1 border-b border-rule py-3"
                   >
-                    <p className="flex flex-wrap gap-x-3 text-[14px] text-ink-2">
+                    <p className="flex flex-wrap gap-x-3 text-14 text-ink-2">
                       <span className="num">
                         {WHEN.format(new Date(w.created_at))}
                       </span>
                       <span>{w.seen_at ? "Seen" : "Not seen yet"}</span>
                     </p>
-                    <p className="text-[16px] [overflow-wrap:anywhere]">
+                    <p className="text-16 [overflow-wrap:anywhere]">
                       {w.message}
                     </p>
                   </li>
                 ))}
               </ol>
             ) : (
-              <p className="text-[16px] text-ink-2">No warnings.</p>
+              <p className="text-16 text-ink-2">No warnings.</p>
             )}
           </Section>
 
@@ -434,7 +434,7 @@ function PersonBody({
           </Section>
         </>
       ) : (
-        <p className="border-t border-rule pt-5 text-[16px] text-ink-2">
+        <p className="border-t border-rule pt-5 text-16 text-ink-2">
           {isMe
             ? "You can't warn, ban or remove your own account."
             : "Executives can't be warned, banned or removed. Demote them first."}

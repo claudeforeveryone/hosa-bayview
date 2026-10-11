@@ -58,11 +58,11 @@ export default async function MembersPage(props: PageProps<"/members">) {
           type="search"
           defaultValue={q}
           placeholder="Search by name"
-          className="step h-12 min-w-0 flex-1 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink"
+          className="step h-12 min-w-0 flex-1 border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink"
         />
         <button
           type="submit"
-          className="caps step h-12 shrink-0 bg-ink px-5 text-[17px] text-ground hover:bg-field"
+          className="caps step h-12 shrink-0 bg-ink px-5 text-17 text-ground hover:bg-field"
         >
           Search
         </button>
@@ -76,7 +76,7 @@ export default async function MembersPage(props: PageProps<"/members">) {
                 <Link
                   href={hrefFor(g)}
                   aria-current={on ? "true" : undefined}
-                  className={`caps step inline-flex h-11 items-center border px-3.5 text-[16px] ${
+                  className={`caps step inline-flex h-11 items-center border px-3.5 text-16 ${
                     on
                       ? "border-ink bg-ink text-ground"
                       : "border-rule-strong text-ink hover:bg-band"
@@ -108,18 +108,18 @@ export default async function MembersPage(props: PageProps<"/members">) {
                       {member.full_name || "Member"}
                     </span>
                     {member.user_id === me.id ? (
-                      <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">
+                      <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-13 leading-none text-on-you">
                         You
                       </span>
                     ) : null}
                   </span>
                 </span>
                 <span className="grid shrink-0 justify-items-end gap-0.5">
-                  <span className="caps text-[15px] text-ink-2">
+                  <span className="caps text-15 text-ink-2">
                     {roleLabel(member.role, member.title)}
                   </span>
                   {member.grade ? (
-                    <span className="num text-[15px] text-ink-2">
+                    <span className="num text-15 text-ink-2">
                       {gradeLabel(member.grade)}
                     </span>
                   ) : null}

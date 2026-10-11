@@ -14,7 +14,7 @@ export function SignupForm({ chapterGate }: { chapterGate: boolean }) {
   const askCode = chapterGate || state.chapterGate === true;
   return (
     <form action={action} className="grid gap-5" noValidate>
-      <h1 className="font-display text-[44px] leading-none font-bold uppercase">
+      <h1 className="font-display text-44 leading-none font-bold uppercase">
         Join the chapter
       </h1>
       {state.error ? (
@@ -75,9 +75,9 @@ export function SignupForm({ chapterGate }: { chapterGate: boolean }) {
         error={state.fieldErrors?.password}
         hint="At least 8 characters."
       />
-      <p className="text-[15px] text-ink-2">Everyone joins as a member. The chapter leads give out executive access.</p>
+      <p className="text-15 text-ink-2">Everyone joins as a member. The chapter leads give out executive access.</p>
       {/* Plain notice next to the button, no pre-ticked box. The links open a new tab so nothing typed is lost. */}
-      <p className="text-[15px] text-ink-2">
+      <p className="text-15 text-ink-2">
         By creating an account you agree to the{" "}
         <Link href="/terms" target="_blank" className="text-ink underline underline-offset-4">
           Terms<span className="sr-only"> (opens in a new tab)</span>
@@ -91,7 +91,7 @@ export function SignupForm({ chapterGate }: { chapterGate: boolean }) {
       <Button type="submit" disabled={pending} className="mt-1 w-full">
         {pending ? "Making account" : "Make account"}
       </Button>
-      <p className="text-[16px]">
+      <p className="text-16">
         Already in?{" "}
         <Link href="/login" className="underline">
           Log in

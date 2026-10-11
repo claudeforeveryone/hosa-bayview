@@ -67,7 +67,7 @@ function Item({ n, now }: { n: Row; now: number }) {
           className={`mt-0.5 ${fresh ? "text-you-line" : "text-ink-2"}`}
         />
         <span className="min-w-0">
-          <span className="caps flex items-center gap-2 text-[13px] text-ink-2">
+          <span className="caps flex items-center gap-2 text-13 text-ink-2">
             {fresh ? (
               <span
                 className="inline-block size-2 shrink-0 bg-you-line"
@@ -81,17 +81,17 @@ function Item({ n, now }: { n: Row; now: number }) {
             </span>
           </span>
           <span
-            className={`block text-[18px] leading-snug ${fresh ? "font-semibold" : "font-medium"}`}
+            className={`block text-18 leading-snug ${fresh ? "font-semibold" : "font-medium"}`}
           >
             {n.title}
           </span>
           {n.body ? (
-            <span className="line-clamp-2 block text-[16px] text-ink-2">
+            <span className="line-clamp-2 block text-16 text-ink-2">
               {n.body}
             </span>
           ) : null}
         </span>
-        <span className="num caps hidden pt-0.5 text-[14px] text-ink-2 sm:block">
+        <span className="num caps hidden pt-0.5 text-14 text-ink-2 sm:block">
           {timeAgo(n.created_at, now)}
         </span>
       </Link>
@@ -135,7 +135,7 @@ export default async function NotificationsPage() {
             <section aria-labelledby="new-h" className="grid gap-3">
               <h2
                 id="new-h"
-                className="caps border-b-[3px] border-ink pb-2 text-[16px]"
+                className="caps border-b-[3px] border-ink pb-2 text-16"
               >
                 New
               </h2>
@@ -150,7 +150,7 @@ export default async function NotificationsPage() {
             <section aria-labelledby="earlier-h" className="grid gap-3">
               <h2
                 id="earlier-h"
-                className="caps border-b-[3px] border-ink pb-2 text-[16px]"
+                className="caps border-b-[3px] border-ink pb-2 text-16"
               >
                 Earlier
               </h2>

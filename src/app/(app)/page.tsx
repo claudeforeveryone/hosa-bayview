@@ -65,7 +65,7 @@ function Header({
         <h1 className="font-display text-[clamp(2.5rem,10vw,4.5rem)] leading-[0.9] font-bold [overflow-wrap:anywhere] uppercase">
           {name}
         </h1>
-        <p className="caps num text-[15px] text-ink-2">{line}</p>
+        <p className="caps num text-15 text-ink-2">{line}</p>
       </div>
     </header>
   );
@@ -138,7 +138,7 @@ function Setup({ steps }: { steps: Step[] }) {
                 waiting ? "border-on-field-2/40" : "border-on-field-2"
               }`}
             >
-              <span className="num grid size-11 place-items-center font-display text-[24px] font-bold sm:size-12">
+              <span className="num grid size-11 place-items-center font-display text-24 font-bold sm:size-12">
                 {step.done ? (
                   <Check
                     size={26}
@@ -166,7 +166,7 @@ function Setup({ steps }: { steps: Step[] }) {
               {isCurrent && step.href ? (
                 <Link
                   href={step.href}
-                  className="caps step col-start-2 inline-flex h-12 items-center justify-self-start bg-on-field px-5 text-[17px] text-field hover:bg-on-field-2 sm:col-start-3"
+                  className="caps step col-start-2 inline-flex h-12 items-center justify-self-start bg-on-field px-5 text-17 text-field hover:bg-on-field-2 sm:col-start-3"
                 >
                   {step.action}
                   <ArrowRight
@@ -226,7 +226,7 @@ function ComingUp({ events }: { events: EventRow[] }) {
           ))}
         </ul>
       ) : (
-        <p className="px-3 py-5 text-[16px] text-ink-2 sm:px-4">
+        <p className="px-3 py-5 text-16 text-ink-2 sm:px-4">
           Nothing on the calendar yet.
         </p>
       )}
@@ -249,7 +249,7 @@ function Classrooms({ rooms }: { rooms: ClassroomSummary[] }) {
       </ul>
       <Link
         href="/join"
-        className="caps step flex h-14 items-center justify-between px-3 text-[16px] text-ink-2 hover:bg-band hover:text-ink sm:px-4"
+        className="caps step flex h-14 items-center justify-between px-3 text-16 text-ink-2 hover:bg-band hover:text-ink sm:px-4"
       >
         Got a code? Join an event
         <ArrowRight size={20} strokeWidth={2} aria-hidden />

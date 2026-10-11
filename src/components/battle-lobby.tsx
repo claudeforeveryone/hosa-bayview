@@ -29,14 +29,14 @@ export function Lobby({ s, mine, host, busy, error, act, heading }: Common) {
           id="battle-code-h"
           ref={heading}
           tabIndex={-1}
-          className="caps text-[16px] text-on-field-2 outline-none"
+          className="caps text-16 text-on-field-2 outline-none"
         >
           Battle code
         </h1>
         <p className="num font-display text-[clamp(4.5rem,26vw,8.5rem)] leading-[0.85] font-bold tracking-[0.08em]">
           {s.code}
         </p>
-        <p className="caps num text-[16px] text-on-field-2">
+        <p className="caps num text-16 text-on-field-2">
           {formatLabel(s.format)} · {s.total} questions · {source}
         </p>
       </section>
@@ -51,9 +51,9 @@ export function Lobby({ s, mine, host, busy, error, act, heading }: Common) {
               aria-label={teamName(team)}
               className="grid content-start border-r border-rule last:border-r-0"
             >
-              <h2 className="caps num flex items-baseline justify-between gap-2 border-b border-rule px-3 py-3 text-[17px]">
+              <h2 className="caps num flex items-baseline justify-between gap-2 border-b border-rule px-3 py-3 text-17">
                 {teamName(team)}
-                <span className="text-[15px] text-ink-2">
+                <span className="text-15 text-ink-2">
                   {rows.length}
                   {fixed ? `/${cap}` : ""}
                 </span>
@@ -62,13 +62,13 @@ export function Lobby({ s, mine, host, busy, error, act, heading }: Common) {
                 {rows.map((p) => (
                   <li
                     key={p.user_id}
-                    className={`min-h-12 border-b border-rule px-3 py-3 text-[17px] [overflow-wrap:anywhere] last:border-b-0 ${
+                    className={`min-h-12 border-b border-rule px-3 py-3 text-17 [overflow-wrap:anywhere] last:border-b-0 ${
                       p.user_id === s.me ? "bg-you text-on-you" : ""
                     }`}
                   >
                     {p.name}
                     {p.user_id === s.host_id ? (
-                      <span className="caps ml-2 text-[14px] opacity-80">
+                      <span className="caps ml-2 text-14 opacity-80">
                         Host
                       </span>
                     ) : null}
@@ -77,7 +77,7 @@ export function Lobby({ s, mine, host, busy, error, act, heading }: Common) {
                 {Array.from({ length: open }, (_, i) => (
                   <li
                     key={`open-${i}`}
-                    className="caps m-2 grid min-h-10 place-items-center border border-rule-strong text-[14px] text-ink-2"
+                    className="caps m-2 grid min-h-10 place-items-center border border-rule-strong text-14 text-ink-2"
                   >
                     Open
                   </li>
@@ -95,16 +95,16 @@ export function Lobby({ s, mine, host, busy, error, act, heading }: Common) {
               type="button"
               onClick={act.start}
               disabled={busy || !check.ok}
-              className="h-16 w-full text-[20px]"
+              className="h-16 w-full text-20"
             >
               {busy ? "Starting" : "Start"}
             </Button>
             {!check.ok ? (
-              <p className="text-[16px] text-ink-2">{check.reason}</p>
+              <p className="text-16 text-ink-2">{check.reason}</p>
             ) : null}
           </>
         ) : inGame ? (
-          <p className="caps text-[17px] text-ink-2" aria-live="polite">
+          <p className="caps text-17 text-ink-2" aria-live="polite">
             Waiting for the host
           </p>
         ) : (
@@ -113,7 +113,7 @@ export function Lobby({ s, mine, host, busy, error, act, heading }: Common) {
             variant="you"
             onClick={act.join}
             disabled={busy}
-            className="h-16 w-full text-[20px]"
+            className="h-16 w-full text-20"
           >
             {busy ? "Joining" : "Join"}
           </Button>

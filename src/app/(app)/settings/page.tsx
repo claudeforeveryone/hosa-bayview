@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { AppearanceSection, SoundSection } from "@/components/appearance";
 import { Button } from "@/components/form";
+import { HelpContent } from "@/components/help-content";
 import { JoinForm } from "@/components/join-form";
 import { PageTitle } from "@/components/page-title";
 import { SendFeedback } from "@/components/send-feedback";
@@ -36,7 +37,7 @@ export default async function SettingsPage({
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <PageTitle meta={profile.email}>Settings</PageTitle>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
-        {/* Phones: one row of tabs sharing the width (all five fit from 360 px, each at least 44 px wide; narrower, it scrolls sideways). Desktop: a rail on the left. */}
+        {/* Phones: one row of tabs sharing the width (each at least 44 px wide; when they don't fit, it scrolls sideways). Desktop: a rail on the left. */}
         <nav
           aria-label="Settings sections"
           className="min-w-0 lg:sticky lg:top-6 lg:self-start"
@@ -52,7 +53,7 @@ export default async function SettingsPage({
                   <Link
                     href={`/settings?tab=${t.id}`}
                     aria-current={on ? "page" : undefined}
-                    className={`caps step flex min-h-12 min-w-11 items-center justify-center px-1 text-[15px] sm:px-5 lg:min-h-14 lg:flex-col lg:items-start lg:justify-center sm:text-[18px] ${
+                    className={`caps step flex min-h-12 min-w-11 items-center justify-center px-1 text-15 sm:px-5 lg:min-h-14 lg:flex-col lg:items-start lg:justify-center sm:text-18 ${
                       on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                     }`}
                   >
@@ -69,7 +70,7 @@ export default async function SettingsPage({
                       t.label
                     )}
                     {t.more ? (
-                      <span className="sr-only lg:not-sr-only lg:font-sans lg:text-[15px] lg:leading-snug lg:font-normal lg:tracking-normal lg:normal-case">
+                      <span className="sr-only lg:not-sr-only lg:font-sans lg:text-15 lg:leading-snug lg:font-normal lg:tracking-normal lg:normal-case">
                         {" "}
                         {t.more}
                       </span>
@@ -90,6 +91,7 @@ export default async function SettingsPage({
           {tab === "events" ? (
             <EventsTab isExec={profile.role === "executive"} />
           ) : null}
+          {tab === "help" ? <HelpContent /> : null}
         </div>
       </div>
     </div>
@@ -165,10 +167,10 @@ function EventsTab({ isExec }: { isExec: boolean }) {
       {/* The join form is drawn for the navy field, so it sits in a field panel here too. */}
       {/* Everything stacks in one left-aligned column: join box, then the two links. */}
       <div className="grid w-full max-w-[32rem] gap-4 bg-field p-5 text-on-field sm:p-6">
-        <p className="font-display text-[26px] leading-none font-bold uppercase">
+        <p className="font-display text-26 leading-none font-bold uppercase">
           Join another event
         </p>
-        <p className="text-[16px] text-on-field-2">
+        <p className="text-16 text-on-field-2">
           Ask the event&apos;s trainer for its code.
         </p>
         <JoinForm />
@@ -176,14 +178,14 @@ function EventsTab({ isExec }: { isExec: boolean }) {
       <div className="flex flex-col items-start gap-3">
         <Link
           href="/events"
-          className="caps step inline-flex h-12 items-center text-[16px] text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
+          className="caps step inline-flex h-12 items-center text-16 text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
         >
           See your events
         </Link>
         {isExec ? (
           <Link
             href="/admin/attendance"
-            className="caps step press inline-flex h-12 items-center border-2 border-ink px-5 text-[16px] hover:bg-band"
+            className="caps step press inline-flex h-12 items-center border-2 border-ink px-5 text-16 hover:bg-band"
           >
             Attendance
           </Link>

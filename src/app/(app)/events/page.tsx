@@ -61,13 +61,13 @@ function RoomBox({ room }: { room: ClassroomSummary }) {
           <span className="font-display text-[clamp(2rem,8vw,3rem)] leading-[0.95] font-bold [overflow-wrap:anywhere] uppercase">
             {room.name}
           </span>
-          <span className="text-[16px] text-ink-2">{meta}</span>
+          <span className="text-16 text-ink-2">{meta}</span>
         </span>
         <span className="flex items-center justify-between gap-3 border-t border-rule-strong pt-3">
-          <span className="num caps text-[15px] text-ink-2">
+          <span className="num caps text-15 text-ink-2">
             {formNumber("C", room.num)}
           </span>
-          <span className="caps flex items-center gap-2 text-[16px] font-semibold">
+          <span className="caps flex items-center gap-2 text-16 font-semibold">
             Open
             <ArrowRight size={20} strokeWidth={2} aria-hidden />
           </span>
@@ -113,7 +113,7 @@ export default async function EventsPage(props: PageProps<"/events">) {
       {canTeach(profile) ? (
         <Link
           href="/c/new"
-          className="caps step flex h-14 items-center justify-between border-2 border-ink px-4 text-[17px] hover:bg-band"
+          className="caps step flex h-14 items-center justify-between border-2 border-ink px-4 text-17 hover:bg-band"
         >
           New event
           <Plus size={20} strokeWidth={2} aria-hidden />
@@ -152,7 +152,7 @@ export default async function EventsPage(props: PageProps<"/events">) {
               {g.heading ? (
                 <h3
                   id={`events-${i}`}
-                  className="caps px-1 text-[18px] font-semibold text-ink-2 sm:px-3"
+                  className="caps px-1 text-18 font-semibold text-ink-2 sm:px-3"
                 >
                   {g.heading}
                 </h3>
@@ -171,7 +171,7 @@ export default async function EventsPage(props: PageProps<"/events">) {
       ) : null}
 
       {!mine.length && !groups.length ? (
-        <p className="max-w-[60ch] text-[17px] text-ink-2">
+        <p className="max-w-[60ch] text-17 text-ink-2">
           {canTeach(profile)
             ? "No events yet. Make one above, or enter a code below."
             : "You're not in an event yet. Get the code from your trainer and enter it below."}

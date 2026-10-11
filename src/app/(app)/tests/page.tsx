@@ -79,7 +79,7 @@ export default async function TestsPage() {
   ) : (
     <Link
       href="/c/new"
-      className="caps step inline-flex h-11 shrink-0 items-center border border-ink px-4 text-[16px] hover:bg-band"
+      className="caps step inline-flex h-11 shrink-0 items-center border border-ink px-4 text-16 hover:bg-band"
     >
       Make an event first
     </Link>
@@ -107,7 +107,7 @@ export default async function TestsPage() {
                   <span className="block truncate font-display text-[clamp(1.5rem,5vw,2.25rem)] leading-[1.05] font-semibold uppercase">
                     {t.title}
                   </span>
-                  <span className="block truncate text-[16px] text-ink-2">
+                  <span className="block truncate text-16 text-ink-2">
                     {[
                       t.classrooms?.name,
                       t.time_limit_minutes
@@ -122,11 +122,11 @@ export default async function TestsPage() {
                 </span>
                 <span className="flex items-center gap-3 text-ink-2">
                   {best.has(t.id) ? (
-                    <span className="num caps text-[16px] text-ink">
+                    <span className="num caps text-16 text-ink">
                       {best.get(t.id)!.score}/{best.get(t.id)!.total}
                     </span>
                   ) : (
-                    <span className="num caps text-[15px]">
+                    <span className="num caps text-15">
                       {formNumber("T", t.num)}
                     </span>
                   )}
@@ -149,7 +149,7 @@ export default async function TestsPage() {
           action={
             <Link
               href="/join"
-              className="caps step inline-flex min-h-11 items-center text-[17px] underline underline-offset-4"
+              className="caps step inline-flex min-h-11 items-center text-17 underline underline-offset-4"
             >
               Join an event
             </Link>

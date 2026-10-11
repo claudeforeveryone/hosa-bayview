@@ -48,7 +48,7 @@ export function ClassroomForm({
         error={state.fieldErrors?.event}
       />
       <fieldset className="grid gap-1.5">
-        <legend className="mb-1.5 text-[15px] font-medium">Event type</legend>
+        <legend className="mb-1.5 text-15 font-medium">Event type</legend>
         <div className="grid grid-cols-3 border border-rule-strong">
           {CATEGORIES.map((c) => (
             <label key={c.id} className="relative border-r border-rule-strong last:border-r-0">
@@ -60,18 +60,18 @@ export function ClassroomForm({
                 aria-describedby={state.fieldErrors?.category ? "f-category-err" : "f-category-hint"}
                 className="peer sr-only"
               />
-              <span className="caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink">
+              <span className="caps step flex h-12 cursor-pointer items-center justify-center text-16 text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink">
                 {c.label}
               </span>
             </label>
           ))}
         </div>
         {state.fieldErrors?.category ? (
-          <p id="f-category-err" className="text-[15px] text-danger">
+          <p id="f-category-err" className="text-15 text-danger">
             {state.fieldErrors.category}
           </p>
         ) : (
-          <p id="f-category-hint" className="text-[15px] text-ink-2">
+          <p id="f-category-hint" className="text-15 text-ink-2">
             Practical adds Skills. Showcase has no tests.
           </p>
         )}

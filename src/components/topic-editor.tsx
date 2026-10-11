@@ -9,7 +9,7 @@ import { topicTotal, type TopicInput } from "@/lib/resources";
 type Row = TopicInput & { key: number };
 
 const inputClass =
-  "step h-12 w-full border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]";
+  "step h-12 w-full border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]";
 
 // Edits the whole event breakdown at once. The total updates as you type; saving replaces the list.
 export function TopicEditor({
@@ -69,7 +69,7 @@ export function TopicEditor({
               <button
                 type="button"
                 onClick={() => remove(r.key)}
-                className="caps step h-10 shrink-0 px-2 text-[15px] text-ink-2 hover:text-ink"
+                className="caps step h-10 shrink-0 px-2 text-15 text-ink-2 hover:text-ink"
               >
                 Remove
               </button>

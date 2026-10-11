@@ -27,11 +27,11 @@ export function ChapterCodeSection({ on }: { on: boolean }) {
       </h2>
       <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-y border-rule py-3">
         <span
-          className={`caps text-[16px] font-semibold ${on ? "text-ink" : "text-ink-2"}`}
+          className={`caps text-16 font-semibold ${on ? "text-ink" : "text-ink-2"}`}
         >
           {on ? "On" : "Off"}
         </span>
-        <span className="text-[16px] text-ink-2">
+        <span className="text-16 text-ink-2">
           {on
             ? "New members need the code to sign up."
             : "Anyone with the link can sign up."}

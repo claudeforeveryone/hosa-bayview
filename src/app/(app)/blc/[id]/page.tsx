@@ -140,12 +140,12 @@ export default async function CompetitionPage({
           <h1 className="min-w-0 font-display text-[clamp(2.75rem,10vw,5.5rem)] leading-[0.92] font-bold [overflow-wrap:anywhere] uppercase">
             {comp.name}
           </h1>
-          <span className="num caps shrink-0 pt-2 text-[15px] text-on-field-2">
+          <span className="num caps shrink-0 pt-2 text-15 text-on-field-2">
             {formNumber("C", comp.num)}
           </span>
         </div>
-        <p className="caps text-[17px] text-on-field-2">{subtitle}</p>
-        <p className="text-[17px] text-on-field-2">
+        <p className="caps text-17 text-on-field-2">{subtitle}</p>
+        <p className="text-17 text-on-field-2">
           {windowLine(comp.opens_at, comp.closes_at)}
         </p>
         {comp.description ? (
@@ -156,7 +156,7 @@ export default async function CompetitionPage({
       <section aria-labelledby="tests-h" className="grid gap-4">
         <h2
           id="tests-h"
-          className="font-display text-[28px] leading-none font-bold uppercase"
+          className="font-display text-28 leading-none font-bold uppercase"
         >
           Tests
         </h2>
@@ -179,7 +179,7 @@ export default async function CompetitionPage({
                     <span className="block font-display text-[clamp(1.5rem,5vw,2rem)] leading-[1.05] font-semibold uppercase [overflow-wrap:anywhere]">
                       {t.title}
                     </span>
-                    <span className="num caps block text-[15px] text-ink-2">
+                    <span className="num caps block text-15 text-ink-2">
                       {[
                         `${t.question_count} question${t.question_count === 1 ? "" : "s"}`,
                         t.time_limit_minutes
@@ -226,12 +226,12 @@ export default async function CompetitionPage({
           <div className="grid gap-2">
             <h2
               id="results-h"
-              className="font-display text-[28px] leading-none font-bold uppercase"
+              className="font-display text-28 leading-none font-bold uppercase"
             >
               Results
             </h2>
             {state !== "closed" ? (
-              <p className="caps text-[15px] text-ink-2">
+              <p className="caps text-15 text-ink-2">
                 Live results, only you can see this
               </p>
             ) : null}
@@ -239,7 +239,7 @@ export default async function CompetitionPage({
           {grouped.length ? (
             grouped.map((g) => (
               <div key={g.testId} className="grid gap-2">
-                <h3 className="font-display text-[22px] leading-none font-semibold uppercase">
+                <h3 className="font-display text-22 leading-none font-semibold uppercase">
                   {g.title}
                 </h3>
                 <ol className="border-t border-rule">
@@ -251,28 +251,28 @@ export default async function CompetitionPage({
                         key={r.user_id}
                         className={`grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-rule px-1 py-2.5 sm:px-3 ${you ? "bg-band" : ""}`}
                       >
-                        <span className="num font-display text-[20px] font-semibold text-ink-2">
+                        <span className="num font-display text-20 font-semibold text-ink-2">
                           {r.place}
                         </span>
                         <span className="flex min-w-0 items-center gap-2.5">
                           <Link
                             href={`/members/${r.user_id}`}
-                            className="step -my-1.5 min-w-0 truncate py-1.5 font-display text-[18px] leading-tight font-semibold uppercase hover:underline sm:text-[20px]"
+                            className="step -my-1.5 min-w-0 truncate py-1.5 font-display text-18 leading-tight font-semibold uppercase hover:underline sm:text-20"
                           >
                             {r.full_name || "Member"}
                           </Link>
                           {you ? (
-                            <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">
+                            <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-13 leading-none text-on-you">
                               You
                             </span>
                           ) : null}
                         </span>
                         <span className="num text-right">
-                          <span className="block font-display text-[22px] leading-none font-bold">
+                          <span className="block font-display text-22 leading-none font-bold">
                             {r.score}/{r.total}
                           </span>
                           {pct === null ? null : (
-                            <span className="block text-[15px] text-ink-2">
+                            <span className="block text-15 text-ink-2">
                               {pct}%
                             </span>
                           )}
@@ -296,19 +296,19 @@ export default async function CompetitionPage({
         >
           <h2
             id="run-h"
-            className="font-display text-[28px] leading-none font-bold uppercase"
+            className="font-display text-28 leading-none font-bold uppercase"
           >
             Run it
           </h2>
           <Link
             href={`/c/${comp.id}/tests`}
-            className="caps step inline-flex h-12 w-fit items-center gap-2 border border-ink px-5 text-[17px] hover:bg-band"
+            className="caps step inline-flex h-12 w-fit items-center gap-2 border border-ink px-5 text-17 hover:bg-band"
           >
             Manage tests
             <ChevronRight size={20} strokeWidth={1.75} aria-hidden />
           </Link>
           <details className="group border-y border-rule">
-            <summary className="caps step flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-[18px] hover:bg-band [&::-webkit-details-marker]:hidden">
+            <summary className="caps step flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-18 hover:bg-band [&::-webkit-details-marker]:hidden">
               Edit times
               <ChevronDown
                 size={22}

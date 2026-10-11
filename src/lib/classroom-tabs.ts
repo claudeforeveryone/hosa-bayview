@@ -1,23 +1,31 @@
 // Which classroom tabs a room shows. Pure, so the rule is testable apart from the nav component.
 export type Category = "mc" | "practical" | "showcase";
-export type Tab = { slug: string; label: string };
+// A tab with `sub` is a dropdown: its own slug is never a page, only a name for the group.
+export type Tab = { slug: string; label: string; sub?: Tab[] };
 
 export function parseCategory(value: unknown): Category | null {
   return value === "mc" || value === "practical" || value === "showcase" ? value : null;
 }
 
-// Hub first, then most used. Practical rooms add Skills; showcase rooms have no tests.
+// What the Questions dropdown holds. Showcase rooms have no tests. Skills (your badges in the event, plus the
+// rating sheets in practical rooms) is in every room.
+export function questionTabsFor(category: Category | null): Tab[] {
+  const sub: Tab[] = [];
+  if (category !== "showcase") sub.push({ slug: "tests", label: "Tests" });
+  sub.push({ slug: "flashcards", label: "Cards" }, { slug: "skills", label: "Skills" });
+  return sub;
+}
+
+// Hub first, then Questions (Tests, Cards and Skills in one dropdown, so the strip stays short), then the rest.
 // Grades (the whole-class grid) and Settings are for managers.
 export function tabsFor(category: Category | null, isManager: boolean): Tab[] {
-  const tabs: Tab[] = [{ slug: "", label: "Overview" }];
-  if (category !== "showcase") tabs.push({ slug: "tests", label: "Tests" });
-  if (category === "practical") tabs.push({ slug: "skills", label: "Skills" });
-  tabs.push(
-    { slug: "flashcards", label: "Cards" },
+  const tabs: Tab[] = [
+    { slug: "", label: "Overview" },
+    { slug: "questions", label: "Questions", sub: questionTabsFor(category) },
     { slug: "resources", label: "Resources" },
     { slug: "members", label: "People" },
     { slug: "attendance", label: "Attendance" },
-  );
+  ];
   if (isManager) tabs.push({ slug: "grades", label: "Grades" }, { slug: "settings", label: "Settings" });
   return tabs;
 }

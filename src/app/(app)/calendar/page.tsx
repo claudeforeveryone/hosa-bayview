@@ -69,7 +69,7 @@ export default async function CalendarPage(props: PageProps<"/calendar">) {
       {places.length ? (
         // One rule above only: the month or list below brings its own, so the two never stack up.
         <details className="group border-t-2 border-ink">
-          <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-[18px] hover:bg-band sm:px-3">
+          <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-18 hover:bg-band sm:px-3">
             Add an event
             <Plus
               size={22}
@@ -117,7 +117,7 @@ export default async function CalendarPage(props: PageProps<"/calendar">) {
               <Link
                 href="/calendar?view=month"
                 aria-current={showing === thisMonth ? "page" : undefined}
-                className="caps step flex h-11 items-center border border-rule-strong px-4 text-[15px] text-ink hover:bg-band aria-[current=page]:bg-ink aria-[current=page]:text-ground"
+                className="caps step flex h-11 items-center border border-rule-strong px-4 text-15 text-ink hover:bg-band aria-[current=page]:bg-ink aria-[current=page]:text-ground"
               >
                 Today
               </Link>
@@ -133,7 +133,7 @@ export default async function CalendarPage(props: PageProps<"/calendar">) {
   
           <MonthGrid days={days} byDay={byDay} todayKey={todayKey} editable={editable} />
   
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[14px] text-ink-2">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-14 text-ink-2">
             <span className="flex items-center gap-2">
               <span aria-hidden className="inline-block h-3.5 w-[3px] bg-you" />
               Chapter

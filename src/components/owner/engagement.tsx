@@ -120,7 +120,7 @@ export function EngagementSection({
                 <>
                   {r.label}
                   {r.event ? (
-                    <span className="block text-[13px] font-normal text-ink-2">
+                    <span className="block text-13 font-normal text-ink-2">
                       {r.shared ? "Counts toward " : null}
                       {breakable(r.event)}
                     </span>
@@ -147,13 +147,13 @@ export function EngagementSection({
               header: "Counted from",
               hideOnPhone: true,
               cell: (r) => (
-                <span className="text-[15px] text-ink-2">{r.from}</span>
+                <span className="text-15 text-ink-2">{r.from}</span>
               ),
             },
           ]}
         />
         {table.notCounted.length ? (
-          <p className="max-w-[68ch] text-[15px] text-ink-2">
+          <p className="max-w-[68ch] text-15 text-ink-2">
             Not counted here: {notCountedText(table.notCounted)}.
           </p>
         ) : null}
@@ -182,7 +182,7 @@ export function EngagementSection({
                     <span>
                       {e.name}
                       {e.event && e.event !== e.name ? (
-                        <span className="block text-[13px] font-normal text-ink-2">
+                        <span className="block text-13 font-normal text-ink-2">
                           {e.event}
                         </span>
                       ) : null}

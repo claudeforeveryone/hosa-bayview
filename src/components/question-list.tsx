@@ -55,10 +55,10 @@ export function QuestionList({
             ) : (
               <>
                 <div className="flex items-start gap-3">
-                  <span className="num w-8 shrink-0 font-display text-[22px] leading-tight font-semibold text-ink-2">
+                  <span className="num w-8 shrink-0 font-display text-22 leading-tight font-semibold text-ink-2">
                     {i + 1}
                   </span>
-                  <p className="min-w-0 flex-1 text-[17px] whitespace-pre-line">
+                  <p className="min-w-0 flex-1 text-17 whitespace-pre-line">
                     {q.prompt}
                   </p>
                 </div>
@@ -68,7 +68,7 @@ export function QuestionList({
                     return (
                       <li
                         key={j}
-                        className={`flex items-start gap-2 text-[16px] ${right ? "font-medium" : "text-ink-2"}`}
+                        className={`flex items-start gap-2 text-16 ${right ? "font-medium" : "text-ink-2"}`}
                       >
                         {right ? (
                           <Check
@@ -86,13 +86,13 @@ export function QuestionList({
                   })}
                 </ul>
                 {q.explanation ? (
-                  <p className="pl-11 text-[15px] text-ink-2">
+                  <p className="pl-11 text-15 text-ink-2">
                     {q.explanation}
                   </p>
                 ) : null}
                 {q.failed ? (
                   <div className="grid gap-2 pl-11">
-                    <p role="alert" className="text-[15px] text-danger">
+                    <p role="alert" className="text-15 text-danger">
                       Not saved. {q.failed}
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -100,7 +100,7 @@ export function QuestionList({
                         <button
                           type="button"
                           onClick={onRetry}
-                          className="caps step inline-flex h-10 items-center border border-ink bg-ink px-4 text-[15px] text-ground hover:bg-ink-2"
+                          className="caps step inline-flex h-10 items-center border border-ink bg-ink px-4 text-15 text-ground hover:bg-ink-2"
                         >
                           Retry
                         </button>
@@ -109,7 +109,7 @@ export function QuestionList({
                         <button
                           type="button"
                           onClick={() => onRemove(q.id)}
-                          className="caps step inline-flex h-10 items-center border border-ink px-4 text-[15px] hover:bg-band"
+                          className="caps step inline-flex h-10 items-center border border-ink px-4 text-15 hover:bg-band"
                         >
                           Remove
                         </button>
@@ -117,13 +117,13 @@ export function QuestionList({
                     </div>
                   </div>
                 ) : q.pending ? (
-                  <p className="caps pl-11 text-[15px] text-ink-2">Saving</p>
+                  <p className="caps pl-11 text-15 text-ink-2">Saving</p>
                 ) : (
                   <div className="flex flex-wrap items-start gap-2 pl-11">
                     <button
                       type="button"
                       onClick={() => setEditing(q.id)}
-                      className="caps step inline-flex h-10 items-center gap-2 border border-ink px-4 text-[15px] hover:bg-band"
+                      className="caps step inline-flex h-10 items-center gap-2 border border-ink px-4 text-15 hover:bg-band"
                     >
                       <Pencil size={16} strokeWidth={1.75} aria-hidden />
                       Edit

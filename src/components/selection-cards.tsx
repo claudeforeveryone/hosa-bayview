@@ -99,14 +99,14 @@ export function SelectionCards({
           type="button"
           onPointerDown={(e) => e.preventDefault()}
           onClick={open}
-          className="caps step inline-flex h-11 w-fit items-center gap-2 border border-ink px-4 text-[16px] hover:bg-band"
+          className="caps step inline-flex h-11 w-fit items-center gap-2 border border-ink px-4 text-16 hover:bg-band"
         >
           <Plus size={18} strokeWidth={2} aria-hidden />
           Add to flashcards
         </button>
       ) : null}
       {saved ? (
-        <p role="status" className="text-[15px] text-ink-2">
+        <p role="status" className="text-15 text-ink-2">
           Saved to {saved}.
         </p>
       ) : null}
@@ -127,14 +127,14 @@ export function SelectionCards({
         >
           <h2
             id={titleId}
-            className="font-display text-[26px] leading-none font-bold uppercase"
+            className="font-display text-26 leading-none font-bold uppercase"
           >
             Add to flashcards
           </h2>
           <div className="grid gap-1.5">
             <label
               htmlFor={`${titleId}-deck`}
-              className="text-[15px] font-medium"
+              className="text-15 font-medium"
             >
               Deck
             </label>
@@ -142,7 +142,7 @@ export function SelectionCards({
               id={`${titleId}-deck`}
               value={deck}
               onChange={(e) => setDeck(e.target.value)}
-              className="step h-12 w-full border border-rule-strong bg-ground px-3 text-[17px] outline-none focus:border-ink"
+              className="step h-12 w-full border border-rule-strong bg-ground px-3 text-17 outline-none focus:border-ink"
             >
               {decks.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -168,7 +168,7 @@ export function SelectionCards({
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             maxLength={500}
-            className="step min-h-20 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+            className="step min-h-20 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
           />
           <TextArea
             label="Definition"

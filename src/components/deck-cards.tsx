@@ -26,7 +26,7 @@ export function DeckCards({ deckId, cards, canEdit }: { deckId: string; cards: C
           ))}
         </ol>
       ) : (
-        <p className="text-[17px] text-ink-2">No cards yet.</p>
+        <p className="text-17 text-ink-2">No cards yet.</p>
       )}
     </div>
   );
@@ -65,24 +65,24 @@ function AddCards({ deckId }: { deckId: string }) {
           });
         }}
       >
-        <label className="grid gap-1.5 text-[15px] font-medium">
+        <label className="grid gap-1.5 text-15 font-medium">
           Term
           <input
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             maxLength={500}
             required
-            className="step h-12 border border-rule-strong bg-transparent px-3 text-[17px] font-normal outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+            className="step h-12 border border-rule-strong bg-transparent px-3 text-17 font-normal outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
           />
         </label>
-        <label className="grid gap-1.5 text-[15px] font-medium">
+        <label className="grid gap-1.5 text-15 font-medium">
           Definition
           <input
             value={definition}
             onChange={(e) => setDefinition(e.target.value)}
             maxLength={2000}
             required
-            className="step h-12 border border-rule-strong bg-transparent px-3 text-[17px] font-normal outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+            className="step h-12 border border-rule-strong bg-transparent px-3 text-17 font-normal outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
           />
         </label>
         <Button type="submit" variant="line" disabled={pending || !term.trim() || !definition.trim()}>
@@ -91,7 +91,7 @@ function AddCards({ deckId }: { deckId: string }) {
       </form>
 
       <div className="grid gap-3 border-t border-rule pt-6">
-        <label htmlFor="bulk-cards" className="text-[15px] font-medium">
+        <label htmlFor="bulk-cards" className="text-15 font-medium">
           Paste many
         </label>
         <textarea
@@ -104,30 +104,30 @@ function AddCards({ deckId }: { deckId: string }) {
           rows={6}
           spellCheck={false}
           placeholder={EXAMPLE}
-          className="step min-h-36 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-[16px] leading-relaxed outline-none placeholder:text-ink-2/70 focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+          className="step min-h-36 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-16 leading-relaxed outline-none placeholder:text-ink-2/70 focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
         />
-        <p className="text-[15px] text-ink-2">One card per line: term then definition, split by a tab, a spaced hyphen, a spaced dash or a colon.</p>
+        <p className="text-15 text-ink-2">One card per line: term then definition, split by a tab, a spaced hyphen, a spaced dash or a colon.</p>
         {text.trim() ? (
           <div className="grid gap-3">
-            <p className="caps text-[15px] text-ink-2" aria-live="polite">
+            <p className="caps text-15 text-ink-2" aria-live="polite">
               {parsed.items.length} ready{parsed.errors.length ? ` · ${parsed.errors.length} to fix` : ""}
             </p>
             <ul className="grid border-t border-rule">
               {parsed.items.map((c) => (
-                <li key={c.line} className="grid gap-0.5 border-b border-rule py-2.5 text-[16px]">
+                <li key={c.line} className="grid gap-0.5 border-b border-rule py-2.5 text-16">
                   <span className="font-semibold">{c.term}</span>
                   <span className="text-ink-2">{c.definition}</span>
                 </li>
               ))}
               {parsed.errors.map((e) => (
-                <li key={`e${e.line}`} className="grid gap-0.5 border-b border-danger py-2.5 text-[16px]">
+                <li key={`e${e.line}`} className="grid gap-0.5 border-b border-danger py-2.5 text-16">
                   <span className="text-danger">Line {e.line}: {e.message}</span>
                   <span className="text-ink-2 break-words">{e.text}</span>
                 </li>
               ))}
             </ul>
             {over ? (
-              <p className="text-[15px] text-danger">Add at most {MAX_CARDS_PER_PASTE} cards at a time. Split the list.</p>
+              <p className="text-15 text-danger">Add at most {MAX_CARDS_PER_PASTE} cards at a time. Split the list.</p>
             ) : null}
             <div>
               <Button
@@ -137,7 +137,7 @@ function AddCards({ deckId }: { deckId: string }) {
               >
                 {pending ? "Adding" : `Add ${parsed.items.length} card${parsed.items.length === 1 ? "" : "s"}`}
               </Button>
-              {parsed.errors.length ? <p className="mt-2 text-[15px] text-ink-2">Fix the lines marked above to add them all.</p> : null}
+              {parsed.errors.length ? <p className="mt-2 text-15 text-ink-2">Fix the lines marked above to add them all.</p> : null}
             </div>
           </div>
         ) : null}
@@ -178,7 +178,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             onChange={(e) => setTerm(e.target.value)}
             maxLength={500}
             required
-            className="step h-12 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink"
+            className="step h-12 border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink"
           />
           <textarea
             aria-label="Definition"
@@ -187,7 +187,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
             maxLength={2000}
             required
             rows={2}
-            className="step border border-rule-strong bg-transparent px-3 py-2 text-[17px] outline-none focus:border-ink"
+            className="step border border-rule-strong bg-transparent px-3 py-2 text-17 outline-none focus:border-ink"
           />
           {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
           <div className="flex gap-3">
@@ -222,7 +222,7 @@ function CardRow({ card, canEdit }: { card: Card; canEdit: boolean }) {
       </div>
       {canEdit ? (
         <div role="group" aria-label={`Card: ${card.term}`} className="flex flex-wrap items-start gap-3">
-          <Button variant="line" className="h-10 px-4 text-[15px]" aria-label={`Edit ${card.term}`} onClick={() => setEditing(true)}>
+          <Button variant="line" className="h-10 px-4 text-15" aria-label={`Edit ${card.term}`} onClick={() => setEditing(true)}>
             Edit
           </Button>
           <ConfirmAction

@@ -28,7 +28,7 @@ export default async function EditTestPage({
       <header className="grid gap-3">
         <Link
           href={`/c/${room.id}/tests/${test.id}`}
-          className="caps inline-flex items-center gap-1 justify-self-start text-[15px] text-ink-2 hover:text-ink"
+          className="caps inline-flex items-center gap-1 justify-self-start text-15 text-ink-2 hover:text-ink"
         >
           <ArrowLeft size={16} strokeWidth={2} aria-hidden />
           Back to test
@@ -36,7 +36,7 @@ export default async function EditTestPage({
         <h2 className="font-display text-[clamp(2.25rem,8vw,3.75rem)] leading-[0.95] font-bold [overflow-wrap:anywhere] uppercase">
           {test.title}
         </h2>
-        <p className="caps text-[16px] text-ink-2">
+        <p className="caps text-16 text-ink-2">
           {formNumber("T", test.num)} · {questions.length} question
           {questions.length === 1 ? "" : "s"} ·{" "}
           {test.is_published ? "Posted" : "Draft"}
@@ -52,7 +52,7 @@ export default async function EditTestPage({
       >
         <h3
           id="details-h"
-          className="font-display text-[28px] leading-none font-bold uppercase"
+          className="font-display text-28 leading-none font-bold uppercase"
         >
           Details
         </h3>
@@ -86,7 +86,7 @@ export default async function EditTestPage({
       >
         <h3
           id="delete-h"
-          className="font-display text-[28px] leading-none font-bold uppercase"
+          className="font-display text-28 leading-none font-bold uppercase"
         >
           Delete test
         </h3>

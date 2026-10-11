@@ -39,7 +39,7 @@ export function AddQuestions({
             type="button"
             aria-pressed={mode === value}
             onClick={() => setMode(value)}
-            className={`caps step h-11 px-5 text-[15px] not-first:border-l not-first:border-ink ${
+            className={`caps step h-11 px-5 text-15 not-first:border-l not-first:border-ink ${
               mode === value ? "bg-ink text-ground" : "hover:bg-band"
             }`}
           >

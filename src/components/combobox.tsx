@@ -71,7 +71,7 @@ export function Combobox({
 
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={id} className="text-[15px] font-medium">
+      <label htmlFor={id} className="text-15 font-medium">
         {label}
       </label>
       <div className="relative">
@@ -99,7 +99,7 @@ export function Combobox({
           onClick={() => setOpen(true)}
           onBlur={close}
           onKeyDown={onKeyDown}
-          className="step h-12 w-full border border-rule-strong bg-transparent pr-12 pl-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
+          className="step h-12 w-full border border-rule-strong bg-transparent pr-12 pl-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
         />
         {/* Mouse and touch shortcut only; keyboard and screen-reader users open the list from the field. */}
         <button
@@ -138,7 +138,7 @@ export function Combobox({
                     choose(option);
                   }}
                   onMouseMove={() => setActive(i)}
-                  className={`flex h-11 cursor-pointer items-center justify-between gap-3 border-b border-rule px-3 text-[16px] last:border-b-0 ${
+                  className={`flex h-11 cursor-pointer items-center justify-between gap-3 border-b border-rule px-3 text-16 last:border-b-0 ${
                     i === active ? "bg-ink text-ground" : ""
                   }`}
                 >
@@ -151,7 +151,7 @@ export function Combobox({
         ) : null}
       </div>
       {error ? (
-        <p id={`${id}-err`} className="text-[15px] text-danger">
+        <p id={`${id}-err`} className="text-15 text-danger">
           {error}
         </p>
       ) : null}

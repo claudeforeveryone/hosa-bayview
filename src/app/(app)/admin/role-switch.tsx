@@ -72,7 +72,7 @@ export function RoleSwitch({
 
   if (role === "executive" && !canGrantExec) {
     return (
-      <p className="text-[15px] text-ink-2">
+      <p className="text-15 text-ink-2">
         <span className="caps text-ink">Exec.</span> Only the chapter leads can change an executive&apos;s role.
       </p>
     );
@@ -90,7 +90,7 @@ export function RoleSwitch({
           }}
           className="grid justify-items-start gap-2 sm:justify-items-end"
         >
-          <p id={promptId} className="text-[15px]">
+          <p id={promptId} className="text-15">
             Make {isMe ? "yourself" : name} {NAME[pick]}?
           </p>
           <div className="flex gap-2">
@@ -103,7 +103,7 @@ export function RoleSwitch({
               onClick={(e) => {
                 if (pending) e.preventDefault();
               }}
-              className="caps step h-10 bg-ink px-4 text-[14px] text-ground hover:bg-ink-2 aria-disabled:opacity-60"
+              className="caps step h-10 bg-ink px-4 text-14 text-ground hover:bg-ink-2 aria-disabled:opacity-60"
             >
               {pending ? "Saving" : "Yes, change it"}
             </button>
@@ -111,7 +111,7 @@ export function RoleSwitch({
               type="button"
               onClick={cancel}
               disabled={pending}
-              className="caps step h-10 border border-ink px-4 text-[14px] hover:bg-band"
+              className="caps step h-10 border border-ink px-4 text-14 hover:bg-band"
             >
               Keep {ROLES.find((r) => r.value === role)?.label}
             </button>
@@ -132,7 +132,7 @@ export function RoleSwitch({
                   setError(null);
                   setPick(r.value);
                 }}
-                className={`caps step h-10 min-w-[4.75rem] px-3 text-[14px] not-first:border-l not-first:border-ink ${
+                className={`caps step h-10 min-w-[4.75rem] px-3 text-14 not-first:border-l not-first:border-ink ${
                   current ? "cursor-default bg-ink text-ground" : "hover:bg-band"
                 }`}
               >
@@ -143,7 +143,7 @@ export function RoleSwitch({
         </div>
       )}
       {error ? (
-        <p role="alert" className="text-[14px] text-danger">
+        <p role="alert" className="text-14 text-danger">
           {error}
         </p>
       ) : null}

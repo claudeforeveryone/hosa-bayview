@@ -1,9 +1,9 @@
 // The Settings tabs, in the order they show. "appearance" was "look" until the rename; old links with
-// ?tab=look still open the same tab. `short` is the phone tab row's label, so all five fit from 360 px. `more`
+// ?tab=look still open the same tab. `short` is the phone tab row's label; narrower than the six tabs need, the row scrolls sideways. `more`
 // is a second line on the desktop rail: on a computer, Phone app is also where browser notifications are turned
 // on, and the name alone doesn't say so. The visible words stay part of the link's name either way.
 export const SETTINGS_TABS: readonly {
-  id: "appearance" | "sound" | "app" | "account" | "events";
+  id: "appearance" | "sound" | "app" | "account" | "events" | "help";
   label: string;
   short?: string;
   more?: string;
@@ -13,6 +13,7 @@ export const SETTINGS_TABS: readonly {
   { id: "app", label: "Phone app", short: "Phone", more: "and notifications" },
   { id: "account", label: "Account" },
   { id: "events", label: "Events" },
+  { id: "help", label: "Help" },
 ];
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number]["id"];

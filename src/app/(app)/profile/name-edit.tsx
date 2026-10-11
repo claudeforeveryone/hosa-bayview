@@ -74,7 +74,7 @@ export function NameEdit({ name }: { name: string }) {
   if (editing) {
     return (
       <div className="grid gap-2">
-        <label htmlFor="profile-name" className="caps text-[14px] text-ink-2">
+        <label htmlFor="profile-name" className="caps text-14 text-ink-2">
           Your name
         </label>
         <input
@@ -100,7 +100,7 @@ export function NameEdit({ name }: { name: string }) {
           }}
           className={`${HEADING} w-full min-w-0 border-b-[3px] border-ink bg-transparent pb-1 outline-none aria-invalid:border-danger disabled:opacity-60`}
         />
-        <p id="profile-name-hint" className={`text-[15px] ${error ? "text-danger" : "text-ink-2"}`}>
+        <p id="profile-name-hint" className={`text-15 ${error ? "text-danger" : "text-ink-2"}`}>
           {error ?? (pending ? "Saving" : "Enter saves, Esc cancels.")}
         </p>
       </div>
@@ -126,7 +126,7 @@ export function NameEdit({ name }: { name: string }) {
           />
         </button>
       </h1>
-      <p role="status" className="text-[15px] text-ink-2">
+      <p role="status" className="text-15 text-ink-2">
         {status}
       </p>
     </div>

@@ -20,8 +20,8 @@ export async function generateMetadata({ params }: PageProps<"/flashcards/[deckI
   return { title: deck?.title ?? "Deck" };
 }
 
-const studyLink = "caps step inline-flex h-12 items-center bg-ink px-6 text-[17px] text-ground hover:bg-ink-2";
-const outlineLink = "caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band";
+const studyLink = "caps step inline-flex h-12 items-center bg-ink px-6 text-17 text-ground hover:bg-ink-2";
+const outlineLink = "caps step inline-flex h-12 items-center border border-ink px-6 text-17 hover:bg-band";
 
 export default async function DeckPage({ params }: PageProps<"/flashcards/[deckId]">) {
   const { deckId } = await params;
@@ -49,12 +49,12 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
           <h1 className="min-w-0 font-display text-[clamp(2.5rem,9vw,4.5rem)] leading-[0.95] font-bold uppercase [overflow-wrap:anywhere]">
             {deck.title}
           </h1>
-          <span className="num caps shrink-0 pt-2 text-[15px] text-ink-2">{formNumber("D", deck.num)}</span>
+          <span className="num caps shrink-0 pt-2 text-15 text-ink-2">{formNumber("D", deck.num)}</span>
         </div>
-        <p className="caps text-[17px] text-ink-2">
+        <p className="caps text-17 text-ink-2">
           {count} · {scope}
         </p>
-        {!canEdit && ownerName ? <p className="text-[15px] text-ink-2">Shared by {ownerName}</p> : null}
+        {!canEdit && ownerName ? <p className="text-15 text-ink-2">Shared by {ownerName}</p> : null}
         {deck.description ? <p className="max-w-[65ch] whitespace-pre-line">{deck.description}</p> : null}
         {cards.length || !canEdit ? (
           <div className="flex flex-wrap items-start gap-3 pt-2">
@@ -72,7 +72,7 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
           </div>
         ) : null}
         {cards.length ? (
-          <p className="caps text-[17px] text-ink-2">
+          <p className="caps text-17 text-ink-2">
             Best match <span className="num text-ink">{best === null ? "none yet" : formatMatchTime(best)}</span>
           </p>
         ) : null}
@@ -80,20 +80,20 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
 
       {top.length ? (
         <section className="grid gap-4 border-t border-rule pt-8" aria-labelledby="top-heading">
-          <h2 id="top-heading" className="caps text-[17px] text-ink-2">
+          <h2 id="top-heading" className="caps text-17 text-ink-2">
             Fastest matches
           </h2>
           <ol className="border-t border-rule">
             {top.map((t, i) => (
               <li
                 key={`${i}-${t.user_name}`}
-                className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule py-3 text-[17px]"
+                className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule py-3 text-17"
               >
                 <span className="num text-ink-2">{i + 1}</span>
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate">{t.user_name}</span>
                   {t.is_you ? (
-                    <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">You</span>
+                    <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-13 leading-none text-on-you">You</span>
                   ) : null}
                 </span>
                 <span className="num">{formatMatchTime(t.time_ms)}</span>
@@ -105,7 +105,7 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
 
       {canEdit ? (
         <section className="grid gap-6 border-t border-rule pt-8" aria-labelledby="edit-heading">
-          <h2 id="edit-heading" className="caps text-[17px] text-ink-2">
+          <h2 id="edit-heading" className="caps text-17 text-ink-2">
             Edit deck
           </h2>
           <DeckForm
@@ -137,7 +137,7 @@ export default async function DeckPage({ params }: PageProps<"/flashcards/[deckI
       ) : null}
 
       <section className="grid gap-6 border-t border-rule pt-8" aria-labelledby="cards-heading">
-        <h2 id="cards-heading" className="caps text-[17px] text-ink-2">
+        <h2 id="cards-heading" className="caps text-17 text-ink-2">
           Cards
         </h2>
         <DeckCards deckId={deck.id} cards={cards} canEdit={canEdit} />

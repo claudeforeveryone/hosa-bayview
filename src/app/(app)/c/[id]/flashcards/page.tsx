@@ -17,7 +17,7 @@ export default async function FlashcardsTab({ params }: PageProps<"/c/[id]/flash
   const newDeck = (
     <Link
       href={`/flashcards/new?classroom=${room.id}`}
-      className="caps step inline-flex h-11 shrink-0 items-center gap-2 border border-ink px-4 text-[16px] hover:bg-band"
+      className="caps step inline-flex h-11 shrink-0 items-center gap-2 border border-ink px-4 text-16 hover:bg-band"
     >
       {room.can_manage ? "New event deck" : "New deck"}
       <ChevronRight size={18} strokeWidth={2} aria-hidden />

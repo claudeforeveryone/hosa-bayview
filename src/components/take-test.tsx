@@ -237,12 +237,12 @@ export function TakeTest({
   return (
     <div className="grid grid-cols-1 gap-6">
       <div className="sticky top-0 z-20 -mx-4 flex items-center justify-between gap-4 border-b border-rule bg-ground px-4 py-3 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
-        <p className="caps num text-[16px] text-ink-2">
+        <p className="caps num text-16 text-ink-2">
           {answered}/{rows.length} answered
         </p>
         {deadline ? (
           <p
-            className={`num flex items-center gap-2 font-display text-[28px] leading-none font-bold ${low ? "text-danger" : ""}`}
+            className={`num flex items-center gap-2 font-display text-28 leading-none font-bold ${low ? "text-danger" : ""}`}
             role="timer"
             aria-label={`Time left ${clock(remaining)}`}
           >
@@ -250,7 +250,7 @@ export function TakeTest({
             {clock(remaining)}
           </p>
         ) : (
-          <p className="caps text-[16px] text-ink-2">Practice</p>
+          <p className="caps text-16 text-ink-2">Practice</p>
         )}
         {/* How far through the paper you are, filling left to right as each question is answered. */}
         <span
@@ -273,7 +273,7 @@ export function TakeTest({
           id="q-h"
           ref={heading}
           tabIndex={-1}
-          className="caps num scroll-mt-24 text-[16px] text-ink-2 outline-none"
+          className="caps num scroll-mt-24 text-16 text-ink-2 outline-none"
         >
           Question {current + 1} of {rows.length}
         </h2>
@@ -311,9 +311,9 @@ export function TakeTest({
                   aria-pressed={chosen}
                   aria-keyshortcuts={`${shown + 1} ${LETTERS[shown]}`}
                   disabled={locked || submitting}
-                  className={`press step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-[17px] disabled:cursor-default ${tone}`}
+                  className={`press step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-17 disabled:cursor-default ${tone}`}
                 >
-                  <span className="num w-5 shrink-0 font-display text-[18px] font-bold">
+                  <span className="num w-5 shrink-0 font-display text-18 font-bold">
                     {LETTERS[shown]}
                   </span>
                   <span className="min-w-0 flex-1">{q.options[original]}</span>
@@ -345,7 +345,7 @@ export function TakeTest({
             <>
               <p
                 key={mine?.saved ? "verdict" : "checking"}
-                className={`caps text-[18px] ${
+                className={`caps text-18 ${
                   mine?.saved && fresh === q.question_id ? "reveal" : ""
                 } ${
                   mine?.saved && mine.is_correct
@@ -422,7 +422,7 @@ export function TakeTest({
                   onClick={() => go(i)}
                   aria-current={i === current ? "step" : undefined}
                   aria-label={`Question ${i + 1}${a ? ", answered" : ""}`}
-                  className={`num step grid size-11 place-items-center border text-[15px] font-semibold ${tone} ${
+                  className={`num step grid size-11 place-items-center border text-15 font-semibold ${tone} ${
                     i === current
                       ? "outline-2 outline-offset-2 outline-ink"
                       : ""

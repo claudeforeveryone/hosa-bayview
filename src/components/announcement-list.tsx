@@ -45,7 +45,7 @@ export function AnnouncementList({
           >
             <article className="grid gap-2">
               <p
-                className={`caps flex items-center gap-2 text-[13px] ${a.pinned ? "text-on-field-2" : "text-ink-2"}`}
+                className={`caps flex items-center gap-2 text-13 ${a.pinned ? "text-on-field-2" : "text-ink-2"}`}
               >
                 {a.pinned ? (
                   <>
@@ -62,7 +62,7 @@ export function AnnouncementList({
               </h3>
               {a.body ? (
                 <p
-                  className={`max-w-[65ch] text-[17px] whitespace-pre-line [overflow-wrap:anywhere] ${a.pinned ? "text-on-field" : ""}`}
+                  className={`max-w-[65ch] text-17 whitespace-pre-line [overflow-wrap:anywhere] ${a.pinned ? "text-on-field" : ""}`}
                 >
                   {a.body}
                 </p>
@@ -77,7 +77,7 @@ export function AnnouncementList({
                   action={setPinned.bind(null, a.id, !a.pinned)}
                 />
                 <details className="group max-w-2xl open:order-last open:basis-full">
-                  <summary className="caps step inline-flex h-10 cursor-pointer items-center border border-ink px-4 text-[15px] text-ink hover:bg-band">
+                  <summary className="caps step inline-flex h-10 cursor-pointer items-center border border-ink px-4 text-15 text-ink hover:bg-band">
                     Edit
                   </summary>
                   <div className="pt-5">

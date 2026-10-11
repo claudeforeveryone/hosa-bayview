@@ -115,19 +115,19 @@ export function CareerQuiz({
         <p className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-semibold uppercase">
           Quiz done
         </p>
-        <p className="num text-[18px]">
+        <p className="num text-18">
           Right: {rightCount} · Wrong: {wrongCount} · Skipped: {skips}
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
             href={againHref}
-            className="caps step press inline-flex h-12 items-center justify-center bg-ink px-6 text-[17px] text-ground hover:bg-ink-2"
+            className="caps step press inline-flex h-12 items-center justify-center bg-ink px-6 text-17 text-ground hover:bg-ink-2"
           >
             Go again
           </Link>
           <Link
             href={backHref}
-            className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band"
+            className="caps step inline-flex h-12 items-center border border-ink px-6 text-17 hover:bg-band"
           >
             Back to Career
           </Link>
@@ -141,10 +141,10 @@ export function CareerQuiz({
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="caps num text-[16px] text-ink-2" aria-live="polite">
+        <p className="caps num text-16 text-ink-2" aria-live="polite">
           Question {index + 1} of {total}
         </p>
-        <p className="caps num text-[16px] text-ink-2">
+        <p className="caps num text-16 text-ink-2">
           Right {rightCount} · Wrong {wrongCount}
         </p>
       </div>
@@ -176,9 +176,9 @@ export function CareerQuiz({
                   onClick={() => pick(shown)}
                   aria-pressed={chosen}
                   disabled={answered || saving}
-                  className={`step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-[17px] disabled:cursor-default ${tone}`}
+                  className={`step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-17 disabled:cursor-default ${tone}`}
                 >
-                  <span className="num w-5 shrink-0 font-display text-[18px] font-bold">
+                  <span className="num w-5 shrink-0 font-display text-18 font-bold">
                     {LETTERS[shown]}
                   </span>
                   <span className="min-w-0 flex-1">{option}</span>
@@ -208,7 +208,7 @@ export function CareerQuiz({
           {mine ? (
             <>
               <p
-                className={`caps text-[18px] ${
+                className={`caps text-18 ${
                   mine.is_correct === true
                     ? "text-ok"
                     : mine.is_correct === false
@@ -223,24 +223,24 @@ export function CareerQuiz({
                     : "Saved"}
               </p>
               {mine.is_correct === false && mine.correct_index !== null ? (
-                <p className="text-[16px]">
+                <p className="text-16">
                   <span className="text-ink-2">Right answer: </span>
                   {item.options[mine.correct_index]}
                 </p>
               ) : null}
               {mine.explanation ? (
-                <p className="text-[16px] text-ink-2">{mine.explanation}</p>
+                <p className="text-16 text-ink-2">{mine.explanation}</p>
               ) : null}
             </>
           ) : isSkipped ? (
-            <p className="caps text-[18px] text-ink-2">Skipped</p>
+            <p className="caps text-18 text-ink-2">Skipped</p>
           ) : (
-            <p className="flex min-h-12 items-center text-[15px] text-ink-2">
+            <p className="flex min-h-12 items-center text-15 text-ink-2">
               Pick an answer.
             </p>
           )}
           {error ? (
-            <p role="alert" className="text-[15px] text-danger">
+            <p role="alert" className="text-15 text-danger">
               {error}
             </p>
           ) : null}

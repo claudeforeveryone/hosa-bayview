@@ -64,7 +64,7 @@ function Group({
 }) {
   return (
     <details open={open} className="group/nav mt-6">
-      <summary className="caps nav-label step mx-5 flex h-11 cursor-pointer list-none items-center justify-between border-b-2 border-on-field/50 text-[14px] text-on-field-2 hover:text-on-field lg:mx-6 [&::-webkit-details-marker]:hidden">
+      <summary className="caps nav-label step mx-5 flex h-11 cursor-pointer list-none items-center justify-between border-b-2 border-on-field/50 text-14 text-on-field-2 hover:text-on-field lg:mx-6 [&::-webkit-details-marker]:hidden">
         {title}
         <ChevronDown
           size={18}
@@ -99,7 +99,7 @@ function PanelBody({
         className={`${row} ${rowState(active)}`}
       >
         <Icon size={22} strokeWidth={1.75} aria-hidden />
-        <span className="caps nav-label text-[19px]">{label}</span>
+        <span className="caps nav-label text-19">{label}</span>
       </Link>
     </li>
   );
@@ -107,18 +107,13 @@ function PanelBody({
   const roomActive = (id: string) =>
     path === `/c/${id}` || path.startsWith(`/c/${id}/`);
   const join = showJoinLink(isExec, rooms.length);
-  // A short list stays open; a long one (executives see every room) folds unless you're in one of them.
-  const roomsOpen =
-    rooms.length <= 5 ||
-    rooms.some((r) => roomActive(r.id)) ||
-    path === "/c/new";
   return (
     <>
       <nav aria-label="Main">
         <ul>
           {items.filter((i) => !i.chapter && i.href !== "/more").map(link)}
         </ul>
-        {/* Chapter pages are everyday stops, so the group always starts open. */}
+        {/* Every group starts open, so the panel behaves the same everywhere; each still folds on a tap. */}
         <Group title="Chapter" open>
           <ul className="mt-1">{chapter.map(link)}</ul>
         </Group>
@@ -127,7 +122,7 @@ function PanelBody({
       <section aria-label="Your events">
         <Group
           title={rooms.length ? `Your events (${rooms.length})` : "Your events"}
-          open={roomsOpen}
+          open
         >
           <ul className="mt-1">
             {rooms.map((room) => {
@@ -139,10 +134,10 @@ function PanelBody({
                     aria-current={active ? "page" : undefined}
                     className={`${row} justify-between ${rowState(active)}`}
                   >
-                    <span className="truncate text-[17px] font-medium">
+                    <span className="truncate text-17 font-medium">
                       {room.name}
                     </span>
-                    <span className="num caps shrink-0 text-[13px] opacity-80">
+                    <span className="num caps shrink-0 text-13 opacity-80">
                       {formNumber("C", room.num)}
                     </span>
                   </Link>
@@ -157,7 +152,7 @@ function PanelBody({
                   className={`${row} ${rowState(path === "/join")}`}
                 >
                   <ArrowRight size={20} strokeWidth={1.75} aria-hidden />
-                  <span className="text-[17px] font-medium">
+                  <span className="text-17 font-medium">
                     Join with a code
                   </span>
                 </Link>
@@ -171,7 +166,7 @@ function PanelBody({
                   className={`${row} ${rowState(path === "/c/new")}`}
                 >
                   <Plus size={20} strokeWidth={1.75} aria-hidden />
-                  <span className="text-[17px] font-medium">New event</span>
+                  <span className="text-17 font-medium">New event</span>
                 </Link>
               </li>
             ) : null}
@@ -179,7 +174,7 @@ function PanelBody({
         </Group>
       </section>
 
-      <Group title="More" open={more.some((i) => i.active) || path === "/more"}>
+      <Group title="More" open>
         <ul className="mt-1">
           {more.map(link)}
           <li>
@@ -189,7 +184,7 @@ function PanelBody({
                 className={`${row} w-full ${rowState(false)}`}
               >
                 <LogOut size={22} strokeWidth={1.75} aria-hidden />
-                <span className="caps nav-label text-[19px]">Log out</span>
+                <span className="caps nav-label text-19">Log out</span>
               </button>
             </form>
           </li>
@@ -353,7 +348,7 @@ export function BottomNav({
                 className={tab(active)}
               >
                 <Icon {...glyph(active)} />
-                <span className="caps text-[13px] leading-none">{short}</span>
+                <span className="caps text-13 leading-none">{short}</span>
               </button>
             ) : (
               <Link
@@ -362,7 +357,7 @@ export function BottomNav({
                 className={tab(active)}
               >
                 <Icon {...glyph(active)} />
-                <span className="caps text-[13px] leading-none">{short}</span>
+                <span className="caps text-13 leading-none">{short}</span>
               </Link>
             )}
           </li>
@@ -380,7 +375,7 @@ export function BottomNav({
         className="sheet m-0 mt-auto max-h-[80dvh] w-full max-w-none overflow-y-auto border-0 border-t-[3px] border-on-field bg-field p-0 text-on-field backdrop:bg-[#0f2440]/60"
       >
         <div className="flex items-center justify-between px-5 pt-3 pb-2">
-          <h2 className="caps text-[15px] text-on-field-2">More</h2>
+          <h2 className="caps text-15 text-on-field-2">More</h2>
           <button
             type="button"
             onClick={() => sheetRef.current?.close()}
@@ -399,7 +394,7 @@ export function BottomNav({
                 className={`${row} h-14 ${rowState(active)}`}
               >
                 <Icon size={22} strokeWidth={1.75} aria-hidden />
-                <span className="caps nav-label text-[19px]">{label}</span>
+                <span className="caps nav-label text-19">{label}</span>
               </Link>
             </li>
           ))}
@@ -410,7 +405,7 @@ export function BottomNav({
                 className={`${row} h-14 w-full text-on-field-danger hover:bg-field-2`}
               >
                 <LogOut size={22} strokeWidth={1.75} aria-hidden />
-                <span className="caps nav-label text-[19px]">Log out</span>
+                <span className="caps nav-label text-19">Log out</span>
               </button>
             </form>
           </li>

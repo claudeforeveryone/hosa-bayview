@@ -173,6 +173,34 @@
   --radius-none: 0;
 }
 
+/* Type scale. Every size is a pixel size times --ts, the reader's text size from Settings > Appearance
+   (1 by default; set on #main below). Inline, so the multiply happens where the class is used and picks up
+   the --ts inherited there: only text grows, never pictures, boxes or spacing. */
+@theme inline {
+  --text-11: calc(11px * var(--ts, 1));
+  --text-12: calc(12px * var(--ts, 1));
+  --text-13: calc(13px * var(--ts, 1));
+  --text-14: calc(14px * var(--ts, 1));
+  --text-15: calc(15px * var(--ts, 1));
+  --text-16: calc(16px * var(--ts, 1));
+  --text-17: calc(17px * var(--ts, 1));
+  --text-18: calc(18px * var(--ts, 1));
+  --text-19: calc(19px * var(--ts, 1));
+  --text-20: calc(20px * var(--ts, 1));
+  --text-21: calc(21px * var(--ts, 1));
+  --text-22: calc(22px * var(--ts, 1));
+  --text-24: calc(24px * var(--ts, 1));
+  --text-26: calc(26px * var(--ts, 1));
+  --text-28: calc(28px * var(--ts, 1));
+  --text-30: calc(30px * var(--ts, 1));
+  --text-32: calc(32px * var(--ts, 1));
+  --text-34: calc(34px * var(--ts, 1));
+  --text-38: calc(38px * var(--ts, 1));
+  --text-40: calc(40px * var(--ts, 1));
+  --text-44: calc(44px * var(--ts, 1));
+  --text-56: calc(56px * var(--ts, 1));
+}
+
 /* Motion token. UI moves on one strong ease-out (150-250 ms). Static, so the variable exists for the
    stylesheet below even where no utility uses it. */
 @theme static {
@@ -981,18 +1009,11 @@ html[data-intro] .intro-right {
 :root[data-accent="ember"] { --you: #a8400f; --on-you: #fff1e9; }
 :root[data-accent="ember"][data-theme="dark"] { --you: #f08a4b; --on-you: #2a1004; }
 
-/* Settings > Look: text size. Scales the page body, not the navigation chrome. Pictures, video, canvases and
-   drawings are zoomed back by the inverse so only the text (and the line icons set beside it) grows. Zoom
-   leaves percentage widths alone, so a full-width image still fills its box. A picture's own <img>, and an
-   <svg> inside another, sit in an element that is already counter-zoomed, so they're skipped. */
-:root[data-text="large"] #main { zoom: 1.1; }
-:root[data-text="larger"] #main { zoom: 1.2; }
-:root[data-text="large"] #main :is(picture, img:not(picture img), video, canvas, svg:not(.lucide):not(svg svg)) {
-  zoom: calc(1 / 1.1);
-}
-:root[data-text="larger"] #main :is(picture, img:not(picture img), video, canvas, svg:not(.lucide):not(svg svg)) {
-  zoom: calc(1 / 1.2);
-}
+/* Settings > Appearance: text size. Sets --ts, which every text-* size above multiplies by, so only the
+   page body's text grows: pictures, icons, boxes and the navigation chrome keep their size. */
+:root[data-text="large"] #main { --ts: 1.1; }
+:root[data-text="larger"] #main { --ts: 1.2; }
+#main { font-size: calc(17px * var(--ts, 1)); }
 
 /* Calm motion: everything lands in its final state at once. Applies when the device asks for reduced motion,
    and for anyone who stored "calm" back when Settings had a Motion control (data-motion, set before paint). */

@@ -34,7 +34,7 @@ export function Sheet({
             {title}
           </h2>
           {note ? (
-            <p className="max-w-[68ch] text-[16px] text-ink-2">{note}</p>
+            <p className="max-w-[68ch] text-16 text-ink-2">{note}</p>
           ) : null}
         </div>
         {actions}
@@ -75,11 +75,11 @@ export function Figure({
 }) {
   return (
     <div className="grid min-w-0 content-start gap-1 border-t border-rule px-1 py-3 @min-[30rem]:px-3 [&:nth-child(-n+2)]:border-t-0 @min-[40rem]:[&:nth-child(-n+4)]:border-t-0">
-      <dt className="caps text-[13px] leading-tight text-ink-2">{label}</dt>
+      <dt className="caps text-13 leading-tight text-ink-2">{label}</dt>
       <dd className="num font-display text-[clamp(2rem,6cqi,2.75rem)] leading-none font-bold">
         {value}
       </dd>
-      {note ? <dd className="text-[14px] text-ink-2">{note}</dd> : null}
+      {note ? <dd className="text-14 text-ink-2">{note}</dd> : null}
     </div>
   );
 }
@@ -99,13 +99,13 @@ export function Ledger({
           key={r.label}
           className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 border-b border-rule py-2.5"
         >
-          <dt className="min-w-0 text-[16px]">
+          <dt className="min-w-0 text-16">
             {r.label}
             {r.note ? (
-              <span className="block text-[14px] text-ink-2">{r.note}</span>
+              <span className="block text-14 text-ink-2">{r.note}</span>
             ) : null}
           </dt>
-          <dd className="num text-right text-[17px] font-semibold">
+          <dd className="num text-right text-17 font-semibold">
             {r.value}
           </dd>
         </div>
@@ -130,7 +130,7 @@ export function Choices({
             <Link
               href={item.href}
               aria-current={item.current ? "page" : undefined}
-              className={`caps step inline-flex h-11 items-center gap-2 border px-3.5 text-[15px] ${
+              className={`caps step inline-flex h-11 items-center gap-2 border px-3.5 text-15 ${
                 item.current
                   ? "border-ink bg-ink text-ground"
                   : "border-rule-strong text-ink hover:bg-band"
@@ -138,7 +138,7 @@ export function Choices({
             >
               {item.text}
               {item.count !== undefined ? (
-                <span className="num font-sans text-[14px] font-semibold tracking-normal">
+                <span className="num font-sans text-14 font-semibold tracking-normal">
                   {item.count}
                 </span>
               ) : null}
@@ -161,7 +161,7 @@ export function Notice({
   return (
     <p
       role={tone === "error" ? "alert" : undefined}
-      className={`border-y px-1 py-4 text-[16px] ${
+      className={`border-y px-1 py-4 text-16 ${
         tone === "error"
           ? "border-danger text-danger"
           : "border-rule-strong text-ink-2"
@@ -191,7 +191,7 @@ export function Pager({
     return `${base}?${search.toString()}`;
   };
   const button =
-    "caps step inline-flex h-11 items-center border border-ink px-4 text-[15px] hover:bg-band";
+    "caps step inline-flex h-11 items-center border border-ink px-4 text-15 hover:bg-band";
   return (
     <nav aria-label="Pages" className="flex flex-wrap items-center gap-3">
       {page > 0 ? (
@@ -199,7 +199,7 @@ export function Pager({
           Newer
         </Link>
       ) : null}
-      <span className="num text-[15px] text-ink-2">Page {page + 1}</span>
+      <span className="num text-15 text-ink-2">Page {page + 1}</span>
       {hasMore ? (
         <Link href={href(page + 1)} className={button}>
           Older
@@ -264,16 +264,16 @@ export function DataTable<T>({
                 key={rowKey(row)}
                 className="grid gap-2 border-b border-rule py-3"
               >
-                <div className="text-[16px] font-medium">{first.cell(row)}</div>
+                <div className="text-16 font-medium">{first.cell(row)}</div>
                 {pairs.length ? (
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                     {pairs.map((c) => (
                       <div key={c.key} className="min-w-0">
-                        <dt className="caps text-[12px] leading-tight text-ink-2">
+                        <dt className="caps text-12 leading-tight text-ink-2">
                           {c.header}
                         </dt>
                         <dd
-                          className={`text-[16px] ${c.numeric ? "num font-semibold" : ""}`}
+                          className={`text-16 ${c.numeric ? "num font-semibold" : ""}`}
                         >
                           {c.cell(row)}
                         </dd>
@@ -301,7 +301,7 @@ export function DataTable<T>({
                 <th
                   key={c.key}
                   scope="col"
-                  className={`caps border-b-[3px] border-ink py-2 pr-4 text-[13px] font-semibold text-ink-2 last:pr-0 ${
+                  className={`caps border-b-[3px] border-ink py-2 pr-4 text-13 font-semibold text-ink-2 last:pr-0 ${
                     c.numeric ? "text-right" : "text-left"
                   } ${phoneHidden(c, i)}`}
                 >
@@ -318,14 +318,14 @@ export function DataTable<T>({
                     <th
                       key={c.key}
                       scope="row"
-                      className="py-2.5 pr-4 text-left text-[16px] font-medium"
+                      className="py-2.5 pr-4 text-left text-16 font-medium"
                     >
                       {c.cell(row)}
                     </th>
                   ) : (
                     <td
                       key={c.key}
-                      className={`py-2.5 pr-4 text-[16px] last:pr-0 ${
+                      className={`py-2.5 pr-4 text-16 last:pr-0 ${
                         c.numeric
                           ? // A table that stays narrow lets a worded value ("Not recorded yet") wrap there.
                             `num text-right ${stackOnPhone ? "whitespace-nowrap" : "@min-[36rem]:whitespace-nowrap"}`

@@ -68,7 +68,7 @@ export function AnnouncementForm({
       />
       <label
         htmlFor={`${uid}-pin`}
-        className="flex min-h-11 items-center gap-3 text-[17px]"
+        className="flex min-h-11 items-center gap-3 text-17"
       >
         <input
           id={`${uid}-pin`}

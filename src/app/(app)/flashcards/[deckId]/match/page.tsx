@@ -16,7 +16,7 @@ export default async function MatchPage({ params }: PageProps<"/flashcards/[deck
   return (
     <div className="grid grid-cols-1 gap-8">
       <header className="grid gap-2">
-        <p className="caps text-[17px] text-ink-2">Match</p>
+        <p className="caps text-17 text-ink-2">Match</p>
         <h1 className="font-display text-[clamp(2.25rem,8vw,3.5rem)] leading-[0.95] font-bold uppercase [overflow-wrap:anywhere]">
           {deck.title}
         </h1>

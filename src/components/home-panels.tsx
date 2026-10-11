@@ -45,7 +45,7 @@ export function HomeBox({
         {link ? (
           <Link
             href={link.href}
-            className="caps step inline-flex h-11 shrink-0 items-center gap-1.5 text-[15px] underline-offset-4 hover:underline"
+            className="caps step inline-flex h-11 shrink-0 items-center gap-1.5 text-15 underline-offset-4 hover:underline"
           >
             {link.text}
             <ArrowRight size={18} strokeWidth={2} aria-hidden />
@@ -125,7 +125,7 @@ export function QuickActions() {
                 {t.label}
               </span>
               <span
-                className={`text-[14px] ${lead ? "text-on-field-2" : "text-ink-2"}`}
+                className={`text-14 ${lead ? "text-on-field-2" : "text-ink-2"}`}
               >
                 {t.hint}
               </span>
@@ -186,12 +186,12 @@ export function StatTiles({ stats }: { stats: MemberStats | null }) {
             i % 2 === 1 ? "border-l-2 border-on-field-2/40" : ""
           } ${i >= 2 ? "border-t-2 border-on-field-2/40 lg:border-t-0" : ""} ${i === 2 ? "lg:border-l-2" : ""}`}
         >
-          <span className="caps text-[14px] text-on-field-2">{t.label}</span>
+          <span className="caps text-14 text-on-field-2">{t.label}</span>
           <span className="num truncate font-display text-[clamp(2.25rem,10vw,3.5rem)] leading-none font-bold">
             <CountUp to={t.to} kind={t.kind} />
           </span>
           {t.note ? (
-            <span className="num truncate text-[14px] text-on-field-2">
+            <span className="num truncate text-14 text-on-field-2">
               {t.note}
             </span>
           ) : null}
@@ -205,7 +205,7 @@ export function StatTiles({ stats }: { stats: MemberStats | null }) {
 export function AnnouncementList({ items }: { items: AnnouncementRow[] }) {
   if (!items.length) {
     return (
-      <p className="px-3 py-5 text-[16px] text-ink-2 sm:px-4">
+      <p className="px-3 py-5 text-16 text-ink-2 sm:px-4">
         No announcements yet.
       </p>
     );
@@ -220,21 +220,21 @@ export function AnnouncementList({ items }: { items: AnnouncementRow[] }) {
           >
             <span className="flex min-w-0 items-center gap-2">
               {a.pinned ? (
-                <span className="caps inline-flex shrink-0 items-center gap-1 bg-you px-1.5 py-0.5 text-[12px] leading-none text-on-you">
+                <span className="caps inline-flex shrink-0 items-center gap-1 bg-you px-1.5 py-0.5 text-12 leading-none text-on-you">
                   <Pin size={12} strokeWidth={2.25} aria-hidden />
                   Pinned
                 </span>
               ) : null}
-              <span className="truncate font-display text-[19px] leading-tight font-semibold uppercase">
+              <span className="truncate font-display text-19 leading-tight font-semibold uppercase">
                 {a.title}
               </span>
             </span>
             {a.body ? (
-              <span className="line-clamp-2 text-[15px] text-ink-2">
+              <span className="line-clamp-2 text-15 text-ink-2">
                 {a.body}
               </span>
             ) : null}
-            <span className="caps text-[13px] text-ink-2">
+            <span className="caps text-13 text-ink-2">
               {[a.author?.full_name, timeAgo(a.created_at)]
                 .filter(Boolean)
                 .join(" · ")}

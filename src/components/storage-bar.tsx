@@ -14,7 +14,7 @@ export async function StorageBar() {
   const { data, error } = await supabase.rpc("storage_usage");
   if (error) {
     return (
-      <p className="text-[15px] text-ink-2">
+      <p className="text-15 text-ink-2">
         Storage usage isn&apos;t available right now.
       </p>
     );
@@ -28,7 +28,7 @@ export async function StorageBar() {
 
   return (
     <div className="grid gap-2 border-t border-rule pt-4">
-      <p className="num text-[15px]">
+      <p className="num text-15">
         <span className="text-ink-2">Storage</span>{" "}
         <span className="font-semibold text-ink">{usedOfLimit(used)}</span>
       </p>
@@ -47,11 +47,11 @@ export async function StorageBar() {
         />
       </div>
       {warn ? (
-        <p className="caps text-[15px] font-semibold text-danger">
+        <p className="caps text-15 font-semibold text-danger">
           Storage almost full
         </p>
       ) : null}
-      <p className="text-[15px] text-ink-2">
+      <p className="text-15 text-ink-2">
         Prefer a link (Google Drive, Docs) to save space.
       </p>
     </div>

@@ -42,21 +42,21 @@ export function PeopleList({
               <Avatar name={p.full_name} src={p.avatar_src} size="sm" />
               <div className="min-w-0">
                 <p className="flex min-w-0 items-baseline gap-2">
-                  <span className="truncate text-[17px] font-medium">
+                  <span className="truncate text-17 font-medium">
                     {p.full_name}
                   </span>
                   {p.id === meId ? (
-                    <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[12px] text-on-you">
+                    <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-12 text-on-you">
                       You
                     </span>
                   ) : null}
                 </p>
-                <p className="truncate text-[15px] text-ink-2">
+                <p className="truncate text-15 text-ink-2">
                   {isDemo ? null : <>{p.email} · </>}
                   {roleLabel(p.role, p.title, true)} · {gradeLabel(p.grade)}
                 </p>
                 {ban.banned || count ? (
-                  <p className="caps text-[14px]">
+                  <p className="caps text-14">
                     {ban.banned ? <span>Banned {banWhen(ban)}</span> : null}
                     {ban.banned && count ? <span aria-hidden> · </span> : null}
                     {count ? (
@@ -71,7 +71,7 @@ export function PeopleList({
                 <button
                   type="button"
                   onClick={() => setOpenId(p.id)}
-                  className="caps step col-span-2 h-11 justify-self-start border border-ink px-4 text-[15px] hover:bg-band sm:col-span-1 sm:justify-self-end"
+                  className="caps step col-span-2 h-11 justify-self-start border border-ink px-4 text-15 hover:bg-band sm:col-span-1 sm:justify-self-end"
                 >
                   Manage
                   <span className="sr-only"> {p.full_name}</span>

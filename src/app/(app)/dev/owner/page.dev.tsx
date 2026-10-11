@@ -338,7 +338,7 @@ function EntryPoints({ banner }: { banner: ReactNode }) {
         >
           Trainer&rsquo;s side
         </h2>
-        <p className="caps num text-[15px] text-ink-2">
+        <p className="caps num text-15 text-ink-2">
           Test page · {trainerTestFixture.title}
         </p>
         <TestFlagsSection
@@ -346,7 +346,7 @@ function EntryPoints({ banner }: { banner: ReactNode }) {
           flags={trainerTestFixture.flags}
           readOnly
         />
-        <p className="caps num text-[15px] text-ink-2">Classroom hub</p>
+        <p className="caps num text-15 text-ink-2">Classroom hub</p>
         <ClassroomFlagsPanel
           classroomId={trainerTestFixture.classroomId}
           flags={classroomFlagsFixture}
@@ -373,7 +373,7 @@ function OwnerNav({ banner }: { banner: ReactNode }) {
       <PageTitle meta="An executive on the stats list, with Send feedback on">
         Owner&rsquo;s navigation
       </PageTitle>
-      <p className="text-[17px] text-ink-2 lg:hidden">
+      <p className="text-17 text-ink-2 lg:hidden">
         Tap More on the bar below for the sheet.
       </p>
       {/* Full height here, so the whole panel (More group included) shows without the sidebar's own scroll. */}
@@ -408,8 +408,8 @@ function ReviewSample({
 }) {
   return (
     <div className="grid gap-3">
-      <p className="caps num text-[15px] text-ink-2">Q{n}</p>
-      <p className="text-[17px]">{prompt}</p>
+      <p className="caps num text-15 text-ink-2">Q{n}</p>
+      <p className="text-17">{prompt}</p>
       {children}
     </div>
   );

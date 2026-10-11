@@ -31,7 +31,7 @@ export function PhoneAppTab({
   );
 }
 
-const copy = "text-[16px] text-ink-2";
+const copy = "text-16 text-ink-2";
 
 function InstallSettings() {
   const env = useInstallEnv();
@@ -214,7 +214,7 @@ function NotificationSettings({
           id="push-note"
           role="status"
           aria-live="polite"
-          className={`text-[16px] ${note?.tone === "error" ? "text-danger" : "text-ok"}`}
+          className={`text-16 ${note?.tone === "error" ? "text-danger" : "text-ok"}`}
         >
           {note?.text ?? ""}
         </p>

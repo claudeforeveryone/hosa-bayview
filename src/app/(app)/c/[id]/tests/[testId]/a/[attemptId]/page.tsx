@@ -86,7 +86,7 @@ export default async function AttemptPage({
   const back = (
     <Link
       href={`/c/${room.id}/tests/${test.id}`}
-      className="caps inline-flex items-center gap-1 justify-self-start text-[15px] text-ink-2 hover:text-ink"
+      className="caps inline-flex items-center gap-1 justify-self-start text-15 text-ink-2 hover:text-ink"
     >
       <ArrowLeft size={16} strokeWidth={2} aria-hidden />
       {test.title}
@@ -132,7 +132,7 @@ export default async function AttemptPage({
       <header className="grid gap-3">
         <h1 className="sr-only">{test.title} results</h1>
         {back}
-        <p className="caps text-[16px] text-ink-2">
+        <p className="caps text-16 text-ink-2">
           {attempt.mode === "timed" ? "Timed" : "Practice"} · Done
         </p>
         {attempt.score_hidden ? (
@@ -140,7 +140,7 @@ export default async function AttemptPage({
             <p className="font-display text-[clamp(3rem,14vw,6rem)] leading-[0.85] font-bold uppercase">
               Submitted
             </p>
-            <p className="max-w-[60ch] text-[17px] text-ink-2">
+            <p className="max-w-[60ch] text-17 text-ink-2">
               {HIDDEN_SCORE_NOTE}
             </p>
           </>
@@ -169,7 +169,7 @@ export default async function AttemptPage({
       <section aria-labelledby="review-h" className="grid gap-4">
         <h2
           id="review-h"
-          className="font-display text-[28px] leading-none font-bold uppercase"
+          className="font-display text-28 leading-none font-bold uppercase"
         >
           Review
         </h2>

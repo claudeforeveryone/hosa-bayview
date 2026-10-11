@@ -44,7 +44,7 @@ export default async function ResourcesTab({
         />
         {room.can_manage ? (
           <div className="grid gap-5 border-t border-rule pt-8">
-            <h3 className="caps text-[17px] font-semibold">
+            <h3 className="caps text-17 font-semibold">
               Add a file or link
             </h3>
             {profile?.role === "executive" ? <StorageBar /> : null}

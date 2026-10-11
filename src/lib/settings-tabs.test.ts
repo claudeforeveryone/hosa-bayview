@@ -40,6 +40,7 @@ describe("resolveSettingsTab", () => {
       "Phone app",
       "Account",
       "Events",
+      "Help",
     ]);
   });
 });

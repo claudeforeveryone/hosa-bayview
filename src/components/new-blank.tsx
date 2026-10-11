@@ -31,14 +31,14 @@ export function NewBlank({
       <div className={tile ? "grid gap-3" : "flex flex-wrap items-end gap-3"}>
         {many ? (
           <div className="grid min-w-0 gap-1.5">
-            <label htmlFor={`${uid}-room`} className="text-[15px] font-medium">
+            <label htmlFor={`${uid}-room`} className="text-15 font-medium">
               Event
             </label>
             <select
               id={`${uid}-room`}
               name="classroom_id"
               required
-              className="step h-11 max-w-full min-w-0 border border-rule-strong bg-ground px-3 text-[16px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+              className="step h-11 max-w-full min-w-0 border border-rule-strong bg-ground px-3 text-16 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
             >
               {classrooms?.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -68,7 +68,7 @@ export function NewBlank({
             type="submit"
             disabled={pending}
             aria-busy={pending || undefined}
-            className="caps step inline-flex h-11 shrink-0 items-center gap-2 border border-ink px-4 text-[16px] hover:bg-band disabled:opacity-60"
+            className="caps step inline-flex h-11 shrink-0 items-center gap-2 border border-ink px-4 text-16 hover:bg-band disabled:opacity-60"
           >
             <Plus size={18} strokeWidth={2} aria-hidden />
             {pending ? "Making it" : label}

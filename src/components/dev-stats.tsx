@@ -51,11 +51,11 @@ const COLUMNS: Column[] = [
     numeric: false,
     cell: (r) => (
       <span className="grid gap-0.5">
-        <span className="font-display text-[20px] leading-tight font-semibold uppercase">
+        <span className="font-display text-20 leading-tight font-semibold uppercase">
           {r.full_name || "Member"}
         </span>
         {r.banned ? (
-          <span className="caps w-max bg-you px-1.5 py-0.5 text-[12px] leading-none text-on-you">
+          <span className="caps w-max bg-you px-1.5 py-0.5 text-12 leading-none text-on-you">
             Banned
           </span>
         ) : null}
@@ -282,7 +282,7 @@ export function DevStatsView({
         {/* Numerals follow the width of the section around them (cqi), not the window's. */}
         {stats.map((s) => (
           <div key={s.label} className="border-b border-rule px-1 py-3 sm:px-3">
-            <p className="caps text-[13px] leading-tight text-ink-2">
+            <p className="caps text-13 leading-tight text-ink-2">
               {s.label}
             </p>
             <p className="num font-display mt-1 text-[clamp(2rem,6cqi,2.75rem)] leading-none font-bold">
@@ -294,7 +294,7 @@ export function DevStatsView({
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
         <div className="grid gap-1">
-          <label htmlFor="dev-search" className="caps text-[14px] text-ink-2">
+          <label htmlFor="dev-search" className="caps text-14 text-ink-2">
             Search by name
           </label>
           <input
@@ -303,11 +303,11 @@ export function DevStatsView({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name"
-            className="step h-12 min-w-0 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+            className="step h-12 min-w-0 border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
           />
         </div>
         <div className="grid gap-1 lg:hidden">
-          <label htmlFor="dev-sort" className="caps text-[14px] text-ink-2">
+          <label htmlFor="dev-sort" className="caps text-14 text-ink-2">
             Sort by
           </label>
           <div className="flex gap-2">
@@ -315,7 +315,7 @@ export function DevStatsView({
               id="dev-sort"
               value={sortKey}
               onChange={(e) => pick(e.target.value as DevSortKey)}
-              className="step h-12 min-w-0 flex-1 border border-rule-strong bg-ground px-2 text-[16px] text-ink outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+              className="step h-12 min-w-0 flex-1 border border-rule-strong bg-ground px-2 text-16 text-ink outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
             >
               {sortOptions(columns).map((o) => (
                 <option key={o.key} value={o.key}>
@@ -342,7 +342,7 @@ export function DevStatsView({
       {rows.length === 0 ? (
         <EmptyState title="No members yet." />
       ) : shown.length === 0 ? (
-        <p className="caps text-[16px] text-ink-2">No one matches that name.</p>
+        <p className="caps text-16 text-ink-2">No one matches that name.</p>
       ) : (
         <>
           {/* Phone: one stacked card per member. */}
@@ -359,11 +359,11 @@ export function DevStatsView({
                   <p className="font-display text-[clamp(1.6rem,6vw,2.2rem)] leading-none font-semibold uppercase">
                     {r.full_name || "Member"}
                   </p>
-                  <p className="caps text-[14px] text-ink-2">
+                  <p className="caps text-14 text-ink-2">
                     {roleLabel(r.role, r.title)}
                     {r.banned ? " · Banned" : ""}
                   </p>
-                  <p className="text-[14px] text-ink-2">
+                  <p className="text-14 text-ink-2">
                     Last seen {dayTime(r.last_seen)} · Joined{" "}
                     {dayFormat.format(new Date(r.joined_at))}
                   </p>
@@ -396,7 +396,7 @@ export function DevStatsView({
                     />
                   ) : null}
                 </dl>
-                <p className="text-[13px] text-ink-2">
+                <p className="text-13 text-ink-2">
                   Figures under Questions, Accuracy, Tests and Flashcards follow
                   the chosen period. Events: {count(r.classrooms)}.
                 </p>
@@ -407,11 +407,11 @@ export function DevStatsView({
           {/* Desktop: a sortable table. The name column stays put while the rest scrolls sideways. The scroller is
               flipped (and the table flipped back) so its scrollbar sits at the top, in view, not under the last row. */}
           <div className="hidden gap-2 lg:grid">
-            <p className="text-[14px] text-ink-2">
+            <p className="text-14 text-ink-2">
               Wider than the page: scroll the table sideways. Names stay put.
             </p>
             <div className="overflow-x-auto border-b-[3px] border-ink [scrollbar-color:var(--ink-2)_var(--band)] [transform:rotateX(180deg)]">
-              <table className="w-full min-w-[78rem] border-collapse text-[16px] [transform:rotateX(180deg)]">
+              <table className="w-full min-w-[78rem] border-collapse text-16 [transform:rotateX(180deg)]">
                 <caption className="sr-only">
                   Every member&rsquo;s activity for the chosen period. Click a
                   column heading to sort.
@@ -423,7 +423,7 @@ export function DevStatsView({
                         key={g.label}
                         scope="colgroup"
                         colSpan={g.span}
-                        className="caps border-b border-rule px-2 pt-2 pb-1 text-left text-[13px] font-semibold text-ink-2"
+                        className="caps border-b border-rule px-2 pt-2 pb-1 text-left text-13 font-semibold text-ink-2"
                       >
                         {g.label}
                       </th>
@@ -442,7 +442,7 @@ export function DevStatsView({
                         <button
                           type="button"
                           onClick={() => pick(c.key)}
-                          className={`caps step inline-flex items-center gap-1 text-[15px] font-semibold text-ink hover:text-ink-2 ${
+                          className={`caps step inline-flex items-center gap-1 text-15 font-semibold text-ink hover:text-ink-2 ${
                             c.numeric ? "flex-row-reverse" : ""
                           }`}
                         >
@@ -488,8 +488,8 @@ export function DevStatsView({
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="caps text-[12px] leading-tight text-ink-2">{label}</dt>
-      <dd className="num text-[17px] font-semibold">{value}</dd>
+      <dt className="caps text-12 leading-tight text-ink-2">{label}</dt>
+      <dd className="num text-17 font-semibold">{value}</dd>
     </div>
   );
 }

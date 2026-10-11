@@ -28,7 +28,7 @@ export function SocialLinks({
   labelled?: boolean;
 }) {
   const link = `step group inline-flex h-11 items-center ${
-    labelled ? "gap-2 px-2 text-[16px]" : "size-11 justify-center"
+    labelled ? "gap-2 px-2 text-16" : "size-11 justify-center"
   } ${TONE[tone].link}`;
   const label = (text: string) =>
     labelled ? (
@@ -144,7 +144,7 @@ export function SocialLinks({
       </button>
       {/* Outside the button so the address can be selected by hand when copying is blocked. */}
       <span
-        className={`absolute top-full z-10 mt-1 px-2 py-1 text-[14px] whitespace-nowrap transition-opacity duration-150 ${
+        className={`absolute top-full z-10 mt-1 px-2 py-1 text-14 whitespace-nowrap transition-opacity duration-150 ${
           labelled ? "left-2" : "right-0"
         } ${TONE[tone].note} ${
           floating ? "opacity-100" : "pointer-events-none opacity-0"

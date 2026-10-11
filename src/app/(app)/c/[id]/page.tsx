@@ -114,7 +114,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
           ) : null}
           {canPost ? (
             <details className="group border-y border-rule" open={false}>
-              <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-[17px] hover:bg-band sm:px-3">
+              <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-17 hover:bg-band sm:px-3">
                 Post
                 <Plus
                   size={22}

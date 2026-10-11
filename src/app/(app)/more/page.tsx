@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   ChevronRight,
   ClipboardCheck,
-  LifeBuoy,
   LogOut,
   MessageSquareText,
   Settings,
@@ -39,9 +38,9 @@ function Row({
       <Link href={href} className={rowClass}>
         <Icon size={24} strokeWidth={1.75} aria-hidden className="shrink-0" />
         <span className="grid min-w-0 flex-1">
-          <span className="caps text-[19px] leading-tight">{label}</span>
+          <span className="caps text-19 leading-tight">{label}</span>
           {hint ? (
-            <span className="text-[15px] text-ink-2">{hint}</span>
+            <span className="text-15 text-ink-2">{hint}</span>
           ) : null}
         </span>
         <ChevronRight
@@ -82,7 +81,7 @@ export default async function MorePage() {
       <section aria-labelledby="you-h" className="grid gap-3">
         <h2
           id="you-h"
-          className="caps border-b-[3px] border-ink pb-2 text-[16px]"
+          className="caps border-b-[3px] border-ink pb-2 text-16"
         >
           You
         </h2>
@@ -99,7 +98,7 @@ export default async function MorePage() {
                 <li key={t.tab}>
                   <Link
                     href={`/settings?tab=${t.tab}`}
-                    className="caps step inline-flex h-11 items-center border border-ink px-4 text-[15px] hover:bg-band"
+                    className="caps step inline-flex h-11 items-center border border-ink px-4 text-15 hover:bg-band"
                   >
                     {t.label}
                   </Link>
@@ -115,12 +114,6 @@ export default async function MorePage() {
               hint="Mark who came, every event"
             />
           ) : null}
-          <Row
-            href="/help"
-            Icon={LifeBuoy}
-            label="Help"
-            hint="How things work and who to ask"
-          />
           {canSendFeedback ? (
             <Row
               href="/settings?tab=account#feedback-h"
@@ -138,7 +131,7 @@ export default async function MorePage() {
                   aria-hidden
                   className="shrink-0"
                 />
-                <span className="caps flex-1 text-[19px] leading-tight">
+                <span className="caps flex-1 text-19 leading-tight">
                   Log out
                 </span>
               </button>
@@ -151,7 +144,7 @@ export default async function MorePage() {
         <section aria-labelledby="go-h" className="grid gap-3">
           <h2
             id="go-h"
-            className="caps border-b-[3px] border-ink pb-2 text-[16px]"
+            className="caps border-b-[3px] border-ink pb-2 text-16"
           >
             Go to
           </h2>
@@ -163,7 +156,7 @@ export default async function MorePage() {
                   className="step flex h-full min-h-24 flex-col justify-between gap-3 border-2 border-ink bg-band p-4 hover:bg-ink hover:text-ground"
                 >
                   <Icon size={26} strokeWidth={1.75} aria-hidden />
-                  <span className="caps text-[17px] leading-tight">
+                  <span className="caps text-17 leading-tight">
                     {label}
                   </span>
                 </Link>

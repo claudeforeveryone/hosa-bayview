@@ -27,7 +27,7 @@ export function PinButton({
             setError(r.error ?? null);
           })
         }
-        className="caps step inline-flex h-10 items-center gap-2 border border-ink px-4 text-[15px] text-ink hover:bg-band disabled:opacity-60"
+        className="caps step inline-flex h-10 items-center gap-2 border border-ink px-4 text-15 text-ink hover:bg-band disabled:opacity-60"
       >
         <Icon size={16} strokeWidth={1.75} aria-hidden />
         {pending

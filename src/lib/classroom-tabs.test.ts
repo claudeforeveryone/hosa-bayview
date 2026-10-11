@@ -7,29 +7,38 @@ import {
   tabClearScroll,
   tabFocusScroll,
   tabsFor,
+  type Tab,
 } from "./classroom-tabs";
 
-const slugs = (tabs: { slug: string }[]) => tabs.map((t) => t.slug);
+// Every page a room links to, dropdown entries included.
+const slugs = (tabs: Tab[]) => tabs.flatMap((t) => (t.sub ? t.sub.map((s) => s.slug) : [t.slug]));
 
 describe("tabsFor", () => {
-  it("showcase rooms have no Tests and no Skills", () => {
+  it("showcase rooms have no Tests", () => {
     const tabs = slugs(tabsFor("showcase", false));
     expect(tabs).not.toContain("tests");
-    expect(tabs).not.toContain("skills");
+    expect(tabs).toContain("skills");
     expect(tabs).toContain("resources");
   });
 
-  it("practical rooms get Skills", () => {
-    expect(slugs(tabsFor("practical", false))).toContain("skills");
-    expect(slugs(tabsFor("practical", false))).toContain("tests");
+  it("every other room has Tests, Cards and Skills", () => {
+    for (const category of ["mc", "practical", null] as const) {
+      const tabs = slugs(tabsFor(category, false));
+      expect(tabs).toEqual(expect.arrayContaining(["tests", "flashcards", "skills"]));
+    }
   });
 
-  it("MC and uncategorized rooms keep Tests without Skills", () => {
-    for (const category of ["mc", null] as const) {
-      const tabs = slugs(tabsFor(category, false));
-      expect(tabs).toContain("tests");
-      expect(tabs).not.toContain("skills");
-    }
+  it("Tests, Cards and Skills sit only in the Questions dropdown", () => {
+    const top = tabsFor("practical", false).map((t) => t.slug);
+    expect(top).not.toContain("tests");
+    expect(top).not.toContain("flashcards");
+    expect(top).not.toContain("skills");
+    const questions = tabsFor("practical", false).find((t) => t.slug === "questions");
+    expect(questions?.sub?.map((t) => t.label)).toEqual(["Tests", "Cards", "Skills"]);
+    expect(tabsFor("showcase", false).find((t) => t.slug === "questions")?.sub?.map((t) => t.slug)).toEqual([
+      "flashcards",
+      "skills",
+    ]);
   });
 
   it("the hub comes first", () => {

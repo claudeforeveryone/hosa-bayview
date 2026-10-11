@@ -7,6 +7,8 @@ import { requireProfile } from "@/lib/auth";
 import {
   CAREER_FILTER_LABEL,
   parseCareerFilter,
+  parseCareerScope,
+  scopeEntries,
   starredIds,
 } from "@/lib/career";
 import { getCareerItems } from "@/lib/career-data";
@@ -24,12 +26,23 @@ export default async function CareerFlashcardsPage(
     requireProfile(),
   ]);
   const set = parseCareerFilter(sp.set);
-  const rows = await getCareerItems(profile.id);
-  const cards = flashcardsFrom(practiceItems(rows, set, starredIds(rows)));
+  // The Questions tab can narrow a set to one test or a search first.
+  const scope = parseCareerScope(sp);
+  const all = await getCareerItems(profile.id);
+  const rows = scopeEntries(all, scope);
+  const cards = flashcardsFrom(practiceItems(rows, set, starredIds(all)));
+  // "Got wrong · Pharmacology test · "heart"": what the set was narrowed to.
+  const label = [
+    CAREER_FILTER_LABEL[set],
+    scope.test,
+    scope.q ? `"${scope.q}"` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const back = (
     <Link
       href="/career"
-      className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band"
+      className="caps step inline-flex h-12 items-center border border-ink px-6 text-17 hover:bg-band"
     >
       Back to Career
     </Link>
@@ -38,7 +51,7 @@ export default async function CareerFlashcardsPage(
   return (
     <div className="grid max-w-3xl gap-8">
       <PageTitle
-        meta={`${CAREER_FILTER_LABEL[set]} · ${cards.length} ${cards.length === 1 ? "card" : "cards"}`}
+        meta={`${label} · ${cards.length} ${cards.length === 1 ? "card" : "cards"}`}
       >
         Flashcards
       </PageTitle>
@@ -50,7 +63,7 @@ export default async function CareerFlashcardsPage(
             term: c.term,
             definition: c.definition,
           }))}
-          label={CAREER_FILTER_LABEL[set]}
+          label={label}
           seed={crypto.randomUUID()}
           persist={false}
           backHref="/career"

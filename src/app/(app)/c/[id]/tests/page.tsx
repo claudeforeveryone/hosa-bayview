@@ -47,15 +47,15 @@ export default async function TestsTab({ params }: PageProps<"/c/[id]/tests">) {
                 <span className="block truncate font-display text-[clamp(1.5rem,5vw,2.25rem)] leading-[1.05] font-semibold uppercase">
                   {t.title}
                 </span>
-                <span className="block truncate text-[16px] text-ink-2">{meta(t, room.can_manage)}</span>
+                <span className="block truncate text-16 text-ink-2">{meta(t, room.can_manage)}</span>
               </span>
               <span className="flex items-center gap-3 text-ink-2">
                 {t.my_best !== null && t.my_best_total ? (
-                  <span className="num font-display text-[24px] font-semibold text-ink">
+                  <span className="num font-display text-24 font-semibold text-ink">
                     {t.my_best}/{t.my_best_total}
                   </span>
                 ) : null}
-                <span className="num caps hidden text-[15px] sm:inline">{formNumber("T", t.num)}</span>
+                <span className="num caps hidden text-15 sm:inline">{formNumber("T", t.num)}</span>
                 <ChevronRight size={22} strokeWidth={1.75} aria-hidden />
               </span>
             </Link>

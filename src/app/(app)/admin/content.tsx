@@ -65,7 +65,7 @@ export async function AdminLog({ now }: { now: number }) {
                 key={r.id}
                 className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 border-b border-rule px-1 py-3 last:border-b-0 sm:px-3"
               >
-                <p className="min-w-0 text-[16px]">
+                <p className="min-w-0 text-16">
                   <span className="font-semibold">
                     {r.actor_name || "System"}
                   </span>{" "}
@@ -80,7 +80,7 @@ export async function AdminLog({ now }: { now: number }) {
                   {r.detail &&
                   r.action !== "passcode" &&
                   r.action !== "passcode_used" ? (
-                    <span className="block truncate text-[15px] text-ink-2">
+                    <span className="block truncate text-15 text-ink-2">
                       {r.detail}
                     </span>
                   ) : null}
@@ -88,7 +88,7 @@ export async function AdminLog({ now }: { now: number }) {
                 <time
                   dateTime={r.created_at}
                   title={formatWhen(r.created_at)}
-                  className="num caps pt-0.5 text-[14px] whitespace-nowrap text-ink-2"
+                  className="num caps pt-0.5 text-14 whitespace-nowrap text-ink-2"
                 >
                   {timeAgo(r.created_at, now)}
                 </time>
@@ -97,7 +97,7 @@ export async function AdminLog({ now }: { now: number }) {
           </ol>
         </div>
       ) : (
-        <p className="border-y border-rule-strong px-1 py-6 text-[17px] text-ink-2 sm:px-3">
+        <p className="border-y border-rule-strong px-1 py-6 text-17 text-ink-2 sm:px-3">
           Nothing logged yet. Role changes, bans, titles, warnings and passcode
           changes show up here.
         </p>
@@ -119,13 +119,13 @@ function Group({
   return (
     <details className="group border-b border-rule">
       <summary className="step flex h-14 cursor-pointer items-center justify-between px-1 hover:bg-band sm:px-3">
-        <span className="caps text-[18px]">{title}</span>
-        <span className="num caps text-[16px] text-ink-2">{count}</span>
+        <span className="caps text-18">{title}</span>
+        <span className="num caps text-16 text-ink-2">{count}</span>
       </summary>
       {count ? (
         <ul className="border-t border-rule pb-4">{children}</ul>
       ) : (
-        <p className="px-1 pb-5 text-[16px] text-ink-2 sm:px-3">None yet.</p>
+        <p className="px-1 pb-5 text-16 text-ink-2 sm:px-3">None yet.</p>
       )}
     </details>
   );
@@ -145,7 +145,7 @@ function Row({
   del: ReactNode;
 }) {
   const linkClass =
-    "block truncate text-[17px] font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink";
+    "block truncate text-17 font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink";
   return (
     <li className="grid gap-3 border-b border-rule px-1 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-3">
       <span className="min-w-0">
@@ -163,11 +163,11 @@ function Row({
             {title}
           </Link>
         ) : (
-          <span className="block truncate text-[17px] font-semibold">
+          <span className="block truncate text-17 font-semibold">
             {title}
           </span>
         )}
-        <span className="block truncate text-[15px] text-ink-2">{meta}</span>
+        <span className="block truncate text-15 text-ink-2">{meta}</span>
       </span>
       {del}
     </li>

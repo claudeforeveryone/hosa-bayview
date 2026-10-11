@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="max-w-[50ch] text-ink-2">
         Page doesn&rsquo;t exist, or you&rsquo;re not in that event.
       </p>
-      <Link href="/" className="caps step inline-flex h-12 items-center bg-ink px-6 text-[17px] text-ground hover:bg-ink-2">
+      <Link href="/" className="caps step inline-flex h-12 items-center bg-ink px-6 text-17 text-ground hover:bg-ink-2">
         Back home
       </Link>
     </div>

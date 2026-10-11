@@ -48,7 +48,7 @@ export function OwnerConsole({
                   <Link
                     href={href(t)}
                     aria-current={on ? "page" : undefined}
-                    className={`caps step flex h-full min-h-12 items-center justify-center px-0.5 text-center text-[clamp(12px,3.6vw,16px)] leading-tight focus-visible:outline-offset-[-5px] xl:min-h-14 xl:justify-start xl:px-5 xl:text-left xl:text-[18px] ${
+                    className={`caps step flex h-full min-h-12 items-center justify-center px-0.5 text-center text-[clamp(12px,3.6vw,16px)] leading-tight focus-visible:outline-offset-[-5px] xl:min-h-14 xl:justify-start xl:px-5 xl:text-left xl:text-18 ${
                       on
                         ? "bg-ink text-ground focus-visible:outline-ground"
                         : "text-ink hover:bg-band"

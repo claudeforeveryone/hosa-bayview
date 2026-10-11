@@ -15,7 +15,7 @@ export function CareerPracticePanel({
         id="practise-h"
         className="border-t-[3px] border-ink px-1 pt-3 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase sm:px-3"
       >
-        Practise
+        Quiz yourself
       </h2>
       <ul className="border-t border-rule">
         {PRACTICE_SETS.map(({ set, label }) => {
@@ -27,8 +27,8 @@ export function CareerPracticePanel({
               className="grid gap-3 border-b border-rule px-1 py-4 sm:px-3"
             >
               <div className="flex items-baseline justify-between gap-3">
-                <p className="caps text-[18px] font-semibold">{label}</p>
-                <p className="num text-[16px] text-ink-2">
+                <p className="caps text-18 font-semibold">{label}</p>
+                <p className="num text-16 text-ink-2">
                   {formatCount(n)} {n === 1 ? "question" : "questions"}
                 </p>
               </div>
@@ -53,10 +53,16 @@ export function CareerPracticePanel({
           );
         })}
       </ul>
-      <p className="text-[15px] text-ink-2">
+      <p className="text-15 text-ink-2">
         A quick quiz is 10 random questions from the set; a full quiz is all of
         them. Questions whose answers your trainer hides aren&apos;t included.
       </p>
+      <Link
+        href="/career?tab=questions"
+        className="caps step press inline-flex min-h-12 items-center justify-center border-2 border-ink px-5 text-16 hover:bg-band sm:justify-self-start"
+      >
+        Quiz one test or topic
+      </Link>
     </section>
   );
 }
@@ -74,7 +80,7 @@ function PracticeAction({
     return (
       <span
         aria-disabled="true"
-        className="caps grid min-h-12 place-items-center border-2 border-rule-strong px-1 text-center text-[14px] text-ink-2 sm:text-[16px]"
+        className="caps grid min-h-12 place-items-center border-2 border-rule-strong px-1 text-center text-14 text-ink-2 sm:text-16"
       >
         {children}
       </span>
@@ -83,7 +89,7 @@ function PracticeAction({
   return (
     <Link
       href={href}
-      className="caps step grid min-h-12 place-items-center border-2 border-ink px-1 text-center text-[14px] hover:bg-band sm:text-[16px]"
+      className="caps step grid min-h-12 place-items-center border-2 border-ink px-1 text-center text-14 hover:bg-band sm:text-16"
     >
       {children}
     </Link>

@@ -23,7 +23,7 @@ export function ScoreRing({ pct }: { pct: number }) {
           />
         ) : null}
       </svg>
-      <span className="num relative font-display text-[26px] leading-none font-bold sm:text-[30px]">
+      <span className="num relative font-display text-26 leading-none font-bold sm:text-30">
         {value}%
       </span>
     </div>

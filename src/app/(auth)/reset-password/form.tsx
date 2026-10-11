@@ -8,8 +8,8 @@ export function ResetForm({ email }: { email: string | null }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(updatePassword, {});
   return (
     <form action={action} className="grid gap-5" noValidate>
-      <h1 className="font-display text-[44px] leading-none font-bold uppercase">New password</h1>
-      {email ? <p className="text-[16px] text-ink-2">For {email}</p> : null}
+      <h1 className="font-display text-44 leading-none font-bold uppercase">New password</h1>
+      {email ? <p className="text-16 text-ink-2">For {email}</p> : null}
       {state.error ? <FormMessage tone="error">{state.error}</FormMessage> : null}
       <Field
         label="New password"

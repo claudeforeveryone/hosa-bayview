@@ -93,7 +93,7 @@ export function EventForm({
       />
       <label
         htmlFor={`${uid}-allday`}
-        className="flex min-h-11 items-center gap-3 text-[17px]"
+        className="flex min-h-11 items-center gap-3 text-17"
       >
         <input
           id={`${uid}-allday`}

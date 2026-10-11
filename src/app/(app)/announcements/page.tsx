@@ -28,7 +28,7 @@ export default async function AnnouncementsPage() {
           className="group border-y border-rule"
           open={rows.length === 0}
         >
-          <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-[18px] hover:bg-band sm:px-3">
+          <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-18 hover:bg-band sm:px-3">
             Post to the chapter
             <Plus
               size={22}

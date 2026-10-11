@@ -52,11 +52,11 @@ export function SkillCard({
           <span className="font-display text-[clamp(1.5rem,5vw,2.25rem)] leading-[1.05] font-semibold [overflow-wrap:anywhere] uppercase">
             {name}
           </span>
-          {meta ? <span className="text-[16px] text-ink-2">{meta}</span> : null}
+          {meta ? <span className="text-16 text-ink-2">{meta}</span> : null}
         </span>
         <span className="flex items-center gap-3 text-ink-2">
           {done.size ? (
-            <span className="num font-display text-[22px] font-semibold text-ink">
+            <span className="num font-display text-22 font-semibold text-ink">
               {done.size}/{steps.length}
             </span>
           ) : null}
@@ -84,20 +84,20 @@ export function SkillCard({
                       className="mt-1 size-5 shrink-0 accent-[var(--ink)]"
                     />
                     <span
-                      className="num pt-0.5 text-[15px] text-ink-2"
+                      className="num pt-0.5 text-15 text-ink-2"
                       aria-hidden
                     >
                       {i + 1}
                     </span>
                     <span
-                      className={`text-[17px] [overflow-wrap:anywhere] ${checked ? "text-ink-2 line-through decoration-1" : ""}`}
+                      className={`text-17 [overflow-wrap:anywhere] ${checked ? "text-ink-2 line-through decoration-1" : ""}`}
                     >
                       {s.text}
                     </span>
                     {s.points === undefined ? (
                       <span />
                     ) : (
-                      <span className="num pt-0.5 text-[15px] whitespace-nowrap text-ink-2">
+                      <span className="num pt-0.5 text-15 whitespace-nowrap text-ink-2">
                         {s.points} pt{s.points === 1 ? "" : "s"}
                       </span>
                     )}
@@ -109,14 +109,14 @@ export function SkillCard({
         ) : null}
 
         {note ? (
-          <p className="max-w-[65ch] text-[16px] whitespace-pre-line text-ink-2">
+          <p className="max-w-[65ch] text-16 whitespace-pre-line text-ink-2">
             {note}
           </p>
         ) : null}
 
         {steps.length ? (
           <div className="flex min-h-11 flex-wrap items-center gap-x-5 gap-y-2">
-            <p className="num text-[16px]">
+            <p className="num text-16">
               {done.size}/{steps.length} done
               {total === null ? null : ` · ${earned}/${total} points`}
             </p>
@@ -124,7 +124,7 @@ export function SkillCard({
               <button
                 type="button"
                 onClick={() => setDone(new Set())}
-                className="caps step inline-flex h-11 items-center border border-ink px-4 text-[16px] hover:bg-band"
+                className="caps step inline-flex h-11 items-center border border-ink px-4 text-16 hover:bg-band"
               >
                 Clear
               </button>

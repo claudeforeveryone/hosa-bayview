@@ -36,11 +36,11 @@ function Chip({ e, onOpen }: { e: EventRow; onOpen: () => void }) {
         onOpen();
       }}
       title={e.title}
-      className={`step grid w-full min-w-0 max-w-full gap-px overflow-hidden border-l-[3px] bg-band px-1.5 py-1 text-left text-[12px] leading-tight hover:bg-rule focus-visible:outline-2 focus-visible:outline-ink lg:text-[13px] ${tone(e)}`}
+      className={`step grid w-full min-w-0 max-w-full gap-px overflow-hidden border-l-[3px] bg-band px-1.5 py-1 text-left text-12 leading-tight hover:bg-rule focus-visible:outline-2 focus-visible:outline-ink lg:text-13 ${tone(e)}`}
     >
       {/* Time on its own line and the title wrapping to two lines, so both stay inside a narrow day box. */}
       {!e.all_day ? (
-        <span className="num truncate text-[11px] text-ink-2 lg:text-[12px]">
+        <span className="num truncate text-11 text-ink-2 lg:text-12">
           {formatTime(e.starts_at)}
         </span>
       ) : null}
@@ -108,7 +108,7 @@ export function MonthGrid({
           {WEEKDAYS.map((w) => (
             <span
               key={w}
-              className="caps border-r border-b border-rule-strong px-1.5 py-1.5 text-center text-[12px] text-ink-2 sm:text-left sm:text-[13px]"
+              className="caps border-r border-b border-rule-strong px-1.5 py-1.5 text-center text-12 text-ink-2 sm:text-left sm:text-13"
             >
               <span className="sm:hidden">{w[0]}</span>
               <span className="hidden sm:inline">{w}</span>
@@ -139,7 +139,7 @@ export function MonthGrid({
                         show(d.key);
                       }}
                       aria-label={label}
-                      className={`num grid size-7 place-items-center font-display text-[15px] font-semibold focus-visible:outline-2 focus-visible:outline-ink sm:text-[16px] ${
+                      className={`num grid size-7 place-items-center font-display text-15 font-semibold focus-visible:outline-2 focus-visible:outline-ink sm:text-16 ${
                         today ? "bg-you text-on-you" : ""
                       }`}
                     >
@@ -148,7 +148,7 @@ export function MonthGrid({
                   ) : (
                     <span
                       aria-label={label}
-                      className={`num grid size-7 place-items-center font-display text-[15px] font-semibold sm:text-[16px] ${
+                      className={`num grid size-7 place-items-center font-display text-15 font-semibold sm:text-16 ${
                         today ? "bg-you text-on-you" : ""
                       }`}
                     >
@@ -159,7 +159,7 @@ export function MonthGrid({
                   {items.length ? (
                     <span
                       aria-hidden
-                      className="num mt-1 mr-0.5 text-[12px] font-semibold text-you-line sm:hidden"
+                      className="num mt-1 mr-0.5 text-12 font-semibold text-you-line sm:hidden"
                     >
                       {items.length}
                     </span>
@@ -172,7 +172,7 @@ export function MonthGrid({
                     </li>
                   ))}
                   {items.length > SHOWN ? (
-                    <li className="caps px-1.5 text-[12px] text-ink-2">
+                    <li className="caps px-1.5 text-12 text-ink-2">
                       +{items.length - SHOWN} more
                     </li>
                   ) : null}
@@ -186,7 +186,7 @@ export function MonthGrid({
                       col < 4 ? "left-full -ml-px" : "right-full -mr-px"
                     } ${row >= rows - 2 ? "bottom-0" : "top-0"}`}
                   >
-                    <p className="caps mb-3 border-b border-rule pb-2 text-[13px] text-ink-2">
+                    <p className="caps mb-3 border-b border-rule pb-2 text-13 text-ink-2">
                       {dayTitle(d.key)}
                     </p>
                     <ul className="grid gap-4">
@@ -197,7 +197,7 @@ export function MonthGrid({
                         >
                           <EventSummary e={e} compact />
                           {e.details ? (
-                            <p className="mt-1 line-clamp-3 text-[15px] whitespace-pre-line">
+                            <p className="mt-1 line-clamp-3 text-15 whitespace-pre-line">
                               {e.details}
                             </p>
                           ) : null}
@@ -205,11 +205,11 @@ export function MonthGrid({
                       ))}
                     </ul>
                     {items.length > 4 ? (
-                      <p className="caps mt-3 text-[12px] text-ink-2">
+                      <p className="caps mt-3 text-12 text-ink-2">
                         +{items.length - 4} more. Click for all.
                       </p>
                     ) : (
-                      <p className="caps mt-3 text-[12px] text-ink-2">
+                      <p className="caps mt-3 text-12 text-ink-2">
                         Click for details
                       </p>
                     )}
@@ -287,7 +287,7 @@ export function MonthGrid({
                     {canEdit.has(e.id) ? (
                       <div className="flex flex-wrap items-start gap-3">
                         <details className="open:order-last open:basis-full">
-                          <summary className="caps step inline-flex h-11 cursor-pointer items-center border border-ink px-4 text-[15px] text-ink hover:bg-band">
+                          <summary className="caps step inline-flex h-11 cursor-pointer items-center border border-ink px-4 text-15 text-ink hover:bg-band">
                             Edit
                           </summary>
                           <div className="pt-5">

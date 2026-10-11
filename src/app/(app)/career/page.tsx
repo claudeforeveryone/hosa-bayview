@@ -10,6 +10,7 @@ import {
   type CareerFilter,
   careerCounts,
   parseCareerFilter,
+  parseCareerScope,
   parseCareerSort,
   starredIds,
 } from "@/lib/career";
@@ -69,7 +70,7 @@ export default async function CareerPage(props: PageProps<"/career">) {
                     t.id === "overview" ? "/career" : "/career?tab=questions"
                   }
                   aria-current={on ? "page" : undefined}
-                  className={`caps step flex h-12 items-center justify-center px-1 text-[16px] sm:h-14 sm:text-[17px] ${
+                  className={`caps step flex h-12 items-center justify-center px-1 text-16 sm:h-14 sm:text-17 ${
                     on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                   }`}
                 >
@@ -91,7 +92,7 @@ export default async function CareerPage(props: PageProps<"/career">) {
                   i >= 2 ? "border-t-2 border-ink sm:border-t-0" : ""
                 } ${i === 2 ? "sm:border-l-2" : ""}`}
               >
-                <dt className="caps text-[14px] text-ink-2">{label}</dt>
+                <dt className="caps text-14 text-ink-2">{label}</dt>
                 <dd className="num font-display text-[clamp(1.8rem,7vw,2.6rem)] leading-none font-bold">
                   {value}
                 </dd>
@@ -99,7 +100,7 @@ export default async function CareerPage(props: PageProps<"/career">) {
             ))}
           </dl>
           <CareerPracticePanel counts={practice} />
-          <p className="text-[16px] text-ink-2">
+          <p className="text-16 text-ink-2">
             Your totals and streaks are on your{" "}
             <Link
               href="/profile"
@@ -115,6 +116,7 @@ export default async function CareerPage(props: PageProps<"/career">) {
           rows={rows}
           initialFilter={parseCareerFilter(sp.result)}
           initialSort={parseCareerSort(sp.sort)}
+          initialScope={parseCareerScope(sp)}
           canStar
         />
       )}

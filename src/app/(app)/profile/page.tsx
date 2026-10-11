@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { MemberStatRows } from "@/components/member-stats";
+import { SkillStrip } from "@/components/skill-badges";
 import { Button } from "@/components/form";
 import { formatCount } from "@/lib/activity";
 import { getMemberStats } from "@/lib/activity-data";
@@ -13,6 +14,7 @@ import { avatarSources } from "@/lib/avatar-urls";
 import { getCareerItems } from "@/lib/career-data";
 import { gradeLabel } from "@/lib/profile";
 import { roleLabel } from "@/lib/role-label";
+import { chapterSkills } from "@/lib/skills-data";
 import { createClient } from "@/lib/supabase/server";
 import { formatWhen } from "@/lib/when";
 import { AvatarButton } from "./avatar-button";
@@ -55,6 +57,8 @@ export default async function ProfilePage() {
     career.filter((r) => r.favorite && r.question_id).map((r) => r.question_id),
   ).size;
   const recent = career.slice(0, 3);
+  // The same skills as /skills, from the reads this page already made.
+  const skills = chapterSkills(stats, career, wins);
   return (
     <div className="grid max-w-2xl gap-10">
       <div className="flex items-center gap-5">
@@ -93,6 +97,12 @@ export default async function ProfilePage() {
           </>
         ) : null}
       </dl>
+      <section aria-labelledby="skills-h" className="grid gap-4">
+        <h2 id="skills-h" className={H2}>
+          Skills
+        </h2>
+        <SkillStrip list={skills} />
+      </section>
       {stats ? (
         <section aria-labelledby="numbers-h" className="grid gap-4">
           <h2 id="numbers-h" className={H2}>
@@ -115,7 +125,7 @@ export default async function ProfilePage() {
           ).map(([label, value, href], i) => (
             <li key={label} className={i ? "border-l-2 border-ink" : ""}>
               <Link href={href} className="grid h-full gap-1 p-3 hover:bg-band sm:p-4">
-                <span className="caps text-[14px] text-ink-2">{label}</span>
+                <span className="caps text-14 text-ink-2">{label}</span>
                 <span className="num font-display text-[clamp(1.6rem,6vw,2.2rem)] leading-none font-bold">
                   {value}
                 </span>
@@ -136,24 +146,24 @@ export default async function ProfilePage() {
                       : "border-l-danger"
                 }`}
               >
-                <p className="flex flex-wrap gap-x-3 text-[14px] text-ink-2">
+                <p className="flex flex-wrap gap-x-3 text-14 text-ink-2">
                   <span className={`caps font-semibold ${item.is_correct === null ? "" : item.is_correct ? "text-ok" : "text-danger"}`}>
                     {item.is_correct === null ? "Answered" : item.is_correct ? "Right" : "Wrong"}
                   </span>
                   <span className="num">{formatWhen(item.answered_at)}</span>
                 </p>
-                <p className="line-clamp-2 text-[17px] leading-snug">{item.prompt}</p>
+                <p className="line-clamp-2 text-17 leading-snug">{item.prompt}</p>
               </li>
             ))}
           </ol>
         ) : (
-          <p className="text-[17px] text-ink-2">
+          <p className="text-17 text-ink-2">
             No questions answered yet. Practise a test and every answer shows up in your career.
           </p>
         )}
         <Link
           href="/career"
-          className="caps step inline-flex h-12 items-center justify-between gap-3 bg-ink px-4 text-[17px] text-ground hover:bg-ink-2"
+          className="caps step inline-flex h-12 items-center justify-between gap-3 bg-ink px-4 text-17 text-ground hover:bg-ink-2"
         >
           {career.length
             ? `Open career: all ${formatCount(career.length)}`

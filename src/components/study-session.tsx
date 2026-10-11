@@ -130,14 +130,14 @@ export function StudySession({
         >
           Round done
         </p>
-        <p className="num text-[18px]">
+        <p className="num text-18">
           Know it: {tally.known} · Still learning: {tally.learning}
         </p>
         <div className="flex flex-wrap gap-3">
           <Button onClick={() => restart(cards)}>Go again</Button>
           <Link
             href={backHref}
-            className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band"
+            className="caps step inline-flex h-12 items-center border border-ink px-6 text-17 hover:bg-band"
           >
             {backLabel}
           </Link>
@@ -149,13 +149,13 @@ export function StudySession({
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="caps num text-[15px] text-ink-2" aria-live="polite">
+        <p className="caps num text-15 text-ink-2" aria-live="polite">
           {label} · {index + 1} of {order.length}
         </p>
         <button
           type="button"
           onClick={() => restart(cards)}
-          className="caps step h-11 border border-rule-strong px-4 text-[15px] text-ink-2 hover:border-ink hover:text-ink"
+          className="caps step h-11 border border-rule-strong px-4 text-15 text-ink-2 hover:border-ink hover:text-ink"
         >
           Shuffle
         </button>
@@ -183,7 +183,7 @@ export function StudySession({
           className="card-face grid place-items-center gap-3"
         >
           <span
-            className={`caps text-[14px] ${flipped ? "text-ink-2" : "text-on-field-2"}`}
+            className={`caps text-14 ${flipped ? "text-ink-2" : "text-on-field-2"}`}
           >
             {flipped ? "Definition" : "Term"}
           </span>
@@ -212,13 +212,13 @@ export function StudySession({
         </div>
       ) : (
         // Same height as the buttons that replace it, so nothing under the card jumps on a flip.
-        <p className="flex min-h-12 items-center text-[15px] text-ink-2">
+        <p className="flex min-h-12 items-center text-15 text-ink-2">
           Tap the card to see the definition.
         </p>
       )}
 
       {error ? (
-        <p role="alert" className="text-[15px] text-danger">
+        <p role="alert" className="text-15 text-danger">
           {error}
         </p>
       ) : null}

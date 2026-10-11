@@ -162,7 +162,7 @@ export function MaterialForm({
               aria-pressed={mode === m}
               disabled={locked}
               onClick={() => switchMode(m)}
-              className={`caps step h-12 text-[15px] disabled:opacity-60 ${
+              className={`caps step h-12 text-15 disabled:opacity-60 ${
                 mode === m ? "bg-ink text-ground" : "text-ink hover:bg-band"
               }`}
             >
@@ -174,7 +174,7 @@ export function MaterialForm({
 
       {mode === "file" ? (
         <div className="grid gap-1.5">
-          <label htmlFor={`${uid}-file`} className="text-[15px] font-medium">
+          <label htmlFor={`${uid}-file`} className="text-15 font-medium">
             File
           </label>
           <input
@@ -183,11 +183,11 @@ export function MaterialForm({
             disabled={locked}
             onChange={pickFile}
             aria-describedby={`${uid}-file-hint`}
-            className="step block h-12 w-full min-w-0 border border-rule-strong text-[15px] file:mr-4 file:h-full file:cursor-pointer file:border-0 file:border-r file:border-rule-strong file:bg-band file:px-4 file:font-semibold file:text-ink disabled:opacity-60"
+            className="step block h-12 w-full min-w-0 border border-rule-strong text-15 file:mr-4 file:h-full file:cursor-pointer file:border-0 file:border-r file:border-rule-strong file:bg-band file:px-4 file:font-semibold file:text-ink disabled:opacity-60"
           />
           <p
             id={`${uid}-file-hint`}
-            className="text-[15px] text-ink-2 [overflow-wrap:anywhere]"
+            className="text-15 text-ink-2 [overflow-wrap:anywhere]"
           >
             {file ? (
               <>

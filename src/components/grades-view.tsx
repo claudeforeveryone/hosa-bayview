@@ -21,7 +21,7 @@ function Score({ cell }: { cell: GradeCell | null | undefined }) {
     <span className="num">
       {cell.pct}%
       {cell.mode === "practice" ? (
-        <span className="caps ml-2 text-[12px] font-normal text-ink-2">
+        <span className="caps ml-2 text-12 font-normal text-ink-2">
           Practice
         </span>
       ) : null}
@@ -74,7 +74,7 @@ export function GradesView({
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="caps num text-[16px] text-ink-2">
+        <p className="caps num text-16 text-ink-2">
           {grid.members.length} member{grid.members.length === 1 ? "" : "s"} ·{" "}
           {grid.tests.length} test
           {grid.tests.length === 1 ? "" : "s"}
@@ -83,7 +83,7 @@ export function GradesView({
           <button
             type="button"
             onClick={download}
-            className="caps step inline-flex h-11 items-center gap-2 border border-ink px-4 text-[16px] hover:bg-band"
+            className="caps step inline-flex h-11 items-center gap-2 border border-ink px-4 text-16 hover:bg-band"
           >
             <Download size={18} strokeWidth={1.75} aria-hidden />
             Download CSV
@@ -100,10 +100,10 @@ export function GradesView({
             className="grid gap-2 border-t border-rule pt-4"
           >
             <div className="flex items-baseline justify-between gap-4">
-              <h3 className="min-w-0 truncate text-[19px] font-semibold">
+              <h3 className="min-w-0 truncate text-19 font-semibold">
                 {m.full_name}
               </h3>
-              <p className="num font-display text-[26px] font-semibold">
+              <p className="num font-display text-26 font-semibold">
                 {m.average === null ? "—" : `${m.average}%`}
               </p>
             </div>
@@ -111,7 +111,7 @@ export function GradesView({
               {grid.tests.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-baseline justify-between gap-4 border-b border-rule py-2 text-[16px]"
+                  className="flex items-baseline justify-between gap-4 border-b border-rule py-2 text-16"
                 >
                   <dt className="min-w-0 truncate text-ink-2">{t.title}</dt>
                   <dd className="shrink-0">
@@ -126,12 +126,12 @@ export function GradesView({
           aria-label="Test averages"
           className="grid gap-2 border-t-2 border-ink pt-4"
         >
-          <h3 className="caps text-[16px]">Test averages</h3>
+          <h3 className="caps text-16">Test averages</h3>
           <dl className="grid">
             {grid.tests.map((t) => (
               <div
                 key={t.id}
-                className="flex items-baseline justify-between gap-4 border-b border-rule py-2 text-[16px]"
+                className="flex items-baseline justify-between gap-4 border-b border-rule py-2 text-16"
               >
                 <dt className="min-w-0 truncate text-ink-2">{t.title}</dt>
                 <dd className="num shrink-0">
@@ -149,7 +149,7 @@ export function GradesView({
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full border-t border-rule text-left">
           <thead>
-            <tr className="caps text-[14px] text-ink-2">
+            <tr className="caps text-14 text-ink-2">
               <th scope="col" className="py-2 pr-4 font-semibold">
                 Name
               </th>
@@ -174,16 +174,16 @@ export function GradesView({
               <tr key={m.user_id} className="border-t border-rule">
                 <th
                   scope="row"
-                  className="max-w-[18ch] truncate py-3 pr-4 text-left text-[17px] font-medium"
+                  className="max-w-[18ch] truncate py-3 pr-4 text-left text-17 font-medium"
                 >
                   {m.full_name}
                 </th>
                 {grid.tests.map((t) => (
-                  <td key={t.id} className="py-3 pr-4 text-right text-[17px]">
+                  <td key={t.id} className="py-3 pr-4 text-right text-17">
                     <Score cell={m.cells[t.id]} />
                   </td>
                 ))}
-                <td className="num py-3 text-right font-display text-[22px] font-semibold">
+                <td className="num py-3 text-right font-display text-22 font-semibold">
                   {m.average === null ? "—" : `${m.average}%`}
                 </td>
               </tr>
@@ -193,14 +193,14 @@ export function GradesView({
             <tr className="border-t-2 border-ink">
               <th
                 scope="row"
-                className="py-3 pr-4 text-left text-[15px] font-semibold uppercase caps"
+                className="py-3 pr-4 text-left text-15 font-semibold uppercase caps"
               >
                 Test average
               </th>
               {grid.tests.map((t) => (
                 <td
                   key={t.id}
-                  className="num py-3 pr-4 text-right text-[17px] font-semibold"
+                  className="num py-3 pr-4 text-right text-17 font-semibold"
                 >
                   {grid.testAverages[t.id] === null
                     ? "—"
@@ -213,7 +213,7 @@ export function GradesView({
         </table>
       </div>
 
-      <p className="text-[15px] text-ink-2">
+      <p className="text-15 text-ink-2">
         Best score per test: a timed run counts over practice. Averages cover
         the tests each person has taken.
       </p>

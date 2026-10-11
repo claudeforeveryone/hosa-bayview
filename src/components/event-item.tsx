@@ -20,13 +20,13 @@ export function DateStub({
           : "border-rule-strong text-ink"
       }`}
     >
-      <span className="caps text-[12px] tracking-[0.12em]">
+      <span className="caps text-12 tracking-[0.12em]">
         {part({ weekday: "short" }).replace(".", "")}
       </span>
-      <span className="num font-display text-[34px] font-bold sm:text-[38px]">
+      <span className="num font-display text-34 font-bold sm:text-38">
         {part({ day: "numeric" })}
       </span>
-      <span className="caps text-[12px] tracking-[0.12em]">
+      <span className="caps text-12 tracking-[0.12em]">
         {part({ month: "short" }).replace(".", "")}
       </span>
     </span>
@@ -64,7 +64,7 @@ export function EventSummary({
   const scope = e.classroom_id ? (e.room?.name ?? "Event") : "Chapter";
   return (
     <span className="grid min-w-0 gap-1">
-      <span className="caps num flex flex-wrap items-center gap-x-2 text-[14px] text-ink-2">
+      <span className="caps num flex flex-wrap items-center gap-x-2 text-14 text-ink-2">
         <span>{timeRange(e)}</span>
         <span aria-hidden>·</span>
         <span className={e.classroom_id ? "" : "text-you-line"}>{scope}</span>
@@ -73,7 +73,7 @@ export function EventSummary({
         {e.title}
       </span>
       {e.location ? (
-        <span className="flex items-center gap-1.5 text-[16px] text-ink-2">
+        <span className="flex items-center gap-1.5 text-16 text-ink-2">
           <MapPin
             size={16}
             strokeWidth={1.75}
@@ -84,7 +84,7 @@ export function EventSummary({
         </span>
       ) : null}
       {!compact && e.details ? (
-        <span className="max-w-[65ch] text-[16px] whitespace-pre-line [overflow-wrap:anywhere]">
+        <span className="max-w-[65ch] text-16 whitespace-pre-line [overflow-wrap:anywhere]">
           {e.details}
         </span>
       ) : null}

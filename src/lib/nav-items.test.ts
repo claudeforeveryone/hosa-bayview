@@ -10,6 +10,7 @@ describe("navItemsFor", () => {
       "/",
       "/events",
       "/career",
+      "/skills",
       "/announcements",
       "/calendar",
       "/leaderboard",
@@ -72,8 +73,8 @@ describe("active states", () => {
       expect(find("/events").match(path)).toBe(false);
   });
 
-  it("More is active on More, Settings and Help", () => {
-    for (const path of ["/more", "/settings", "/settings?tab=look", "/help"])
+  it("More is active on More and Settings (Help is a Settings tab)", () => {
+    for (const path of ["/more", "/settings", "/settings?tab=look", "/settings?tab=help"])
       expect(find("/more").match(path)).toBe(true);
     expect(find("/more").match("/profile")).toBe(false);
   });

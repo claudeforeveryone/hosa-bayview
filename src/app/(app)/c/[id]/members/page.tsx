@@ -10,11 +10,11 @@ const joined = (iso: string) =>
   new Date(iso).toLocaleDateString("en-CA", { month: "short", day: "numeric", timeZone: "America/Toronto" });
 
 function OnlineTag() {
-  return <span className="caps ml-3 border border-ok px-2 py-0.5 align-middle text-[13px] text-ok">Online</span>;
+  return <span className="caps ml-3 border border-ok px-2 py-0.5 align-middle text-13 text-ok">Online</span>;
 }
 
 function YouTag() {
-  return <span className="caps ml-3 bg-you px-2 py-0.5 align-middle text-[13px] text-on-you">You</span>;
+  return <span className="caps ml-3 bg-you px-2 py-0.5 align-middle text-13 text-on-you">You</span>;
 }
 
 export default async function MembersTab({ params }: PageProps<"/c/[id]/members">) {
@@ -30,18 +30,18 @@ export default async function MembersTab({ params }: PageProps<"/c/[id]/members"
 
   return (
     <div className="grid grid-cols-1 gap-8">
-      <p className="caps num text-[15px] text-ink-2">
+      <p className="caps num text-15 text-ink-2">
         {roster.length + (room.owner_id ? 1 : 0)} people · {online.length} online now
       </p>
       <ul id="members" tabIndex={-1} aria-label="Members" className="border-t border-rule outline-none">
         {room.owner_id ? (
           <li className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule px-1 py-4 sm:px-3">
-            <span className="min-w-0 truncate text-[19px] font-semibold">
+            <span className="min-w-0 truncate text-19 font-semibold">
               {room.owner_name}
               {room.is_owner ? <YouTag /> : null}
               {room.owner_id && here.has(room.owner_id) ? <OnlineTag /> : null}
             </span>
-            <span className="caps text-[15px] text-ink-2">Trainer</span>
+            <span className="caps text-15 text-ink-2">Trainer</span>
           </li>
         ) : null}
         {roster.map((m) => (
@@ -50,12 +50,12 @@ export default async function MembersTab({ params }: PageProps<"/c/[id]/members"
             className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-b border-rule px-1 py-4 sm:px-3"
           >
             <span className="min-w-0">
-              <span className="block truncate text-[19px] font-semibold">
+              <span className="block truncate text-19 font-semibold">
                 {m.full_name}
                 {m.user_id === profile.id ? <YouTag /> : null}
                 {here.has(m.user_id) ? <OnlineTag /> : null}
               </span>
-              <span className="block truncate text-[15px] text-ink-2">
+              <span className="block truncate text-15 text-ink-2">
                 {[m.email, `Joined ${joined(m.joined_at)}`].filter(Boolean).join(" · ")}
               </span>
             </span>

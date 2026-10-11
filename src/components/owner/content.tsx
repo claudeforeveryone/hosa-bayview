@@ -63,34 +63,34 @@ export function ContentSection({ data }: { data: ContentData }) {
                 key={r.question_id}
                 className="grid gap-2 border-b border-rule py-4"
               >
-                <p className="caps num text-[14px] text-ink-2">
+                <p className="caps num text-14 text-ink-2">
                   {r.room} · {r.test_title} · Q{r.pos}
                 </p>
                 {r.prompt !== null ? (
-                  <p className="line-clamp-3 text-[17px] [overflow-wrap:anywhere]">
+                  <p className="line-clamp-3 text-17 [overflow-wrap:anywhere]">
                     {r.prompt}
                   </p>
                 ) : (
-                  <p className="text-[16px] text-ink-2">{WORDING_HIDDEN}</p>
+                  <p className="text-16 text-ink-2">{WORDING_HIDDEN}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <ul className="flex flex-wrap gap-1.5" aria-label="Reasons">
                     {r.reasons.map((reason) => (
                       <li
                         key={reason}
-                        className="caps border border-ink px-2 py-0.5 text-[13px]"
+                        className="caps border border-ink px-2 py-0.5 text-13"
                       >
                         {reasonLabel(reason)}
                       </li>
                     ))}
                   </ul>
-                  <span className="text-[14px] text-ink-2">
+                  <span className="text-14 text-ink-2">
                     {r.reports} {r.reports === 1 ? "report" : "reports"}, last{" "}
                     {stampText(r.last_at)}
                   </span>
                   <Link
                     href={`/c/${r.classroom_id}/tests/${r.test_id}`}
-                    className="caps text-[14px] underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                    className="caps text-14 underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
                   >
                     Open the test
                   </Link>
@@ -125,7 +125,7 @@ export function ContentSection({ data }: { data: ContentData }) {
                   <>
                     {e.name}
                     {e.kind === "competition" ? (
-                      <span className="block text-[13px] font-normal text-ink-2">
+                      <span className="block text-13 font-normal text-ink-2">
                         Mock competition
                       </span>
                     ) : null}
@@ -182,21 +182,21 @@ export function ContentSection({ data }: { data: ContentData }) {
                 className="grid gap-1 border-b border-rule py-3"
               >
                 {d.example !== null ? (
-                  <p className="line-clamp-2 text-[16px] [overflow-wrap:anywhere]">
+                  <p className="line-clamp-2 text-16 [overflow-wrap:anywhere]">
                     {d.example}
                   </p>
                 ) : (
-                  <p className="text-[16px] text-ink-2">{WORDING_HIDDEN}</p>
+                  <p className="text-16 text-ink-2">{WORDING_HIDDEN}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <p className="num text-[14px] text-ink-2">
+                  <p className="num text-14 text-ink-2">
                     {d.copies} copies in {d.tests}{" "}
                     {d.tests === 1 ? "test" : "tests"}
                     {d.rooms.length ? ` · ${d.rooms.join(", ")}` : ""}
                   </p>
                   <Link
                     href={`/c/${d.classroom_id}/tests/${d.test_id}`}
-                    className="caps text-[14px] underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                    className="caps text-14 underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
                   >
                     Open one copy
                   </Link>

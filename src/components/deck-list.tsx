@@ -37,12 +37,12 @@ export function DeckList({
                 <span className="block truncate font-display text-[clamp(1.5rem,5vw,2.25rem)] leading-[1.05] font-semibold uppercase">
                   {d.title}
                 </span>
-                <span className="block truncate text-[16px] text-ink-2">
+                <span className="block truncate text-16 text-ink-2">
                   {count} · {where}
                 </span>
               </span>
               <span className="flex items-center gap-3 text-ink-2">
-                <span className="num caps hidden text-[15px] sm:inline">
+                <span className="num caps hidden text-15 sm:inline">
                   {formNumber("D", d.num)}
                 </span>
                 <ChevronRight size={22} strokeWidth={1.75} aria-hidden />

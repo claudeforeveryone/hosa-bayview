@@ -33,7 +33,7 @@ export type BuilderQuestion = {
 const START_CHOICES = 4;
 const LETTERS = "ABCDE";
 const INPUT =
-  "step w-full border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger";
+  "step w-full border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger";
 
 type Choice = { key: number; value: string };
 // rightKey is null until the trainer marks one: there is no default right answer.
@@ -307,7 +307,7 @@ export function QuestionBuilder({
       noValidate
     >
       <div className="grid gap-1.5">
-        <label htmlFor={id("prompt")} className="text-[15px] font-medium">
+        <label htmlFor={id("prompt")} className="text-15 font-medium">
           Question
         </label>
         <textarea
@@ -322,15 +322,15 @@ export function QuestionBuilder({
           className={`${INPUT} min-h-28 resize-y py-2.5`}
         />
         {errors?.prompt ? (
-          <p id={id("prompt-err")} className="text-[15px] text-danger">
+          <p id={id("prompt-err")} className="text-15 text-danger">
             {errors.prompt}
           </p>
         ) : null}
       </div>
 
       <fieldset className="grid gap-2">
-        <legend className="mb-1.5 text-[15px] font-medium">Choices</legend>
-        <p id={id("mark-hint")} className="-mt-0.5 mb-1 text-[15px] text-ink-2">
+        <legend className="mb-1.5 text-15 font-medium">Choices</legend>
+        <p id={id("mark-hint")} className="-mt-0.5 mb-1 text-15 text-ink-2">
           Tap the letter of the right one.
         </p>
         <div
@@ -356,7 +356,7 @@ export function QuestionBuilder({
                   tabIndex={c.key === tabStop ? 0 : -1}
                   aria-checked={right}
                   aria-label={`${LETTERS[i]}: ${c.value.trim() || "empty choice"}`}
-                  className={`caps step grid size-12 shrink-0 place-items-center border text-[18px] ${
+                  className={`caps step grid size-12 shrink-0 place-items-center border text-18 ${
                     right
                       ? "border-ok bg-ok text-ground"
                       : `${errors?.correct ? "border-danger" : "border-rule-strong"} text-ink-2 hover:border-ink hover:text-ink`
@@ -405,16 +405,16 @@ export function QuestionBuilder({
           })}
         </div>
         {errors?.choices ? (
-          <p className="text-[15px] text-danger">{errors.choices}</p>
+          <p className="text-15 text-danger">{errors.choices}</p>
         ) : null}
         {errors?.correct ? (
-          <p className="text-[15px] text-danger">{errors.correct}</p>
+          <p className="text-15 text-danger">{errors.correct}</p>
         ) : null}
         {draft.choices.length < MAX_CHOICES ? (
           <button
             type="button"
             onClick={addChoice}
-            className="caps step mt-1 inline-flex h-11 items-center gap-2 justify-self-start border border-rule-strong px-4 text-[15px] text-ink-2 hover:border-ink hover:text-ink"
+            className="caps step mt-1 inline-flex h-11 items-center gap-2 justify-self-start border border-rule-strong px-4 text-15 text-ink-2 hover:border-ink hover:text-ink"
           >
             <Plus size={18} strokeWidth={2} aria-hidden />
             Add a choice
@@ -423,7 +423,7 @@ export function QuestionBuilder({
       </fieldset>
 
       <div className="grid gap-1.5">
-        <label htmlFor={id("explanation")} className="text-[15px] font-medium">
+        <label htmlFor={id("explanation")} className="text-15 font-medium">
           Explanation
         </label>
         <input
@@ -439,7 +439,7 @@ export function QuestionBuilder({
         />
         <p
           id={id("explanation-note")}
-          className={`text-[15px] ${errors?.explanation ? "text-danger" : "text-ink-2"}`}
+          className={`text-15 ${errors?.explanation ? "text-danger" : "text-ink-2"}`}
         >
           {errors?.explanation ?? "Optional. Shown after they answer."}
         </p>
@@ -465,7 +465,7 @@ export function QuestionBuilder({
             </Button>
           ) : null}
           {unmarked ? (
-            <p id={id("why-off")} className="text-[15px] text-ink-2">
+            <p id={id("why-off")} className="text-15 text-ink-2">
               Mark the right answer first.
             </p>
           ) : null}
@@ -476,7 +476,7 @@ export function QuestionBuilder({
           ) : null}
         </div>
         {focused ? (
-          <p className="hidden text-[15px] text-ink-2 sm:block">
+          <p className="hidden text-15 text-ink-2 sm:block">
             <Kbd>Enter</Kbd> next choice · <Kbd>1</Kbd> to <Kbd>5</Kbd> on a
             letter marks it
             {keys.altDigits ? (
@@ -495,7 +495,7 @@ export function QuestionBuilder({
 
 function Kbd({ children }: { children: string }) {
   return (
-    <kbd className="num border border-rule px-1.5 py-px font-sans text-[14px] text-ink">
+    <kbd className="num border border-rule px-1.5 py-px font-sans text-14 text-ink">
       {children}
     </kbd>
   );

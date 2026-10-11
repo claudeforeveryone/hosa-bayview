@@ -18,7 +18,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="caps step inline-flex h-12 items-center bg-ink px-6 text-[17px] text-ground hover:bg-ink-2"
+        className="caps step inline-flex h-12 items-center bg-ink px-6 text-17 text-ground hover:bg-ink-2"
       >
         Back home
       </Link>

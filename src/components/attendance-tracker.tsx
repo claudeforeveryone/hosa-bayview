@@ -113,7 +113,7 @@ function useMarks(initial: readonly string[]) {
 // faded ink-2 fell under AA (3.98:1 light). One line, so a long name truncates instead of "Gr" over "11".
 function Grade({ grade }: { grade: number | null }) {
   return grade ? (
-    <span className="num shrink-0 text-[14px] whitespace-nowrap">
+    <span className="num shrink-0 text-14 whitespace-nowrap">
       Gr {grade}
     </span>
   ) : null;
@@ -161,12 +161,12 @@ export function WeekBoard({
               <div className="flex items-baseline justify-between gap-3 border-b-[3px] border-ink px-3 py-2.5">
                 <Link
                   href={`${gridHrefBase}${c.id}`}
-                  className="caps min-w-0 text-[17px] leading-tight underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                  className="caps min-w-0 text-17 leading-tight underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
                 >
                   {c.label}
                 </Link>
                 <span
-                  className="caps num shrink-0 text-[15px]"
+                  className="caps num shrink-0 text-15"
                   aria-live="polite"
                 >
                   {here}/{ids.length} present
@@ -190,14 +190,14 @@ export function WeekBoard({
                       >
                         <span className="flex min-w-0 flex-1 items-center gap-2">
                           <span
-                            className={`min-w-0 truncate text-[17px] ${on ? "font-semibold" : ""}`}
+                            className={`min-w-0 truncate text-17 ${on ? "font-semibold" : ""}`}
                           >
                             {m.name}
                           </span>
                           {m.hasAccount ? <AccountMark /> : null}
                         </span>
                         <Grade grade={m.grade} />
-                        <span className="caps flex w-[7.5rem] shrink-0 items-center justify-end gap-1.5 text-[14px]">
+                        <span className="caps flex w-[7.5rem] shrink-0 items-center justify-end gap-1.5 text-14">
                           {on ? (
                             <Check size={18} strokeWidth={3} aria-hidden />
                           ) : (
@@ -215,7 +215,7 @@ export function WeekBoard({
                   type="button"
                   disabled={all}
                   onClick={() => markAll(ids, week.id)}
-                  className="caps step press h-11 w-full border border-ink text-[15px] hover:bg-band disabled:cursor-default disabled:border-rule disabled:text-ink-2 disabled:hover:bg-transparent"
+                  className="caps step press h-11 w-full border border-ink text-15 hover:bg-band disabled:cursor-default disabled:border-rule disabled:text-ink-2 disabled:hover:bg-transparent"
                 >
                   {all ? "Everyone present" : "Mark all present"}
                 </button>
@@ -256,7 +256,7 @@ export function SeasonGrid({
         aria-label={`${label} sheet`}
         tabIndex={0}
       >
-        <table className="num w-max min-w-full border-separate border-spacing-0 text-[16px]">
+        <table className="num w-max min-w-full border-separate border-spacing-0 text-16">
           <caption className="sr-only">
             {label} attendance. Each cell is a button: pressed means present.
           </caption>
@@ -264,7 +264,7 @@ export function SeasonGrid({
             <tr>
               <th
                 scope="col"
-                className="caps sticky left-0 z-20 border-r-2 border-b-2 border-ink bg-ground px-3 py-2 text-left text-[14px]"
+                className="caps sticky left-0 z-20 border-r-2 border-b-2 border-ink bg-ground px-3 py-2 text-left text-14"
               >
                 Name
               </th>
@@ -272,7 +272,7 @@ export function SeasonGrid({
                 <th
                   key={w.id}
                   scope="col"
-                  className={`caps border-b-2 border-ink px-1 py-2 text-center text-[13px] whitespace-nowrap ${
+                  className={`caps border-b-2 border-ink px-1 py-2 text-center text-13 whitespace-nowrap ${
                     i === currentIndex ? "bg-ink text-ground" : ""
                   }`}
                 >
@@ -284,7 +284,7 @@ export function SeasonGrid({
               ))}
               <th
                 scope="col"
-                className="caps border-b-2 border-l-2 border-ink px-3 py-2 text-right text-[14px]"
+                className="caps border-b-2 border-l-2 border-ink px-3 py-2 text-right text-14"
               >
                 Total
               </th>
@@ -298,7 +298,7 @@ export function SeasonGrid({
                   className="sticky left-0 z-10 border-r-2 border-b border-r-ink border-b-rule bg-ground px-3 py-1 text-left font-normal"
                 >
                   <span className="flex w-[9.5rem] items-center gap-1.5 sm:w-[13rem]">
-                    <span className="min-w-0 truncate text-[16px]">
+                    <span className="min-w-0 truncate text-16">
                       {m.name}
                     </span>
                     {m.hasAccount ? <AccountMark /> : null}
@@ -342,7 +342,7 @@ export function SeasonGrid({
             <tr>
               <th
                 scope="row"
-                className="caps sticky left-0 z-10 border-t-2 border-r-2 border-ink bg-ground px-3 py-2 text-left text-[14px]"
+                className="caps sticky left-0 z-10 border-t-2 border-r-2 border-ink bg-ground px-3 py-2 text-left text-14"
               >
                 Present
               </th>
@@ -380,7 +380,7 @@ export function ClassPicker({
   const empty = options.filter((o) => !o.rostered);
   return (
     <div className="grid max-w-md gap-1.5">
-      <label htmlFor="class-pick" className="text-[15px] font-medium">
+      <label htmlFor="class-pick" className="text-15 font-medium">
         Event
       </label>
       <select
@@ -389,7 +389,7 @@ export function ClassPicker({
         onChange={(e) =>
           router.push(`${hrefFor}${encodeURIComponent(e.target.value)}`)
         }
-        className="step h-12 w-full border border-rule-strong bg-ground px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+        className="step h-12 w-full border border-rule-strong bg-ground px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
       >
         {rostered.map((o) => (
           <option key={o.id} value={o.id}>

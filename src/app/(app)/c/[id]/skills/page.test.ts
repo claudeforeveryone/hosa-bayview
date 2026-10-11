@@ -8,10 +8,15 @@ let skills: unknown[] = [];
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/classrooms", () => ({
-  getClassroom: async () => ({ id: ROOM, can_manage: canManage }),
+  getClassroom: async () => ({ id: ROOM, name: "Medical Terminology", can_manage: canManage }),
   getRoomInfo: async () => ({ kind: "class", category }),
 }));
 vi.mock("./queries", () => ({ getSkills: async () => skills }));
+vi.mock("@/lib/auth", () => ({ requireProfile: async () => ({ id: "11111111-1111-4111-8111-111111111111" }) }));
+vi.mock("@/lib/skills-data", async () => {
+  const { skillsFor, EVENT_SKILLS } = await import("@/lib/skills");
+  return { getEventSkills: async () => skillsFor({ answered: 12, correct: 3, minutes: 0, answers: [] }, EVENT_SKILLS) };
+});
 vi.mock("./actions", () => ({
   saveSkill: async () => ({}),
   deleteSkill: async () => ({}),
@@ -44,15 +49,22 @@ beforeEach(() => {
 });
 
 describe("Skills tab", () => {
+  it("shows everyone their badges for the event", async () => {
+    const out = text(await render());
+    expect(out).toContain("Your skills in Medical Terminology");
+    expect(out).toContain("Question Machine");
+  });
+
   it("shows members a calm empty state and no edit controls", async () => {
     const out = text(await render());
-    expect(out).toBe("No skills yet");
+    expect(out).toContain("No rating sheets yet");
+    expect(out).not.toMatch(/Edit|Delete|Add skill/);
   });
 
   it("shows managers the empty state with the Add skill editor", async () => {
     canManage = true;
     const out = await render();
-    expect(text(out)).toContain("No skills yet");
+    expect(text(out)).toContain("No rating sheets yet");
     expect(text(out)).toContain("Add skill");
     expect(out).toContain('name="steps"');
   });
@@ -90,8 +102,10 @@ describe("Skills tab", () => {
     expect(out).toContain("Delete");
   });
 
-  it("sends non-practical rooms back to the hub", async () => {
+  it("gives non-practical rooms the badges without rating sheets", async () => {
     category = "mc";
-    await expect(render()).rejects.toMatchObject({ to: `/c/${ROOM}` });
+    const out = text(await render());
+    expect(out).toContain("Question Machine");
+    expect(out).not.toContain("Rating sheets");
   });
 });

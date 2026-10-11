@@ -37,7 +37,7 @@ export function GifSwitch({ userId, name, allowed }: { userId: string; name: str
               aria-pressed={current}
               disabled={pending}
               onClick={() => pick(o.value)}
-              className={`caps step h-10 min-w-[4.75rem] px-3 text-[14px] not-first:border-l not-first:border-ink disabled:opacity-60 ${
+              className={`caps step h-10 min-w-[4.75rem] px-3 text-14 not-first:border-l not-first:border-ink disabled:opacity-60 ${
                 current ? "cursor-default bg-ink text-ground" : "hover:bg-band"
               }`}
             >
@@ -47,7 +47,7 @@ export function GifSwitch({ userId, name, allowed }: { userId: string; name: str
         })}
       </div>
       {error ? (
-        <p role="alert" className="text-[14px] text-danger">
+        <p role="alert" className="text-14 text-danger">
           {error}
         </p>
       ) : null}

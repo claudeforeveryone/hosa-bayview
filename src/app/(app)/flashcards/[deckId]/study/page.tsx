@@ -7,7 +7,7 @@ import { getCards, getDeck, getLearningCardIds } from "@/lib/decks";
 
 export const metadata: Metadata = { title: "Study" };
 
-const toggle = "caps step inline-flex h-11 items-center border px-4 text-[16px]";
+const toggle = "caps step inline-flex h-11 items-center border px-4 text-16";
 
 export default async function StudyPage({ params, searchParams }: PageProps<"/flashcards/[deckId]/study">) {
   const { deckId } = await params;
@@ -19,7 +19,7 @@ export default async function StudyPage({ params, searchParams }: PageProps<"/fl
   const learning = learningOnly ? await getLearningCardIds(deck.id) : null;
   const pool = learning ? cards.filter((c) => learning.has(c.id)) : cards;
   const back = (
-    <Link href={`/flashcards/${deck.id}`} className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band">
+    <Link href={`/flashcards/${deck.id}`} className="caps step inline-flex h-12 items-center border border-ink px-6 text-17 hover:bg-band">
       Back to deck
     </Link>
   );

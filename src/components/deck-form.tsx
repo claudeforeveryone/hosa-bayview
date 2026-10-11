@@ -58,14 +58,14 @@ export function DeckForm({
       />
       {classrooms ? (
         <div className="grid gap-1.5">
-          <label htmlFor={`${uid}-classroom`} className="text-[15px] font-medium">
+          <label htmlFor={`${uid}-classroom`} className="text-15 font-medium">
             Event
           </label>
           <select
             id={`${uid}-classroom`}
             name="classroom_id"
             defaultValue={picked}
-            className="step h-12 w-full border border-rule-strong bg-ground px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+            className="step h-12 w-full border border-rule-strong bg-ground px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
           >
             <option value="">Private, just me</option>
             {classrooms.map((c) => (
@@ -77,7 +77,7 @@ export function DeckForm({
         </div>
       ) : null}
       {classrooms ? (
-        <label className="flex items-start gap-3 text-[17px]">
+        <label className="flex items-start gap-3 text-17">
           <input
             type="checkbox"
             name="shared"
@@ -86,7 +86,7 @@ export function DeckForm({
           />
           <span>
             Share with the event
-            <span className="block text-[15px] text-ink-2">Everyone in the event can study it. Pick an event first.</span>
+            <span className="block text-15 text-ink-2">Everyone in the event can study it. Pick an event first.</span>
           </span>
         </label>
       ) : null}

@@ -43,7 +43,7 @@ export function PushHint({
   return (
     <div ref={toMain} className="flex items-start gap-4">
       {mode === "turn-on" ? (
-        <p className="min-w-0 flex-1 pt-2 text-[16px] text-ink-2">
+        <p className="min-w-0 flex-1 pt-2 text-16 text-ink-2">
           Get these as notifications on this device too.{" "}
           <Link href="/settings?tab=app" className={link}>
             Turn them on in Settings
@@ -51,7 +51,7 @@ export function PushHint({
           .
         </p>
       ) : (
-        <p className="min-w-0 flex-1 pt-2 text-[16px] text-ink-2">
+        <p className="min-w-0 flex-1 pt-2 text-16 text-ink-2">
           On iPhone, these can buzz you once HOSA is on your Home Screen.{" "}
           <Link href="/settings?tab=app" className={link}>
             Settings shows how
@@ -62,7 +62,7 @@ export function PushHint({
       <button
         type="button"
         onClick={dismiss}
-        className="caps step -mr-2 inline-flex h-11 shrink-0 items-center px-2 text-[15px] text-ink-2 hover:text-ink"
+        className="caps step -mr-2 inline-flex h-11 shrink-0 items-center px-2 text-15 text-ink-2 hover:text-ink"
       >
         Not now
       </button>

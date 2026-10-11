@@ -77,12 +77,12 @@ function MovedNote({ moved, href }: { moved: MovedFeedback; href: string }) {
       tabIndex={-1}
       className="my-3 flex scroll-mt-6 flex-wrap items-baseline gap-x-4 gap-y-1 bg-band px-3 py-3 focus-visible:outline-offset-[-2px]"
     >
-      <p className="text-[16px]">
+      <p className="text-16">
         {CATEGORY_LABEL[moved.category]} from {moved.sent_by} moved to {status}.
       </p>
       <Link
         href={href}
-        className="caps text-[14px] underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+        className="caps text-14 underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
       >
         Show {status}
       </Link>

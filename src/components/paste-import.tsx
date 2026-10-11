@@ -148,7 +148,7 @@ export function PasteImport({
   return (
     <div className="grid gap-5">
       <div className="grid gap-1.5">
-        <label htmlFor="paste-text" className="text-[15px] font-medium">
+        <label htmlFor="paste-text" className="text-15 font-medium">
           Paste questions
         </label>
         <textarea
@@ -163,7 +163,7 @@ export function PasteImport({
           placeholder={EXAMPLE}
           spellCheck={false}
           aria-describedby="paste-summary"
-          className="step min-h-40 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-[16px] leading-relaxed outline-none placeholder:text-ink-2/70 focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+          className="step min-h-40 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-16 leading-relaxed outline-none placeholder:text-ink-2/70 focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
         />
       </div>
 
@@ -181,7 +181,7 @@ export function PasteImport({
         </Button>
         <p
           id="paste-summary"
-          className={`caps num text-[15px] text-ink-2 ${stale ? "opacity-60" : ""}`}
+          className={`caps num text-15 text-ink-2 ${stale ? "opacity-60" : ""}`}
           aria-live="polite"
         >
           {items.length || parsed.skipped.length
@@ -198,7 +198,7 @@ export function PasteImport({
         </p>
       </div>
       {unsaved > 0 && ready.length ? (
-        <p className="text-[15px] text-ink-2">
+        <p className="text-15 text-ink-2">
           Retry or remove the question{unsaved === 1 ? "" : "s"} that
           didn&rsquo;t save first, so the order stays right.
         </p>
@@ -253,10 +253,10 @@ const PreviewQuestion = memo(function PreviewQuestion({
       className={`grid gap-2 border-b py-3 ${broken ? "border-danger" : "border-rule"}`}
     >
       <div className="flex gap-3">
-        <span className="num w-8 shrink-0 font-display text-[18px] leading-snug font-semibold text-ink-2">
+        <span className="num w-8 shrink-0 font-display text-18 leading-snug font-semibold text-ink-2">
           {q.number}
         </span>
-        <p className="min-w-0 flex-1 text-[16px] whitespace-pre-line [overflow-wrap:anywhere]">
+        <p className="min-w-0 flex-1 text-16 whitespace-pre-line [overflow-wrap:anywhere]">
           {q.prompt || <em className="text-ink-2">No question text</em>}
         </p>
       </div>
@@ -271,7 +271,7 @@ const PreviewQuestion = memo(function PreviewQuestion({
                 onClick={() => onPick(pickId, j)}
                 aria-checked={right}
                 aria-label={`${q.letters[j] ?? LETTERS[j]}: ${o || "empty"}`}
-                className={`step flex min-h-10 max-w-full items-center gap-1.5 border px-2 py-1 text-left text-[15px] ${
+                className={`step flex min-h-10 max-w-full items-center gap-1.5 border px-2 py-1 text-left text-15 ${
                   right
                     ? "border-ok bg-ok/15 font-medium text-ink"
                     : "border-rule text-ink-2 hover:border-ink hover:text-ink"
@@ -295,12 +295,12 @@ const PreviewQuestion = memo(function PreviewQuestion({
         })}
       </ul>
       {q.explanation ? (
-        <p className="line-clamp-2 pl-11 text-[15px] text-ink-2">
+        <p className="line-clamp-2 pl-11 text-15 text-ink-2">
           {q.explanation}
         </p>
       ) : null}
       {broken ? (
-        <p className="pl-11 text-[15px] text-danger">
+        <p className="pl-11 text-15 text-danger">
           Left out. {errors.join(" ")}
         </p>
       ) : null}
@@ -311,7 +311,7 @@ const PreviewQuestion = memo(function PreviewQuestion({
 // A line that belongs to no question: struck through, with why.
 function PreviewSkipped({ s }: { s: SkippedLine }) {
   return (
-    <li className="grid gap-0.5 border-b border-rule-strong py-2 pl-11 text-[15px]">
+    <li className="grid gap-0.5 border-b border-rule-strong py-2 pl-11 text-15">
       <span className="text-ink-2 line-through decoration-rule-strong [overflow-wrap:anywhere]">
         {s.text}
       </span>

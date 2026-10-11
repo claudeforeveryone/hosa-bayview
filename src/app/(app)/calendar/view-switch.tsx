@@ -15,7 +15,7 @@ function remember(view: CalendarView) {
 
 export function ViewSwitch({ view }: { view: CalendarView }) {
   const tab = (on: boolean) =>
-    `caps step flex h-11 min-w-24 items-center justify-center px-4 text-[16px] ${
+    `caps step flex h-11 min-w-24 items-center justify-center px-4 text-16 ${
       on ? "bg-ink text-ground" : "text-ink-2 hover:bg-band hover:text-ink"
     }`;
   return (

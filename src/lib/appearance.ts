@@ -240,15 +240,23 @@ export function setNotifySound(v: Toggle) {
   window.dispatchEvent(new Event("hosa:appearance"));
 }
 
-// Sound effect volume, 0 to 100 in steps of 10. Scales every tone in feedback.ts.
+// Sound effect volume, any whole number from 0 to 100. Scales every tone in feedback.ts (see volumeGain).
 export const DEFAULT_VOLUME = 60;
 export const parseVolume = (v: string | null): number => {
   const n = Number(v);
   return v !== null && v.trim() !== "" && Number.isFinite(n)
-    ? Math.min(100, Math.max(0, Math.round(n / 10) * 10))
+    ? Math.min(100, Math.max(0, Math.round(n)))
     : DEFAULT_VOLUME;
 };
 export const readVolume = (): number => parseVolume(stored("volume"));
+
+// How much louder than the tuned tones a volume plays. Ears hear loudness on a log scale, so the slider is
+// exponential: the default is the tones as tuned (x1), every 20 points doubles or halves it, and 100 is x4.
+// Linear steps made 50 to 100 sound nearly the same, and 100 too quiet on a phone speaker.
+export function volumeGain(volume: number): number {
+  if (volume <= 0) return 0;
+  return 2 ** ((volume - DEFAULT_VOLUME) / 20);
+}
 
 // Defaults leave the attribute off, so the stylesheet's base look applies.
 function setAttr(name: string, value: string, fallback: string) {

@@ -65,14 +65,14 @@ export function GrowthSection({
           <ActiveChart buckets={data.buckets} unit={unit} />
           {/* The exact numbers behind the chart, one row per bucket. Folded so a 30-day range isn't a wall of rows. */}
           <details className="group">
-            <summary className="caps step inline-flex h-11 cursor-pointer list-none items-center justify-self-start border border-ink px-4 text-[15px] hover:bg-band [&::-webkit-details-marker]:hidden">
+            <summary className="caps step inline-flex h-11 cursor-pointer list-none items-center justify-self-start border border-ink px-4 text-15 hover:bg-band [&::-webkit-details-marker]:hidden">
               <span className="group-open:hidden">Show every {unit}</span>
               <span className="hidden group-open:inline">Hide the table</span>
             </summary>
             <div className="pt-4">
               {/* Withheld as a whole when any bucket had 1 to 4 new members: they add up to the total above. */}
               {data.new_by_bucket ? null : (
-                <p className="pb-4 text-[15px] text-ink-2">
+                <p className="pb-4 text-15 text-ink-2">
                   New members per {unit} aren&rsquo;t shown for this range: at
                   least one {unit} had 1 to 4, and the total above would give it
                   away.
@@ -132,11 +132,11 @@ function ActiveChart({
   const edge = Math.max(1, Math.floor(buckets.length / 4));
   return (
     <figure className="grid gap-2">
-      <figcaption className="caps text-[14px] text-ink-2">
+      <figcaption className="caps text-14 text-ink-2">
         Active members per {unit}
       </figcaption>
       <div aria-hidden className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2">
-        <div className="num flex flex-col justify-between pb-0 text-right text-[12px] leading-none text-ink-2">
+        <div className="num flex flex-col justify-between pb-0 text-right text-12 leading-none text-ink-2">
           <span>{top}</span>
           <span>0</span>
         </div>
@@ -165,7 +165,7 @@ function ActiveChart({
                   style={{ height: `${(value / top) * 100}%` }}
                 />
                 <span
-                  className={`pointer-events-none absolute bottom-full z-10 mb-1 hidden whitespace-nowrap bg-field px-2 py-1 text-[13px] text-on-field group-hover:block ${place}`}
+                  className={`pointer-events-none absolute bottom-full z-10 mb-1 hidden whitespace-nowrap bg-field px-2 py-1 text-13 text-on-field group-hover:block ${place}`}
                 >
                   {tip}
                 </span>
@@ -175,7 +175,7 @@ function ActiveChart({
         </div>
         <span />
         {/* The chart's two ends: the first day it counts and the last (today), whether columns are days or weeks. */}
-        <div className="flex justify-between text-[12px] text-ink-2">
+        <div className="flex justify-between text-12 text-ink-2">
           <span>{bucketLabel(buckets[0].start, buckets[0].start)}</span>
           <span>
             {bucketLabel(
@@ -186,7 +186,7 @@ function ActiveChart({
         </div>
       </div>
       {hasHidden ? (
-        <p className="flex items-start gap-2 text-[14px] text-ink-2">
+        <p className="flex items-start gap-2 text-14 text-ink-2">
           {/* A hidden column in small: open at the bottom, standing on a short stretch of the chart's axis, so it
               reads as a chart key and not as a box to tick. */}
           <span

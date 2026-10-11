@@ -112,7 +112,7 @@ const FONT_FAMILIES: Record<Font, string> = {
 };
 
 // A setting's name, in the condensed caps the app uses for labels.
-const legend = "caps text-[16px] text-ink";
+const legend = "caps text-16 text-ink";
 
 // One setting: its name, one plain line about what it does, then the control. Its controls are native radios
 // or inputs, so Tab lands on the group once.
@@ -132,7 +132,7 @@ function Choice({
     <fieldset aria-describedby={hintId} className="grid min-w-0 gap-3">
       <legend className={legend}>{label}</legend>
       {hint ? (
-        <p id={hintId} className="text-[15px] text-ink-2">
+        <p id={hintId} className="text-15 text-ink-2">
           {hint}
         </p>
       ) : null}
@@ -187,7 +187,7 @@ export function Segments<T extends string>({
               className="peer sr-only"
             />
             <span
-              className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ink peer-checked:peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink peer-aria-disabled:cursor-wait peer-aria-disabled:opacity-60 ${o.className ?? ""}`}
+              className={`caps step flex h-12 cursor-pointer items-center justify-center text-16 text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ink peer-checked:peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink peer-aria-disabled:cursor-wait peer-aria-disabled:opacity-60 ${o.className ?? ""}`}
               style={o.style}
             >
               {o.label}
@@ -256,7 +256,7 @@ function Swatch({
         ) : null}
       </span>
       <span
-        className={`caps text-center text-[14px] ${on ? "text-ink" : "text-ink-2"}`}
+        className={`caps text-center text-14 ${on ? "text-ink" : "text-ink-2"}`}
       >
         {label}
       </span>
@@ -282,7 +282,7 @@ function HexPicker({
   const bad = draft !== null && parseHex(draft) === null;
   return (
     <div className="grid gap-2 border-2 border-ink bg-band p-3">
-      <label htmlFor={`${id}-hex`} className="caps text-[14px] text-ink-2">
+      <label htmlFor={`${id}-hex`} className="caps text-14 text-ink-2">
         {label}
       </label>
       <div className="flex items-stretch gap-2">
@@ -314,11 +314,11 @@ function HexPicker({
           spellCheck={false}
           aria-invalid={bad ? true : undefined}
           aria-describedby={bad ? `${id}-err` : undefined}
-          className="num h-12 w-0 min-w-0 flex-1 border-2 border-ink bg-ground px-3 font-display text-[22px] font-semibold tracking-[0.06em] text-ink outline-none focus:border-you aria-invalid:border-danger sm:max-w-44"
+          className="num h-12 w-0 min-w-0 flex-1 border-2 border-ink bg-ground px-3 font-display text-22 font-semibold tracking-[0.06em] text-ink outline-none focus:border-you aria-invalid:border-danger sm:max-w-44"
         />
       </div>
       {bad ? (
-        <p id={`${id}-err`} role="alert" className="text-[15px] text-danger">
+        <p id={`${id}-err`} role="alert" className="text-15 text-danger">
           Use a hex colour like #1E3D62 or #FC0.
         </p>
       ) : null}
@@ -468,7 +468,7 @@ export function AppearanceSection() {
             label="Text size"
             options={TEXT_SIZES.map((t, i) => ({
               ...t,
-              className: `normal-case tracking-normal ${["text-[15px]", "text-[18px]", "text-[21px]"][i]}`,
+              className: `normal-case tracking-normal ${["text-15", "text-18", "text-21"][i]}`,
             }))}
             value={text}
             onPick={setTextSize}
@@ -480,7 +480,7 @@ export function AppearanceSection() {
             options={FONTS.map((f) => ({
               ...f,
               className:
-                "px-1 text-center leading-tight normal-case tracking-normal text-[15px] sm:text-[16px]",
+                "px-1 text-center leading-tight normal-case tracking-normal text-15 sm:text-16",
               style: { fontFamily: FONT_FAMILIES[f.id] },
             }))}
             value={font}
@@ -505,7 +505,7 @@ export function AppearanceSection() {
           <button
             type="button"
             onClick={resetAppearance}
-            className="caps step press inline-flex h-12 items-center gap-2 justify-self-start border-2 border-ink px-5 text-[16px] text-ink hover:bg-band"
+            className="caps step press inline-flex h-12 items-center gap-2 justify-self-start border-2 border-ink px-5 text-16 text-ink hover:bg-band"
           >
             <RotateCcw size={18} strokeWidth={1.75} aria-hidden />
             Reset look and sound
@@ -589,7 +589,7 @@ export function SoundSection() {
         </SettingsSection>
       </div>
 
-      <p className="text-[15px] text-ink-2">Saved on this device.</p>
+      <p className="text-15 text-ink-2">Saved on this device.</p>
     </div>
   );
 }
@@ -607,7 +607,7 @@ function VolumeSlider({ value }: { value: number }) {
         type="range"
         min={0}
         max={100}
-        step={10}
+        step={1}
         value={value}
         onChange={(e) => setVolume(Number(e.target.value))}
         onPointerUp={() => feedback("correct")}
@@ -628,15 +628,15 @@ function Preview() {
   return (
     <div className="grid gap-3">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="caps text-[16px] text-ink">Preview</p>
-        <p className="text-[14px] text-ink-2">Sample data</p>
+        <p className="caps text-16 text-ink">Preview</p>
+        <p className="text-14 text-ink-2">Sample data</p>
       </div>
       <div aria-hidden className="grid border-2 border-ink">
         <div className="flex items-center justify-between gap-3 bg-field px-4 py-3 text-on-field">
-          <span className="font-display text-[26px] leading-none font-bold uppercase">
+          <span className="font-display text-26 leading-none font-bold uppercase">
             Leaderboard
           </span>
-          <span className="caps num bg-you px-2 py-1 text-[13px] leading-none text-on-you">
+          <span className="caps num bg-you px-2 py-1 text-13 leading-none text-on-you">
             #3
           </span>
         </div>
@@ -651,26 +651,26 @@ function Preview() {
               key={place}
               className={`grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2 border-t border-rule px-4 py-3 ${you ? "bg-band" : ""}`}
             >
-              <span className="num font-display text-[18px] font-semibold text-ink-2">
+              <span className="num font-display text-18 font-semibold text-ink-2">
                 {place}
               </span>
-              <span className={`text-[16px] ${you ? "font-semibold" : ""}`}>
+              <span className={`text-16 ${you ? "font-semibold" : ""}`}>
                 {name}
                 {you ? (
-                  <span className="caps ml-2 bg-you px-1.5 py-0.5 text-[11px] text-on-you">
+                  <span className="caps ml-2 bg-you px-1.5 py-0.5 text-11 text-on-you">
                     You
                   </span>
                 ) : null}
               </span>
-              <span className="num font-display text-[18px] font-semibold">
+              <span className="num font-display text-18 font-semibold">
                 {score}
               </span>
             </div>
           );
         })}
         <div className="flex items-center justify-between gap-3 border-t border-rule-strong px-4 py-3">
-          <span className="text-[15px] text-ink-2">Buttons and highlights</span>
-          <span className="caps inline-flex h-10 items-center bg-ink px-4 text-[15px] text-ground">
+          <span className="text-15 text-ink-2">Buttons and highlights</span>
+          <span className="caps inline-flex h-10 items-center bg-ink px-4 text-15 text-ground">
             Start
           </span>
         </div>

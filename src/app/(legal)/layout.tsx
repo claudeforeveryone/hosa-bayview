@@ -33,7 +33,7 @@ export default function LegalLayout({ children }: LayoutProps<"/">) {
           <div className="flex items-center gap-1 sm:gap-3">
             <Link
               href="/"
-              className="caps inline-flex min-h-11 items-center gap-1.5 text-[15px] text-on-field-2 hover:text-on-field hover:underline hover:underline-offset-4"
+              className="caps inline-flex min-h-11 items-center gap-1.5 text-15 text-on-field-2 hover:text-on-field hover:underline hover:underline-offset-4"
             >
               <ArrowLeft size={18} strokeWidth={2} aria-hidden />
               Back to the app

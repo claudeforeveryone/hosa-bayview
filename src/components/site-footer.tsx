@@ -28,7 +28,7 @@ export function LegalLinks({ className = "" }: { className?: string }) {
 export function SiteFooter({ className = "" }: { className?: string }) {
   return (
     <footer
-      className={`flex flex-wrap items-center gap-x-6 text-[14px] ${className}`}
+      className={`flex flex-wrap items-center gap-x-6 text-14 ${className}`}
     >
       <nav aria-label="Legal">
         <LegalLinks />

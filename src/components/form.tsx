@@ -18,7 +18,7 @@ export function Field({
   const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={id} className="text-[15px] font-medium">
+      <label htmlFor={id} className="text-15 font-medium">
         {label}
       </label>
       <input
@@ -26,15 +26,15 @@ export function Field({
         name={name}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className="step h-12 w-full border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
+        className="step h-12 w-full border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
         {...input}
       />
       {error ? (
-        <p id={`${id}-err`} className="text-[15px] text-danger">
+        <p id={`${id}-err`} className="text-15 text-danger">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-[15px] text-ink-2">
+        <p id={`${id}-hint`} className="text-15 text-ink-2">
           {hint}
         </p>
       ) : null}
@@ -60,7 +60,7 @@ export function Select({
   const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={id} className="text-[15px] font-medium">
+      <label htmlFor={id} className="text-15 font-medium">
         {label}
       </label>
       <select
@@ -68,17 +68,17 @@ export function Select({
         name={name}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className="step h-12 w-full border border-rule-strong bg-ground px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
+        className="step h-12 w-full border border-rule-strong bg-ground px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
         {...select}
       >
         {children}
       </select>
       {error ? (
-        <p id={`${id}-err`} className="text-[15px] text-danger">
+        <p id={`${id}-err`} className="text-15 text-danger">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-[15px] text-ink-2">
+        <p id={`${id}-hint`} className="text-15 text-ink-2">
           {hint}
         </p>
       ) : null}
@@ -103,7 +103,7 @@ export function TextArea({
   const describedBy = error ? `${id}-err` : hint ? `${id}-hint` : undefined;
   return (
     <div className="grid gap-1.5">
-      <label htmlFor={id} className="text-[15px] font-medium">
+      <label htmlFor={id} className="text-15 font-medium">
         {label}
       </label>
       <textarea
@@ -111,15 +111,15 @@ export function TextArea({
         name={name}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className="step min-h-28 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
+        className="step min-h-28 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger"
         {...input}
       />
       {error ? (
-        <p id={`${id}-err`} className="text-[15px] text-danger">
+        <p id={`${id}-err`} className="text-15 text-danger">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-[15px] text-ink-2">
+        <p id={`${id}-hint`} className="text-15 text-ink-2">
           {hint}
         </p>
       ) : null}
@@ -139,7 +139,7 @@ export function Button({
   }[variant];
   return (
     <button
-      className={`caps step press inline-flex h-12 items-center justify-center gap-2 px-6 text-[17px] disabled:cursor-not-allowed disabled:opacity-60 ${styles} ${className}`}
+      className={`caps step press inline-flex h-12 items-center justify-center gap-2 px-6 text-17 disabled:cursor-not-allowed disabled:opacity-60 ${styles} ${className}`}
       {...props}
     />
   );
@@ -156,7 +156,7 @@ export function FormMessage({
   return (
     <p
       role={tone === "error" ? "alert" : "status"}
-      className={`flex gap-2 text-[16px] ${tone === "error" ? "text-danger" : "text-ok"}`}
+      className={`flex gap-2 text-16 ${tone === "error" ? "text-danger" : "text-ok"}`}
     >
       <Icon
         size={20}

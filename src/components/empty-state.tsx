@@ -57,7 +57,7 @@ export function EmptyState({
         {title}
       </p>
       {children ? (
-        <p className="relative max-w-[60ch] text-[17px] text-ink-2">
+        <p className="relative max-w-[60ch] text-17 text-ink-2">
           {children}
         </p>
       ) : null}

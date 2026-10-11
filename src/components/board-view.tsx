@@ -79,8 +79,8 @@ function BoardLine({
         className={`num text-center font-display leading-none font-bold ${
           // The top three get poster-scale numerals; everyone else stays quiet. One centred column either way.
           row.place !== null && row.place <= 3
-            ? "text-[30px] text-ink"
-            : "text-[20px] font-semibold text-ink-2"
+            ? "text-30 text-ink"
+            : "text-20 font-semibold text-ink-2"
         }`}
       >
         {row.place ?? "—"}
@@ -94,19 +94,19 @@ function BoardLine({
           />
           <Link
             href={`/members/${row.user_id}`}
-            className="step -my-1.5 min-w-0 truncate py-1.5 font-display text-[18px] leading-tight font-semibold uppercase hover:underline sm:text-[20px]"
+            className="step -my-1.5 min-w-0 truncate py-1.5 font-display text-18 leading-tight font-semibold uppercase hover:underline sm:text-20"
           >
             {row.full_name || "Member"}
           </Link>
           {you ? (
-            <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">
+            <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-13 leading-none text-on-you">
               You
             </span>
           ) : null}
         </span>
-        <span className="block truncate text-[13px] text-ink-2">{caption}</span>
+        <span className="block truncate text-13 text-ink-2">{caption}</span>
       </span>
-      <span className="num min-w-12 text-right font-display text-[22px] leading-none font-bold">
+      <span className="num min-w-12 text-right font-display text-22 leading-none font-bold">
         {formatValue(row.value, metric, period)}
       </span>
     </li>
@@ -134,7 +134,7 @@ export function BoardView({
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center justify-between gap-x-6 px-2 sm:px-3">
-        {lead ? <p className="caps num text-[15px] text-ink-2">{lead}</p> : null}
+        {lead ? <p className="caps num text-15 text-ink-2">{lead}</p> : null}
         {metrics.length > 1 ? (
           <BoardMenu
             label="Measure"
@@ -161,13 +161,13 @@ export function BoardView({
         </div>
       </div>
       {since ? (
-        <p className="caps -mt-2 px-2 text-[15px] text-ink-2 sm:px-3">Since {since}</p>
+        <p className="caps -mt-2 px-2 text-15 text-ink-2 sm:px-3">Since {since}</p>
       ) : null}
       {shown.length ? (
         <ol className="border-t border-rule">
           <li
             aria-hidden
-            className="caps grid grid-cols-[2.5rem_minmax(0,1fr)_auto] gap-3 border-b border-rule px-2 py-1.5 text-[13px] text-ink-2 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:px-3"
+            className="caps grid grid-cols-[2.5rem_minmax(0,1fr)_auto] gap-3 border-b border-rule px-2 py-1.5 text-13 text-ink-2 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:px-3"
           >
             <span className="text-center">#</span>
             <span>Member</span>
@@ -192,14 +192,14 @@ export function BoardView({
       {more && rows.length > shown.length ? (
         <Link
           href={more.href}
-          className="caps step justify-self-start text-[17px] underline underline-offset-4"
+          className="caps step justify-self-start text-17 underline underline-offset-4"
         >
           {more.text}
         </Link>
       ) : null}
       {elo ? (
         <details className="group max-w-[65ch]">
-          <summary className="caps step inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-[14px] text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
+          <summary className="caps step inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-14 text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
             How Elo works
             <ChevronDown
               size={16}
@@ -208,7 +208,7 @@ export function BoardView({
               className="group-open:rotate-180 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out"
             />
           </summary>
-          <p className="pb-2 text-[15px] text-ink-2">{ELO_SUMMARY}</p>
+          <p className="pb-2 text-15 text-ink-2">{ELO_SUMMARY}</p>
         </details>
       ) : null}
     </div>

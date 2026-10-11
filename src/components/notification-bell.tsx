@@ -84,7 +84,7 @@ export function NotificationBell({
       {count ? (
         <span
           aria-hidden
-          className="bell-badge num absolute top-0 -right-0.5 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-you px-1.5 font-display text-[13px] leading-none font-bold text-on-you"
+          className="bell-badge num absolute top-0 -right-0.5 grid h-[22px] min-w-[22px] place-items-center rounded-full bg-you px-1.5 font-display text-13 leading-none font-bold text-on-you"
         >
           {count > 99 ? "99+" : count}
         </span>

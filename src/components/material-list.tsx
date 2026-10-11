@@ -45,10 +45,10 @@ export function MaterialList({
           className="border-b border-rule"
         >
           <summary className="step flex min-h-12 cursor-pointer items-center justify-between gap-4 px-1 py-3 sm:px-3">
-            <span className="caps text-[17px] font-semibold [overflow-wrap:anywhere]">
+            <span className="caps text-17 font-semibold [overflow-wrap:anywhere]">
               {g.section ?? "General"}
             </span>
-            <span className="num shrink-0 text-[15px] text-ink-2">
+            <span className="num shrink-0 text-15 text-ink-2">
               {g.items.length}
             </span>
           </summary>
@@ -87,7 +87,7 @@ function Rows({
               />
               <div className="grid min-w-0 gap-1">
                 {placeholder ? (
-                  <span className="text-[19px] font-semibold text-ink-2 [overflow-wrap:anywhere]">
+                  <span className="text-19 font-semibold text-ink-2 [overflow-wrap:anywhere]">
                     {r.title}
                   </span>
                 ) : r.href ? (
@@ -95,20 +95,20 @@ function Rows({
                     href={r.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="step text-[19px] font-semibold underline decoration-rule-strong underline-offset-4 [overflow-wrap:anywhere] hover:decoration-ink"
+                    className="step text-19 font-semibold underline decoration-rule-strong underline-offset-4 [overflow-wrap:anywhere] hover:decoration-ink"
                   >
                     {r.title}
                   </a>
                 ) : (
-                  <span className="text-[19px] font-semibold [overflow-wrap:anywhere]">
+                  <span className="text-19 font-semibold [overflow-wrap:anywhere]">
                     {r.title}
                   </span>
                 )}
-                <span className="text-[15px] text-ink-2">
+                <span className="text-15 text-ink-2">
                   {materialMeta(r)}
                 </span>
                 {r.note || placeholder ? (
-                  <p className="text-[17px] whitespace-pre-line text-ink-2 [overflow-wrap:anywhere]">
+                  <p className="text-17 whitespace-pre-line text-ink-2 [overflow-wrap:anywhere]">
                     {r.note || "Link coming soon"}
                   </p>
                 ) : null}
@@ -117,7 +117,7 @@ function Rows({
             {canManage ? (
               <div className="grid justify-items-start gap-4 pl-7">
                 <details className="w-full max-w-xl">
-                  <summary className="caps step inline-flex h-11 cursor-pointer items-center text-[15px] text-ink-2 hover:text-ink">
+                  <summary className="caps step inline-flex h-11 cursor-pointer items-center text-15 text-ink-2 hover:text-ink">
                     Edit
                   </summary>
                   <div className="pt-5">

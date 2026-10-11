@@ -36,10 +36,10 @@ export function HubResources({
                 href={`${href}#${anchors[i]}`}
                 className="step grid min-h-12 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-1 py-3 hover:bg-band sm:px-3"
               >
-                <span className="caps text-[17px] font-semibold [overflow-wrap:anywhere]">
+                <span className="caps text-17 font-semibold [overflow-wrap:anywhere]">
                   {g.section ?? "General"}
                 </span>
-                <span className="num text-[15px] text-ink-2">
+                <span className="num text-15 text-ink-2">
                   {g.items.length}
                 </span>
                 <ChevronRight
@@ -61,7 +61,7 @@ export function HubResources({
           {canManage ? (
             <Link
               href={href}
-              className="caps step inline-flex h-11 items-center gap-2 border border-ink px-4 text-[16px] hover:bg-band"
+              className="caps step inline-flex h-11 items-center gap-2 border border-ink px-4 text-16 hover:bg-band"
             >
               Add a file or link
               <ChevronRight size={18} strokeWidth={2} aria-hidden />
@@ -106,7 +106,7 @@ export function PracticeStrip({
                 {c.count}
               </span>
               <span className="grid gap-0.5">
-                <span className="caps flex items-center gap-1 text-[16px] sm:text-[18px]">
+                <span className="caps flex items-center gap-1 text-16 sm:text-18">
                   {c.label}
                   <ChevronRight
                     size={18}
@@ -116,7 +116,7 @@ export function PracticeStrip({
                   />
                 </span>
                 {c.extra ? (
-                  <span className="text-[14px] text-ink-2">{c.extra}</span>
+                  <span className="text-14 text-ink-2">{c.extra}</span>
                 ) : null}
               </span>
             </Link>
@@ -140,7 +140,7 @@ export function HubComingUp({ rows }: { rows: EventRow[] }) {
         </h2>
         <Link
           href="/calendar"
-          className="caps step inline-flex min-h-11 items-center gap-1 text-[16px] text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
+          className="caps step inline-flex min-h-11 items-center gap-1 text-16 text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
         >
           Calendar
           <ChevronRight size={18} strokeWidth={2} aria-hidden />

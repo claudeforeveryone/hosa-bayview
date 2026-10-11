@@ -32,12 +32,12 @@ function Tiles<T extends string | number>({
 }) {
   return (
     <fieldset className="grid gap-2">
-      <legend className="mb-2 text-[15px] font-medium">{legend}</legend>
+      <legend className="mb-2 text-15 font-medium">{legend}</legend>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] border-t border-l border-rule-strong">
         {options.map((o) => (
           <label
             key={String(o)}
-            className="caps num step grid min-h-14 cursor-pointer place-items-center border-r border-b border-rule-strong px-2 text-[19px] hover:bg-band has-checked:bg-ink has-checked:text-ground has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink"
+            className="caps num step grid min-h-14 cursor-pointer place-items-center border-r border-b border-rule-strong px-2 text-19 hover:bg-band has-checked:bg-ink has-checked:text-ground has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ink"
           >
             <input
               type="radio"
@@ -120,7 +120,7 @@ export function BattleSetup({
       <Button
         type="submit"
         disabled={pending}
-        className="h-16 w-full text-[20px]"
+        className="h-16 w-full text-20"
       >
         <Swords size={22} strokeWidth={1.75} aria-hidden />
         {pending ? "Making it" : "Get a code"}

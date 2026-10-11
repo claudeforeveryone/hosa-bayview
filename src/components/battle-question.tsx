@@ -76,7 +76,7 @@ export function Question({
                 disabled={locked || busy}
                 aria-pressed={chosen}
                 aria-keyshortcuts={`${i + 1} ${LETTERS[i]}`}
-                className={`step flex min-h-16 w-full items-center gap-4 border px-4 py-3 text-left text-[18px] disabled:cursor-default ${
+                className={`step flex min-h-16 w-full items-center gap-4 border px-4 py-3 text-left text-18 disabled:cursor-default ${
                   chosen
                     ? "border-ink bg-ink text-ground"
                     : locked
@@ -84,7 +84,7 @@ export function Question({
                       : "border-rule-strong hover:border-ink hover:bg-band"
                 }`}
               >
-                <span className="num w-6 shrink-0 font-display text-[22px] font-bold">
+                <span className="num w-6 shrink-0 font-display text-22 font-bold">
                   {LETTERS[i]}
                 </span>
                 <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
@@ -97,7 +97,7 @@ export function Question({
         })}
       </ul>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="caps num text-[17px] text-ink-2" aria-live="polite">
+        <p className="caps num text-17 text-ink-2" aria-live="polite">
           {status}
         </p>
         <AnswerTicks s={s} />

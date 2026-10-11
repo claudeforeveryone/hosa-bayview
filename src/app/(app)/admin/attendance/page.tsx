@@ -50,9 +50,9 @@ function Callouts({
 }) {
   return (
     <div className="grid gap-4">
-      <h3 className="caps text-[17px] font-semibold">{title}</h3>
+      <h3 className="caps text-17 font-semibold">{title}</h3>
       {rows.length === 0 ? (
-        <p className="text-[17px] text-ink-2">{empty}</p>
+        <p className="text-17 text-ink-2">{empty}</p>
       ) : (
         <ul className="border-t border-rule">
           {rows.map((m) => (
@@ -60,10 +60,10 @@ function Callouts({
               key={m.user_id}
               className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule px-1 py-3 sm:px-3"
             >
-              <span className="min-w-0 truncate text-[18px] font-medium">
+              <span className="min-w-0 truncate text-18 font-medium">
                 {m.name}
               </span>
-              <span className="num text-right text-[16px] text-ink-2">
+              <span className="num text-right text-16 text-ink-2">
                 {m.attended} of {m.counted} weeks
               </span>
             </li>
@@ -79,10 +79,10 @@ function WeekRow({ room, week }: { room: WeekStatus; week: string }) {
   if (room.state === "Not submitted")
     return (
       <li className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule px-1 py-4 sm:px-3">
-        <span className="min-w-0 truncate text-[18px] font-medium">
+        <span className="min-w-0 truncate text-18 font-medium">
           {room.name}
         </span>
-        <span className="caps text-[15px] text-danger">Not submitted</span>
+        <span className="caps text-15 text-danger">Not submitted</span>
       </li>
     );
   const counts = countStatuses(room.roll.map((r) => r.status));
@@ -90,10 +90,10 @@ function WeekRow({ room, week }: { room: WeekStatus; week: string }) {
     <li className="border-b border-rule">
       <details className="group">
         <summary className="step grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-4 px-1 py-4 hover:bg-band sm:px-3 [&::-webkit-details-marker]:hidden">
-          <span className="min-w-0 truncate text-[18px] font-medium">
+          <span className="min-w-0 truncate text-18 font-medium">
             {room.name}
           </span>
-          <span className="caps text-[15px] text-ink-2">
+          <span className="caps text-15 text-ink-2">
             {room.state} ·{" "}
             {formatStamp(room.updated_at ?? room.submitted_at ?? "")}
           </span>
@@ -105,7 +105,7 @@ function WeekRow({ room, week }: { room: WeekStatus; week: string }) {
           />
         </summary>
         <div className="grid gap-4 px-1 pt-1 pb-6 sm:px-3">
-          <p className="caps num text-[15px] text-ink-2">
+          <p className="caps num text-15 text-ink-2">
             {STATUSES.map((st) => `${counts[st]} ${STATUS_LABEL[st]}`).join(
               " · ",
             )}
@@ -117,9 +117,9 @@ function WeekRow({ room, week }: { room: WeekStatus; week: string }) {
                   key={m.user_id}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule py-2.5"
                 >
-                  <span className="min-w-0 truncate text-[17px]">{m.name}</span>
+                  <span className="min-w-0 truncate text-17">{m.name}</span>
                   <span
-                    className={`caps text-[15px] ${m.status === "absent" ? "text-danger" : m.status === "excused" ? "text-ink-2" : ""}`}
+                    className={`caps text-15 ${m.status === "absent" ? "text-danger" : m.status === "excused" ? "text-ink-2" : ""}`}
                   >
                     {STATUS_LABEL[m.status]}
                   </span>
@@ -127,11 +127,11 @@ function WeekRow({ room, week }: { room: WeekStatus; week: string }) {
               ))}
             </ul>
           ) : (
-            <p className="text-[16px] text-ink-2">No one marked.</p>
+            <p className="text-16 text-ink-2">No one marked.</p>
           )}
           <Link
             href={`/c/${room.classroom_id}/attendance?week=${week}`}
-            className="caps justify-self-start text-[15px] underline underline-offset-4"
+            className="caps justify-self-start text-15 underline underline-offset-4"
           >
             Open the sheet
           </Link>
@@ -160,7 +160,7 @@ async function Reports() {
           <h2 id="week-h" className={heading}>
             Rolls this week
           </h2>
-          <p className="caps text-[16px] text-ink-2">
+          <p className="caps text-16 text-ink-2">
             {weekLabel(week)} · {submitted} of {weekStatus.length} events
             submitted
           </p>
@@ -180,7 +180,7 @@ async function Reports() {
         <h2 id="exc-h" className={heading}>
           Exceptions
         </h2>
-        <p className="text-[16px] text-ink-2">
+        <p className="text-16 text-ink-2">
           Four or more counted weeks. Perfect is every week attended. Check in
           is under half.
         </p>
@@ -197,7 +197,7 @@ async function Reports() {
           <h2 id="absent-h" className={heading}>
             Most absences
           </h2>
-          <p className="text-[16px] text-ink-2">
+          <p className="text-16 text-ink-2">
             Meetings that have passed and were taken, across every event.
             Excused doesn&apos;t count. Warn sends a note to their screen.
           </p>
@@ -213,7 +213,7 @@ async function Reports() {
         <h2 id="all-h" className={heading}>
           Members
         </h2>
-        <p className="text-[16px] text-ink-2">
+        <p className="text-16 text-ink-2">
           Present or late, out of every week marked except excused. Each event
           counts separately.
         </p>
@@ -292,7 +292,7 @@ async function AllEvents({
           >
             {weekLongLabel(week.meet_on)}
           </h2>
-          <p className="caps num text-[14px] text-ink-2">
+          <p className="caps num text-14 text-ink-2">
             Meeting {index + 1} of {weeks.length}
             {index === currentWeekIndex(weeks, torontoToday())
               ? " · this week"
@@ -330,7 +330,7 @@ async function AllEvents({
           gridHrefBase={GRID_HREF}
         />
       )}
-      <p className="text-[15px] text-ink-2">
+      <p className="text-15 text-ink-2">
         Tap a name to switch between Present and Not present; it saves straight
         away. Open an event for its whole season.
       </p>
@@ -373,7 +373,7 @@ async function Season({
         <h2 id="sheet-h" className={heading}>
           {label}
         </h2>
-        <p className="caps num text-[15px] text-ink-2">
+        <p className="caps num text-15 text-ink-2">
           {room.members.length} {room.members.length === 1 ? "name" : "names"} ·{" "}
           {weeks.length} meetings
         </p>
@@ -437,7 +437,7 @@ export default async function AdminAttendancePage({
                 <Link
                   href={v.id === "week" ? BASE : `${BASE}?view=${v.id}`}
                   aria-current={on ? "page" : undefined}
-                  className={`caps step flex h-12 items-center justify-center px-1 text-center text-[14px] leading-tight sm:h-14 sm:text-[17px] ${
+                  className={`caps step flex h-12 items-center justify-center px-1 text-center text-14 leading-tight sm:h-14 sm:text-17 ${
                     on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                   }`}
                 >

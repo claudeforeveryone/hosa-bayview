@@ -86,6 +86,57 @@ export function careerCounts<T extends CareerEntry>(
   };
 }
 
+// Narrowing past right/wrong: one test (by title, "" for every test) and a search over the question, its options,
+// the explanation and the test title. Case and accents don't matter; every word typed has to appear somewhere.
+export type CareerScope = { test: string; q: string };
+export const NO_SCOPE: CareerScope = { test: "", q: "" };
+
+type Searchable = CareerEntry & {
+  test_title: string;
+  prompt: string;
+  options: string[];
+  explanation: string | null;
+};
+
+const fold = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+export function parseCareerScope(sp: { test?: unknown; q?: unknown }): CareerScope {
+  const one = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 200) : "");
+  return { test: one(sp.test), q: one(sp.q) };
+}
+
+export function scopeEntries<T extends Searchable>(rows: T[], scope: CareerScope): T[] {
+  const words = fold(scope.q).split(/\s+/).filter(Boolean);
+  return rows.filter((r) => {
+    if (scope.test && r.test_title !== scope.test) return false;
+    if (!words.length) return true;
+    const hay = fold([r.prompt, r.test_title, r.explanation ?? "", ...r.options].join(" "));
+    return words.every((w) => hay.includes(w));
+  });
+}
+
+// Each test you've answered from, with how many answers came from it, most answered first then A to Z.
+export function careerTests<T extends { test_title: string }>(rows: T[]): { title: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const r of rows) counts.set(r.test_title, (counts.get(r.test_title) ?? 0) + 1);
+  return [...counts]
+    .map(([title, count]) => ({ title, count }))
+    .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title));
+}
+
+// The URL query that carries a set and a scope to the quiz and flashcard pages (and back).
+export function careerQuery(set: CareerFilter, scope: CareerScope, extra: Record<string, string> = {}): string {
+  const params = new URLSearchParams({ set });
+  if (scope.test) params.set("test", scope.test);
+  if (scope.q) params.set("q", scope.q);
+  for (const [k, v] of Object.entries(extra)) params.set(k, v);
+  return params.toString();
+}
+
 // The day before a "YYYY-MM-DD" key.
 function previousDay(key: string): string {
   const [y, m, d] = key.split("-").map(Number);

@@ -73,14 +73,14 @@ export function StartTest({
         ) : null}
       </div>
       {attemptsLeft !== null ? (
-        <p className="caps num text-[15px] text-ink-2">
+        <p className="caps num text-15 text-ink-2">
           {attemptsLeft === 0
             ? "No attempts left"
             : `${attemptsLeft} attempt${attemptsLeft === 1 ? "" : "s"} left`}
         </p>
       ) : null}
       {allowPractice && practiceLocked ? (
-        <p className="text-[15px] text-ink-2">
+        <p className="text-15 text-ink-2">
           Practice opens once you&apos;ve used your timed attempts.
         </p>
       ) : null}

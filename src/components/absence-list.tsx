@@ -23,7 +23,7 @@ export function AbsenceList({
   empty: string;
 }) {
   if (rows.length === 0)
-    return <p className="text-[17px] text-ink-2">{empty}</p>;
+    return <p className="text-17 text-ink-2">{empty}</p>;
   return (
     <ol className="border-t border-rule">
       {rows.map((r, i) => (
@@ -52,19 +52,19 @@ function AbsenceRowItem({
   return (
     <li className="border-b border-rule">
       <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 px-1 py-3 sm:px-3">
-        <span className="num text-[16px] text-ink-2">{rank}</span>
+        <span className="num text-16 text-ink-2">{rank}</span>
         <span className="min-w-0">
-          <span className="block truncate text-[18px] font-medium">
+          <span className="block truncate text-18 font-medium">
             {row.name}
           </span>
-          <span className="num block text-[15px] text-ink-2">
+          <span className="num block text-15 text-ink-2">
             of {row.counted} counted
           </span>
         </span>
         <div className="flex items-center gap-3">
-          <span className="num text-right font-display text-[28px] leading-none font-bold">
+          <span className="num text-right font-display text-28 leading-none font-bold">
             {row.absent}
-            <span className="caps ml-1.5 text-[14px] font-medium text-ink-2">
+            <span className="caps ml-1.5 text-14 font-medium text-ink-2">
               absent
             </span>
           </span>

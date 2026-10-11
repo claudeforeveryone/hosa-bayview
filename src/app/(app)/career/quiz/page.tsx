@@ -6,7 +6,10 @@ import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
 import {
   CAREER_FILTER_LABEL,
+  careerQuery,
   parseCareerFilter,
+  parseCareerScope,
+  scopeEntries,
   starredIds,
 } from "@/lib/career";
 import { getCareerItems } from "@/lib/career-data";
@@ -26,16 +29,27 @@ export default async function CareerQuizPage(props: PageProps<"/career/quiz">) {
     requireProfile(),
   ]);
   const set = parseCareerFilter(sp.set);
+  // The Questions tab can narrow a set to one test or a search first.
+  const scope = parseCareerScope(sp);
   const size: QuizSize = sp.size === "complete" ? "complete" : "quick";
-  const rows = await getCareerItems(profile.id);
-  const pool = practiceItems(rows, set, starredIds(rows));
+  const all = await getCareerItems(profile.id);
+  const rows = scopeEntries(all, scope);
+  const pool = practiceItems(rows, set, starredIds(all));
   const items = quizQuestions(pool, size);
   const title = size === "complete" ? "Full quiz" : "Quick quiz";
-  const again = `/career/quiz?set=${set}&size=${size}&run=${crypto.randomUUID()}`;
+  const again = `/career/quiz?${careerQuery(set, scope, { size, run: crypto.randomUUID() })}`;
+  // "Got wrong · Pharmacology test · "heart"": what the set was narrowed to.
+  const label = [
+    CAREER_FILTER_LABEL[set],
+    scope.test,
+    scope.q ? `"${scope.q}"` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const back = (
     <Link
       href="/career"
-      className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band"
+      className="caps step inline-flex h-12 items-center border border-ink px-6 text-17 hover:bg-band"
     >
       Back to Career
     </Link>
@@ -46,8 +60,8 @@ export default async function CareerQuizPage(props: PageProps<"/career/quiz">) {
       <PageTitle
         meta={
           pool.length
-            ? `${CAREER_FILTER_LABEL[set]} · ${items.length} of ${pool.length} questions`
-            : CAREER_FILTER_LABEL[set]
+            ? `${label} · ${items.length} of ${pool.length} questions`
+            : label
         }
       >
         {title}

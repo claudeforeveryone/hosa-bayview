@@ -166,7 +166,7 @@ function MatchRound({
           {formatMatchTime(finishedMs)}
         </p>
         <p
-          className={`text-[17px] ${saved?.status === "saved" && saved.outcome.isNewBest ? "font-semibold text-ink" : "text-ink-2"}`}
+          className={`text-17 ${saved?.status === "saved" && saved.outcome.isNewBest ? "font-semibold text-ink" : "text-ink-2"}`}
           aria-live="polite"
         >
           {saved === null || saved.status === "saving"
@@ -179,7 +179,7 @@ function MatchRound({
           <Button onClick={onAgain}>Play again</Button>
           <Link
             href={`/flashcards/${deckId}`}
-            className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band"
+            className="caps step inline-flex h-12 items-center border border-ink px-6 text-17 hover:bg-band"
           >
             Back to deck
           </Link>
@@ -201,7 +201,7 @@ function MatchRound({
         onClick={(e) => (side === "term" ? tapTerm(c.id, e.timeStamp) : tapDef(c.id, e.timeStamp))}
         disabled={isMatched}
         aria-pressed={isPicked}
-        className={`step grid min-h-20 place-items-center border px-2.5 py-2 text-center text-[16px] leading-snug break-words ${
+        className={`step grid min-h-20 place-items-center border px-2.5 py-2 text-center text-16 leading-snug break-words ${
           isMatched
             ? "border-ok bg-ok/15 text-ink-2"
             : isPicked
@@ -219,18 +219,18 @@ function MatchRound({
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="caps num text-[15px] text-ink-2">
+        <p className="caps num text-15 text-ink-2">
           {matchedTerms.size} of {total} matched · {formatMatchTime(elapsed)}
         </p>
         <button
           type="button"
           onClick={onAgain}
-          className="caps step h-10 border border-rule-strong px-4 text-[15px] text-ink-2 hover:border-ink hover:text-ink"
+          className="caps step h-10 border border-rule-strong px-4 text-15 text-ink-2 hover:border-ink hover:text-ink"
         >
           New round
         </button>
       </div>
-      <p className="min-h-6 text-[15px] text-ink-2" aria-live="polite">
+      <p className="min-h-6 text-15 text-ink-2" aria-live="polite">
         {message || "Tap a term, then its definition."}
       </p>
       <div className="grid grid-cols-1 gap-6 min-[400px]:grid-cols-2 min-[400px]:gap-3">

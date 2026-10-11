@@ -127,7 +127,7 @@ function Band({ bonus, onDismiss }: { bonus: Bonus; onDismiss: () => void }) {
           />
         ))}
       </span>
-      <span className="caps text-[15px] leading-none text-ground/85 sm:text-[16px]">
+      <span className="caps text-15 leading-none text-ground/85 sm:text-16">
         {jackpot ? "Jackpot" : `Lucky bonus · ${LUCKY_LABEL[bonus.reason]}`}
       </span>
       <span
@@ -139,7 +139,7 @@ function Band({ bonus, onDismiss }: { bonus: Bonus; onDismiss: () => void }) {
       >
         +{bonus.amount} Elo
       </span>
-      <span className="caps mt-2 text-[13px] text-ground/70">Tap to close</span>
+      <span className="caps mt-2 text-13 text-ground/70">Tap to close</span>
     </button>
   );
 }

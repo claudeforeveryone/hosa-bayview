@@ -13,7 +13,7 @@ export function DeckShare({ deckId, shared, classroomName }: { deckId: string; s
 
   return (
     <div className="grid justify-items-start gap-3">
-      <p className="text-[17px]">
+      <p className="text-17">
         {on ? `Shared with everyone in ${classroomName}.` : `Only you can see this. Share it to ${classroomName} so its members can study it.`}
       </p>
       <Button

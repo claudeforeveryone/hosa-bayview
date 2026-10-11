@@ -6,7 +6,7 @@ export function KeyHint({ n }: { n: number }) {
   return (
     <kbd
       aria-hidden
-      className="num hidden size-6 shrink-0 place-items-center border border-current text-[14px] leading-none font-semibold not-italic opacity-70 [@media(hover:hover)_and_(pointer:fine)]:grid"
+      className="num hidden size-6 shrink-0 place-items-center border border-current text-14 leading-none font-semibold not-italic opacity-70 [@media(hover:hover)_and_(pointer:fine)]:grid"
     >
       {n}
     </kbd>
@@ -23,7 +23,7 @@ export function KeyLine({
   if (!text) return null;
   return (
     <p
-      className={`caps num hidden text-[14px] text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:block ${className}`}
+      className={`caps num hidden text-14 text-ink-2 [@media(hover:hover)_and_(pointer:fine)]:block ${className}`}
     >
       {text}
     </p>

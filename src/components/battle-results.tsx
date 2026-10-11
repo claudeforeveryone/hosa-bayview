@@ -42,7 +42,7 @@ export function Results({ s, mine, busy, error, act, heading }: Common) {
               key={team}
               className="grid gap-1 border-r border-on-field-2/40 pt-3 pr-3 last:border-r-0 last:pl-3"
             >
-              <dt className="caps text-[15px] text-on-field-2">
+              <dt className="caps text-15 text-on-field-2">
                 {teamName(team)}
                 {mine?.team === team ? " · You" : ""}
               </dt>
@@ -54,7 +54,7 @@ export function Results({ s, mine, busy, error, act, heading }: Common) {
         </dl>
       </section>
 
-      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-3 border-y border-rule px-1 py-4 text-[17px] sm:px-3">
+      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-3 border-y border-rule px-1 py-4 text-17 sm:px-3">
         {top ? (
           <>
             <dt className="caps text-ink-2">Top player</dt>
@@ -84,7 +84,7 @@ export function Results({ s, mine, busy, error, act, heading }: Common) {
             type="button"
             onClick={act.again}
             disabled={busy}
-            className="h-16 w-full text-[20px]"
+            className="h-16 w-full text-20"
           >
             <Repeat2 size={22} strokeWidth={1.75} aria-hidden />
             {s.rematch_id ? "Join the rematch" : "Play again"}
@@ -93,7 +93,7 @@ export function Results({ s, mine, busy, error, act, heading }: Common) {
         {error ? <FormMessage tone="error">{error}</FormMessage> : null}
         <Link
           href={`/c/${s.classroom_id}`}
-          className="caps step inline-flex h-12 items-center justify-center border border-ink px-6 text-[17px] hover:bg-band"
+          className="caps step inline-flex h-12 items-center justify-center border border-ink px-6 text-17 hover:bg-band"
         >
           Back to {s.classroom_name ?? "the event"}
         </Link>

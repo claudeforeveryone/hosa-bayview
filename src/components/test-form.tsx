@@ -44,7 +44,7 @@ function Toggle({
     <div className="grid gap-1">
       <label
         htmlFor={id}
-        className="flex min-h-11 items-center gap-3 text-[17px]"
+        className="flex min-h-11 items-center gap-3 text-17"
       >
         <input
           id={id}
@@ -60,7 +60,7 @@ function Toggle({
       </label>
       <p
         id={`${id}-hint`}
-        className={`pl-8 text-[15px] ${error ? "text-danger" : "text-ink-2"}`}
+        className={`pl-8 text-15 ${error ? "text-danger" : "text-ink-2"}`}
       >
         {error ?? hint}
       </p>
@@ -69,7 +69,7 @@ function Toggle({
 }
 
 const NUMBER_INPUT =
-  "num step h-12 w-32 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger";
+  "num step h-12 w-32 border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] aria-invalid:border-danger";
 
 // Title and time limit up front (posting lives in the page header); everything else under More options, which
 // names any setting that is off its default so nothing hides silently.
@@ -146,7 +146,7 @@ export function TestForm({
         className="group border-t border-rule pt-2"
       >
         <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-          <span className="caps text-[16px]">More options</span>
+          <span className="caps text-16">More options</span>
           <ChevronDown
             size={18}
             strokeWidth={2}
@@ -154,7 +154,7 @@ export function TestForm({
             className="text-ink-2 group-open:rotate-180"
           />
           {summary ? (
-            <span className="min-w-0 text-[15px] text-ink-2">{summary}</span>
+            <span className="min-w-0 text-15 text-ink-2">{summary}</span>
           ) : null}
         </summary>
         <div className="grid gap-5 pt-3">

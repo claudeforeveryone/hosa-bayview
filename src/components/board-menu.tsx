@@ -29,7 +29,7 @@ export function BoardMenu({
   return (
     <nav aria-label={label}>
       <details ref={ref} className="board-menu group relative">
-        <summary className="caps step flex min-h-11 cursor-pointer list-none items-center gap-2 text-[14px] select-none sm:text-[15px] [&::-webkit-details-marker]:hidden">
+        <summary className="caps step flex min-h-11 cursor-pointer list-none items-center gap-2 text-14 select-none sm:text-15 [&::-webkit-details-marker]:hidden">
           {lead ? <span className="text-ink-2">{lead}</span> : null}
           <span className="text-ink underline decoration-rule-strong decoration-2 underline-offset-[6px] group-open:decoration-ink group-hover:decoration-ink">
             {on?.text}
@@ -63,7 +63,7 @@ export function BoardMenu({
                     el.open = false;
                     el.querySelector("summary")?.focus();
                   }}
-                  className={`caps flex min-h-11 items-center justify-between gap-6 px-4 text-[14px] transition-colors duration-100 hover:bg-band focus-visible:-outline-offset-2 ${
+                  className={`caps flex min-h-11 items-center justify-between gap-6 px-4 text-14 transition-colors duration-100 hover:bg-band focus-visible:-outline-offset-2 ${
                     active ? "text-ink" : "text-ink-2 hover:text-ink"
                   }`}
                 >

@@ -23,7 +23,7 @@ function Days({ rows, canEdit }: { rows: EventRow[]; canEdit: (e: EventRow) => b
                 {canEdit(e) ? (
                   <div className="flex flex-wrap items-start gap-3">
                     <details className="max-w-2xl open:order-last open:basis-full">
-                      <summary className="caps step inline-flex h-11 cursor-pointer items-center border border-ink px-4 text-[15px] text-ink hover:bg-band">
+                      <summary className="caps step inline-flex h-11 cursor-pointer items-center border border-ink px-4 text-15 text-ink hover:bg-band">
                         Edit
                       </summary>
                       <div className="pt-5">
@@ -90,7 +90,7 @@ export function AgendaList({
             <p className="font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
               Nothing coming up
             </p>
-            <p className="max-w-[60ch] text-[17px] text-ink-2">
+            <p className="max-w-[60ch] text-17 text-ink-2">
             {canAdd
               ? "Add the next meeting or deadline above. Everyone it's for gets a notification."
               : "When your trainers or the execs add events, they land here."}
@@ -101,9 +101,9 @@ export function AgendaList({
 
       {past.length ? (
         <details className="group border-t-[3px] border-ink">
-          <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-[18px] hover:bg-band sm:px-3">
+          <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-18 hover:bg-band sm:px-3">
             Past
-            <span className="num text-[15px] text-ink-2">{past.length}</span>
+            <span className="num text-15 text-ink-2">{past.length}</span>
           </summary>
           <div className="pb-4">
             <Days rows={past} canEdit={canEdit} />

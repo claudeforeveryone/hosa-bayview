@@ -71,7 +71,7 @@ export function AuditSection({
           <input key={k} type="hidden" name={k} value={v} />
         ))}
         <div className="grid gap-1.5">
-          <label htmlFor="audit-q" className="text-[15px] font-medium">
+          <label htmlFor="audit-q" className="text-15 font-medium">
             Search the log
           </label>
           <input
@@ -80,7 +80,7 @@ export function AuditSection({
             type="search"
             defaultValue={q}
             maxLength={120}
-            className="step h-12 w-full min-w-0 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+            className="step h-12 w-full min-w-0 border border-rule-strong bg-transparent px-3 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
           />
         </div>
         <Button type="submit" variant="line">
@@ -130,7 +130,7 @@ export function AuditSection({
               header: "Detail",
               when: (r) => auditLine(r).detail !== "",
               cell: (r) => (
-                <span className="text-[15px] text-ink-2 [overflow-wrap:anywhere]">
+                <span className="text-15 text-ink-2 [overflow-wrap:anywhere]">
                   {auditLine(r).detail}
                 </span>
               ),
@@ -139,7 +139,7 @@ export function AuditSection({
               key: "when",
               header: "When",
               cell: (r) => (
-                <span className="text-[15px] whitespace-nowrap text-ink-2">
+                <span className="text-15 whitespace-nowrap text-ink-2">
                   {stampText(r.created_at)}
                 </span>
               ),

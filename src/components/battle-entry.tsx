@@ -54,12 +54,12 @@ function RowBody({
   return (
     <span className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-1 py-3 sm:px-3">
       <span className="grid gap-0.5">
-        <span className="caps text-[17px] font-semibold">{label}</span>
-        <span className="num text-[15px] text-ink-2 [overflow-wrap:anywhere]">
+        <span className="caps text-17 font-semibold">{label}</span>
+        <span className="num text-15 text-ink-2 [overflow-wrap:anywhere]">
           {meta}
         </span>
       </span>
-      <span className="num font-display text-[24px] font-bold tracking-[0.08em]">
+      <span className="num font-display text-24 font-bold tracking-[0.08em]">
         {b.code}
       </span>
       <ChevronRight
@@ -112,7 +112,7 @@ export function BattleEntry({
       <OpenBattleRows rows={rows} />
       <Link
         href={`/c/${classroomId}/battle`}
-        className="caps step press flex h-16 items-center justify-between bg-ink px-4 text-[20px] text-ground hover:bg-ink-2 sm:px-5"
+        className="caps step press flex h-16 items-center justify-between bg-ink px-4 text-20 text-ground hover:bg-ink-2 sm:px-5"
       >
         <span className="flex items-center gap-3">
           <Swords size={22} strokeWidth={1.75} aria-hidden />

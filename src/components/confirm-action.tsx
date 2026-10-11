@@ -39,7 +39,7 @@ export function ConfirmAction({
     if (!result.error && focusAfter) document.getElementById(focusAfter)?.focus();
     return result;
   }, {});
-  const size = compact ? "h-10 px-4 text-[15px]" : "";
+  const size = compact ? "h-10 px-4 text-15" : "";
 
   if (!armed) {
     return (
@@ -60,7 +60,7 @@ export function ConfirmAction({
 
   return (
     <div className="grid justify-items-start gap-3" role="group" aria-label={question}>
-      <p className="text-[16px]">{question}</p>
+      <p className="text-16">{question}</p>
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"

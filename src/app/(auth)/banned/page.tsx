@@ -20,16 +20,16 @@ export default async function BannedPage() {
       <h1 className="font-display text-[clamp(2.75rem,10vw,4.5rem)] leading-[0.92] font-bold uppercase">
         Banned
       </h1>
-      <p className="text-[18px]">Your account is banned {banWhen(status)}.</p>
+      <p className="text-18">Your account is banned {banWhen(status)}.</p>
       {profile.ban_reason ? (
         <div className="grid gap-1 border-t border-rule pt-4">
-          <p className="caps text-[15px] text-ink-2">Reason</p>
-          <p className="text-[17px] [overflow-wrap:anywhere]">
+          <p className="caps text-15 text-ink-2">Reason</p>
+          <p className="text-17 [overflow-wrap:anywhere]">
             {profile.ban_reason}
           </p>
         </div>
       ) : null}
-      <p className="text-[17px] text-ink-2">
+      <p className="text-17 text-ink-2">
         You can&apos;t use the site until the ban ends.
       </p>
       <form action={logout}>

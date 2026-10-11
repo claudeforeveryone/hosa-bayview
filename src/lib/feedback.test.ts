@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_VOLUME, parseHaptics, parseSound, parseVolume } from "./appearance";
+import { DEFAULT_VOLUME, parseHaptics, parseSound, parseVolume, volumeGain } from "./appearance";
 import { BUZZ, TONES, type FeedbackKind } from "./feedback";
 
 // matchMedia for a touch screen (coarse pointer) or a mouse.
@@ -15,12 +15,20 @@ describe("sound and haptics settings", () => {
     expect(parseSound("loud")).toBe("on");
   });
 
-  it("volume is 0 to 100 in tens, defaulting when unset or junk", () => {
+  it("volume gain is exponential: x1 at the default, x4 at 100, silent at 0", () => {
+    expect(volumeGain(DEFAULT_VOLUME)).toBe(1);
+    expect(volumeGain(100)).toBe(4);
+    expect(volumeGain(0)).toBe(0);
+    expect(volumeGain(80)).toBeGreaterThan(volumeGain(70));
+  });
+
+  it("volume is any whole number from 0 to 100, defaulting when unset or junk", () => {
     expect(parseVolume(null)).toBe(DEFAULT_VOLUME);
     expect(parseVolume("")).toBe(DEFAULT_VOLUME);
     expect(parseVolume("loud")).toBe(DEFAULT_VOLUME);
     expect(parseVolume("0")).toBe(0);
-    expect(parseVolume("34")).toBe(30);
+    expect(parseVolume("34")).toBe(34);
+    expect(parseVolume("72.6")).toBe(73);
     expect(parseVolume("250")).toBe(100);
     expect(parseVolume("-5")).toBe(0);
   });

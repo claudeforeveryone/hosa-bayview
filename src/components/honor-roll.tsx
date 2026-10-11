@@ -20,7 +20,7 @@ export function HonorRoll({
         >
           Honor roll
         </h2>
-        <p className="caps text-[15px] text-ink-2">
+        <p className="caps text-15 text-ink-2">
           Signed in 3 days or more in a row
         </p>
       </div>
@@ -35,17 +35,17 @@ export function HonorRoll({
               <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
                 <Link
                   href={`/members/${row.user_id}`}
-                  className="step truncate font-display text-[18px] leading-tight font-semibold uppercase hover:underline sm:text-[20px]"
+                  className="step truncate font-display text-18 leading-tight font-semibold uppercase hover:underline sm:text-20"
                 >
                   {row.full_name || "Member"}
                 </Link>
                 {award ? (
-                  <span className="caps border border-ink px-1.5 py-0.5 text-[13px] leading-none">
+                  <span className="caps border border-ink px-1.5 py-0.5 text-13 leading-none">
                     {award}
                   </span>
                 ) : null}
               </span>
-              <span className="num font-display text-[22px] leading-none font-bold">
+              <span className="num font-display text-22 leading-none font-bold">
                 {formatStreak(row.streak)}
               </span>
             </li>

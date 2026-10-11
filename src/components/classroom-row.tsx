@@ -26,10 +26,10 @@ export function ClassroomRow({ room }: { room: ClassroomSummary }) {
           <span className="block truncate font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
             {room.name}
           </span>
-          <span className="block truncate text-[16px] text-ink-2">{meta}</span>
+          <span className="block truncate text-16 text-ink-2">{meta}</span>
         </span>
         <span className="flex items-center gap-2 text-ink-2">
-          <span className="num caps text-[15px]">
+          <span className="num caps text-15">
             {formNumber("C", room.num)}
           </span>
           <ChevronRight size={22} strokeWidth={1.75} aria-hidden />

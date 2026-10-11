@@ -39,7 +39,7 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
           <h1 className="font-display text-[clamp(2.5rem,8vw,4.5rem)] leading-none font-bold [overflow-wrap:anywhere] uppercase">
             {stats.full_name || "Member"}
           </h1>
-          <p className="caps text-[17px] text-ink-2">
+          <p className="caps text-17 text-ink-2">
             {roleLabel(stats.role, detail?.title)}
             <span aria-hidden> · </span>
             <span className="normal-case">
@@ -53,7 +53,7 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
       {/* The full list is for executives (0204); everyone else goes back to the board they came from. */}
       <Link
         href={me.role === "executive" ? "/members" : "/leaderboard"}
-        className="caps step justify-self-start text-[17px] underline underline-offset-4"
+        className="caps step justify-self-start text-17 underline underline-offset-4"
       >
         {me.role === "executive" ? "All members" : "Leaderboard"}
       </Link>

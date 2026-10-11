@@ -12,14 +12,14 @@ function Step({ glyph, children }: { glyph: ReactNode; children: ReactNode }) {
       <span className="inline-flex size-10 shrink-0 items-center justify-center border-2 border-ink">
         {glyph}
       </span>
-      <span className="min-w-0 pt-1.5 text-[16px] leading-snug">
+      <span className="min-w-0 pt-1.5 text-16 leading-snug">
         {children}
       </span>
     </li>
   );
 }
 
-const hint = "block text-[15px] text-ink-2";
+const hint = "block text-15 text-ink-2";
 
 // The app's own icon, so step 3 shows exactly what lands on the home screen.
 function AppIcon() {
@@ -101,13 +101,13 @@ const inlineGlyph = "mx-0.5 inline-block align-[-4px]";
 export function IosShortSteps({ browser }: { browser: Browser }) {
   return (
     <div className="grid gap-1">
-      <p className="text-[17px] leading-snug">
+      <p className="text-17 leading-snug">
         Tap <ShareGlyph size={20} className={inlineGlyph} />{" "}
         <strong className="font-semibold">Share</strong>, then{" "}
         <strong className="font-semibold">Add to Home Screen</strong>.
       </p>
       {browser === "safari" ? (
-        <p className="text-[15px] leading-snug text-ink-2">
+        <p className="text-15 leading-snug text-ink-2">
           On iOS 26, tap{" "}
           <Ellipsis
             size={16}
@@ -128,7 +128,7 @@ const tallDots = "-mx-1.5 inline-block align-[-4px]";
 
 export function AndroidMenuShortSteps() {
   return (
-    <p className="text-[17px] leading-snug">
+    <p className="text-17 leading-snug">
       Open the browser menu{" "}
       <span className="whitespace-nowrap">
         <EllipsisVertical
@@ -155,7 +155,7 @@ export function OpenInBrowserSteps({
   then: string;
 }) {
   return (
-    <p className="text-[16px] text-ink-2">
+    <p className="text-16 text-ink-2">
       This app&apos;s built-in browser can&apos;t add HOSA to your home screen.
       Tap{" "}
       {platform === "ios" ? (

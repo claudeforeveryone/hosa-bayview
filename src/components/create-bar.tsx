@@ -12,7 +12,7 @@ type Action = (state: FormState, form: FormData) => Promise<FormState>;
 
 // One slim strip, three cells: it reads as a single control, not three cards.
 const tile =
-  "caps step flex h-14 w-full min-w-0 items-center justify-center gap-2 px-2 text-[16px] hover:bg-band aria-disabled:opacity-60 sm:text-[17px]";
+  "caps step flex h-14 w-full min-w-0 items-center justify-center gap-2 px-2 text-16 hover:bg-band aria-disabled:opacity-60 sm:text-17";
 
 // The tile's face. Screen readers hear "New test" at rest and "Making" while it works.
 function Face({
@@ -112,7 +112,7 @@ function TestTile({
         }}
         className="board-menu-panel absolute top-full left-0 z-20 mt-1 grid max-h-72 w-[min(18rem,calc(100vw-2rem))] overflow-y-auto border border-ink bg-ground py-1.5"
       >
-        <p className="caps px-4 pt-1 pb-2 text-[13px] text-ink-2">
+        <p className="caps px-4 pt-1 pb-2 text-13 text-ink-2">
           Which event
         </p>
         {rooms.map((r) => (
@@ -122,7 +122,7 @@ function TestTile({
             name="classroom_id"
             value={r.id}
             aria-disabled={busy || undefined}
-            className="flex min-h-11 items-center px-4 text-left text-[16px] font-medium transition-colors duration-100 hover:bg-band focus-visible:-outline-offset-2"
+            className="flex min-h-11 items-center px-4 text-left text-16 font-medium transition-colors duration-100 hover:bg-band focus-visible:-outline-offset-2"
           >
             <span className="truncate">{r.name}</span>
           </button>

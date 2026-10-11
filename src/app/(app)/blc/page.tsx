@@ -56,7 +56,7 @@ export default async function BlcPage() {
 
       {isExec ? (
         <details className="group border-y border-rule">
-          <summary className="caps step flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-[18px] hover:bg-band [&::-webkit-details-marker]:hidden">
+          <summary className="caps step flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 text-18 hover:bg-band [&::-webkit-details-marker]:hidden">
             New mock competition
             <ChevronDown
               size={22}
@@ -82,7 +82,7 @@ export default async function BlcPage() {
                   className="step grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-1 py-4 hover:bg-band sm:px-3"
                 >
                   <span className="grid min-w-0 gap-1.5">
-                    <span className="caps flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[15px]">
+                    <span className="caps flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-15">
                       <StateMark state={c.state} />
                       <span
                         className={
@@ -98,11 +98,11 @@ export default async function BlcPage() {
                     <span className="block font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.02] font-semibold uppercase [overflow-wrap:anywhere]">
                       {c.name}
                     </span>
-                    <span className="block text-[16px] text-ink-2">
+                    <span className="block text-16 text-ink-2">
                       {windowLine(c.opens_at, c.closes_at)}
                     </span>
                     {progress ? (
-                      <span className="num caps block text-[15px] text-ink-2">
+                      <span className="num caps block text-15 text-ink-2">
                         {progress}
                       </span>
                     ) : null}

@@ -1,9 +1,9 @@
 import { initials } from "@/lib/profile";
 
 const SIZE = {
-  sm: "size-8 text-[13px]",
-  md: "size-14 text-[22px]",
-  lg: "size-28 text-[44px] sm:size-36 sm:text-[56px]",
+  sm: "size-8 text-13",
+  md: "size-14 text-22",
+  lg: "size-28 text-44 sm:size-36 sm:text-56",
 } as const;
 
 // Square always. A picture when there is one (a signed URL from the server), otherwise the initials.

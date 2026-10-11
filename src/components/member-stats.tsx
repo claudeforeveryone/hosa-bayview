@@ -11,8 +11,8 @@ import { formatBonusLine } from "@/lib/lucky";
 export function RecentBonuses({ rows }: { rows: BonusRow[] }) {
   return (
     <div className="grid gap-1 border-b border-rule pb-3">
-      <p className="caps text-[17px] text-ink-2">Lucky bonuses</p>
-      <p className="num text-[17px]">
+      <p className="caps text-17 text-ink-2">Lucky bonuses</p>
+      <p className="num text-17">
         {rows.length ? formatBonusLine(rows) : "None yet"}
       </p>
     </div>
@@ -38,7 +38,7 @@ export function MemberStatRows({ stats }: { stats: MemberStats }) {
           key={label}
           className="flex items-baseline justify-between gap-6 border-b border-rule py-3 last:border-b-0"
         >
-          <dt className="caps text-[17px] text-ink-2">{label}</dt>
+          <dt className="caps text-17 text-ink-2">{label}</dt>
           <dd className="num font-display text-[clamp(1.6rem,6vw,2.2rem)] leading-none font-bold">
             {value}
           </dd>

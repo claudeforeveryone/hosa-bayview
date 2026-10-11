@@ -69,14 +69,14 @@ export default async function TestPage({
           {room.can_manage ? (
             <Link
               href={`/c/${room.id}/tests/${test.id}/edit`}
-              className="caps step inline-flex h-11 shrink-0 items-center gap-2 border border-ink px-4 text-[16px] hover:bg-band"
+              className="caps step inline-flex h-11 shrink-0 items-center gap-2 border border-ink px-4 text-16 hover:bg-band"
             >
               <Pencil size={18} strokeWidth={1.75} aria-hidden />
               Edit
             </Link>
           ) : null}
         </div>
-        <p className="caps text-[16px] text-ink-2">
+        <p className="caps text-16 text-ink-2">
           {[
             formNumber("T", test.num),
             `${questions.length} question${questions.length === 1 ? "" : "s"}`,
@@ -114,7 +114,7 @@ export default async function TestPage({
         <section aria-labelledby="mine-h" className="grid gap-3">
           <h3
             id="mine-h"
-            className="font-display text-[28px] leading-none font-bold uppercase"
+            className="font-display text-28 leading-none font-bold uppercase"
           >
             Your attempts
           </h3>
@@ -126,25 +126,25 @@ export default async function TestPage({
                   className="step grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-1 py-3 hover:bg-band sm:px-3"
                 >
                   <span className="min-w-0">
-                    <span className="caps block text-[16px]">
+                    <span className="caps block text-16">
                       {a.mode === "timed" ? "Timed" : "Practice"}
                     </span>
-                    <span className="num block text-[15px] text-ink-2">
+                    <span className="num block text-15 text-ink-2">
                       {when(a.started_at)}
                     </span>
                   </span>
                   <span className="flex items-center gap-2">
                     {a.score_hidden ? (
-                      <span className="caps text-[16px] text-ink-2">Submitted</span>
+                      <span className="caps text-16 text-ink-2">Submitted</span>
                     ) : a.submitted_at ? (
-                      <span className="num font-display text-[24px] font-semibold">
+                      <span className="num font-display text-24 font-semibold">
                         {a.score}/{a.total}
-                        <span className="ml-2 text-[16px] text-ink-2">
+                        <span className="ml-2 text-16 text-ink-2">
                           {pct(a.score ?? 0, a.total)}%
                         </span>
                       </span>
                     ) : (
-                      <span className="caps border border-rule-strong px-2 py-0.5 text-[14px] text-ink-2">
+                      <span className="caps border border-rule-strong px-2 py-0.5 text-14 text-ink-2">
                         Keep going
                       </span>
                     )}
@@ -170,14 +170,14 @@ export default async function TestPage({
         <section aria-labelledby="results-h" className="grid gap-3">
           <h3
             id="results-h"
-            className="font-display text-[28px] leading-none font-bold uppercase"
+            className="font-display text-28 leading-none font-bold uppercase"
           >
             Results
           </h3>
           {results.length ? (
             <table className="w-full border-t border-rule text-left">
               <thead>
-                <tr className="caps text-[14px] text-ink-2">
+                <tr className="caps text-14 text-ink-2">
                   <th scope="col" className="py-2 pr-3 font-semibold">
                     Name
                   </th>
@@ -204,7 +204,7 @@ export default async function TestPage({
               <tbody>
                 {results.map((r) => (
                   <tr key={r.user_id} className="border-t border-rule">
-                    <td className="max-w-0 truncate py-3 pr-3 text-[17px]">
+                    <td className="max-w-0 truncate py-3 pr-3 text-17">
                       <Link
                         href={`/c/${room.id}/tests/${test.id}/people/${r.user_id}`}
                         className="underline decoration-rule-strong hover:decoration-ink"
@@ -212,15 +212,15 @@ export default async function TestPage({
                         {r.full_name}
                       </Link>
                       {r.user_id === profile.id ? (
-                        <span className="caps ml-2 bg-you px-1.5 py-0.5 text-[12px] text-on-you">
+                        <span className="caps ml-2 bg-you px-1.5 py-0.5 text-12 text-on-you">
                           You
                         </span>
                       ) : null}
                     </td>
-                    <td className="num py-3 pr-3 text-right font-display text-[22px] font-semibold whitespace-nowrap">
+                    <td className="num py-3 pr-3 text-right font-display text-22 font-semibold whitespace-nowrap">
                       {r.best}/{r.total}
                       {r.practice_only ? (
-                        <span className="caps block text-[12px] font-normal text-ink-2">
+                        <span className="caps block text-12 font-normal text-ink-2">
                           Practice
                         </span>
                       ) : null}

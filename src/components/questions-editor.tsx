@@ -98,7 +98,7 @@ export function QuestionsEditor({
         <h3
           id="questions-h"
           tabIndex={-1}
-          className="font-display text-[28px] leading-none font-bold uppercase"
+          className="font-display text-28 leading-none font-bold uppercase"
         >
           Questions
         </h3>
@@ -120,7 +120,7 @@ export function QuestionsEditor({
       >
         <h3
           id="add-h"
-          className="font-display text-[28px] leading-none font-bold uppercase"
+          className="font-display text-28 leading-none font-bold uppercase"
         >
           Add questions
         </h3>

@@ -32,10 +32,10 @@ export function TestFlagsSection({
     <section aria-labelledby="asks-h" className="grid gap-3">
       <h3
         id="asks-h"
-        className="flex flex-wrap items-baseline gap-x-3 gap-y-2 font-display text-[28px] leading-none font-bold uppercase"
+        className="flex flex-wrap items-baseline gap-x-3 gap-y-2 font-display text-28 leading-none font-bold uppercase"
       >
         {HEADING}
-        <span className="num border border-ink px-2 py-0.5 font-sans text-[16px] font-semibold tracking-normal">
+        <span className="num border border-ink px-2 py-0.5 font-sans text-16 font-semibold tracking-normal">
           {flags.length}
         </span>
       </h3>
@@ -58,11 +58,11 @@ export function ClassroomFlagsPanel({
 }) {
   return (
     <details className="group border-[3px] border-ink" open={open}>
-      <summary className="caps step flex min-h-14 cursor-pointer items-center justify-between gap-3 px-3 py-2 text-[17px] hover:bg-band [&::-webkit-details-marker]:hidden">
+      <summary className="caps step flex min-h-14 cursor-pointer items-center justify-between gap-3 px-3 py-2 text-17 hover:bg-band [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-3">
           {HEADING}
           <span
-            className={`num px-2 py-0.5 font-sans text-[15px] font-semibold tracking-normal ${flags.length ? "bg-you text-on-you" : "border border-rule-strong text-ink-2"}`}
+            className={`num px-2 py-0.5 font-sans text-15 font-semibold tracking-normal ${flags.length ? "bg-you text-on-you" : "border border-rule-strong text-ink-2"}`}
           >
             {flags.length}
           </span>
@@ -192,8 +192,8 @@ function FlagRow({
   return (
     <li className="grid gap-3 border-b border-rule py-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <p className="text-[17px] font-medium">{flag.full_name}</p>
-        <p className="caps num text-[15px] text-ink-2">
+        <p className="text-17 font-medium">{flag.full_name}</p>
+        <p className="caps num text-15 text-ink-2">
           {test ? (
             <>
               <Link
@@ -209,7 +209,7 @@ function FlagRow({
         </p>
         {/* A report (0231) says what is wrong; a plain Ask teacher has no tag. */}
         {isReportReason(flag.reason) ? (
-          <p className="caps border border-ink px-2 text-[14px] leading-6">
+          <p className="caps border border-ink px-2 text-14 leading-6">
             Reported: {reasonLabel(flag.reason)}
           </p>
         ) : null}
@@ -228,7 +228,7 @@ function FlagRow({
         }}
         noValidate
       >
-        <label htmlFor={`reply-${flag.id}`} className="text-[15px] font-medium">
+        <label htmlFor={`reply-${flag.id}`} className="text-15 font-medium">
           Reply <span className="font-normal text-ink-2">(optional)</span>
         </label>
         <textarea
@@ -237,7 +237,7 @@ function FlagRow({
           onChange={(e) => setReply(e.target.value)}
           maxLength={1000}
           disabled={readOnly}
-          className="step min-h-20 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+          className="step min-h-20 w-full resize-y border border-rule-strong bg-transparent px-3 py-2.5 text-17 outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
         />
         {error ? <FormMessage tone="error">{error}</FormMessage> : null}
         <div>

@@ -25,7 +25,7 @@ export default async function SettingsTab({ params }: PageProps<"/c/[id]/setting
         pendingLabel="Saving"
       />
       <section aria-labelledby="delete-h" className="grid max-w-xl gap-3 border-t border-rule pt-8">
-        <h2 id="delete-h" className="font-display text-[28px] leading-none font-bold uppercase">
+        <h2 id="delete-h" className="font-display text-28 leading-none font-bold uppercase">
           Delete event
         </h2>
         <p className="text-ink-2">

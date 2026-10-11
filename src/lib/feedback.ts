@@ -1,4 +1,4 @@
-import { DEFAULT_VOLUME, readHaptics, readSound, readVolume } from "@/lib/appearance";
+import { readHaptics, readSound, readVolume, volumeGain } from "@/lib/appearance";
 
 // Short sound and buzz for a moment that matters: a practice answer landing, a card turning over, a test
 // going in, a battle won. Both follow Settings > Look (both on by default, with a volume for sound). Tones are
@@ -94,9 +94,9 @@ export function primeFeedback() {
   if (ctx) wake(ctx);
 }
 
-// Settings > Look > Volume. The tones above are tuned for the default level.
+// Settings > Sound > Volume. The tones above are tuned for the default level.
 function play(notes: Note[]) {
-  const scale = readVolume() / DEFAULT_VOLUME;
+  const scale = volumeGain(readVolume());
   if (scale <= 0) return;
   const ctx = audioContext();
   if (!ctx) return;

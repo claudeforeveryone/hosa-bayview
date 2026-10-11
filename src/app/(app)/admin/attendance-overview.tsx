@@ -21,37 +21,37 @@ export async function AttendanceSummary({ canWarn }: { canWarn: boolean }) {
         </h2>
         <Link
           href="/admin/attendance"
-          className="caps step text-[17px] underline underline-offset-4"
+          className="caps step text-17 underline underline-offset-4"
         >
           Open attendance
         </Link>
       </div>
       <dl className="grid grid-cols-2 border-t border-l border-rule sm:grid-cols-3">
         <div className="grid gap-1 border-r border-b border-rule px-4 py-4">
-          <dt className="caps text-[14px] text-ink-2">Submitted this week</dt>
-          <dd className="num font-display text-[32px] leading-none font-bold">
+          <dt className="caps text-14 text-ink-2">Submitted this week</dt>
+          <dd className="num font-display text-32 leading-none font-bold">
             {submitted} of {weekStatus.length}
           </dd>
         </div>
         <div className="grid gap-1 border-r border-b border-rule px-4 py-4">
-          <dt className="caps text-[14px] text-ink-2">Perfect</dt>
-          <dd className="num font-display text-[32px] leading-none font-bold">
+          <dt className="caps text-14 text-ink-2">Perfect</dt>
+          <dd className="num font-display text-32 leading-none font-bold">
             {perfect.length}
           </dd>
         </div>
         <div className="grid gap-1 border-r border-b border-rule px-4 py-4">
-          <dt className="caps text-[14px] text-ink-2">Needs a check-in</dt>
-          <dd className="num font-display text-[32px] leading-none font-bold">
+          <dt className="caps text-14 text-ink-2">Needs a check-in</dt>
+          <dd className="num font-display text-32 leading-none font-bold">
             {checkIn.length}
           </dd>
         </div>
       </dl>
       <div className="grid gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h3 className="caps text-[17px] font-semibold">Most absences</h3>
+          <h3 className="caps text-17 font-semibold">Most absences</h3>
           <Link
             href="/admin/attendance?view=reports#absent-h"
-            className="caps text-[15px] underline underline-offset-4"
+            className="caps text-15 underline underline-offset-4"
           >
             All absences
           </Link>

@@ -5,7 +5,7 @@ import { formatCount, type OnlineRow } from "@/lib/activity";
 export function OnlineList({ rows, meId }: { rows: OnlineRow[]; meId: string }) {
   return (
     <div className="grid gap-4">
-      <p className="caps text-[17px] text-ink-2">{formatCount(rows.length)} online now</p>
+      <p className="caps text-17 text-ink-2">{formatCount(rows.length)} online now</p>
       <ul className="border-t border-rule">
         {rows.map((row) => {
           const you = row.user_id === meId;
@@ -18,7 +18,7 @@ export function OnlineList({ rows, meId }: { rows: OnlineRow[]; meId: string }) 
                 >
                   {row.full_name || "Member"}
                 </Link>
-                {you ? <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-[13px] leading-none text-on-you">You</span> : null}
+                {you ? <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-13 leading-none text-on-you">You</span> : null}
               </span>
             </li>
           );

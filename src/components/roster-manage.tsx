@@ -25,8 +25,8 @@ function AddWeek() {
   );
   return (
     <form action={action} className="grid gap-3">
-      <h3 className="caps text-[16px] font-semibold">Add a meeting date</h3>
-      <p className="text-[15px] text-ink-2">
+      <h3 className="caps text-16 font-semibold">Add a meeting date</h3>
+      <p className="text-15 text-ink-2">
         Adds a column to every event&apos;s sheet.
       </p>
       <Field label="Date" name="date" id="roster-date" type="date" required />
@@ -56,7 +56,7 @@ function ShortCode({
   );
   return (
     <form action={action} className="grid gap-3">
-      <h3 className="caps text-[16px] font-semibold">Event code</h3>
+      <h3 className="caps text-16 font-semibold">Event code</h3>
       <Field
         label="Code"
         name="code"
@@ -66,7 +66,7 @@ function ShortCode({
         autoCapitalize="characters"
         autoComplete="off"
         hint="2 to 4 letters, like FS. Leave empty to clear."
-        className="step h-12 w-32 border border-rule-strong bg-transparent px-3 text-[17px] uppercase outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
+        className="step h-12 w-32 border border-rule-strong bg-transparent px-3 text-17 uppercase outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
       />
       <Button
         type="submit"
@@ -95,7 +95,7 @@ export function RosterManage({
 }) {
   return (
     <details className="group border-t-[3px] border-ink">
-      <summary className="caps step flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-3 text-[17px] hover:bg-band [&::-webkit-details-marker]:hidden">
+      <summary className="caps step flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 py-3 text-17 hover:bg-band [&::-webkit-details-marker]:hidden">
         Manage roster
         <ChevronDown
           size={20}
@@ -106,15 +106,15 @@ export function RosterManage({
       </summary>
       <div className="grid gap-8 pt-3 pb-6 lg:grid-cols-2">
         <div className="grid content-start gap-2">
-          <h3 className="caps text-[16px] font-semibold">Who&apos;s on the list</h3>
-          <p className="text-[16px] text-ink-2">
+          <h3 className="caps text-16 font-semibold">Who&apos;s on the list</h3>
+          <p className="text-16 text-ink-2">
             Everyone who joins this event with its code shows up here automatically, and leaving takes them off.
           </p>
         </div>
         <div className="grid content-start gap-3">
-          <h3 className="caps text-[16px] font-semibold">Remove a name</h3>
+          <h3 className="caps text-16 font-semibold">Remove a name</h3>
           {members.length === 0 ? (
-            <p className="text-[16px] text-ink-2">No one has joined yet.</p>
+            <p className="text-16 text-ink-2">No one has joined yet.</p>
           ) : (
             <ul className="border-t border-rule">
               {members.map((m) => (
@@ -122,7 +122,7 @@ export function RosterManage({
                   key={m.id}
                   className="grid gap-2 border-b border-rule py-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                 >
-                  <span className="min-w-0 truncate text-[17px]">{m.name}</span>
+                  <span className="min-w-0 truncate text-17">{m.name}</span>
                   <ConfirmAction
                     action={() => removeRosterMember(m.id)}
                     label="Remove"

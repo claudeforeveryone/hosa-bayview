@@ -54,16 +54,16 @@ export default async function ClassroomLayout({
             <h1 className="min-w-0 font-display text-[clamp(2.75rem,10vw,5.5rem)] leading-[0.92] font-bold [overflow-wrap:anywhere] uppercase">
               {room.name}
             </h1>
-            <span className="num caps shrink-0 pt-2 text-[15px] text-on-field-2">
+            <span className="num caps shrink-0 pt-2 text-15 text-on-field-2">
               {formNumber("C", room.num)}
             </span>
           </div>
           <div className="flex flex-wrap items-baseline justify-between gap-x-5 gap-y-2">
-            <p className="text-[17px] text-on-field-2">{meta}</p>
+            <p className="text-17 text-on-field-2">{meta}</p>
             {isCompetition ? null : (
               <Link
                 href="/events?all=1"
-                className="caps step inline-flex min-h-11 items-center text-[15px] text-on-field-2 underline underline-offset-4 hover:text-on-field"
+                className="caps step inline-flex min-h-11 items-center text-15 text-on-field-2 underline underline-offset-4 hover:text-on-field"
               >
                 All events
               </Link>
@@ -72,7 +72,7 @@ export default async function ClassroomLayout({
           {isCompetition && BLC_ENABLED ? (
             <Link
               href={`/blc/${room.id}`}
-              className="caps step inline-flex min-h-11 w-fit items-center text-[17px] text-on-field-2 underline hover:text-on-field"
+              className="caps step inline-flex min-h-11 w-fit items-center text-17 text-on-field-2 underline hover:text-on-field"
             >
               Back to BLC page
             </Link>

@@ -47,7 +47,7 @@ export function Reveal({
           return (
             <li key={i}>
               <div
-                className={`step flex min-h-16 w-full items-center gap-4 border px-4 py-3 text-[18px] ${
+                className={`step flex min-h-16 w-full items-center gap-4 border px-4 py-3 text-18 ${
                   right
                     ? "border-ok bg-ok/15"
                     : wrong
@@ -55,7 +55,7 @@ export function Reveal({
                       : "border-rule text-ink-2"
                 }`}
               >
-                <span className="num w-6 shrink-0 font-display text-[22px] font-bold">
+                <span className="num w-6 shrink-0 font-display text-22 font-bold">
                   {LETTERS[i]}
                 </span>
                 <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
@@ -89,12 +89,12 @@ export function Reveal({
         <div className="grid gap-1">
           {verdict ? (
             <p
-              className={`caps text-[18px] ${mineResult?.is_correct ? "text-ok" : "text-ink-2"}`}
+              className={`caps text-18 ${mineResult?.is_correct ? "text-ok" : "text-ink-2"}`}
             >
               {verdict}
             </p>
           ) : null}
-          <p className="caps num text-[16px] text-ink-2">
+          <p className="caps num text-16 text-ink-2">
             {teamName(1)} +{a} · {teamName(2)} +{b}
           </p>
         </div>
@@ -113,7 +113,7 @@ export function Reveal({
           type="button"
           onClick={act.next}
           disabled={busy}
-          className="h-14 w-full text-[19px]"
+          className="h-14 w-full text-19"
         >
           {last ? "Results" : "Next"}
         </Button>

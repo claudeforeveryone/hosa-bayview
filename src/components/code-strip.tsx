@@ -49,12 +49,12 @@ export function CodeStrip({ code, regenerate }: { code: string; regenerate: () =
 
   const copied = note?.kind === "copied";
   const danger = note?.kind === "error" || note?.kind === "copy-failed";
-  const btn = "caps step flex h-11 items-center gap-2 border border-on-field-2 px-4 text-[16px] hover:bg-on-field hover:text-field";
+  const btn = "caps step flex h-11 items-center gap-2 border border-on-field-2 px-4 text-16 hover:bg-on-field hover:text-field";
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <p className="flex items-baseline gap-3">
-          <span className="caps text-[16px] text-on-field-2">Join code</span>
+          <span className="caps text-16 text-on-field-2">Join code</span>
           <span className="num font-display text-[clamp(2.5rem,9vw,3.5rem)] leading-none font-bold tracking-[0.08em]">
             {displayCode(code)}
           </span>
@@ -73,7 +73,7 @@ export function CodeStrip({ code, regenerate }: { code: string; regenerate: () =
                   startTransition(run);
                   setArmed(false);
                 }}
-                className="caps step flex h-11 items-center gap-2 bg-you px-4 text-[16px] text-on-you disabled:opacity-60"
+                className="caps step flex h-11 items-center gap-2 bg-you px-4 text-16 text-on-you disabled:opacity-60"
               >
                 <RefreshCw size={18} strokeWidth={1.75} aria-hidden />
                 Kill old code
@@ -90,7 +90,7 @@ export function CodeStrip({ code, regenerate }: { code: string; regenerate: () =
           )}
         </div>
       </div>
-      <p aria-live="polite" className={`min-h-[1.5em] text-[15px] ${danger ? "text-on-field-danger" : "text-on-field-2"}`}>
+      <p aria-live="polite" className={`min-h-[1.5em] text-15 ${danger ? "text-on-field-danger" : "text-on-field-2"}`}>
         {armed ? "Old code stops working. Members stay in." : note?.text}
       </p>
     </div>
