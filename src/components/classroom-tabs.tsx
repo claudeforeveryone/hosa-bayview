@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type Category, tabsFor } from "@/lib/classroom-tabs";
+import { type Category, tabClearScroll, tabsFor } from "@/lib/classroom-tabs";
 
 // Condensed caps tabs; one "you" rule slides under the active tab. Scrolls sideways on phones.
 export function ClassroomTabs({
@@ -68,25 +68,29 @@ export function ClassroomTabs({
     return () => window.removeEventListener("resize", measure);
   }, [path]);
 
-  // On phones the strip scrolls; keep the current tab on screen and clear of the edge chevrons (40 px each).
-  useEffect(() => {
+  // On phones the strip scrolls; keep a tab on screen and clear of the edge chevrons (40 px each, so 48 px).
+  const keepClear = (tab: HTMLElement | null | undefined) => {
     const scroller = nav.current;
-    const tab = strip.current?.querySelector<HTMLElement>(
-      '[aria-current="page"]',
-    );
     if (!scroller || !tab) return;
-    const EDGE = 48;
-    const left = tab.offsetLeft;
-    const right = left + tab.offsetWidth;
-    if (
-      left < scroller.scrollLeft + EDGE ||
-      right > scroller.scrollLeft + scroller.clientWidth - EDGE
-    ) {
-      scroller.scrollLeft = left - EDGE;
-    }
+    const to = tabClearScroll({
+      scrollLeft: scroller.scrollLeft,
+      width: scroller.clientWidth,
+      left: tab.offsetLeft,
+      right: tab.offsetLeft + tab.offsetWidth,
+      edge: 48,
+    });
+    if (to !== null) scroller.scrollLeft = to;
+  };
+
+  // The current tab, on arrival and on every tab change.
+  useEffect(() => {
+    keepClear(
+      strip.current?.querySelector<HTMLElement>('[aria-current="page"]'),
+    );
   }, [path]);
 
-  // Pointer-only cues: keyboard focus already scrolls a tab into view, so the chevrons stay out of the tab order.
+  // Pointer-only cues: the chevrons stay out of the tab order, and a tab that gets keyboard focus scrolls clear
+  // of them (the browser alone leaves a tab under a chevron when a sliver of it shows).
   const edge =
     "step absolute top-0 bottom-px z-10 grid w-10 place-items-center bg-ground text-ink-2 hover:text-ink";
   return (
@@ -94,6 +98,7 @@ export function ClassroomTabs({
       <nav
         ref={nav}
         aria-label="Event"
+        onFocus={(e) => keepClear(e.target as HTMLElement)}
         className="overflow-x-auto border-b border-rule [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <div
