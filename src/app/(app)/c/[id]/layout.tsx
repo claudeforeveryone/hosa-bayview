@@ -13,7 +13,11 @@ export async function generateMetadata({
   params,
 }: LayoutProps<"/c/[id]">): Promise<Metadata> {
   const room = await getClassroom((await params).id);
-  return { title: room?.name ?? "Event" };
+  const name = room?.name ?? "Event";
+  // The tabs' own titles ("Grades", a test's name) keep the event and site after them, like every other page.
+  return {
+    title: { default: name, template: `%s · ${name} · HOSA Bayview` },
+  };
 }
 
 export default async function ClassroomLayout({
