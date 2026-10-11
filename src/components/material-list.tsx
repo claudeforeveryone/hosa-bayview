@@ -18,7 +18,7 @@ import {
 export function MaterialList({
   rows,
   canManage,
-  empty = "Nothing here yet",
+  empty = "No files or links yet",
 }: {
   rows: MaterialItem[];
   canManage: boolean;
@@ -123,7 +123,11 @@ function Rows({
                   <div className="pt-5">
                     <MaterialEditForm
                       action={updateMaterial.bind(null, r.id)}
-                      initial={{ title: r.title, note: r.note, section: r.section ?? "" }}
+                      initial={{
+                        title: r.title,
+                        note: r.note,
+                        section: r.section ?? "",
+                      }}
                       sections={sections}
                     />
                   </div>

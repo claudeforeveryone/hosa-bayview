@@ -40,11 +40,13 @@ export default async function ResourcesTab({
         <MaterialList
           rows={files}
           canManage={room.can_manage}
-          empty="Nothing here yet"
+          empty="No files or links yet"
         />
         {room.can_manage ? (
           <div className="grid gap-5 border-t border-rule pt-8">
-            <h3 className="caps text-[17px] font-semibold">Add a file or link</h3>
+            <h3 className="caps text-[17px] font-semibold">
+              Add a file or link
+            </h3>
             {profile?.role === "executive" ? <StorageBar /> : null}
             <MaterialForm
               action={saveMaterial.bind(null, room.id)}

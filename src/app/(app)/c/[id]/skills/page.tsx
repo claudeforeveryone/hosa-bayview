@@ -71,7 +71,7 @@ export default async function SkillsTab({
           ))}
         </div>
       ) : (
-        <EmptyState title="No skills yet." />
+        <EmptyState title="No skills yet" />
       )}
 
       {room.can_manage ? (

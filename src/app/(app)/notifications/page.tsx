@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
+import { EmptyState } from "@/components/empty-state";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/when";
@@ -153,15 +154,9 @@ export default async function NotificationsPage() {
           ) : null}
         </>
       ) : (
-        <div className="grid justify-items-start gap-3 border-2 border-ink bg-band px-5 py-8">
-          <p className="font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
-            Nothing yet
-          </p>
-          <p className="max-w-[60ch] text-[17px] text-ink-2">
-            New tests, announcements, events, BLC runs and trainer replies land
-            here.
-          </p>
-        </div>
+        <EmptyState title="Nothing yet">
+          New tests, announcements, events and trainer replies land here.
+        </EmptyState>
       )}
     </div>
   );
