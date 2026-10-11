@@ -2,8 +2,7 @@ import { IndependenceNote, Mail } from "@/components/legal-doc";
 
 // Who built the site, shown under every Settings tab.
 const CREDITS: { role: string; names: string[] }[] = [
-  { role: "Main engineer", names: ["Joseph Leung"] },
-  { role: "Side engineering", names: ["Kaden Li"] },
+  { role: "Main engineers", names: ["Joseph Leung", "Kaden Li"] },
   { role: "Contributors", names: ["Ryan Bordbar", "Jay Tong", "Robert Wang"] },
 ];
 
