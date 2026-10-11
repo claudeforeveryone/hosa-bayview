@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Pipette, RotateCcw } from "lucide-react";
+import { usePathname } from "next/navigation";
 import {
   useEffect,
   useState,
@@ -58,7 +59,7 @@ import {
   type Toggle,
 } from "@/lib/appearance";
 import { feedback } from "@/lib/feedback";
-import { watchThemeColor } from "@/lib/pwa/theme-color";
+import { syncThemeColor, watchThemeColor } from "@/lib/pwa/theme-color";
 import { SettingsSection } from "@/components/settings-section";
 
 const TOGGLES: { id: Toggle; label: string }[] = [
@@ -76,9 +77,12 @@ function subscribe(onChange: () => void) {
 }
 
 // In the root layout. On Device, follows the device when it switches between light and dark, and picks up a
-// change made in another tab. Keeps the status bar's theme-color on the page's ground as the look changes.
+// change made in another tab. Keeps the status bar's theme-color on the colour at the top of the screen as the look
+// and the page change (signing in moves from the field band of /login to a page on the ground).
 export function AppearanceSync() {
+  const path = usePathname();
   useEffect(() => watchThemeColor(), []);
+  useEffect(() => syncThemeColor(), [path]);
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onScheme = () => {
