@@ -108,6 +108,19 @@ export function List({ children }: { children: ReactNode[] }) {
   );
 }
 
+// A short list inside a list item, for an item that names several things: the same square markers, tighter.
+export function SubList({ children }: { children: ReactNode[] }) {
+  return (
+    <ul className="my-2 grid list-[square] gap-1.5 pl-5 marker:text-ink-2">
+      {children.map((item, i) => (
+        <li key={i} className="pl-1">
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function Term({ children }: { children: ReactNode }) {
   return <strong className="font-semibold">{children}</strong>;
 }
