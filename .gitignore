@@ -53,3 +53,6 @@ next-env.d.ts
 .impeccable/questions/
 .claude/worktrees/
 demo/
+
+# python bytecode (scripts/e2e)
+__pycache__/
