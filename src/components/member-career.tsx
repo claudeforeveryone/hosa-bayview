@@ -11,6 +11,7 @@ import {
   CAREER_SORT_LABEL,
   careerCounts,
   filterEntries,
+  starredIds,
   groupByDay,
   sortEntries,
   type CareerFilter,
@@ -38,9 +39,7 @@ export function MemberCareer({
   const [filter, setFilter] = useState<CareerFilter>(initialFilter);
   const [sort, setSort] = useState<CareerSort>(initialSort);
   const [limit, setLimit] = useState(CAREER_PAGE);
-  const [favorites, setFavorites] = useState<Set<string>>(
-    () => new Set(rows.filter((r) => r.favorite && r.question_id).map((r) => r.question_id as string)),
-  );
+  const [favorites, setFavorites] = useState<Set<string>>(() => starredIds(rows));
 
   const counts = useMemo(() => careerCounts(rows, favorites), [rows, favorites]);
   const shown = useMemo(() => sortEntries(filterEntries(rows, filter, favorites), sort), [rows, filter, sort, favorites]);

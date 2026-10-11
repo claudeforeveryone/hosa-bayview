@@ -35,7 +35,23 @@ export function parseCareerSort(value: unknown): CareerSort {
   return CAREER_SORTS.find((s) => s === value) ?? "newest";
 }
 
-// Favourites are per question, so every answer to a starred question counts.
+// One row per question: the newest answer. Stars are per question, so the favourites list shows each starred
+// question once, and the count, the tile and the list all agree.
+export function latestPerQuestion<T extends CareerEntry>(rows: T[]): T[] {
+  const newest = new Map<string, T>();
+  for (const r of rows) {
+    if (r.question_id === null) continue;
+    const seen = newest.get(r.question_id);
+    if (!seen || Date.parse(r.answered_at) > Date.parse(seen.answered_at)) newest.set(r.question_id, r);
+  }
+  return [...newest.values()];
+}
+
+// The question ids you've starred, from the rows the career page loads.
+export function starredIds(rows: { question_id: string | null; favorite: boolean }[]): Set<string> {
+  return new Set(rows.filter((r) => r.favorite && r.question_id).map((r) => r.question_id as string));
+}
+
 export function filterEntries<T extends CareerEntry>(
   rows: T[],
   filter: CareerFilter,
@@ -47,7 +63,7 @@ export function filterEntries<T extends CareerEntry>(
     case "wrong":
       return rows.filter((r) => r.is_correct === false);
     case "favorites":
-      return rows.filter((r) => r.question_id !== null && favorites.has(r.question_id));
+      return latestPerQuestion(rows.filter((r) => r.question_id !== null && favorites.has(r.question_id)));
     default:
       return rows;
   }
@@ -66,7 +82,7 @@ export function careerCounts<T extends CareerEntry>(
     all: rows.length,
     right: rows.filter((r) => r.is_correct === true).length,
     wrong: rows.filter((r) => r.is_correct === false).length,
-    favorites: rows.filter((r) => r.question_id !== null && favorites.has(r.question_id)).length,
+    favorites: filterEntries(rows, "favorites", favorites).length,
   };
 }
 

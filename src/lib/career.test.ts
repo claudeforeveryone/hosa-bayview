@@ -7,6 +7,7 @@ import {
   parseCareerFilter,
   parseCareerSort,
   sortEntries,
+  starredIds,
 } from "./career";
 
 const rows = [
@@ -33,14 +34,11 @@ describe("filterEntries", () => {
     expect(filterEntries(rows, "all", favs)).toHaveLength(4);
     expect(filterEntries(rows, "right", favs)).toHaveLength(1);
     expect(filterEntries(rows, "wrong", favs)).toHaveLength(2);
-    expect(filterEntries(rows, "favorites", favs).map((r) => r.answered_at)).toEqual([
-      "2026-10-10T15:00:00Z",
-      "2026-10-09T15:00:00Z",
-    ]);
+    expect(filterEntries(rows, "favorites", favs).map((r) => r.answered_at)).toEqual(["2026-10-10T15:00:00Z"]);
   });
 
   it("counts each filter", () => {
-    expect(careerCounts(rows, favs)).toEqual({ all: 4, right: 1, wrong: 2, favorites: 2 });
+    expect(careerCounts(rows, favs)).toEqual({ all: 4, right: 1, wrong: 2, favorites: 1 });
   });
 });
 
@@ -81,5 +79,27 @@ describe("groupByDay", () => {
     );
     expect(groups[0].label).toBe("Today");
     expect(groups[0].key).toBe("2026-10-10");
+  });
+});
+
+describe("favourites count once per question", () => {
+  it("a starred question counts once, however many times it was answered", () => {
+    const more = [
+      { answered_at: "2026-10-10T15:00:00Z", is_correct: true, question_id: "q1" },
+      { answered_at: "2026-10-09T15:00:00Z", is_correct: false, question_id: "q1" },
+      { answered_at: "2026-10-01T15:00:00Z", is_correct: true, question_id: "q1" },
+    ];
+    expect(careerCounts(more, favs).favorites).toBe(1);
+    expect(filterEntries(more, "favorites", favs)).toHaveLength(1);
+  });
+
+  it("collects each starred question id once", () => {
+    const ids = starredIds([
+      { question_id: "q1", favorite: true },
+      { question_id: "q1", favorite: true },
+      { question_id: "q2", favorite: false },
+      { question_id: null, favorite: false },
+    ]);
+    expect([...ids]).toEqual(["q1"]);
   });
 });
