@@ -132,10 +132,7 @@ describe("the gallery's content health", () => {
     const { duplicates, duplicate_groups, per_event } = contentFixture;
     expect(duplicate_groups).toBeLessThanOrEqual(20);
     const repeated = per_event.reduce((n, e) => n + e.repeated, 0);
-    const least = duplicates.reduce(
-      (n, d) => n + d.copies - d.rooms.length,
-      0,
-    );
+    const least = duplicates.reduce((n, d) => n + d.copies - d.rooms.length, 0);
     const most = duplicates.reduce((n, d) => n + d.copies - 1, 0);
     expect(repeated).toBeGreaterThanOrEqual(least);
     expect(repeated).toBeLessThanOrEqual(most);
@@ -168,7 +165,9 @@ describe("the gallery's content health", () => {
 describe("the gallery's audit log", () => {
   it("never shows a raw status code in a triage line", () => {
     for (const r of auditFixture.filter((r) => r.action === "feedback")) {
-      expect(r.detail, String(r.id)).not.toMatch(/\b(new|planned|done|wont_fix)\b/);
+      expect(r.detail, String(r.id)).not.toMatch(
+        /\b(new|planned|done|wont_fix)\b/,
+      );
       expect(r.detail, String(r.id)).toMatch(
         new RegExp(`^(status|priority|note)`),
       );
@@ -248,8 +247,7 @@ describe.each(chapters)("$name", (c) => {
     for (const g of ranges) {
       expect(atMost(g.new_total, g.active_total), g.from).toBe(true);
       for (const b of g.buckets)
-        if (b.new !== null)
-          expect(atMost(b.new, b.active), b.start).toBe(true);
+        if (b.new !== null) expect(atMost(b.new, b.active), b.start).toBe(true);
     }
   });
 
