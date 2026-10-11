@@ -27,6 +27,7 @@ import {
   warnMember,
   type ModState,
 } from "./moderation-actions";
+import { GifSwitch } from "./gif-switch";
 import { RoleSwitch } from "./role-switch";
 import { roleLabel } from "@/lib/role-label";
 import { useBackdropClose } from "@/hooks/use-backdrop-close";
@@ -46,6 +47,8 @@ export type PersonRow = {
   gif: boolean;
   // Can the viewer give or remove executive (the chapter leads only)? Same for every row.
   can_grant_exec: boolean;
+  // Can the viewer turn GIF pictures on or off for people (0108)? Same for every row.
+  can_grant_gif: boolean;
   grade: number | null;
   banned_until: string | null;
   ban_reason: string | null;
@@ -382,6 +385,9 @@ function PersonBody({
       </Section>
 
       <Section id={`${id}-picture`} title="Picture">
+        {person.can_grant_gif ? (
+          <GifSwitch userId={person.id} name={person.full_name} allowed={person.gif} />
+        ) : null}
         <AvatarForm
           userId={person.id}
           name={person.full_name}

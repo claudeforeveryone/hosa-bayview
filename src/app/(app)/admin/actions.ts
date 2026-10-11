@@ -75,3 +75,24 @@ export async function clearChapterCode(): Promise<ChapterCodeState> {
   refresh();
   return { ok: "Chapter code cleared." };
 }
+
+export type GifState = { error?: string };
+
+// Turns GIF pictures on or off for one person (0108). Only the accounts in private.gif_granters may; the RPC
+// checks that and logs the change.
+export async function setGifUser(userId: string, allowed: boolean): Promise<GifState> {
+  await requireRole("executive");
+  const parsed = uuid.safeParse(userId);
+  if (!parsed.success) return { error: "That person is gone. Reload the page." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_gif_user", { target: parsed.data, allowed });
+  if (error) {
+    if (error.code === "42501") return { error: "Only some executives can give GIF pictures." };
+    if (error.code === "P0002") return { error: error.message };
+    console.error("[admin] gif:", error.message);
+    return { error: "Couldn't change that. Try again." };
+  }
+  refresh();
+  return {};
+}

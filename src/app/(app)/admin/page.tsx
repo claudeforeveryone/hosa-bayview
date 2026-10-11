@@ -104,10 +104,16 @@ export default async function AdminPage() {
     supabase.rpc("am_demo"),
     supabase.rpc("gif_exempt_ids"),
   ]);
-  const [gifRes, powersRes] = await Promise.all([supabase.rpc("gif_user_ids"), supabase.rpc("my_powers")]);
+  const [gifRes, powersRes, gifGrantRes] = await Promise.all([
+    supabase.rpc("gif_user_ids"),
+    supabase.rpc("my_powers"),
+    supabase.rpc("can_grant_gif"),
+  ]);
   const gifIds = new Set(((gifRes.data ?? []) as string[]));
   // Only the chapter leads can give or take executive (0101); everyone else gets the switch without it.
   const canGrantExec = Boolean((powersRes.data as { grant_exec: boolean }[] | null)?.[0]?.grant_exec);
+  // A few named executives can turn GIF pictures on or off for people (0108). Missing RPC = no switch.
+  const canGrantGif = gifGrantRes.data === true;
   if (exemptRes.error)
     throw new Error(`GIF limits lookup failed: ${exemptRes.error.message}`);
   const exempt = new Set((exemptRes.data ?? []) as string[]);
@@ -128,6 +134,7 @@ export default async function AdminPage() {
     gif_limit: gifLimitBytes(exempt.has(p.id) && exempt.has(me.id)),
     gif: gifIds.has(p.id),
     can_grant_exec: canGrantExec,
+    can_grant_gif: canGrantGif,
   }));
   const count = (r: Role) => people.filter((p) => p.role === r).length;
 
