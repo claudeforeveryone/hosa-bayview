@@ -91,23 +91,46 @@ export function offSchedule(
     .sort((a, b) => b.week_start.localeCompare(a.week_start));
 }
 
-// The schedule as a list: everything in date order (an off-schedule week sits where its date falls), with
-// what has passed, today and the next `keep` meetings to come up front and the rest of the season held back.
-// Holding back only one or two rows isn't worth a tap, so then everything shows.
+// The schedule as a list: everything in date order (an off-schedule week sits where its date falls), with the
+// last `keepPast` meetings that have passed, today and the next `keep` to come up front. Older weeks fold into
+// `earlier` and the rest of the season into `later`, so neither October nor May is a wall of rows. Holding back
+// only one or two rows isn't worth a tap, so then they show.
 export function splitSchedule<
   T extends { date: string; state: string; none: boolean },
->(items: T[], keep = 3): { shown: T[]; later: T[] } {
+>(
+  items: T[],
+  keep = 3,
+  keepPast = 2,
+): { earlier: T[]; shown: T[]; later: T[] } {
   const sorted = [...items].sort((a, b) => a.date.localeCompare(b.date));
+  // Today, or the first meeting still to come; the end of the list once the season is over.
+  let now = sorted.findIndex((r) => r.state === "today" || r.state === "upcoming");
+  if (now === -1) now = sorted.length;
+
+  let start = 0;
+  let kept = 0;
+  for (let i = now - 1; i >= 0; i--) {
+    if (!sorted[i].none && ++kept === keepPast) {
+      start = i;
+      break;
+    }
+  }
+  if (start < 3) start = 0;
+
   let seen = 0;
   let cut = sorted.length;
-  for (let i = 0; i < sorted.length; i++) {
+  for (let i = now; i < sorted.length; i++) {
     if (sorted[i].state === "upcoming" && !sorted[i].none && ++seen === keep) {
       cut = i + 1;
       break;
     }
   }
-  if (sorted.length - cut < 3) return { shown: sorted, later: [] };
-  return { shown: sorted.slice(0, cut), later: sorted.slice(cut) };
+  if (sorted.length - cut < 3) cut = sorted.length;
+  return {
+    earlier: sorted.slice(0, start),
+    shown: sorted.slice(start, cut),
+    later: sorted.slice(cut),
+  };
 }
 
 // The first meeting that is today or still to come, for a "Next" marker.

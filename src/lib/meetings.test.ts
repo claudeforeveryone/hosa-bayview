@@ -258,6 +258,64 @@ describe("splitSchedule", () => {
     ]);
   });
 
+  it("late in the season folds older past weeks away, keeping the last two, today and the next three", () => {
+    // March: 22 past Thursdays (Oct to Feb), an empty week, today, then six to come.
+    const past = Array.from({ length: 22 }, (_, i) => {
+      const d = new Date(Date.UTC(2026, 9, 1 + i * 7));
+      return row(d.toISOString().slice(0, 10), i % 5 === 4 ? "not-taken" : "taken");
+    });
+    const { earlier, shown, later } = splitSchedule([
+      ...past,
+      row("2027-03-11", "no-meeting", true),
+      row("2027-03-18", "today"),
+      row("2027-03-25", "upcoming"),
+      row("2027-04-01", "upcoming"),
+      row("2027-04-08", "upcoming"),
+      row("2027-04-15", "upcoming"),
+      row("2027-04-22", "upcoming"),
+      row("2027-04-29", "upcoming"),
+    ]);
+    // The last two real meetings before today, the empty week between them and today, today, then three.
+    expect(shown.map((r) => r.date)).toEqual([
+      "2027-02-18",
+      "2027-02-25",
+      "2027-03-11",
+      "2027-03-18",
+      "2027-03-25",
+      "2027-04-01",
+      "2027-04-08",
+    ]);
+    expect(earlier).toHaveLength(20);
+    expect(earlier[0].date).toBe("2026-10-01");
+    expect(earlier.at(-1)?.date).toBe("2027-02-11");
+    expect(later.map((r) => r.date)).toEqual([
+      "2027-04-15",
+      "2027-04-22",
+      "2027-04-29",
+    ]);
+  });
+
+  it("keeps the next three in view when the season is over, with the past folded", () => {
+    const past = Array.from({ length: 6 }, (_, i) =>
+      row(`2027-05-${String(1 + i * 4).padStart(2, "0")}`, "taken"),
+    );
+    const { earlier, shown, later } = splitSchedule(past);
+    expect(shown.map((r) => r.date)).toEqual(["2027-05-17", "2027-05-21"]);
+    expect(earlier).toHaveLength(4);
+    expect(later).toEqual([]);
+  });
+
+  it("doesn't fold the past early in the season", () => {
+    const { earlier, shown } = splitSchedule([
+      row("2026-10-01", "taken"),
+      row("2026-10-08", "not-taken"),
+      row("2026-10-15", "taken"),
+      row("2026-10-22", "today"),
+    ]);
+    expect(earlier).toEqual([]);
+    expect(shown).toHaveLength(4);
+  });
+
   it("keeps everything out when hiding would save only one or two rows", () => {
     const { shown, later } = splitSchedule([
       row("2026-10-15", "upcoming"),

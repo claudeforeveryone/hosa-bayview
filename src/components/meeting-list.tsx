@@ -47,8 +47,8 @@ const STATUS_TONE: Record<Status, string> = {
 };
 
 // The schedule, oldest first. Managers' rows open to show the roster with pictures and marks; members see
-// their own status on each row. Past meetings and the next three show; the rest of the season folds away so a
-// phone isn't a wall of weeks to come.
+// their own status on each row. The last two meetings, today and the next three show; older weeks and the rest
+// of the season fold away so a phone isn't a wall of weeks, early or late in the season.
 export function MeetingList({
   items,
   classroomId,
@@ -58,7 +58,7 @@ export function MeetingList({
   classroomId: string;
   manage: boolean;
 }) {
-  const { shown, later } = splitSchedule(items);
+  const { earlier, shown, later } = splitSchedule(items);
   const row = (item: MeetingItem) => (
     <li key={item.key} className="border-b border-rule">
       {item.none || !manage || !item.members ? (
@@ -70,29 +70,54 @@ export function MeetingList({
   );
   return (
     <ul className="border-t border-rule">
+      {earlier.length ? (
+        <Fold
+          closed={`${earlier.length} earlier this season`}
+          open="Earlier this season"
+        >
+          {earlier.map(row)}
+        </Fold>
+      ) : null}
       {shown.map(row)}
       {later.length ? (
-        <li className="border-b border-rule">
-          <details className="group">
-            <summary className="caps step flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-1 py-3 text-[15px] text-ink-2 hover:bg-band hover:text-ink sm:px-3 [&::-webkit-details-marker]:hidden">
-              <span className="group-open:hidden">
-                {later.length} more later in the season
-              </span>
-              <span className="hidden group-open:inline">
-                Later in the season
-              </span>
-              <ChevronDown
-                size={18}
-                strokeWidth={2}
-                aria-hidden
-                className="motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out group-open:rotate-180"
-              />
-            </summary>
-            <ul className="border-t border-rule">{later.map(row)}</ul>
-          </details>
-        </li>
+        <Fold
+          closed={`${later.length} more later in the season`}
+          open="Later in the season"
+        >
+          {later.map(row)}
+        </Fold>
       ) : null}
     </ul>
+  );
+}
+
+// A folded run of weeks. Its group is named (group/fold) so opening it doesn't turn the chevrons of the meeting
+// rows inside, which are groups of their own.
+function Fold({
+  closed,
+  open,
+  children,
+}: {
+  closed: string;
+  open: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="border-b border-rule">
+      <details className="group/fold">
+        <summary className="caps step flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-1 py-3 text-[15px] text-ink-2 hover:bg-band hover:text-ink sm:px-3 [&::-webkit-details-marker]:hidden">
+          <span className="group-open/fold:hidden">{closed}</span>
+          <span className="hidden group-open/fold:inline">{open}</span>
+          <ChevronDown
+            size={18}
+            strokeWidth={2}
+            aria-hidden
+            className="motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out group-open/fold:rotate-180"
+          />
+        </summary>
+        <ul className="border-t border-rule">{children}</ul>
+      </details>
+    </li>
   );
 }
 
