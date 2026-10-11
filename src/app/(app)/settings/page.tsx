@@ -33,7 +33,7 @@ export default async function SettingsPage({
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <PageTitle meta={profile.email}>Settings</PageTitle>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
-        {/* Phones: one row of tabs that scrolls sideways when it runs out of width. Desktop: a rail on the left. */}
+        {/* Phones: one row of tabs sharing the width (all five fit from 360 px; narrower, it scrolls sideways). Desktop: a rail on the left. */}
         <nav
           aria-label="Settings sections"
           className="min-w-0 lg:sticky lg:top-6 lg:self-start"
@@ -44,12 +44,12 @@ export default async function SettingsPage({
               return (
                 <li
                   key={t.id}
-                  className="shrink-0 border-r border-ink last:border-r-0 lg:border-r-0 lg:border-b lg:last:border-b-0"
+                  className="shrink-0 grow border-r border-ink last:border-r-0 lg:grow-0 lg:border-r-0 lg:border-b lg:last:border-b-0"
                 >
                   <Link
                     href={`/settings?tab=${t.id}`}
                     aria-current={on ? "page" : undefined}
-                    className={`caps step flex min-h-12 items-center px-3 text-[15px] sm:px-5 sm:text-[18px] lg:min-h-14 ${
+                    className={`caps step flex min-h-12 items-center justify-center px-1.5 text-[15px] sm:px-5 lg:justify-start sm:text-[18px] lg:min-h-14 ${
                       on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                     }`}
                   >
