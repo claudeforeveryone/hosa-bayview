@@ -8,7 +8,8 @@
 -- key anyway), the bonus it held back is paid with the multiplier and date it was earned on: 'correct' for each right
 -- first answer, and the extra repeat point for each right repeat. Paying is idempotent, so flipping again pays nothing.
 -- Until then, hidden-test answers count as answered but not as correct on the boards. Nothing to backfill: no test
--- hides its answers on live today.
+-- hides its answers on live today. An answer reads show_answers under a share lock on the test row, so an answer
+-- committed while the reveal runs can't fall between the two and lose its bonus.
 
 create or replace function private.elo_on_answer()
 returns trigger
@@ -16,12 +17,14 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   a record;
+  room uuid;
+  shown_now boolean;
   earned timestamptz;
   mult numeric;
   shown boolean;
 begin
-  select att.user_id, att.counts, att.deadline, t.classroom_id, t.show_answers into a
-  from public.attempts att join public.tests t on t.id = att.test_id
+  select att.user_id, att.counts, att.deadline, att.test_id into a
+  from public.attempts att
   where att.id = new.attempt_id;
   if a.user_id is null then
     return null;
@@ -39,23 +42,32 @@ begin
   if not a.counts then
     return null;
   end if;
+  -- show_answers is read under a share lock on the test row, so this answer and a reveal can't miss each other. If
+  -- the UPDATE that turns show_answers on is still in flight, this waits for it and reads the new value (READ
+  -- COMMITTED re-reads a locked row once its updater commits). If this answer is in flight, that UPDATE waits for it,
+  -- and private.elo_pay_revealed then sees this answer. Share locks don't block each other, so answers don't queue.
+  -- Only answers that are graded and count take the lock.
+  select t.classroom_id, t.show_answers into room, shown_now
+  from public.tests t
+  where t.id = a.test_id
+  for share;
   -- Hidden answers pay as if wrong; private.elo_pay_revealed adds the rest once the test shows them.
-  shown := a.show_answers and new.is_correct;
+  shown := shown_now and new.is_correct;
   mult := private.streak_multiplier(a.user_id, private.local_day(earned));
   -- First time on this question: 2, plus 3 if right.
   insert into public.elo_events (user_id, classroom_id, source, ref_id, attempt_id, points, multiplier, earned_at)
-  values (a.user_id, a.classroom_id, 'answer', new.question_id, new.attempt_id, 2, mult, earned)
+  values (a.user_id, room, 'answer', new.question_id, new.attempt_id, 2, mult, earned)
   on conflict do nothing;
   if found then
     if shown then
       insert into public.elo_events (user_id, classroom_id, source, ref_id, attempt_id, points, multiplier, earned_at)
-      values (a.user_id, a.classroom_id, 'correct', new.question_id, new.attempt_id, 3, mult, earned)
+      values (a.user_id, room, 'correct', new.question_id, new.attempt_id, 3, mult, earned)
       on conflict do nothing;
     end if;
   else
     -- Seen it before: 1, or 2 if right, once per question per day so it can't be farmed.
     insert into public.elo_events (user_id, classroom_id, source, ref_id, attempt_id, points, multiplier, earned_at)
-    values (a.user_id, a.classroom_id, 'repeat', new.question_id, new.attempt_id,
+    values (a.user_id, room, 'repeat', new.question_id, new.attempt_id,
             case when shown then 2 else 1 end, mult, earned)
     on conflict do nothing;
   end if;

@@ -285,6 +285,10 @@ select pg_temp.ok('H1 Elo: once answers are shown, the correct count includes A'
   $q$select correct = (select v::bigint from _t where k = 'correct_before') + 1 from public.member_stats((select trainee_id from _who))$q$);
 reset role;
 select set_config('request.jwt.claims', '', true);
+-- An answer and a reveal running at the same time must not miss each other. One session can't race itself; this only
+-- checks the lock is still in the code, and elo_reveal_lock.sql checks the lock an answer actually takes.
+select pg_temp.ok('H1 Elo: elo_on_answer reads show_answers under a share lock (elo_reveal_lock.sql)',
+  $q$select p.prosrc ~* 'for\s+share' from pg_proc p where p.oid = 'private.elo_on_answer()'::regprocedure$q$);
 
 -- ---- The chapter code gate, end to end ----------------------------------------------------------------------------
 -- An executive sets a code (here by hand, to keep admin_log's id sequence where it is).
