@@ -28,6 +28,14 @@ describe("navItemsFor", () => {
     expect(hrefs(navItemsFor(false))).not.toContain("/members");
   });
 
+  it("Developer shows only to the stats viewer, not to other execs", () => {
+    expect(hrefs(navItemsFor(true, true))).toContain("/developer");
+    expect(hrefs(navItemsFor(true))).not.toContain("/developer");
+    expect(hrefs(navItemsFor(false, true))).toContain("/developer");
+    expect(hrefs(navItemsFor(false))).not.toContain("/developer");
+    expect(hrefs(bottomItemsFor(true, true))).not.toContain("/developer");
+  });
+
   it("Leaderboard sits in the Chapter group; Career is in the main list", () => {
     const items = navItemsFor(false);
     expect(items.find((i) => i.href === "/leaderboard")?.chapter).toBe(true);
@@ -48,12 +56,20 @@ describe("navItemsFor", () => {
 });
 
 describe("active states", () => {
-  const find = (href: string) => navItemsFor(false).find((i) => i.href === href)!;
+  const find = (href: string) =>
+    navItemsFor(false).find((i) => i.href === href)!;
 
   it("Events is active on /events, every classroom path and a battle", () => {
-    for (const path of ["/events", "/c/abc", "/c/new", "/c/abc/tests", "/battle/abc"])
+    for (const path of [
+      "/events",
+      "/c/abc",
+      "/c/new",
+      "/c/abc/tests",
+      "/battle/abc",
+    ])
       expect(find("/events").match(path)).toBe(true);
-    for (const path of ["/", "/library"]) expect(find("/events").match(path)).toBe(false);
+    for (const path of ["/", "/library"])
+      expect(find("/events").match(path)).toBe(false);
   });
 
   it("More is active on More, Settings and Help", () => {
@@ -83,4 +99,3 @@ describe("showJoinLink", () => {
     expect(showJoinLink(true, 0)).toBe(false);
   });
 });
-
