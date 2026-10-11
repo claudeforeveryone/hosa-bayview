@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Segments } from "@/components/appearance";
 import { Button } from "@/components/form";
 import { SettingsSection } from "@/components/settings-section";
+import { handOffFocus } from "@/lib/focus-handoff";
 import { installGuide } from "@/lib/pwa/install-logic";
 import { promptInstall } from "@/lib/pwa/install-store";
 import {
@@ -107,6 +108,18 @@ const PUSH_OPTIONS: { id: "off" | "on"; label: string }[] = [
 const soundLink =
   "step text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink";
 
+// Kept focusable (aria-disabled, not disabled) while a change is in flight: a disabled button drops keyboard focus.
+const pending = "aria-disabled:cursor-wait aria-disabled:opacity-60";
+
+// When turning on ends in a state with no control (blocked in the browser's question, say), the segments go and the
+// paragraph that explains it takes their place. Focus follows, so a keyboard or screen reader user lands on the
+// explanation instead of the top of the page.
+const STATE_ID = "push-state";
+const toStateLine = handOffFocus(() =>
+  document.getElementById(STATE_ID)?.focus(),
+);
+const line = { id: STATE_ID, tabIndex: -1, className: copy };
+
 function NotificationSettings({
   vapidPublicKey,
 }: {
@@ -122,44 +135,42 @@ function NotificationSettings({
       description="Announcements, tests, events, questions, replies and role changes, on this device."
     >
       <div className="grid gap-4">
-        {ui === null ? (
-          <p className={copy}>Checking this browser&hellip;</p>
-        ) : null}
+        {ui === null ? <p {...line}>Checking this browser&hellip;</p> : null}
         {ui === "unavailable" ? (
-          <p className={copy}>
-            Phone notifications aren&apos;t switched on for the site yet. The
-            bell still works.
+          <p {...line}>
+            Notifications aren&apos;t switched on for the site yet. The bell
+            still works.
           </p>
         ) : null}
         {ui === "needs-home-screen" ? (
-          <p className={copy}>
+          <p {...line}>
             iPhone and iPad only send web notifications to installed apps. Add
             HOSA to your Home Screen (steps above), open it from there, and turn
             notifications on here.
           </p>
         ) : null}
         {ui === "unsupported" ? (
-          <p className={copy}>
+          <p {...line}>
             This browser can&apos;t do notifications. Chrome on Android, or the
             installed app on iPhone, can.
           </p>
         ) : null}
         {ui === "needs-stay-signed-in" ? (
-          <p className={copy}>
+          <p {...line}>
             Notifications need Stay signed in. Without it, HOSA signs you out
-            when this browser closes, but notifications would keep arriving.
-            Log out, then log back in with Stay signed in ticked.
+            when this browser closes, but notifications would keep arriving. Log
+            out, then log back in with Stay signed in ticked.
           </p>
         ) : null}
         {ui === "blocked" ? (
-          <p className={copy}>
+          <p {...line}>
             Notifications are blocked for HOSA. Allow them in your
             browser&apos;s site settings (or the phone&apos;s Settings,
             Notifications, HOSA), then come back.
           </p>
         ) : null}
         {ui === "on" || ui === "off" ? (
-          <div className="grid gap-4">
+          <div ref={toStateLine} className="grid gap-4">
             <Segments
               name="push-device"
               label="Notifications on this device"
@@ -178,7 +189,7 @@ function NotificationSettings({
                     .
                   </>
                 ) : (
-                  "Off. Tap On, then Allow if asked."
+                  "Off. Pick On, then Allow if asked."
                 )
               }
             />
@@ -187,8 +198,11 @@ function NotificationSettings({
                 <Button
                   type="button"
                   variant="line"
-                  onClick={sendTest}
-                  disabled={busy}
+                  onClick={() => {
+                    if (!busy) void sendTest();
+                  }}
+                  aria-disabled={busy || undefined}
+                  className={pending}
                 >
                   Send a test
                 </Button>

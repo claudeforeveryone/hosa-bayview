@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/form";
+import { focusRegion, handOffFocus } from "@/lib/focus-handoff";
 import {
   installCardMode,
   isQuietPath,
@@ -22,6 +23,17 @@ import { usePushControl } from "./use-push-control";
 
 // Held back a few seconds so it never lands on top of the opening animation or the first tap.
 const SHOW_AFTER_MS = 3500;
+
+// Turn on and Send a test stay focusable (aria-disabled, not disabled) while they work: a disabled button drops
+// keyboard focus.
+const pending = "aria-disabled:cursor-wait aria-disabled:opacity-60";
+
+// The card can go while it holds keyboard focus: Not now, Done, Install, or a Turn on the browser's question
+// refused. Focus then moves to the page's main content rather than falling back to the top of the page. Turning on
+// from the card swaps Turn on for Done, and focus moves to Done.
+const DONE_ID = "install-card-done";
+const toMain = handOffFocus(() => focusRegion(document.getElementById("main")));
+const toDone = handOffFocus(() => document.getElementById(DONE_ID)?.focus());
 
 // A short card on phones, docked on the bottom bar. In a browser tab it asks to install: Android Chrome gets an
 // Install button (its own prompt); iPhone gets one line, Share then Add to Home Screen (iOS has no prompt), with
@@ -135,7 +147,7 @@ export function InstallCard({ pushKey }: { pushKey: string | null }) {
       aria-labelledby="install-card-h"
       className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 border-t-[3px] border-ink bg-ground text-ink motion-safe:transition-[translate,opacity] motion-safe:duration-200 motion-safe:ease-out motion-safe:starting:translate-y-3 motion-safe:starting:opacity-0 lg:hidden"
     >
-      <div className="mx-auto grid max-w-md gap-3 px-4 pt-3 pb-4">
+      <div ref={toMain} className="mx-auto grid max-w-md gap-3 px-4 pt-3 pb-4">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- the home screen icon itself, 40 px. */}
           <img
@@ -199,20 +211,35 @@ export function InstallCard({ pushKey }: { pushKey: string | null }) {
             </Link>
           ) : null}
           {asking ? (
-            <Button type="button" onClick={turnOn} disabled={push.busy}>
+            <Button
+              ref={toDone}
+              type="button"
+              onClick={() => {
+                if (!push.busy) void turnOn();
+              }}
+              aria-disabled={push.busy || undefined}
+              className={pending}
+            >
               Turn on
             </Button>
           ) : null}
           {turnedOn ? (
             <>
-              <Button type="button" onClick={() => setHidden(true)}>
+              <Button
+                id={DONE_ID}
+                type="button"
+                onClick={() => setHidden(true)}
+              >
                 Done
               </Button>
               <Button
                 type="button"
                 variant="line"
-                onClick={push.sendTest}
-                disabled={push.busy}
+                onClick={() => {
+                  if (!push.busy) void push.sendTest();
+                }}
+                aria-disabled={push.busy || undefined}
+                className={pending}
               >
                 Send a test
               </Button>

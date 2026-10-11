@@ -139,6 +139,8 @@ function Choice({
 
 // A row of square segments backed by native radios. Also the on/off for notifications in Settings > Phone app.
 // busy: dimmed and ignoring picks while a change is in flight; the radios stay focusable, so focus isn't lost.
+// The focus ring is ink on an open segment and ground on the filled one: an async pick (notifications) can leave
+// focus on a segment that isn't checked, so both need a ring that shows.
 export function Segments<T extends string>({
   name,
   label,
@@ -181,7 +183,7 @@ export function Segments<T extends string>({
               className="peer sr-only"
             />
             <span
-              className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink peer-aria-disabled:cursor-wait peer-aria-disabled:opacity-60 ${o.className ?? ""}`}
+              className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ink peer-checked:peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink peer-aria-disabled:cursor-wait peer-aria-disabled:opacity-60 ${o.className ?? ""}`}
               style={o.style}
             >
               {o.label}

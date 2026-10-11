@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { focusRegion, handOffFocus } from "@/lib/focus-handoff";
 import {
   INSTALL_DISMISS_KEY,
   pushHintMode,
@@ -12,6 +13,9 @@ import { usePushControl } from "./use-push-control";
 
 const link =
   "step text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink";
+
+// Not now takes the line away while it holds focus; focus moves to the page's main content, not the top.
+const toMain = handOffFocus(() => focusRegion(document.getElementById("main")));
 
 // /notifications: one line when this device could get these as phone notifications but doesn't yet. It is the only
 // ask on this page (the install card stays off it). Silent when push is on, blocked, unsupported or not set up for
@@ -36,7 +40,7 @@ export function PushHint({
   };
 
   return (
-    <div className="flex items-start gap-4">
+    <div ref={toMain} className="flex items-start gap-4">
       {mode === "turn-on" ? (
         <p className="min-w-0 pt-2 text-[16px] text-ink-2">
           Get these as notifications on this device too.{" "}
