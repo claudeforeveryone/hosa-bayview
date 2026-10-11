@@ -43,7 +43,9 @@ export function StudySession({
   backHref?: string;
   backLabel?: string;
 }) {
-  const [order, setOrder] = useState<StudyCard[]>(() => permutation(cards.length, seed).map((i) => cards[i]));
+  const [order, setOrder] = useState<StudyCard[]>(() =>
+    permutation(cards.length, seed).map((i) => cards[i]),
+  );
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [tally, setTally] = useState({ known: 0, learning: 0 });
@@ -86,7 +88,10 @@ export function StudySession({
     setIndex((i) => i + 1);
     if (!persist) return;
     start(async () => {
-      const result = await recordReview(id, known);
+      // No connection is a failed mark, not a crash: the round carries on and says the mark didn't save.
+      const result = await recordReview(id, known).catch(() => ({
+        error: "offline",
+      }));
       if (result.error)
         setError("That mark didn't save. Check your connection.");
       // A finished round is a flashcards roll, once the last review is saved (the server checks for it).
@@ -129,7 +134,10 @@ export function StudySession({
         </p>
         <div className="flex flex-wrap gap-3">
           <Button onClick={() => restart(cards)}>Go again</Button>
-          <Link href={backHref} className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band">
+          <Link
+            href={backHref}
+            className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band"
+          >
             {backLabel}
           </Link>
         </div>
@@ -188,7 +196,11 @@ export function StudySession({
 
       {flipped ? (
         <div className="grid grid-cols-2 gap-3">
-          <Button variant="line" onClick={() => mark(false)} aria-keyshortcuts="1">
+          <Button
+            variant="line"
+            onClick={() => mark(false)}
+            aria-keyshortcuts="1"
+          >
             Still learning
             <KeyHint n={1} />
           </Button>
