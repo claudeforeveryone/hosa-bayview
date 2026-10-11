@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     {
       title: "Notifications work",
       body: "This is how HOSA will reach you: announcements, tests, events and more.",
-      url: "/settings?tab=app",
+      url: "/settings?tab=notifications",
       tag: "hosa-test",
       kind: "test",
       // The same rule as real pushes (deliver.ts): only an explicit "off" on the Sound tab mutes it.

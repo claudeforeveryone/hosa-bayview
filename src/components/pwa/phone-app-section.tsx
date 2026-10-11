@@ -17,18 +17,18 @@ import {
 import { useInstallEnv } from "./use-install-env";
 import { usePushControl } from "./use-push-control";
 
-// Settings > Phone app: the permanent home for installing HOSA and for notifications on this device.
-export function PhoneAppTab({
+// Settings > Phone app: putting HOSA on the home screen.
+export function PhoneAppTab() {
+  return <InstallSettings />;
+}
+
+// Settings > Notifications: notifications on this device.
+export function NotificationsTab({
   vapidPublicKey,
 }: {
   vapidPublicKey: string | null;
 }) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-12">
-      <InstallSettings />
-      <NotificationSettings vapidPublicKey={vapidPublicKey} />
-    </div>
-  );
+  return <NotificationSettings vapidPublicKey={vapidPublicKey} />;
 }
 
 const copy = "text-16 text-ink-2";
@@ -145,8 +145,11 @@ function NotificationSettings({
         {ui === "needs-home-screen" ? (
           <p {...line}>
             iPhone and iPad only send web notifications to installed apps. Add
-            HOSA to your Home Screen (steps above), open it from there, and turn
-            notifications on here.
+            HOSA to your Home Screen (
+            <Link href="/settings?tab=app" className={soundLink}>
+              Phone app shows how
+            </Link>
+            ), open it from there, and turn notifications on here.
           </p>
         ) : null}
         {ui === "unsupported" ? (

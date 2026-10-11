@@ -45,7 +45,7 @@ export function PushHint({
       {mode === "turn-on" ? (
         <p className="min-w-0 flex-1 pt-2 text-16 text-ink-2">
           Get these as notifications on this device too.{" "}
-          <Link href="/settings?tab=app" className={link}>
+          <Link href="/settings?tab=notifications" className={link}>
             Turn them on in Settings
           </Link>
           .

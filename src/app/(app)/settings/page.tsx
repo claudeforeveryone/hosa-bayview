@@ -8,7 +8,7 @@ import { HelpContent } from "@/components/help-content";
 import { JoinForm } from "@/components/join-form";
 import { PageTitle } from "@/components/page-title";
 import { SendFeedback } from "@/components/send-feedback";
-import { PhoneAppTab } from "@/components/pwa/phone-app-section";
+import { NotificationsTab, PhoneAppTab } from "@/components/pwa/phone-app-section";
 import { SettingsSection } from "@/components/settings-section";
 import { requireProfile } from "@/lib/auth";
 import { feedbackEnabled } from "@/lib/feedback-enabled";
@@ -84,9 +84,10 @@ export default async function SettingsPage({
         <div className="min-w-0">
           {tab === "appearance" ? <AppearanceSection /> : null}
           {tab === "sound" ? <SoundSection /> : null}
-          {tab === "app" ? (
-            <PhoneAppTab vapidPublicKey={pushConfig()?.publicKey ?? null} />
+          {tab === "notifications" ? (
+            <NotificationsTab vapidPublicKey={pushConfig()?.publicKey ?? null} />
           ) : null}
+          {tab === "app" ? <PhoneAppTab /> : null}
           {tab === "account" ? <AccountTab /> : null}
           {tab === "events" ? (
             <EventsTab isExec={profile.role === "executive"} />

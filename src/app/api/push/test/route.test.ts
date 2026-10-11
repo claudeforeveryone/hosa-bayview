@@ -65,7 +65,7 @@ describe("POST /api/push/test", () => {
     expect(state.send).toHaveBeenCalledTimes(1);
     const [target, payload] = state.send.mock.calls[0];
     expect(target).toEqual({ endpoint: FCM, p256dh: SUB.keys.p256dh, auth: SUB.keys.auth });
-    expect(payload).toMatchObject({ url: "/settings?tab=app", silent: false });
+    expect(payload).toMatchObject({ url: "/settings?tab=notifications", silent: false });
   });
 
   it("sounds like real pushes will: silent when the device's Notification sound is off", async () => {

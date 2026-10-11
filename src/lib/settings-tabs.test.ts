@@ -28,15 +28,16 @@ describe("resolveSettingsTab", () => {
     }
   });
 
-  it("says on the desktop rail that Phone app is also where notifications are", () => {
-    const app = SETTINGS_TABS.find((t) => t.id === "app");
-    expect(`${app?.label} ${app?.more}`).toBe("Phone app and notifications");
+  it("gives notifications their own tab, apart from installing the app", () => {
+    expect(resolveSettingsTab("notifications")).toBe("notifications");
+    expect(SETTINGS_TABS.find((t) => t.id === "app")?.more).toBeUndefined();
   });
 
   it("names the tabs in plain words", () => {
     expect(SETTINGS_TABS.map((t) => t.label)).toEqual([
       "Appearance",
       "Sound",
+      "Notifications",
       "Phone app",
       "Account",
       "Events",
