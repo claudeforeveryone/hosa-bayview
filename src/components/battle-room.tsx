@@ -297,31 +297,6 @@ export function BattleRoom({ initial }: { initial: BattleState }) {
     },
   };
 
-  // Keys A-E or 1-5 answer, for laptops.
-  useEffect(() => {
-    if (phase !== "question") return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      const t = e.target as HTMLElement | null;
-      if (
-        t &&
-        (t.tagName === "INPUT" ||
-          t.tagName === "TEXTAREA" ||
-          t.isContentEditable)
-      )
-        return;
-      const k = e.key.toUpperCase();
-      const i = "ABCDE".includes(k)
-        ? "ABCDE".indexOf(k)
-        : "12345".includes(k)
-          ? "12345".indexOf(k)
-          : -1;
-      if (i >= 0 && cur && i < cur.options.length) act.answer(i);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
-
   if (gone) {
     return (
       <BattleEnded

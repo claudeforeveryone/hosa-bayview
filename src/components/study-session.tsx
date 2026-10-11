@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { recordReview } from "@/app/(app)/flashcards/actions";
 import { Button } from "@/components/form";
+import { KeyHint, KeyLine } from "@/components/key-hint";
+import { useAnswerKeys } from "@/hooks/use-answer-keys";
+import { keysLine } from "@/lib/answer-keys";
 import { feedback, feedbackThenWin } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import { permutation } from "@/lib/shuffle";
@@ -43,7 +46,10 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
     (done ? doneRef.current : cardRef.current)?.focus();
   }, [index, done]);
 
-  if (!cards.length) return null;
+  const flip = () => {
+    setFlipped((f) => !f);
+    feedback("flip");
+  };
 
   const mark = (known: boolean) => {
     const id = card.id;
@@ -73,6 +79,17 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
     setTally({ known: 0, learning: 0 });
     setError(null);
   };
+
+  // Enter or Space flips the card, as a tap does. Once it is flipped, 1 marks Still learning and 2 marks Know it.
+  useAnswerKeys({
+    enabled: cards.length > 0 && !done,
+    options: flipped ? 2 : 0,
+    onPick: (i) => mark(i === 1),
+    onEnter: flip,
+    onSpace: flip,
+  });
+
+  if (!cards.length) return null;
 
   if (done) {
     return (
@@ -111,10 +128,7 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
       <button
         ref={cardRef}
         type="button"
-        onClick={() => {
-          setFlipped((f) => !f);
-          feedback("flip");
-        }}
+        onClick={flip}
         aria-label={flipped ? `Definition: ${card.definition}. Tap to show the term.` : `Term: ${card.term}. Tap to show the definition.`}
         className="step grid min-h-64 w-full place-items-center gap-3 border border-rule-strong bg-band px-6 py-10 text-center hover:border-ink"
       >
@@ -127,12 +141,18 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
         </span>
       </button>
 
+      <KeyLine text={keysLine("Space flip", "1-2 mark")} />
+
       {flipped ? (
         <div className="grid grid-cols-2 gap-3">
-          <Button variant="line" onClick={() => mark(false)}>
+          <Button variant="line" onClick={() => mark(false)} aria-keyshortcuts="1">
             Still learning
+            <KeyHint n={1} />
           </Button>
-          <Button onClick={() => mark(true)}>Know it</Button>
+          <Button onClick={() => mark(true)} aria-keyshortcuts="2">
+            Know it
+            <KeyHint n={2} />
+          </Button>
         </div>
       ) : (
         // Same height as the buttons that replace it, so nothing under the card jumps on a flip.

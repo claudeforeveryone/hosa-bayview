@@ -10,9 +10,12 @@ import {
 import { AskTeacher, type FlagState } from "@/components/ask-teacher";
 import { Button, FormMessage } from "@/components/form";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
+import { answerKeysLabel, keysLine } from "@/lib/answer-keys";
 import { feedback, primeFeedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import type { AttemptQuestion } from "@/lib/tests";
+import { KeyHint, KeyLine } from "@/components/key-hint";
+import { useAnswerKeys } from "@/hooks/use-answer-keys";
 
 type Answer = {
   selected: number;
@@ -192,6 +195,19 @@ export function TakeTest({
     }
   };
 
+  // 1-4 (or A-D) pick the choice on screen, as a click would; Left and Right move; Enter goes on once answered.
+  useAnswerKeys({
+    enabled: !confirming,
+    options: locked ? 0 : q.choice_order.length,
+    onPick: (shown) => void pick(q.choice_order[shown]),
+    onPrev: current > 0 ? () => go(current - 1) : undefined,
+    onNext: current < rows.length - 1 ? () => go(current + 1) : undefined,
+    onEnter:
+      mine !== undefined && current < rows.length - 1
+        ? () => go(current + 1)
+        : undefined,
+  });
+
   const low = deadline !== null && remaining <= 60_000;
   const rightText =
     locked && mine?.correct_index != null
@@ -227,6 +243,10 @@ export function TakeTest({
         >
           Question {current + 1} of {rows.length}
         </h2>
+        <KeyLine
+          className="-mt-3"
+          text={keysLine(answerKeysLabel(q.choice_order.length), "← → move")}
+        />
         <SelectionCards
           key={q.question_id}
           decks={decks}
@@ -255,6 +275,7 @@ export function TakeTest({
                   type="button"
                   onClick={() => pick(original)}
                   aria-pressed={chosen}
+                  aria-keyshortcuts={`${shown + 1} ${LETTERS[shown]}`}
                   disabled={locked || submitting}
                   className={`step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-[17px] disabled:cursor-default ${tone}`}
                 >
@@ -262,6 +283,7 @@ export function TakeTest({
                     {LETTERS[shown]}
                   </span>
                   <span className="min-w-0 flex-1">{q.options[original]}</span>
+                  <KeyHint n={shown + 1} />
                   {right ? (
                     <Check
                       size={22}
