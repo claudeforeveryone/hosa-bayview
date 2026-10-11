@@ -154,7 +154,8 @@ export default function PrivacyPage() {
               grade, role and title, your stats (time on site, questions
               answered, accuracy, points and streak) on the leaderboards and
               your profile, and when you&apos;re online in an event room you
-              share. Decks you keep private stay private.
+              share. Flashcard decks you keep private are hidden from other
+              members.
             </>,
             <>
               <Term>Trainers</Term> can see the results and attendance of
@@ -162,8 +163,9 @@ export default function PrivacyPage() {
             </>,
             <>
               <Term>Executives</Term> can see every member&apos;s account
-              (including email address), classroom and attendance, and can
-              moderate.
+              (including email address), every classroom and its attendance, and
+              the list of all tests, decks and files (private decks included),
+              so they can moderate.
             </>,
             <>
               <Term>The people who run the site</Term> (Joseph &amp; Kaden) can
@@ -206,12 +208,11 @@ export default function PrivacyPage() {
             <>Server logs: on our providers&apos; own schedules.</>,
             <>
               When an account is deleted, its profile, picture, results, study
-              time, notifications and warnings go with it. Things the chapter
-              still uses, like announcements, tests, shared decks, files and
-              calendar events, stay without your name on them. Attendance lists
-              keep the name as it was typed, and the moderation log keeps the
-              names it recorded. If you want something you made removed too,
-              ask.
+              time, notifications and warnings go with it. Things you made, like
+              announcements, tests, flashcard decks, files and calendar events,
+              stay without your name on them unless you ask us to remove them
+              too. Attendance lists keep the name as it was typed, and the
+              moderation log keeps the names it recorded.
             </>,
           ]}
         </List>

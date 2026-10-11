@@ -100,9 +100,7 @@ export default function TermsPage() {
               Only post or upload what you&apos;re allowed to share with the
               chapter. Files can be up to 10 MB and profile pictures up to 2 MB.
             </>,
-            <>
-              Executives can edit or remove anything that breaks these terms.
-            </>,
+            <>Executives can remove anything that breaks these terms.</>,
           ]}
         </List>
       </LegalSection>
