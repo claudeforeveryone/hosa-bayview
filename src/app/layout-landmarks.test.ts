@@ -20,27 +20,58 @@ const VOID = new Set([
   "wbr",
 ]);
 
-// The open elements around the first <footer>, outermost first.
-function ancestorsOfFooter(html: string): string[] {
-  const stack: string[] = [];
-  for (const m of html.matchAll(/<(\/?)([a-zA-Z][\w-]*)[^>]*?(\/?)>/g)) {
-    const [, closing, raw, selfClosing] = m;
+type Open = { tag: string; attrs: string };
+
+// Walks the markup with a stack of open elements. Calls onTag for every opening tag and onText for every run of text,
+// each with the elements around it, outermost first.
+function walk(
+  html: string,
+  on: {
+    tag?: (tag: string, around: Open[]) => void;
+    text?: (text: string, around: Open[]) => void;
+  },
+) {
+  const stack: Open[] = [];
+  let last = 0;
+  for (const m of html.matchAll(/<(\/?)([a-zA-Z][\w-]*)([^>]*?)(\/?)>/g)) {
+    const text = html.slice(last, m.index).trim();
+    if (text) on.text?.(text, stack);
+    last = m.index + m[0].length;
+    const [, closing, raw, attrs, selfClosing] = m;
     const tag = raw.toLowerCase();
     if (closing) {
-      const at = stack.lastIndexOf(tag);
+      const at = stack.map((o) => o.tag).lastIndexOf(tag);
       if (at !== -1) stack.length = at;
-    } else if (tag === "footer") {
-      return stack;
-    } else if (!VOID.has(tag) && !selfClosing) {
-      stack.push(tag);
+      continue;
     }
+    on.tag?.(tag, stack);
+    if (!VOID.has(tag) && !selfClosing) stack.push({ tag, attrs });
   }
-  throw new Error("no <footer> in the page");
 }
 
-// HTML-AAM: a <footer> is the page's contentinfo landmark only when it isn't inside one of these. Otherwise screen
-// readers don't list it and axe reports its text (the credit) as outside every region.
+// HTML-AAM: a <header> or <footer> is the page's banner or contentinfo only when it isn't inside one of these.
 const SCOPING = ["article", "aside", "main", "nav", "section"];
+const scoped = (around: Open[]) => around.some((o) => SCOPING.includes(o.tag));
+
+function isLandmark(o: Open, around: Open[]) {
+  if (["main", "nav", "aside"].includes(o.tag)) return true;
+  if (o.tag === "header" || o.tag === "footer")
+    return !scoped(around.slice(0, around.indexOf(o)));
+  return false;
+}
+
+// Text that no landmark holds: what axe's "region" rule reports. Skip links ("#main") are allowed, as axe allows them.
+function textOutsideLandmarks(html: string): string[] {
+  const loose: string[] = [];
+  walk(html, {
+    text(text, around) {
+      if (around.some((o) => o.tag === "script" || o.tag === "style")) return;
+      if (around.some((o) => o.tag === "a" && /href="#/.test(o.attrs))) return;
+      if (!around.some((o) => isLandmark(o, around))) loose.push(text);
+    },
+  });
+  return loose;
+}
 
 type Layout = (props: {
   children: ReactNode;
@@ -55,15 +86,27 @@ const render = (layout: Layout) =>
     }),
   );
 
-describe("page footers are the contentinfo landmark", () => {
-  it.each([
-    ["sign-in pages", AuthLayout as unknown as Layout],
-    ["terms and privacy", LegalLayout as unknown as Layout],
-  ])("%s", (_, layout) => {
+const layouts = [
+  ["sign-in pages", AuthLayout as unknown as Layout],
+  ["terms and privacy", LegalLayout as unknown as Layout],
+] as const;
+
+describe("landmarks", () => {
+  it.each(layouts)("%s: the footer is the page's contentinfo", (_, layout) => {
     const html = render(layout);
-    expect(html.match(/<footer[\s>]/g)).toHaveLength(1);
-    const around = ancestorsOfFooter(html);
-    expect(around.filter((tag) => SCOPING.includes(tag))).toEqual([]);
+    const footers: Open[][] = [];
+    walk(html, {
+      tag: (tag, around) => tag === "footer" && footers.push([...around]),
+    });
+    expect(footers).toHaveLength(1);
+    expect(footers[0].filter((o) => SCOPING.includes(o.tag))).toEqual([]);
+  });
+
+  // The credit and the hero's screen-reader line were outside every landmark on the sign-in pages.
+  it.each(layouts)("%s: every line sits in a landmark", (_, layout) => {
+    const html = render(layout);
+    expect(html).toContain("Built with");
+    expect(textOutsideLandmarks(html)).toEqual([]);
   });
 });
 
