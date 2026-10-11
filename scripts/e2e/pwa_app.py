@@ -236,9 +236,9 @@ with sync_playwright() as p:
           return { tabs: [...ul.querySelectorAll('a')].map((a) => ({ text: a.innerText.trim(),
                      w: Math.round(a.getBoundingClientRect().width), h: Math.round(a.getBoundingClientRect().height) })),
                    overflow: ul.scrollWidth - ul.clientWidth }; }""")
-        check(f"Settings tabs at {width}: all five fit, each at least 44x44",
-              len(row["tabs"]) == 5 and row["overflow"] <= 0 and all(t["w"] >= 44 and t["h"] >= 44 for t in row["tabs"]),
-              json.dumps(row))
+        check(f"Settings tabs at {width}: all five fit, each at least 44x44, Phone app shown as Phone",
+              len(row["tabs"]) == 5 and row["overflow"] <= 0 and all(t["w"] >= 44 and t["h"] >= 44 for t in row["tabs"])
+              and row["tabs"][2]["text"].split()[0] == "PHONE", json.dumps(row))
         if width == 360:
             shot(page, "settings-tabs-360", clip={"x": 0, "y": 0, "width": 360, "height": 420})
         ctx.close()

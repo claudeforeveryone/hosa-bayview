@@ -1,5 +1,5 @@
 // The Settings tabs, in the order they show. "appearance" was "look" until the rename; old links with
-// ?tab=look still open the same tab. `short` is the phone tab row's label, so all five fit at 390 px.
+// ?tab=look still open the same tab. `short` is the phone tab row's label, so all five fit from 360 px.
 export const SETTINGS_TABS: readonly {
   id: "appearance" | "sound" | "app" | "account" | "events";
   label: string;
@@ -7,7 +7,7 @@ export const SETTINGS_TABS: readonly {
 }[] = [
   { id: "appearance", label: "Appearance" },
   { id: "sound", label: "Sound" },
-  { id: "app", label: "Phone app", short: "App" },
+  { id: "app", label: "Phone app", short: "Phone" },
   { id: "account", label: "Account" },
   { id: "events", label: "Events" },
 ];
