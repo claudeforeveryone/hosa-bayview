@@ -72,7 +72,7 @@ export function PwaLayer({
       {/* Next writes only the generic mobile-web-app-capable tag; older iPhones read this Apple one. React
           hoists it into <head>. The manifest's display: standalone covers current iOS. */}
       <meta name="apple-mobile-web-app-capable" content="yes" />
-      {card ? <InstallCard /> : null}
+      {card ? <InstallCard pushKey={signedIn ? pushKey : null} /> : null}
     </>
   );
 }

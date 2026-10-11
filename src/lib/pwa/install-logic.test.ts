@@ -121,6 +121,7 @@ const phone: InstallView = {
   standalone: false,
   phone: true,
   dismissed: false,
+  pushDismissed: false,
   canPrompt: false,
   platform: "ios",
   browser: "safari",
@@ -182,6 +183,64 @@ describe("installCardMode", () => {
         canPrompt: true,
         phone: false,
       }),
+    ).toBeNull();
+  });
+});
+
+describe("installCardMode: the notifications card", () => {
+  const iphoneApp = { ...phone, standalone: true };
+  const androidTab = {
+    ...phone,
+    platform: "android" as const,
+    browser: "chromium" as const,
+  };
+
+  it("asks the installed iPhone app to turn notifications on: the only place iOS can get them", () => {
+    expect(installCardMode(iphoneApp, "off")).toBe("notifications");
+  });
+
+  it("asks on Android, in the installed app and in the browser tab alike", () => {
+    expect(installCardMode({ ...androidTab, standalone: true }, "off")).toBe(
+      "notifications",
+    );
+    expect(installCardMode(androidTab, "off")).toBe("notifications");
+  });
+
+  it("puts installing first while the browser can still install", () => {
+    expect(installCardMode({ ...androidTab, canPrompt: true }, "off")).toBe(
+      "android-prompt",
+    );
+    expect(installCardMode(phone, "needs-home-screen")).toBe("ios");
+    // After a "Not now" on the install card, the notifications card can still come up.
+    expect(
+      installCardMode({ ...androidTab, canPrompt: true, dismissed: true }, "off"),
+    ).toBe("notifications");
+  });
+
+  it("only asks when a tap can turn it on: push set up, supported, not blocked, not on yet, Stay signed in", () => {
+    for (const state of [
+      null,
+      "on",
+      "blocked",
+      "unsupported",
+      "unavailable",
+      "needs-home-screen",
+      "needs-stay-signed-in",
+    ] as const) {
+      expect(installCardMode(iphoneApp, state), String(state)).toBeNull();
+    }
+  });
+
+  it("keeps quiet after its own Not now, on quiet pages, off phones and in other apps' browsers", () => {
+    expect(installCardMode({ ...iphoneApp, pushDismissed: true }, "off")).toBeNull();
+    expect(installCardMode({ ...iphoneApp, path: "/settings" }, "off")).toBeNull();
+    expect(installCardMode({ ...iphoneApp, path: "/battle/b1" }, "off")).toBeNull();
+    expect(installCardMode({ ...iphoneApp, phone: false }, "off")).toBeNull();
+    expect(
+      installCardMode(
+        { ...androidTab, browser: "in-app", dismissed: true },
+        "off",
+      ),
     ).toBeNull();
   });
 });

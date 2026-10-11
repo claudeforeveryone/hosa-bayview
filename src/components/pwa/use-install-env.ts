@@ -11,6 +11,7 @@ import {
   INSTALL_DISMISS_KEY,
   isDismissed,
   platformOf,
+  PUSH_CARD_DISMISS_KEY,
   type InstallView,
 } from "@/lib/pwa/install-logic";
 
@@ -23,19 +24,24 @@ export function isStandalone(): boolean {
 
 export type InstallEnv = Omit<InstallView, "path">;
 
-// Reads the browser once. Storage can throw in private windows, so a failed read counts as never dismissed.
+// Storage can throw in private windows, so a failed read counts as never dismissed.
+function stored(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+// Reads the browser once.
 export function readInstallEnv(): InstallEnv {
   const ua = navigator.userAgent;
-  let stored: string | null = null;
-  try {
-    stored = localStorage.getItem(INSTALL_DISMISS_KEY);
-  } catch {
-    stored = null;
-  }
+  const now = Date.now();
   return {
     standalone: isStandalone(),
     phone: window.matchMedia("(max-width: 767px) and (pointer: coarse)").matches,
-    dismissed: isDismissed(stored, Date.now()),
+    dismissed: isDismissed(stored(INSTALL_DISMISS_KEY), now),
+    pushDismissed: isDismissed(stored(PUSH_CARD_DISMISS_KEY), now),
     canPrompt: canPromptInstall(),
     platform: platformOf(ua, navigator.maxTouchPoints),
     browser: browserOf(ua, navigator.maxTouchPoints),
@@ -54,10 +60,13 @@ export function useInstallEnv(): InstallEnv | null {
   return env;
 }
 
-// Remember a "Not now" for 30 days. A storage failure still hides the card for this visit (the caller does that).
-export function rememberDismissal(): void {
+// Remember a "Not now" for 30 days, for the install card or the notifications card. A storage failure still hides
+// the card for this visit (the caller does that).
+export function rememberDismissal(
+  key: string = INSTALL_DISMISS_KEY,
+): void {
   try {
-    localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now()));
+    localStorage.setItem(key, String(Date.now()));
   } catch {
     // Private windows can refuse storage.
   }

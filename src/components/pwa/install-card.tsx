@@ -3,29 +3,36 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
 import { Button } from "@/components/form";
 import {
   installCardMode,
+  isQuietPath,
+  PUSH_CARD_DISMISS_KEY,
   type InstallCard as Mode,
 } from "@/lib/pwa/install-logic";
 import { promptInstall } from "@/lib/pwa/install-store";
 import { trackPwa } from "@/lib/pwa/track";
 import { AndroidMenuShortSteps, IosShortSteps } from "./install-steps";
 import { rememberDismissal, useInstallEnv } from "./use-install-env";
+import { usePushControl } from "./use-push-control";
 
 // Held back a few seconds so it never lands on top of the opening animation or the first tap.
 const SHOW_AFTER_MS = 3500;
 
-// A short card on phones in a browser tab, docked on the bottom bar. Android Chrome gets an Install button (its
-// own prompt); iPhone gets one line, Share then Add to Home Screen (iOS has no prompt), with the full steps a tap
-// away in Settings > Phone app; browsers inside other apps are asked to open the page in a real browser. "Not now"
-// hides it for 30 days; Settings > Phone app always has it.
-export function InstallCard() {
+// A short card on phones, docked on the bottom bar. In a browser tab it asks to install: Android Chrome gets an
+// Install button (its own prompt); iPhone gets one line, Share then Add to Home Screen (iOS has no prompt), with
+// the full steps a tap away in Settings > Phone app; browsers inside other apps are asked to open the page in a
+// real browser. Once installed (or the install was turned down) it asks to turn on notifications, with the same
+// flow as Settings, so the browser's permission question still comes only from that tap. "Not now" hides each
+// ask for 30 days; Settings > Phone app always has both.
+export function InstallCard({ pushKey }: { pushKey: string | null }) {
   const env = useInstallEnv();
   const path = usePathname();
+  const push = usePushControl(pushKey);
   const [ready, setReady] = useState(false);
   const [hidden, setHidden] = useState(false);
+  // Turned on from this card: it stays up to say so (and offer a test) until Done.
+  const [turnedOn, setTurnedOn] = useState(false);
   const tracked = useRef(false);
   const card = useRef<HTMLElement>(null);
 
@@ -34,12 +41,19 @@ export function InstallCard() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const mode: Mode =
-    env && ready && !hidden ? installCardMode({ ...env, path }) : null;
+  let mode: Mode = null;
+  if (env && ready && !hidden) {
+    mode = turnedOn
+      ? isQuietPath(path)
+        ? null
+        : "notifications"
+      : installCardMode({ ...env, path }, push.ui);
+  }
   const shown = mode !== null;
 
+  // Counts install asks only; turning notifications on is counted by push_enabled.
   useEffect(() => {
-    if (!mode || !env || tracked.current) return;
+    if (!mode || mode === "notifications" || !env || tracked.current) return;
     tracked.current = true;
     trackPwa({
       name: "install_prompt_shown",
@@ -72,8 +86,12 @@ export function InstallCard() {
 
   if (!mode || !env) return null;
 
+  const asking = mode === "notifications" && !turnedOn;
+
   const dismiss = () => {
-    rememberDismissal();
+    rememberDismissal(
+      mode === "notifications" ? PUSH_CARD_DISMISS_KEY : undefined,
+    );
     setHidden(true);
   };
 
@@ -84,7 +102,20 @@ export function InstallCard() {
     else dismiss();
   };
 
+  const turnOn = async () => {
+    if (await push.turnOn()) setTurnedOn(true);
+  };
+
   const hasSteps = mode === "ios" || mode === "android-menu";
+
+  const title =
+    mode === "notifications"
+      ? turnedOn
+        ? "Notifications on"
+        : "Turn on notifications"
+      : mode === "open-in-browser"
+        ? "Open in your browser"
+        : "Put HOSA on your home screen";
 
   return (
     <aside
@@ -106,18 +137,8 @@ export function InstallCard() {
             id="install-card-h"
             className="font-display min-w-0 flex-1 text-[22px] leading-[0.95] font-bold uppercase"
           >
-            {mode === "open-in-browser"
-              ? "Open in your browser"
-              : "Put HOSA on your home screen"}
+            {title}
           </h2>
-          <button
-            type="button"
-            onClick={dismiss}
-            aria-label="Close"
-            className="step press -mr-2 inline-flex size-11 shrink-0 items-center justify-center hover:bg-band"
-          >
-            <X size={22} strokeWidth={1.75} aria-hidden />
-          </button>
         </div>
 
         {mode === "android-prompt" ? (
@@ -136,6 +157,22 @@ export function InstallCard() {
             there.
           </p>
         ) : null}
+        {asking ? (
+          <p className="text-[16px] text-ink-2">
+            Get a buzz on this phone when a new test, announcement or reply
+            lands. Change it any time in Settings.
+          </p>
+        ) : null}
+        {mode === "notifications" ? (
+          // The flow's own words: a problem while asking, then "On" and how the test went.
+          <p
+            role="status"
+            aria-live="polite"
+            className={`text-[16px] empty:hidden ${push.note?.tone === "error" ? "text-danger" : "text-ink"}`}
+          >
+            {push.note?.text ?? ""}
+          </p>
+        ) : null}
 
         <div className="flex flex-wrap gap-3">
           {mode === "android-prompt" ? (
@@ -151,9 +188,30 @@ export function InstallCard() {
               Show me
             </Link>
           ) : null}
-          <Button type="button" variant="line" onClick={dismiss}>
-            Not now
-          </Button>
+          {asking ? (
+            <Button type="button" onClick={turnOn} disabled={push.busy}>
+              Turn on
+            </Button>
+          ) : null}
+          {turnedOn ? (
+            <>
+              <Button type="button" onClick={() => setHidden(true)}>
+                Done
+              </Button>
+              <Button
+                type="button"
+                variant="line"
+                onClick={push.sendTest}
+                disabled={push.busy}
+              >
+                Send a test
+              </Button>
+            </>
+          ) : (
+            <Button type="button" variant="line" onClick={dismiss}>
+              Not now
+            </Button>
+          )}
         </div>
       </div>
     </aside>

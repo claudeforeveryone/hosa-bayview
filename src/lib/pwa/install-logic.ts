@@ -1,6 +1,9 @@
 // Install-prompt decisions. Pure: the components pass in what the browser reports and get back what to show.
+import type { PushUiState } from "@/lib/push/state";
 
 export const INSTALL_DISMISS_KEY = "hosa-install-dismissed-at";
+// The notifications card has its own "Not now", so passing on the install doesn't silence it, or the other way round.
+export const PUSH_CARD_DISMISS_KEY = "hosa-push-card-dismissed-at";
 export const DISMISS_DAYS = 30;
 const DAY_MS = 86_400_000;
 
@@ -70,6 +73,8 @@ export type InstallView = {
   standalone: boolean;
   phone: boolean;
   dismissed: boolean;
+  // A recent "Not now" on the notifications card.
+  pushDismissed: boolean;
   // A beforeinstallprompt was captured.
   canPrompt: boolean;
   platform: Platform;
@@ -78,13 +83,30 @@ export type InstallView = {
 };
 
 export type InstallCard =
-  "android-prompt" | "android-menu" | "ios" | "open-in-browser" | null;
+  | "android-prompt"
+  | "android-menu"
+  | "ios"
+  | "open-in-browser"
+  | "notifications"
+  | null;
 
-// The card is for phones in a normal browser tab. The installed app, computers, quiet pages and a recent
-// "Not now" never see it.
-export function installCardMode(v: InstallView): InstallCard {
-  if (v.standalone || !v.phone || v.dismissed || isQuietPath(v.path))
-    return null;
+// The card is for phones, never on quiet pages. In a normal browser tab it asks to install (unless the member
+// said "Not now"). Once installing is done or declined, it asks to turn notifications on, but only where one tap can
+// do that: push is set up for the site and supported here, not blocked, not on yet, and the member chose Stay
+// signed in (push state "off"). On iPhone that means the installed app, the only place iOS delivers web push.
+export function installCardMode(
+  v: InstallView,
+  push: PushUiState | null = null,
+): InstallCard {
+  if (!v.phone || isQuietPath(v.path)) return null;
+  const install = v.standalone || v.dismissed ? null : installMode(v);
+  if (install) return install;
+  if (push === "off" && !v.pushDismissed && v.browser !== "in-app")
+    return "notifications";
+  return null;
+}
+
+function installMode(v: InstallView): InstallCard {
   if (v.canPrompt) return "android-prompt";
   if (v.browser === "in-app")
     return v.platform === "other" ? null : "open-in-browser";
