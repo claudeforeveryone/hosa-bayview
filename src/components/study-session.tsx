@@ -9,6 +9,7 @@ import { useAnswerKeys } from "@/hooks/use-answer-keys";
 import { keysLine } from "@/lib/answer-keys";
 import { feedback, feedbackThenWin } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
+import { sendMark } from "@/lib/review-mark";
 import { permutation } from "@/lib/shuffle";
 
 export type StudyCard = { id: string; term: string; definition: string };
@@ -89,11 +90,8 @@ export function StudySession({
     if (!persist) return;
     start(async () => {
       // No connection is a failed mark, not a crash: the round carries on and says the mark didn't save.
-      const result = await recordReview(id, known).catch(() => ({
-        error: "offline",
-      }));
-      if (result.error)
-        setError("That mark didn't save. Check your connection.");
+      const failed = await sendMark(() => recordReview(id, known));
+      if (failed) setError(failed);
       // A finished round is a flashcards roll, once the last review is saved (the server checks for it).
       else if (last) void rollLuckyBonus("flashcards");
     });
