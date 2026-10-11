@@ -1,7 +1,13 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { PAGE_SIZE, type FeedbackFilter, type Range } from "./owner-metrics";
+import {
+  PAGE_SIZE,
+  pageOf,
+  type FeedbackFilter,
+  type Range,
+} from "./owner-metrics";
 import type {
+  AuditPage,
   AuditRow,
   ContentData,
   EngagementData,
@@ -56,12 +62,19 @@ export const loadFeedback = (status: FeedbackFilter, page: number) =>
     p_offset: page * PAGE_SIZE,
   });
 
-export const loadAudit = (q: string, page: number) =>
-  call<AuditRow[]>("owner_audit", {
+// Executive viewers only (0232; admin_log's own policy): the page checks the role before it asks. One row past the
+// page comes back so the pager knows whether an older page has any rows; it isn't shown.
+export async function loadAudit(
+  q: string,
+  page: number,
+): Promise<Loaded<AuditPage>> {
+  const result = await call<AuditRow[]>("owner_audit", {
     p_q: q,
-    p_limit: PAGE_SIZE,
+    p_limit: PAGE_SIZE + 1,
     p_offset: page * PAGE_SIZE,
   });
+  return result.ok ? { ok: true, data: pageOf(result.data) } : result;
+}
 
 // System health: the database answers (and how fast, timed here), what is on it, and the newest migrations.
 export async function loadSystem(): Promise<

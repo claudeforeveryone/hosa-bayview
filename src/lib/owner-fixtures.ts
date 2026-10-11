@@ -559,15 +559,16 @@ export function feedbackFixtureFor(
   };
 }
 
+// Each line as the database writes it: role changes "old → new" (0052), the chapter code's fixed text (0090),
+// triage in the console's words (0232). Triage lines match the feedback fixture: what changed, never the text.
 export const auditFixture: AuditRow[] = [
-  // Triage lines match the feedback fixture: what changed, never the text.
   {
     id: 909,
     created_at: `${TODAY}T14:02:00Z`,
     actor_name: "Sample Owner",
     action: "feedback",
     target_name: "feedback #c0000001",
-    detail: "priority normal to high",
+    detail: "priority Normal to High",
   },
   {
     id: 908,
@@ -575,7 +576,7 @@ export const auditFixture: AuditRow[] = [
     actor_name: "Sample Executive",
     action: "role",
     target_name: "Sample Trainee D",
-    detail: "trainee to trainer",
+    detail: "trainee → trainer",
   },
   {
     id: 907,
@@ -591,7 +592,7 @@ export const auditFixture: AuditRow[] = [
     actor_name: "Sample Owner",
     action: "feedback",
     target_name: "feedback #c0000002",
-    detail: "status new to planned, note edited",
+    detail: "status New to Planned, note edited",
   },
   {
     id: 905,
@@ -599,7 +600,7 @@ export const auditFixture: AuditRow[] = [
     actor_name: "Sample Owner",
     action: "feedback",
     target_name: "feedback #c0000004",
-    detail: "status new to done, priority normal to high, note edited",
+    detail: "status New to Done, priority Normal to High, note edited",
   },
   {
     id: 904,
@@ -615,7 +616,7 @@ export const auditFixture: AuditRow[] = [
     actor_name: "Sample Executive",
     action: "chapter_code",
     target_name: "",
-    detail: "",
+    detail: "Chapter code changed",
   },
   {
     id: 902,
@@ -623,7 +624,7 @@ export const auditFixture: AuditRow[] = [
     actor_name: "Sample Executive",
     action: "feedback",
     target_name: "feedback #c0000005",
-    detail: "status new to done, note edited",
+    detail: "status New to Done, note edited",
   },
   {
     id: 901,
@@ -631,7 +632,7 @@ export const auditFixture: AuditRow[] = [
     actor_name: "Sample Owner",
     action: "feedback",
     target_name: "feedback #c0000006",
-    detail: "status new to wont_fix, note edited",
+    detail: "status New to Won't fix, note edited",
   },
   // A passcode claim names the claimer as its target; the log leaves it off.
   {

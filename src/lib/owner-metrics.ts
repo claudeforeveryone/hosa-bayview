@@ -102,6 +102,24 @@ export function pageNumber(value: unknown): number {
   return n <= 1000 ? n : 0;
 }
 
+// Whether a page older than `page` has rows, when the total is known (the feedback queue counts every status).
+export function hasOlderPage(
+  page: number,
+  total: number,
+  size = PAGE_SIZE,
+): boolean {
+  return (page + 1) * size < total;
+}
+
+// A list fetched one row longer than a page (the audit log has no total): show `size` rows, and the extra row only
+// says an older page exists.
+export function pageOf<T>(
+  rows: T[],
+  size = PAGE_SIZE,
+): { rows: T[]; hasMore: boolean } {
+  return { rows: rows.slice(0, size), hasMore: rows.length > size };
+}
+
 // Only a literal true from can_see_dev_stats() opens the console. Anything else, an error included, is a no.
 export function isStatsViewer(value: unknown): boolean {
   return value === true;
@@ -172,6 +190,17 @@ export const FILTER_LABEL: Record<FeedbackFilter, string> = {
   ...STATUS_LABEL,
   all: "All",
 };
+// How many items a filter holds: open is new plus planned, all is every status.
+export function feedbackCount(
+  counts: Record<FeedbackStatus, number>,
+  filter: FeedbackFilter,
+): number {
+  if (filter === "open") return counts.new + counts.planned;
+  if (filter === "all")
+    return counts.new + counts.planned + counts.done + counts.wont_fix;
+  return counts[filter];
+}
+
 export function parseFeedbackFilter(value: unknown): FeedbackFilter {
   return typeof value === "string" &&
     (FEEDBACK_FILTERS as readonly string[]).includes(value)

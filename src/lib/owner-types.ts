@@ -180,6 +180,9 @@ export type AuditRow = {
   detail: string;
 };
 
+// One page of the audit log, and whether an older page has rows.
+export type AuditPage = { rows: AuditRow[]; hasMore: boolean };
+
 export type SystemData = {
   db_time: string;
   features: {

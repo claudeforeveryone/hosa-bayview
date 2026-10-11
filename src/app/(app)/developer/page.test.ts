@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Loaded } from "@/lib/owner-data";
-import type { OwnerOverview, SystemData } from "@/lib/owner-types";
+import type { AuditPage, OwnerOverview, SystemData } from "@/lib/owner-types";
 
 // The /developer gate as the page applies it. Only a stats viewer gets past the first line; a refusal from any
 // owner_* function (42501, the viewer row went away mid-request) is the same not-found page; a missing function
@@ -15,9 +15,19 @@ let system: Loaded<SystemData> & { latencyMs: number | null } = {
   latencyMs: null,
 };
 let members: unknown[] | null = null;
-const loaders = { overview: vi.fn(), system: vi.fn(), members: vi.fn() };
+let audit: Loaded<AuditPage> = { ok: false, reason: "missing" };
+let role: string | null = "executive";
+const loaders = {
+  overview: vi.fn(),
+  system: vi.fn(),
+  members: vi.fn(),
+  audit: vi.fn(),
+};
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/auth", () => ({
+  getProfile: async () => (role ? { role } : null),
+}));
 vi.mock("next/navigation", () => ({
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
@@ -45,7 +55,10 @@ vi.mock("@/lib/owner-data", () => ({
   loadEngagement: async () => ({ ok: false, reason: "missing" }),
   loadContent: async () => ({ ok: false, reason: "missing" }),
   loadFeedback: async () => ({ ok: false, reason: "missing" }),
-  loadAudit: async () => ({ ok: false, reason: "missing" }),
+  loadAudit: async (...args: unknown[]) => {
+    loaders.audit(...args);
+    return audit;
+  },
 }));
 vi.mock("./actions", () => ({ triageFeedback: async () => ({}) }));
 
@@ -82,6 +95,8 @@ beforeEach(() => {
   overview = { ok: false, reason: "missing" };
   system = { ok: false, reason: "missing", latencyMs: null };
   members = null;
+  audit = { ok: false, reason: "missing" };
+  role = "executive";
   for (const l of Object.values(loaders)) l.mockClear();
 });
 
@@ -128,5 +143,42 @@ describe("/developer", () => {
     viewer = true;
     await expect(open({ tab: "members" })).rejects.toThrow("NEXT_NOT_FOUND");
     expect(loaders.members).toHaveBeenCalled();
+  });
+
+  // The audit log is admin_log, which only executives may read (0052). A stats viewer with another role keeps the
+  // console but gets a plain note on that tab, and the page never asks for the log (owner_audit refuses them too).
+  it("keeps the audit log from a stats viewer who isn't an executive, without reading it", async () => {
+    viewer = true;
+    for (const r of ["trainee", "trainer", "jobless"]) {
+      role = r;
+      const out = text(await open({ tab: "audit" }));
+      expect(out).toContain("Only executives can read the audit log");
+      expect(out).toContain("Developer");
+    }
+    expect(loaders.audit).not.toHaveBeenCalled();
+  });
+
+  it("reads the audit log for an executive viewer", async () => {
+    viewer = true;
+    audit = {
+      ok: true,
+      data: {
+        rows: [
+          {
+            id: 7,
+            created_at: "2026-10-11T12:00:00Z",
+            actor_name: "Sample Exec",
+            action: "warned",
+            target_name: "Sample Member",
+            detail: "Sample warning",
+          },
+        ],
+        hasMore: false,
+      },
+    };
+    const out = text(await open({ tab: "audit", q: "warned", p: "2" }));
+    expect(loaders.audit).toHaveBeenCalledWith("warned", 2);
+    expect(out).toContain("Sample Exec warned Sample Member");
+    expect(out).not.toContain("Only executives");
   });
 });

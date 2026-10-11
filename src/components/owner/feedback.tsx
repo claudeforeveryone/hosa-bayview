@@ -1,7 +1,8 @@
 import {
   FEEDBACK_FILTERS,
   FILTER_LABEL,
-  PAGE_SIZE,
+  feedbackCount,
+  hasOlderPage,
   type FeedbackFilter,
 } from "@/lib/owner-metrics";
 import type { FeedbackQueue } from "@/lib/owner-types";
@@ -25,13 +26,7 @@ export function FeedbackSection({
   extra?: Record<string, string>;
   readOnly?: boolean;
 }) {
-  const { counts } = queue;
-  const countFor = (f: FeedbackFilter) =>
-    f === "open"
-      ? counts.new + counts.planned
-      : f === "all"
-        ? counts.new + counts.planned + counts.done + counts.wont_fix
-        : counts[f];
+  const countFor = (f: FeedbackFilter) => feedbackCount(queue.counts, f);
   const href = (f: FeedbackFilter) => {
     const search = new URLSearchParams({ ...extra, tab: "feedback" });
     if (f !== "open") search.set("status", f);
@@ -72,7 +67,7 @@ export function FeedbackSection({
         base={base}
         params={params}
         page={page}
-        hasMore={queue.rows.length === PAGE_SIZE}
+        hasMore={hasOlderPage(page, countFor(filter))}
       />
     </Sheet>
   );

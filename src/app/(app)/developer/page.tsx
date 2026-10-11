@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { AuditSection } from "@/components/owner/audit";
+import { AuditForExecutives, AuditSection } from "@/components/owner/audit";
 import { OwnerConsole } from "@/components/owner/console";
 import { ContentSection } from "@/components/owner/content";
 import { EngagementSection } from "@/components/owner/engagement";
@@ -12,6 +12,7 @@ import { OverviewSection } from "@/components/owner/overview";
 import { Unavailable } from "@/components/owner/primitives";
 import { SystemSection } from "@/components/owner/system";
 import { parsePeriod } from "@/lib/activity";
+import { getProfile } from "@/lib/auth";
 import { deploymentFrom } from "@/lib/deployment";
 import { canSeeDevStats, getDevStats } from "@/lib/dev-stats-data";
 import {
@@ -103,10 +104,21 @@ async function section(
       );
     }
     case "audit": {
+      // The log is admin_log, which only executives may read (0052); owner_audit refuses any other viewer (0232).
+      // Such a viewer keeps the rest of the console and gets a note here instead. The profile is the layout's,
+      // already read for this request.
+      if ((await getProfile())?.role !== "executive")
+        return <AuditForExecutives />;
       const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 120) : "";
       const page = pageNumber(sp.p);
-      return settle(await loadAudit(q, page), (rows) => (
-        <AuditSection base={BASE} q={q} page={page} rows={rows} />
+      return settle(await loadAudit(q, page), (log) => (
+        <AuditSection
+          base={BASE}
+          q={q}
+          page={page}
+          rows={log.rows}
+          hasMore={log.hasMore}
+        />
       ));
     }
     case "system": {

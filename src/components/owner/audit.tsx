@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/form";
 import { auditLine } from "@/lib/owner-audit";
-import { PAGE_SIZE, stampText } from "@/lib/owner-metrics";
+import { stampText } from "@/lib/owner-metrics";
 import type { AuditRow } from "@/lib/owner-types";
 import { DataTable, Notice, Pager, Sheet } from "./primitives";
 
@@ -21,19 +21,36 @@ function feedbackHref(
   return `${base}?${search.toString()}${short ? `#feedback-${short}` : ""}`;
 }
 
+const TITLE = "Audit log";
+
+// What a stats viewer who isn't an executive gets on this tab. The log is admin_log, which only executives may read
+// (0052), and owner_audit refuses anyone else (0232), so the page doesn't ask for it.
+export function AuditForExecutives() {
+  return (
+    <Sheet id="audit-h" title={TITLE}>
+      <Notice>
+        Only executives can read the audit log. It holds bans, warnings and
+        role changes.
+      </Notice>
+    </Sheet>
+  );
+}
+
 // The admin log (0052), searchable: role changes, bans, titles, warnings, removals, code changes, feedback triage.
-// Filled by the database itself, so nothing here can be edited.
+// Filled by the database itself, so nothing here can be edited. `hasMore`: an older page has rows.
 export function AuditSection({
   base,
   q,
   page,
   rows,
+  hasMore,
   extra,
 }: {
   base: string;
   q: string;
   page: number;
   rows: AuditRow[];
+  hasMore: boolean;
   extra?: Record<string, string>;
 }) {
   const params: Record<string, string> = { ...extra, tab: "audit" };
@@ -41,7 +58,7 @@ export function AuditSection({
   return (
     <Sheet
       id="audit-h"
-      title="Audit log"
+      title={TITLE}
       note="Role, ban, title, warning, removal, code, GIF and feedback changes, newest first. Search by name, action or detail."
     >
       <form
@@ -63,7 +80,7 @@ export function AuditSection({
             type="search"
             defaultValue={q}
             maxLength={120}
-            className="step h-12 w-full min-w-0 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink"
+            className="step h-12 w-full min-w-0 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
           />
         </div>
         <Button type="submit" variant="line">
@@ -134,7 +151,7 @@ export function AuditSection({
         base={base}
         params={params}
         page={page}
-        hasMore={rows.length === PAGE_SIZE}
+        hasMore={hasMore}
       />
     </Sheet>
   );

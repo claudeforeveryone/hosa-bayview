@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { AskTeacher } from "@/components/ask-teacher";
-import { AuditSection } from "@/components/owner/audit";
+import { AuditForExecutives, AuditSection } from "@/components/owner/audit";
 import { OwnerConsole } from "@/components/owner/console";
 import { ContentSection } from "@/components/owner/content";
 import { EngagementSection } from "@/components/owner/engagement";
@@ -162,12 +162,16 @@ function section(
         />
       );
     case "audit":
-      return (
+      // ?viewer=member: what a stats viewer who isn't an executive gets (owner_audit refuses them, 0232).
+      return sp.viewer === "member" ? (
+        <AuditForExecutives />
+      ) : (
         <AuditSection
           base={BASE}
           q=""
           page={0}
           rows={auditFixture}
+          hasMore={false}
           extra={extra}
         />
       );

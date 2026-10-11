@@ -7,9 +7,12 @@ import {
   dateText,
   deltaText,
   featureState,
+  feedbackCount,
+  hasOlderPage,
   isStatsViewer,
   mostlyHidden,
   pageNumber,
+  pageOf,
   parseFeedbackFilter,
   parseRange,
   parseTab,
@@ -169,5 +172,35 @@ describe("mostlyHidden", () => {
     expect(mostlyHidden([184, 27, null, 96])).toBe(false);
     expect(mostlyHidden([0, 0, 0, null])).toBe(false);
     expect(mostlyHidden([])).toBe(false);
+  });
+});
+
+// The feedback queue and the audit log page 50 at a time. "Older" shows only when an older page has rows: a filter
+// with exactly 50 (or 100) items used to offer an Older link to an empty page.
+describe("paging", () => {
+  const counts = { new: 30, planned: 20, done: 51, wont_fix: 0 };
+
+  it("counts each feedback filter the way the chips do", () => {
+    expect(feedbackCount(counts, "open")).toBe(50);
+    expect(feedbackCount(counts, "all")).toBe(101);
+    expect(feedbackCount(counts, "done")).toBe(51);
+    expect(feedbackCount(counts, "wont_fix")).toBe(0);
+  });
+
+  it("offers an older page only when there are rows past this one", () => {
+    expect(hasOlderPage(0, 50)).toBe(false);
+    expect(hasOlderPage(0, 51)).toBe(true);
+    expect(hasOlderPage(1, 100)).toBe(false);
+    expect(hasOlderPage(1, 101)).toBe(true);
+    expect(hasOlderPage(0, 0)).toBe(false);
+    expect(hasOlderPage(3, 10)).toBe(false);
+  });
+
+  it("reads a list fetched one row long: the extra row is never shown, it only says there is more", () => {
+    const rows = (n: number) => Array.from({ length: n }, (_, i) => i);
+    expect(pageOf(rows(51))).toEqual({ rows: rows(50), hasMore: true });
+    expect(pageOf(rows(50))).toEqual({ rows: rows(50), hasMore: false });
+    expect(pageOf(rows(3))).toEqual({ rows: rows(3), hasMore: false });
+    expect(pageOf([])).toEqual({ rows: [], hasMore: false });
   });
 });
