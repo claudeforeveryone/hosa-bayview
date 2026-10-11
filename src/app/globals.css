@@ -625,6 +625,20 @@
   .drawer[open] { animation: fade-in 150ms ease-out both; }
 }
 
+/* Phone More sheet: rises from the bottom bar it opens from; the dim fades. Fade only under Reduce Motion. */
+.sheet[open] {
+  animation: sheet-in 240ms var(--ease-out) both;
+}
+.sheet[open]::backdrop {
+  animation: fade-in 200ms ease-out both;
+}
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] { animation: fade-in 150ms ease-out both; }
+}
+
 /* Board menus: the panel settles in from its trigger. Opacity alone under Reduce Motion. */
 .board-menu[open] > .board-menu-panel {
   animation: board-menu-in 180ms cubic-bezier(0.23, 1, 0.32, 1) both;

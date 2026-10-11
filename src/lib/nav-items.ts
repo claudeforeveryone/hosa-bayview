@@ -1,6 +1,9 @@
 // The app's navigation, as data. Pure, so which links each role sees is testable apart from the nav component.
 import {
   CalendarDays,
+  ClipboardCheck,
+  LifeBuoy,
+  Settings,
   ChartLine,
   Ellipsis,
   Grid2x2,
@@ -17,7 +20,7 @@ import {
 import { BLC_ENABLED } from "@/lib/features";
 
 // `chapter`: listed in the Chapter group (a dropdown in the sidebar). `bottom`: one of the phone shortcut bar's five.
-// Settings, Help and Log out live on /more, so the panel stays short. Tests and Flashcards have no entry:
+// Settings, Help and Log out live in the More dropdown (MORE_ITEMS), so the panel stays short. Tests and Flashcards have no entry:
 // their routes still work (deep links, classroom tabs).
 export type NavItem = {
   href: string;
@@ -124,8 +127,12 @@ const ITEMS: NavItem[] = [
     label: "More",
     short: "More",
     Icon: Ellipsis,
-    // Settings and Help are reached from More, so it stays lit there.
-    match: (p) => p.startsWith("/more") || p.startsWith("/settings") || p.startsWith("/help"),
+    // Settings, Help and Attendance are reached from More, so it stays lit there.
+    match: (p) =>
+      p.startsWith("/more") ||
+      p.startsWith("/settings") ||
+      p.startsWith("/help") ||
+      p.startsWith("/admin/attendance"),
     bottom: true,
   },
 ];
@@ -145,4 +152,43 @@ export function bottomItemsFor(isExec: boolean): NavItem[] {
 // Executives see every room already, so they never need it in the panel.
 export function showJoinLink(isExec: boolean, roomCount: number): boolean {
   return !isExec && roomCount === 0;
+}
+
+// What the More dropdown holds (sidebar group and the phone bar's More sheet), above Log out.
+const MORE_ITEMS: NavItem[] = [
+  {
+    href: "/settings",
+    label: "Settings",
+    short: "Settings",
+    Icon: Settings,
+    match: (p) => p.startsWith("/settings"),
+  },
+  {
+    href: "/admin/attendance",
+    label: "Attendance",
+    short: "Attendance",
+    Icon: ClipboardCheck,
+    match: (p) => p.startsWith("/admin/attendance"),
+    exec: true,
+  },
+  {
+    href: "/help",
+    label: "Help",
+    short: "Help",
+    Icon: LifeBuoy,
+    match: (p) => p.startsWith("/help"),
+  },
+];
+
+export function moreItemsFor(isExec: boolean): NavItem[] {
+  return MORE_ITEMS.filter((i) => !i.exec || isExec);
+}
+
+// The phone bar's More sheet: every place the bar has no room for, then the More items.
+export function sheetItemsFor(isExec: boolean): NavItem[] {
+  const onBar = new Set(bottomItemsFor(isExec).map((i) => i.href));
+  return [
+    ...navItemsFor(isExec).filter((i) => !onBar.has(i.href) && i.href !== "/more"),
+    ...moreItemsFor(isExec),
+  ];
 }

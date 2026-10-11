@@ -3,13 +3,20 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown, Menu, Plus, X } from "lucide-react";
+import { ArrowRight, ChevronDown, LogOut, Menu, Plus, X } from "lucide-react";
 import { ClassicLogo } from "@/components/classic-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Credit } from "@/components/credit";
 import { formNumber } from "@/lib/join-code";
-import { bottomItemsFor, navItemsFor, showJoinLink } from "@/lib/nav-items";
+import { logout } from "@/app/(auth)/actions";
+import {
+  bottomItemsFor,
+  moreItemsFor,
+  navItemsFor,
+  sheetItemsFor,
+  showJoinLink,
+} from "@/lib/nav-items";
 
 export type NavRoom = { id: string; num: number; name: string };
 type Props = {
@@ -27,6 +34,8 @@ function useItems(isExec: boolean) {
     path,
     items: withActive(navItemsFor(isExec)),
     bottom: withActive(bottomItemsFor(isExec)),
+    more: withActive(moreItemsFor(isExec)),
+    sheet: withActive(sheetItemsFor(isExec)),
   };
 }
 
@@ -64,7 +73,7 @@ function Group({
 
 // The whole app in one column: where to go and the classrooms you are in.
 function PanelBody({ isExec, canTeach, rooms }: Props) {
-  const { path, items } = useItems(isExec);
+  const { path, items, more } = useItems(isExec);
   const link = ({ href, label, Icon, active }: (typeof items)[number]) => (
     <li key={href}>
       <Link
@@ -89,7 +98,7 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
   return (
     <>
       <nav aria-label="Main">
-        <ul>{items.filter((i) => !i.chapter).map(link)}</ul>
+        <ul>{items.filter((i) => !i.chapter && i.href !== "/more").map(link)}</ul>
         {/* Chapter pages are everyday stops, so the group always starts open. */}
         <Group title="Chapter" open>
           <ul className="mt-1">{chapter.map(link)}</ul>
@@ -150,6 +159,20 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
           </ul>
         </Group>
       </section>
+
+      <Group title="More" open={more.some((i) => i.active) || path === "/more"}>
+        <ul className="mt-1">
+          {more.map(link)}
+          <li>
+            <form action={logout}>
+              <button type="submit" className={`${row} w-full ${rowState(false)}`}>
+                <LogOut size={22} strokeWidth={1.75} aria-hidden />
+                <span className="caps nav-label text-[19px]">Log out</span>
+              </button>
+            </form>
+          </li>
+        </ul>
+      </Group>
     </>
   );
 }
@@ -249,9 +272,27 @@ export function MobileBar(props: Props) {
   );
 }
 
-// Phone: fixed navy bar with the five main places; the active glyph fills.
+// Phone: fixed navy bar with the five main places; the active glyph fills. More opens a sheet with the rest.
 export function BottomNav({ isExec }: { isExec: boolean }) {
-  const { bottom } = useItems(isExec);
+  const { path, bottom, sheet } = useItems(isExec);
+  const sheetRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    sheetRef.current?.close();
+  }, [path]);
+
+  const tab = (active: boolean) =>
+    `step flex h-16 w-full flex-col items-center justify-center gap-1 border-t-[3px] ${
+      active ? "border-you text-on-field" : "border-transparent text-on-field-2"
+    }`;
+  const glyph = (active: boolean) => ({
+    size: 24,
+    strokeWidth: 1.75,
+    fill: active ? "currentColor" : "none",
+    fillOpacity: active ? 0.25 : 0,
+    "aria-hidden": true,
+  });
+
   return (
     <nav
       aria-label="Shortcuts"
@@ -261,27 +302,69 @@ export function BottomNav({ isExec }: { isExec: boolean }) {
       <ul className="grid auto-cols-fr grid-flow-col">
         {bottom.map(({ href, short, Icon, active }) => (
           <li key={href}>
-            <Link
-              href={href}
-              aria-current={active ? "page" : undefined}
-              className={`step flex h-16 flex-col items-center justify-center gap-1 border-t-[3px] ${
-                active
-                  ? "border-you text-on-field"
-                  : "border-transparent text-on-field-2"
-              }`}
-            >
-              <Icon
-                size={24}
-                strokeWidth={1.75}
-                fill={active ? "currentColor" : "none"}
-                fillOpacity={active ? 0.25 : 0}
-                aria-hidden
-              />
-              <span className="caps text-[13px] leading-none">{short}</span>
-            </Link>
+            {href === "/more" ? (
+              <button
+                type="button"
+                onClick={() => sheetRef.current?.showModal()}
+                aria-haspopup="dialog"
+                className={tab(active)}
+              >
+                <Icon {...glyph(active)} />
+                <span className="caps text-[13px] leading-none">{short}</span>
+              </button>
+            ) : (
+              <Link href={href} aria-current={active ? "page" : undefined} className={tab(active)}>
+                <Icon {...glyph(active)} />
+                <span className="caps text-[13px] leading-none">{short}</span>
+              </Link>
+            )}
           </li>
         ))}
       </ul>
+      <dialog
+        ref={sheetRef}
+        aria-label="More"
+        onClick={(e) => {
+          // Backdrop taps and link taps both close it.
+          const target = e.target as HTMLElement;
+          if (target === sheetRef.current || target.closest("a")) sheetRef.current?.close();
+        }}
+        className="sheet m-0 mt-auto max-h-[80dvh] w-full max-w-none overflow-y-auto border-0 border-t-[3px] border-on-field bg-field p-0 text-on-field backdrop:bg-[#0f2440]/60"
+      >
+        <div className="flex items-center justify-between px-5 pt-3 pb-2">
+          <h2 className="caps text-[15px] text-on-field-2">More</h2>
+          <button
+            type="button"
+            onClick={() => sheetRef.current?.close()}
+            aria-label="Close"
+            className="-mr-2 grid size-11 place-items-center"
+          >
+            <X size={24} strokeWidth={1.75} aria-hidden />
+          </button>
+        </div>
+        <ul className="pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          {sheet.map(({ href, label, Icon, active }) => (
+            <li key={href}>
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`${row} h-14 ${rowState(active)}`}
+              >
+                <Icon size={22} strokeWidth={1.75} aria-hidden />
+                <span className="caps nav-label text-[19px]">{label}</span>
+              </Link>
+            </li>
+          ))}
+          <li className="mt-1 border-t border-on-field-2/40">
+            <form action={logout}>
+              <button type="submit" className={`${row} h-14 w-full text-on-field-danger hover:bg-field-2`}>
+                <LogOut size={22} strokeWidth={1.75} aria-hidden />
+                <span className="caps nav-label text-[19px]">Log out</span>
+              </button>
+            </form>
+          </li>
+        </ul>
+      </dialog>
     </nav>
   );
 }
