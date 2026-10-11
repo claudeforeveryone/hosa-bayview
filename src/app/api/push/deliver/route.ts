@@ -7,7 +7,7 @@ import { makeSender } from "@/lib/push/sender";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// The drain stops claiming new batches after 40 s; this leaves room to finish the last one.
+// The drain starts no new claim or wave of pushes after 40 s, and no push runs past 12 s, so it reports by ~52 s.
 export const maxDuration = 60;
 
 const NO_STORE = { "Cache-Control": "no-store" };

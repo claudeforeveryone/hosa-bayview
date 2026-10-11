@@ -268,6 +268,105 @@ describe("drainOutbox", () => {
     expect(result.notifications).toBe(1);
   });
 
+  // A batch goes out ten pushes at a time. When push services hang, waves of up to the per-send deadline add up,
+  // so the budget is also checked before each wave: the route must report before the platform stops it.
+  describe("time budget inside a batch", () => {
+    // n1 on nine devices and n2 on two: the first wave is n1's nine plus n2's first device, the second wave n2's
+    // second device.
+    const devices = Array.from(
+      { length: 11 },
+      (_, i) => `https://fcm.googleapis.com/fcm/send/d${i}`,
+    );
+    const batch = () => [
+      ...devices.slice(0, 9).map((endpoint) => row({ endpoint })),
+      ...devices
+        .slice(9)
+        .map((endpoint) => row({ notification_id: "n2", endpoint })),
+    ];
+
+    it("stops before a wave that would start after the budget, and hands what wasn't sent back untried", async () => {
+      const { outbox, reports, claim } = fakeOutbox([batch()]);
+      let now = 0;
+      const send = vi.fn<Sender>(async () => {
+        now += 5_000;
+        return { ok: true };
+      });
+      const result = await drainOutbox(outbox, send, {
+        budgetMs: 40_000,
+        now: () => now,
+      });
+      // Ten sends at 5 s each puts the clock at 50 s: the second wave never starts and nothing more is claimed.
+      expect(send).toHaveBeenCalledTimes(10);
+      expect(claim).toHaveBeenCalledTimes(1);
+      expect(reports).toEqual([
+        {
+          done: ["n1"],
+          // d9 has it; d10 was never tried, so this try doesn't count against n2 and no device takes a strike.
+          retry: [{ id: "n2", delivered: [devices[9]], untried: true }],
+          ok: devices.slice(0, 10),
+          failed: [],
+          gone: [],
+        },
+      ]);
+      expect(result).toEqual({
+        notifications: 1,
+        sent: 10,
+        failed: 0,
+        removed: 0,
+        retried: 1,
+      });
+    });
+
+    it("counts the try as usual when a device that was tried had a passing failure", async () => {
+      const { outbox, reports } = fakeOutbox([batch()]);
+      let now = 0;
+      const send: Sender = async (target) => {
+        now += 5_000;
+        return target.endpoint === devices[9]
+          ? { ok: false, statusCode: 503, gone: false }
+          : { ok: true };
+      };
+      await drainOutbox(outbox, send, { budgetMs: 40_000, now: () => now });
+      expect(reports[0].retry).toEqual([{ id: "n2", delivered: [] }]);
+      expect(reports[0].failed).toEqual([]);
+    });
+
+    it("hands back untried on the last try too, after the devices that failed take their strike", async () => {
+      const { outbox, reports } = fakeOutbox([
+        batch().map((r) => ({ ...r, attempts: 5 })),
+      ]);
+      let now = 0;
+      const send: Sender = async (target) => {
+        now += 5_000;
+        return target.endpoint === devices[9]
+          ? { ok: false, statusCode: 503, gone: false }
+          : { ok: true };
+      };
+      await drainOutbox(outbox, send, { budgetMs: 40_000, now: () => now });
+      expect(reports[0].retry).toEqual([
+        { id: "n2", delivered: [devices[9]], untried: true },
+      ]);
+      expect(reports[0].failed).toEqual([devices[9]]);
+    });
+
+    it("gives up on a push that hangs past the send deadline and treats it as a passing failure", async () => {
+      const { outbox, reports } = fakeOutbox([[row({})]]);
+      const result = await drainOutbox(
+        outbox,
+        () => new Promise<never>(() => {}),
+        { sendTimeoutMs: 20 },
+      );
+      expect(reports[0]).toEqual({
+        done: [],
+        retry: [{ id: "n1", delivered: [] }],
+        ok: [],
+        failed: [],
+        gone: [],
+      });
+      expect(result.retried).toBe(1);
+    });
+  });
+
   it("lists a device once per report even when it got several notifications", async () => {
     const { outbox, reports } = fakeOutbox([
       [row({ notification_id: "n1" }), row({ notification_id: "n2" })],

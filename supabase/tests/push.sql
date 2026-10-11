@@ -306,5 +306,39 @@ select public.push_report('test-secret-0123456789abcdefghijklmnopqrstuv', array[
   '[{"id": 1, "delivered": "x"}, 5, {"id": "not-a-uuid", "delivered": [1]}]');
 select pg_temp.check('E8 a malformed retry list is ignored, not an error', true);
 
+-- The route ran out of time before trying every device: an "untried" hand-back gives the try back.
+select pg_temp.as_admin();
+delete from private.push_outbox;
+select private.notify(array[pg_temp.u(1)], 'announcement', 'Out of time', '', '/announcements');
+delete from claimed;
+select pg_temp.as_anon();
+insert into claimed select * from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50);
+select public.push_report('test-secret-0123456789abcdefghijklmnopqrstuv', array[]::uuid[],
+  array[current_setting('push.e2')], '{}', '{}',
+  jsonb_build_array(jsonb_build_object('id', (select notification_id from claimed limit 1),
+                                       'delivered', jsonb_build_array(current_setting('push.e2')), 'untried', true)));
+select pg_temp.as_admin();
+select pg_temp.check('E9 an untried hand-back stays queued, notes the device that has it and gives the try back',
+  (select count(*) = 1 and bool_and(attempts = 0) and bool_and(delivered = array[current_setting('push.e2')])
+     and bool_and(locked_until = now() + interval '1 minute') from private.push_outbox));
+update private.push_outbox set attempts = 4, locked_until = null;
+delete from claimed;
+select pg_temp.as_anon();
+insert into claimed select * from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50);
+select public.push_report('test-secret-0123456789abcdefghijklmnopqrstuv', array[]::uuid[], '{}', '{}', '{}',
+  jsonb_build_array(jsonb_build_object('id', (select notification_id from claimed limit 1),
+                                       'delivered', '[]'::jsonb, 'untried', true)));
+select pg_temp.as_admin();
+update private.push_outbox set locked_until = null;
+select pg_temp.as_anon();
+select pg_temp.check('E10 cut short on its fifth try, it is still handed out to the device that missed it',
+  (select count(*) = 1 and bool_and(endpoint = current_setting('push.e3')) and bool_and(attempts = 5)
+   from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50)));
+select public.push_report('test-secret-0123456789abcdefghijklmnopqrstuv', array[]::uuid[], '{}', '{}', '{}',
+  jsonb_build_array(jsonb_build_object('id', (select notification_id from claimed limit 1), 'untried', 'yes')));
+select pg_temp.as_admin();
+select pg_temp.check('E11 anything but untried: true counts the try',
+  (select count(*) = 1 and bool_and(attempts = 5) from private.push_outbox));
+
 select 'push: all checks passed' as result;
 rollback;

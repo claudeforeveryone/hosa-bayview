@@ -28,9 +28,11 @@ export const MAX_ATTEMPTS = 5;
 export type Report = {
   // Notifications that leave the queue.
   done: string[];
-  // Notifications that stay queued for another try because the push service had a passing problem. delivered
-  // lists the devices that already have it (or will never take it), so the next try skips them.
-  retry: { id: string; delivered: string[] }[];
+  // Notifications that stay queued for another try because the push service had a passing problem, or because
+  // the time budget ran out before every device was tried. delivered lists the devices that already have it (or
+  // will never take it), so the next try skips them. untried: some devices weren't tried this time and none had a
+  // passing failure, so push_report gives the try back (it doesn't count towards the 5).
+  retry: { id: string; delivered: string[]; untried?: true }[];
   // Devices that took a push (failure count reset).
   ok: string[];
   // Devices that refused in a way a retry won't fix, or still failed on the last try (one more failure; the
@@ -77,15 +79,20 @@ const BATCH = 50;
 // Pushes in flight at once, so a big announcement doesn't open hundreds of sockets.
 const PARALLEL = 10;
 
+// The time budget is checked before each claim and before each wave of PARALLEL pushes, and no push may take longer
+// than sendTimeoutMs (web-push's own timeout only covers an idle socket). So the last wave starts before budgetMs
+// and ends by budgetMs + sendTimeoutMs, which leaves the route (maxDuration 60 s) time to report.
 export async function drainOutbox(
   outbox: Outbox,
   send: Sender,
   {
     budgetMs = 40_000,
+    sendTimeoutMs = 12_000,
     now = Date.now,
-  }: { budgetMs?: number; now?: () => number } = {},
+  }: { budgetMs?: number; sendTimeoutMs?: number; now?: () => number } = {},
 ): Promise<DrainResult> {
   const started = now();
+  const inBudget = () => now() - started < budgetMs;
   const total: DrainResult = {
     notifications: 0,
     sent: 0,
@@ -94,7 +101,7 @@ export async function drainOutbox(
     retried: 0,
   };
 
-  while (now() - started < budgetMs) {
+  while (inBudget()) {
     const rows = await outbox.claim(BATCH);
     if (rows.length === 0) break;
 
@@ -104,17 +111,23 @@ export async function drainOutbox(
     );
     const outcomes: { job: ClaimRow & { endpoint: string }; outcome: SendOutcome }[] =
       [];
-    for (let i = 0; i < jobs.length; i += PARALLEL) {
-      const slice = jobs.slice(i, i + PARALLEL);
+    let sentUpTo = 0;
+    while (sentUpTo < jobs.length && inBudget()) {
+      const slice = jobs.slice(sentUpTo, sentUpTo + PARALLEL);
       outcomes.push(
         ...(await Promise.all(
           slice.map(async (job) => ({
             job,
-            outcome: await safeSend(send, job),
+            outcome: await safeSend(send, job, sendTimeoutMs),
           })),
         )),
       );
+      sentUpTo += slice.length;
     }
+    // Out of time before every device was tried: those notifications go back to the queue as they are.
+    const untried = new Set(
+      jobs.slice(sentUpTo).map((job) => job.notification_id),
+    );
 
     const ok = new Set<string>();
     const failed = new Set<string>();
@@ -140,11 +153,17 @@ export async function drainOutbox(
       failed.delete(endpoint);
     }
 
-    const done = [...finished.keys()].filter((id) => !again.has(id));
-    const retry = [...again].map((id) => ({
-      id,
-      delivered: [...new Set(finished.get(id))],
-    }));
+    const done = [...finished.keys()].filter(
+      (id) => !again.has(id) && !untried.has(id),
+    );
+    const retry: Report["retry"] = [...finished.keys()]
+      .filter((id) => again.has(id) || untried.has(id))
+      .map((id) => ({
+        id,
+        delivered: [...new Set(finished.get(id))],
+        // A passing failure on a device that was tried counts the try as usual.
+        ...(again.has(id) ? {} : { untried: true as const }),
+      }));
 
     // A report that fails throws: the lease then runs out and the rows are claimed again. A repeat push carries
     // the same tag, so the phone replaces the first one instead of showing it twice.
@@ -165,16 +184,29 @@ export async function drainOutbox(
   return total;
 }
 
+const NO_ANSWER: SendOutcome = { ok: false, statusCode: null, gone: false };
+
+// A throw or a push still out after the deadline is a passing failure (no status), so it is tried again later.
 async function safeSend(
   send: Sender,
   job: ClaimRow & { endpoint: string; p256dh: string; auth: string },
+  timeoutMs: number,
 ): Promise<SendOutcome> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<SendOutcome>((resolve) => {
+    timer = setTimeout(() => resolve(NO_ANSWER), timeoutMs);
+  });
   try {
-    return await send(
-      { endpoint: job.endpoint, p256dh: job.p256dh, auth: job.auth },
-      buildPayload(job, job.sound !== false),
-    );
+    return await Promise.race([
+      send(
+        { endpoint: job.endpoint, p256dh: job.p256dh, auth: job.auth },
+        buildPayload(job, job.sound !== false),
+      ),
+      deadline,
+    ]);
   } catch {
-    return { ok: false, statusCode: null, gone: false };
+    return NO_ANSWER;
+  } finally {
+    clearTimeout(timer);
   }
 }

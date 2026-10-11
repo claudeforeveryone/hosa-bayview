@@ -188,9 +188,11 @@ end;
 $$;
 
 -- What happened. p_done leaves the queue; p_retry ([{"id": <notification>, "delivered": [<endpoint>, ...]}]) stays
--- queued, notes the devices that already have it, and waits a minute per try so far before the next one; p_ok
--- resets a device's failure count; p_failed counts one more failure and drops a device at 10 in a row; p_gone
--- (404/410 from the push service) drops the device at once.
+-- queued, notes the devices that already have it, and waits a minute per try so far before the next one. A retry
+-- entry with "untried": true (the route ran out of time before trying every device, and none it tried had a passing
+-- failure) gets that try back, so a run cut short never uses up the 5. p_ok resets a device's failure count;
+-- p_failed counts one more failure and drops a device at 10 in a row; p_gone (404/410 from the push service) drops
+-- the device at once.
 create or replace function public.push_report(
   p_secret text,
   p_done uuid[],
@@ -227,6 +229,7 @@ begin
           select jsonb_array_elements_text(
             case when jsonb_typeof(r.value -> 'delivered') = 'array' then r.value -> 'delivered' else '[]'::jsonb end))) e
       ),
+      attempts = case when r.value -> 'untried' = 'true'::jsonb then greatest(o.attempts - 1, 0) else o.attempts end,
       locked_until = now() + make_interval(mins => o.attempts)
   from jsonb_array_elements(
     case when jsonb_typeof(p_retry) = 'array' then p_retry else '[]'::jsonb end) r
