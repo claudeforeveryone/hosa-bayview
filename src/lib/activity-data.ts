@@ -71,27 +71,60 @@ type RawDetail = {
 
 // Picture (a short-lived signed URL) and grade for every member, once per request. Pictures are decoration:
 // if this lookup fails, pages still render, with initials.
-export const getMemberDetails = cache(async (): Promise<Map<string, MemberDetail>> => {
+export const getMemberDetails = cache(
+  async (): Promise<Map<string, MemberDetail>> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("member_details");
+    if (error) {
+      console.error("[activity] member details:", error.message);
+      return new Map();
+    }
+    const rows = (data ?? []) as RawDetail[];
+    const sources = await avatarSources(rows.map((r) => r.avatar_path));
+    return new Map(
+      rows.map((r) => [
+        r.user_id,
+        {
+          user_id: r.user_id,
+          grade: r.grade,
+          title: r.title,
+          avatar_url: r.avatar_path
+            ? (sources.get(r.avatar_path) ?? null)
+            : null,
+        },
+      ]),
+    );
+  },
+);
+
+// One member's picture, grade and title, for their member page. Since 0206 the full list above gives grade and
+// title only for your own row (or to an executive), so other members' pages ask for the one row. Before 0206 is in
+// the database the function is missing (PGRST202) and the full list still has every row, so it is used instead.
+export async function getMemberDetail(
+  userId: string,
+): Promise<MemberDetail | null> {
+  if (!uuid.safeParse(userId).success) return null;
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("member_details");
-  if (error) {
-    console.error("[activity] member details:", error.message);
-    return new Map();
+  const { data, error } = await supabase.rpc("member_detail", {
+    uid: userId,
+  });
+  if (error?.code === "PGRST202") {
+    return (await getMemberDetails()).get(userId) ?? null;
   }
-  const rows = (data ?? []) as RawDetail[];
-  const sources = await avatarSources(rows.map((r) => r.avatar_path));
-  return new Map(
-    rows.map((r) => [
-      r.user_id,
-      {
-        user_id: r.user_id,
-        grade: r.grade,
-        title: r.title,
-        avatar_url: r.avatar_path ? (sources.get(r.avatar_path) ?? null) : null,
-      },
-    ]),
-  );
-});
+  if (error) {
+    console.error("[activity] member detail:", error.message);
+    return null;
+  }
+  const row = ((data ?? []) as RawDetail[])[0];
+  if (!row) return null;
+  const sources = await avatarSources([row.avatar_path]);
+  return {
+    user_id: row.user_id,
+    grade: row.grade,
+    title: row.title,
+    avatar_url: row.avatar_path ? (sources.get(row.avatar_path) ?? null) : null,
+  };
+}
 
 // Club board when classroomId is null, otherwise that classroom's board.
 export async function getBoard(
@@ -198,5 +231,8 @@ export async function getRecentBonuses(userId: string): Promise<BonusRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("recent_bonuses", { uid: userId });
   if (error) throw new Error(`Bonus lookup failed: ${error.message}`);
-  return ((data ?? []) as BonusRow[]).map((r) => ({ ...r, amount: Number(r.amount) }));
+  return ((data ?? []) as BonusRow[]).map((r) => ({
+    ...r,
+    amount: Number(r.amount),
+  }));
 }

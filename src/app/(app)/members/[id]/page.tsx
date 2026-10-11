@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { MemberStatRows, RecentBonuses } from "@/components/member-stats";
 import {
-  getMemberDetails,
+  getMemberDetail,
   getMemberStats,
   getRecentBonuses,
 } from "@/lib/activity-data";
@@ -18,14 +18,14 @@ export const metadata: Metadata = { title: "Member" };
 export default async function MemberPage(props: PageProps<"/members/[id]">) {
   const { id } = await props.params;
   const me = await requireProfile();
-  const [stats, details] = await Promise.all([
+  // One member's picture, grade and title (0206); the bulk list only carries grade and title for yourself.
+  const [stats, detail] = await Promise.all([
     getMemberStats(id),
-    getMemberDetails(),
+    getMemberDetail(id),
   ]);
   if (!stats) notFound();
   // A failed bonus lookup leaves the line out rather than failing the profile.
   const bonuses = await getRecentBonuses(id).catch(() => []);
-  const detail = details.get(stats.user_id);
 
   return (
     <div className="grid max-w-2xl gap-8">
