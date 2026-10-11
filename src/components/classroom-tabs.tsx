@@ -66,19 +66,21 @@ export function ClassroomTabs({
     return () => window.removeEventListener("resize", measure);
   }, [path]);
 
-  // On phones the strip scrolls; keep the current tab on screen.
+  // On phones the strip scrolls; keep the current tab on screen and clear of the edge chevrons (40 px each).
   useEffect(() => {
     const scroller = nav.current;
     const tab = strip.current?.querySelector<HTMLElement>(
       '[aria-current="page"]',
     );
     if (!scroller || !tab) return;
+    const EDGE = 48;
     const left = tab.offsetLeft;
+    const right = left + tab.offsetWidth;
     if (
-      left < scroller.scrollLeft ||
-      left + tab.offsetWidth > scroller.scrollLeft + scroller.clientWidth
+      left < scroller.scrollLeft + EDGE ||
+      right > scroller.scrollLeft + scroller.clientWidth - EDGE
     ) {
-      scroller.scrollLeft = left - 16;
+      scroller.scrollLeft = left - EDGE;
     }
   }, [path]);
 
