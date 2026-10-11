@@ -4,6 +4,10 @@ import { countText, percentText, stampText } from "@/lib/owner-metrics";
 import type { ContentData, ContentEventRow } from "@/lib/owner-types";
 import { DataTable, Figure, Figures, Notice, Sheet } from "./primitives";
 
+// Shown instead of a question's words to a stats viewer who isn't an executive (0232 sends null): drafts and mock
+// competitions that haven't opened stay unread.
+const WORDING_HIDDEN = "Wording shown to executives only.";
+
 // Content health: the question bank across every event. These counts are about the material, not about people,
 // so they are exact.
 export function ContentSection({ data }: { data: ContentData }) {
@@ -28,9 +32,9 @@ export function ContentSection({ data }: { data: ContentData }) {
             note={noExplain ? `${noExplain} of all questions` : null}
           />
           <Figure
-            label="Repeated"
+            label="Repeated in one event"
             value={countText(repeated)}
-            note="Extra copies inside one event"
+            note="Extra copies of a question its own event already has"
           />
           <Figure
             label="Open reports"
@@ -57,9 +61,13 @@ export function ContentSection({ data }: { data: ContentData }) {
                 <p className="caps num text-[14px] text-ink-2">
                   {r.room} · {r.test_title} · Q{r.pos}
                 </p>
-                <p className="line-clamp-3 text-[17px] [overflow-wrap:anywhere]">
-                  {r.prompt}
-                </p>
+                {r.prompt !== null ? (
+                  <p className="line-clamp-3 text-[17px] [overflow-wrap:anywhere]">
+                    {r.prompt}
+                  </p>
+                ) : (
+                  <p className="text-[16px] text-ink-2">{WORDING_HIDDEN}</p>
+                )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <ul className="flex flex-wrap gap-1.5" aria-label="Reasons">
                     {r.reasons.map((reason) => (
@@ -156,18 +164,25 @@ export function ContentSection({ data }: { data: ContentData }) {
 
       <Sheet
         id="dupes-h"
-        title="Most repeated"
-        note={`${countText(data.duplicate_groups)} questions appear more than once (capitals, spacing and end punctuation ignored). The 20 with the most copies, each shown as one copy is written:`}
+        title="Same question in several places"
+        note={`${countText(data.duplicate_groups)} ${data.duplicate_groups === 1 ? "question appears" : "questions appear"} more than once, across every event (capitals, spacing and end punctuation ignored). Top 20 by copies.`}
       >
         {data.duplicates.length === 0 ? (
           <Notice>No repeated questions.</Notice>
         ) : (
           <ol className="border-t-[3px] border-ink">
-            {data.duplicates.map((d) => (
-              <li key={d.stem} className="grid gap-1 border-b border-rule py-3">
-                <p className="line-clamp-2 text-[16px] [overflow-wrap:anywhere]">
-                  {d.example}
-                </p>
+            {data.duplicates.map((d, i) => (
+              <li
+                key={d.stem ?? `${d.test_id}-${i}`}
+                className="grid gap-1 border-b border-rule py-3"
+              >
+                {d.example !== null ? (
+                  <p className="line-clamp-2 text-[16px] [overflow-wrap:anywhere]">
+                    {d.example}
+                  </p>
+                ) : (
+                  <p className="text-[16px] text-ink-2">{WORDING_HIDDEN}</p>
+                )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <p className="num text-[14px] text-ink-2">
                     {d.copies} copies in {d.tests}{" "}
