@@ -35,16 +35,18 @@ create policy "push_subscriptions: own sound" on public.push_subscriptions for u
 create policy "push_subscriptions: own delete" on public.push_subscriptions for delete to authenticated
   using (user_id = (select auth.uid()));
 
--- Save this browser's subscription for the signed-in member. Only the push services browsers actually use are
+-- Save this browser's subscription for the signed-in member and return its row id (the site keeps it in an
+-- HttpOnly cookie, so signing out can remove this device). Only the push services browsers actually use are
 -- accepted (the regex is the allowlist; src/lib/push/endpoints.ts checks the same list first). The write runs as the
--- owner so an endpoint that belonged to another member on this device moves over.
+-- owner so an endpoint that belonged to another member on this device moves over. A null p_sound keeps the saved
+-- setting (on for a new device): the service worker re-saves a rotated subscription without knowing it.
 create or replace function public.push_subscribe(
   p_endpoint text,
   p_p256dh text,
   p_auth text,
-  p_sound boolean default true
+  p_sound boolean default null
 )
-returns void
+returns uuid
 language plpgsql
 security definer
 set search_path = ''
@@ -52,6 +54,7 @@ as $$
 declare
   uid uuid := (select auth.uid());
   other_devices integer;
+  saved uuid;
 begin
   if uid is null then
     raise exception 'Sign in to turn on notifications' using errcode = '42501';
@@ -73,12 +76,14 @@ begin
     user_id = excluded.user_id,
     p256dh = excluded.p256dh,
     auth = excluded.auth,
-    sound = excluded.sound,
+    sound = coalesce(p_sound, public.push_subscriptions.sound),
     failure_count = 0,
     created_at = case
       when public.push_subscriptions.user_id = excluded.user_id then public.push_subscriptions.created_at
       else now()
-    end;
+    end
+  returning id into saved;
+  return saved;
 end;
 $$;
 

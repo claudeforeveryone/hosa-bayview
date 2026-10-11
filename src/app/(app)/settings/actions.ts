@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { AuthState } from "@/app/(auth)/actions";
 import { requireProfile } from "@/lib/auth";
 import { parseGrade } from "@/lib/profile";
+import { forgetOtherDevices } from "@/lib/push/forget";
 import { createClient } from "@/lib/supabase/server";
 
 // Empty means no grade. Anything else has to be 9 to 12.
@@ -139,7 +140,9 @@ export async function changePassword(
     console.error("[settings] password:", error.message);
     return { error: "Couldn't change it. Try again." };
   }
-  // A new password should end any session someone else may be holding.
+  // A new password should end any session someone else may be holding, and the phone notifications going to
+  // those devices with it.
+  await forgetOtherDevices(supabase, profile.id);
   await supabase.auth.signOut({ scope: "others" });
   return { ok: "Password changed." };
 }

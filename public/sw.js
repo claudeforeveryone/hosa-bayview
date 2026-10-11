@@ -199,8 +199,9 @@ async function openOrFocus(target) {
 }
 
 // The browser replaced this device's push subscription (expired or rotated keys). Subscribe again with the same
-// key and tell the server, so pushes keep arriving without a trip to Settings. The old row is dropped by the
-// sender the first time its endpoint answers 404/410.
+// key and tell the server, so pushes keep arriving without a trip to Settings. No sound setting is sent (a worker
+// can't read the page's storage): the server copies it from the row this browser saved before, found by its
+// device cookie, and drops that old row.
 self.addEventListener("pushsubscriptionchange", (event) => {
   event.waitUntil(
     (async () => {

@@ -6,7 +6,7 @@ export type Result = { data: unknown; error: { message: string; code?: string } 
 export function makeClient(result: Result) {
   const calls: { op: string; args: unknown[] }[] = [];
   const chain: Record<string, unknown> = {};
-  for (const op of ["insert", "update", "delete", "select", "eq", "in", "order", "limit", "single", "maybeSingle"]) {
+  for (const op of ["insert", "update", "delete", "select", "eq", "neq", "in", "order", "limit", "single", "maybeSingle"]) {
     chain[op] = (...args: unknown[]) => {
       calls.push({ op, args });
       return chain;

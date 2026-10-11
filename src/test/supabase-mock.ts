@@ -27,7 +27,17 @@ export function mockSupabase(opts: {
   };
   const query = {
     select: () => query,
-    eq: () => query,
+    eq: vi.fn((column: string, value: unknown) => {
+      void column;
+      void value;
+      return query;
+    }),
+    neq: vi.fn((column: string, value: unknown) => {
+      void column;
+      void value;
+      return query;
+    }),
+    delete: vi.fn(() => query),
     maybeSingle: async () => ({ data: opts.profile ?? null, error: opts.profileError ?? null }),
   };
   // No RPCs by default: every call answers like a function that doesn't exist yet.
@@ -36,5 +46,8 @@ export function mockSupabase(opts: {
     void args;
     return { data: null as unknown, error: { code: "PGRST202", message: "missing" } as { code?: string; message: string } | null };
   });
-  return { auth, from: vi.fn(() => query), rpc };
+  return { auth, from: vi.fn((table: string) => {
+    void table;
+    return query;
+  }), rpc, query };
 }

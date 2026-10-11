@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { safeNext } from "@/lib/safe-next";
 import { parseGrade } from "@/lib/profile";
 import { SHORT_SESSION } from "@/lib/session-length";
+import { forgetOtherDevices, forgetThisDevice } from "@/lib/push/forget";
 import {
   WRONG_CHAPTER_CODE,
   CHAPTER_CODE_SLOW,
@@ -329,7 +330,11 @@ export async function updatePassword(
     password: parsed.data.password,
   });
   if (error) return { error: friendly(error.message) };
-  // A new password should end any session someone else may be holding.
+  // A new password should end any session someone else may be holding, and the phone notifications going to
+  // those devices with it.
+  const { data: claims } = await supabase.auth.getClaims();
+  const uid = claims?.claims?.sub;
+  if (typeof uid === "string") await forgetOtherDevices(supabase, uid);
   await supabase.auth.signOut({ scope: "others" });
 
   redirect("/");
@@ -337,6 +342,8 @@ export async function updatePassword(
 
 export async function logout() {
   const supabase = await createClient();
+  // This browser's phone notifications stop with its session (while RLS still knows whose row it is).
+  await forgetThisDevice(supabase);
   // This device only; other devices stay signed in.
   await supabase.auth.signOut({ scope: "local" });
   redirect("/login");

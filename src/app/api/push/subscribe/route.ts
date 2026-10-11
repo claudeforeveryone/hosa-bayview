@@ -1,13 +1,28 @@
 import { NextResponse } from "next/server";
-import { fromThisSite, NO_STORE, refuse, requireMember } from "@/lib/push/route-guards";
+import {
+  deviceCookieOptions,
+  deviceIdFromCookieHeader,
+  parseDeviceId,
+  PUSH_DEVICE_COOKIE,
+} from "@/lib/push/device-cookie";
+import {
+  fromThisSite,
+  NO_STORE,
+  refuse,
+  requireMember,
+} from "@/lib/push/route-guards";
 import { subscribeSchema, unsubscribeSchema } from "@/lib/push/subscription";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const isHttps = (request: Request) =>
+  new URL(request.url).protocol === "https:";
+
 // Save this browser's push subscription for the signed-in member. The RPC repeats the checks and does the write
-// as the database owner, so a device that belonged to someone else on this phone moves over.
+// as the database owner, so a device that belonged to someone else on this phone moves over. The saved row's id
+// goes into an HttpOnly cookie, which is how signing out finds this device again (src/lib/push/forget.ts).
 export async function POST(request: Request) {
   if (!fromThisSite(request)) return refuse("Not allowed", 403);
   const gate = await requireMember();
@@ -19,11 +34,26 @@ export async function POST(request: Request) {
     return refuse(parsed.error.issues[0]?.message ?? "Bad subscription", 400);
   }
   const supabase = await createClient();
-  const { error } = await supabase.rpc("push_subscribe", {
+  const previous = deviceIdFromCookieHeader(request.headers.get("cookie"));
+
+  // The service worker re-saves a subscription the browser rotated without knowing the Notification sound
+  // setting, so it comes from the row this browser saved before. Nothing to go on: the database keeps what it has.
+  let sound: boolean | null = parsed.data.sound ?? null;
+  if (sound === null && previous) {
+    const { data } = await supabase
+      .from("push_subscriptions")
+      .select("sound")
+      .eq("id", previous)
+      .maybeSingle();
+    const saved = (data as { sound?: unknown } | null)?.sound;
+    if (typeof saved === "boolean") sound = saved;
+  }
+
+  const { data, error } = await supabase.rpc("push_subscribe", {
     p_endpoint: parsed.data.endpoint,
     p_p256dh: parsed.data.keys.p256dh,
     p_auth: parsed.data.keys.auth,
-    p_sound: parsed.data.sound ?? true,
+    p_sound: sound,
   });
   if (error) {
     if (error.code === "42501")
@@ -34,7 +64,33 @@ export async function POST(request: Request) {
     console.error("[push:subscribe]", error.code, error.message);
     return refuse("Could not save this device. Try again.", 500);
   }
-  return new NextResponse(null, { status: 204, headers: NO_STORE });
+
+  const saved = parseDeviceId(data);
+  // A browser holds one subscription at a time, so a different row saved from it earlier is a dead one (rotated
+  // or replaced). RLS keeps the delete to the member's own rows; anyone else's is left for the sender to clear.
+  if (previous && saved && previous !== saved) {
+    const { error: dropError } = await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("id", previous);
+    if (dropError) {
+      console.error(
+        "[push:subscribe] old device",
+        dropError.code,
+        dropError.message,
+      );
+    }
+  }
+
+  const res = new NextResponse(null, { status: 204, headers: NO_STORE });
+  if (saved) {
+    res.cookies.set(
+      PUSH_DEVICE_COOKIE,
+      saved,
+      deviceCookieOptions(isHttps(request)),
+    );
+  }
+  return res;
 }
 
 // Turn this device off. RLS limits the delete to the member's own rows.
@@ -55,5 +111,10 @@ export async function DELETE(request: Request) {
     console.error("[push:unsubscribe]", error.code, error.message);
     return refuse("Could not turn this device off. Try again.", 500);
   }
-  return new NextResponse(null, { status: 204, headers: NO_STORE });
+  const res = new NextResponse(null, { status: 204, headers: NO_STORE });
+  res.cookies.set(PUSH_DEVICE_COOKIE, "", {
+    ...deviceCookieOptions(isHttps(request)),
+    maxAge: 0,
+  });
+  return res;
 }
