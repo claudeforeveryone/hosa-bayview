@@ -5,20 +5,20 @@ import { watchPushFacts } from "./rereads";
 // Stand-ins for window, document and navigator.permissions, built on Node's EventTarget.
 function fakeBrowser({
   permissions = "supported",
-}: { permissions?: "supported" | "missing" | "refuses" } = {}) {
+}: { permissions?: "supported" | "missing" | "refuses" | "throws" } = {}) {
   const win = new EventTarget();
   const doc = Object.assign(new EventTarget(), {
     visibilityState: "visible" as DocumentVisibilityState,
   });
   const status = new EventTarget();
   let answer: (s: EventTarget) => void = () => {};
-  const query = vi.fn(
-    () =>
-      new Promise<EventTarget>((resolve, reject) => {
+  const query = vi.fn(() => {
+    if (permissions === "throws") throw new TypeError("unknown name");
+    return new Promise<EventTarget>((resolve, reject) => {
         if (permissions === "refuses") reject(new TypeError("unsupported"));
-        else answer = resolve;
-      }),
-  );
+      else answer = resolve;
+    });
+  });
   return {
     env: {
       win,
@@ -100,7 +100,7 @@ describe("watchPushFacts", () => {
   });
 
   it("still works where the Permissions API is missing or refuses the notifications name", async () => {
-    for (const permissions of ["missing", "refuses"] as const) {
+    for (const permissions of ["missing", "refuses", "throws"] as const) {
       const b = fakeBrowser({ permissions });
       const read = vi.fn();
       expect(() => watchPushFacts(read, b.env)).not.toThrow();
