@@ -72,10 +72,11 @@ insert into _r select 'name falls back to email local part', full_name, full_nam
   from public.profiles where id = 'aaaaaaaa-0000-0000-0000-00000000000f';
 insert into _r select 'long signup names are truncated to 60', char_length(full_name)::text, char_length(full_name) = 60
   from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000010';
-insert into _r select 'confirmed signup on exec email promotes (case-insensitive)', role::text, role = 'executive'
+-- 0201 retired the email bootstrap: a confirmed signup on the email no longer promotes, and the setting is left alone.
+insert into _r select 'confirmed signup on exec email stays trainee (bootstrap retired, 0201)', role::text, role = 'trainee'
   from public.profiles where id = 'aaaaaaaa-0000-0000-0000-00000000000e';
 update public.profiles set role = 'trainer' where id = 'aaaaaaaa-0000-0000-0000-0000000000bb';
-insert into _r select 'promotion is one-shot (setting consumed)', count(*)::text, count(*) = 0
+insert into _r select 'setting is not consumed by a signup (retired)', count(*)::text, count(*) = 1
   from private.settings where key = 'first_executive_email';
 
 insert into private.settings values ('first_executive_email', 'second-exec@example.com');

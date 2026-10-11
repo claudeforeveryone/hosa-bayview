@@ -22,7 +22,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 
 - Sign up, log in, log out, and password reset with email and password. Email confirmation is OFF.
 - New accounts default to Trainee. Executives can change any user's role.
-- First Executive: `josephislockedin@gmail.com` (promoted automatically on sign-up via `private.settings`).
+- First Executive: granted by uid through `private.exec_granters` (0201 retired the email-based sign-up promotion; see Security notes).
 
 ## Roles
 
@@ -89,7 +89,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 ## Admins
 
 - Everyone signs up as a member (trainee). Executive is given or removed only by the chapter leads, whose account ids are in `private.exec_granters` (0101, filled by hand in the SQL editor; no ids in the repo). Other executives can still switch people between trainee and trainer, but not touch executive. The admin passcode route is closed: `claim_admin` refuses, and the sign-up and Settings passcode UI is gone. GIF pictures are for the accounts in `private.gif_users` only (0101), whatever their role; `my_powers()` tells the UI what the viewer may do, `can_use_gif(uid)` and `gif_user_ids()` (execs) cover editing others. Executives listed in `private.gif_granters` (0108, filled by hand) get a GIFs on/off switch in the /admin person panel (`set_gif_user`, logged); `can_grant_gif()` tells the UI. Accounts in `private.locked_accounts` (0109, filled by hand) can't have their role or title changed from the site by anyone; only the SQL editor can.
-- Chapter code (0090): when an executive sets one in Admin, sign-up needs it. `check_chapter_code(code, ip)` (10 misses per IP, 100 overall per 10 min) returns a single-use 15 min ticket that the BEFORE INSERT trigger on `auth.users` redeems; only a bcrypt hash is stored (`private.settings.chapter_passcode_hash`). No row = open sign-up. While a code is set, dashboard "Add user"/"Invite" are refused too: clear the code first. Tests: `supabase/tests/chapter_passcode.sql`.
+- Chapter code (0090): when an executive sets one in Admin, sign-up needs it. `check_chapter_code(code, ip)` (30 misses per IP, 300 overall per 10 min; a school network is one IP) returns a single-use 15 min ticket that the BEFORE INSERT trigger on `auth.users` redeems; only a bcrypt hash is stored (`private.settings.chapter_passcode_hash`). No row = open sign-up. While a code is set, dashboard "Add user"/"Invite" are refused too: clear the code first. Tests: `supabase/tests/chapter_passcode.sql`.
 - Executives change anyone's role from /admin. Planned admins: Joseph Leung, Kaden Li, Bernice Au, Jenna Bae.
 - Never create real accounts or handle real passwords on their behalf; they sign up themselves.
 
@@ -111,7 +111,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 
 ## Security notes
 
-- First executive: `private.settings.first_executive_email` promotes that address once, during its own sign-up (the auth server inserts the user, then confirms it in the same transaction while "Confirm email" is off), and only if no executive exists; the setting is then deleted. Confirming an older account later never promotes. With confirmation off, nothing proves who owns the inbox, so the owner must sign up with that address before anyone else. If "Confirm email" is on, promote the first executive by hand in the SQL editor.
+- First executive: the email bootstrap is retired (0201). `private.maybe_promote_first_exec` is a no-op and `private.settings.first_executive_email` is never read. Executives are granted by uid only, by a chapter lead or by hand in the SQL editor (see `supabase/tests/roles.sql`).
 - Profiles are deleted only by deleting the auth user (admin API); the last executive can't be demoted or deleted.
 - DB checks in `supabase/tests/` (roles, classrooms, admin_passcode, test_teaching, activity, chapter_tools and the rest; each runs in a rolled-back transaction and raises on failure). Run them with the Supabase MCP `execute_sql`. `chapter_tools.sql` covers 0050-0056.
 - The Supabase MCP refuses DROP, DELETE and writes to `auth.*` in `apply_migration` (and DELETE in `execute_sql`); write migrations with CREATE OR REPLACE / ALTER POLICY.
