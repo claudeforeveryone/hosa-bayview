@@ -51,42 +51,50 @@ export async function AdminLog({ now }: { now: number }) {
         Admin log
       </h2>
       {rows.length ? (
-        <ol className="max-h-[32rem] overflow-y-auto border-y border-rule">
-          {rows.map((r) => (
-            <li
-              key={r.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 border-b border-rule px-1 py-3 last:border-b-0 sm:px-3"
-            >
-              <p className="min-w-0 text-[16px]">
-                <span className="font-semibold">
-                  {r.actor_name || "System"}
-                </span>{" "}
-                {VERB[r.action] ?? r.action}
-                {/* A passcode claim targets the claimer themselves; the name is already there. */}
-                {r.target_name && r.action !== "passcode_used" ? (
-                  <>
-                    {" "}
-                    <span className="font-semibold">{r.target_name}</span>
-                  </>
-                ) : null}
-                {r.detail &&
-                r.action !== "passcode" &&
-                r.action !== "passcode_used" ? (
-                  <span className="block truncate text-[15px] text-ink-2">
-                    {r.detail}
-                  </span>
-                ) : null}
-              </p>
-              <time
-                dateTime={r.created_at}
-                title={formatWhen(r.created_at)}
-                className="num caps pt-0.5 text-[14px] whitespace-nowrap text-ink-2"
+        // Scrolls on its own once long, so it takes keyboard focus (arrow keys scroll it) and is named.
+        <div
+          role="region"
+          aria-labelledby="log-h"
+          tabIndex={0}
+          className="max-h-[32rem] overflow-y-auto border-y border-rule"
+        >
+          <ol>
+            {rows.map((r) => (
+              <li
+                key={r.id}
+                className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 border-b border-rule px-1 py-3 last:border-b-0 sm:px-3"
               >
-                {timeAgo(r.created_at, now)}
-              </time>
-            </li>
-          ))}
-        </ol>
+                <p className="min-w-0 text-[16px]">
+                  <span className="font-semibold">
+                    {r.actor_name || "System"}
+                  </span>{" "}
+                  {VERB[r.action] ?? r.action}
+                  {/* A passcode claim targets the claimer themselves; the name is already there. */}
+                  {r.target_name && r.action !== "passcode_used" ? (
+                    <>
+                      {" "}
+                      <span className="font-semibold">{r.target_name}</span>
+                    </>
+                  ) : null}
+                  {r.detail &&
+                  r.action !== "passcode" &&
+                  r.action !== "passcode_used" ? (
+                    <span className="block truncate text-[15px] text-ink-2">
+                      {r.detail}
+                    </span>
+                  ) : null}
+                </p>
+                <time
+                  dateTime={r.created_at}
+                  title={formatWhen(r.created_at)}
+                  className="num caps pt-0.5 text-[14px] whitespace-nowrap text-ink-2"
+                >
+                  {timeAgo(r.created_at, now)}
+                </time>
+              </li>
+            ))}
+          </ol>
+        </div>
       ) : (
         <p className="border-y border-rule-strong px-1 py-6 text-[17px] text-ink-2 sm:px-3">
           Nothing logged yet. Role changes, bans, titles, warnings and passcode
