@@ -95,7 +95,8 @@ export default async function ClassroomLayout({
           category={info?.category ?? null}
         />
       </ClassroomChrome>
-      <div>{children}</div>
+      {/* Each tab's content fades in as it arrives (globals.css .tab-content). */}
+      <div className="tab-content">{children}</div>
     </div>
   );
 }

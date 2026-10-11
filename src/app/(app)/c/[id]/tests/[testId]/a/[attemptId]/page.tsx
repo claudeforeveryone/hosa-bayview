@@ -3,13 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ReviewItem } from "@/components/review-item";
+import { ScoreRing } from "@/components/score-ring";
 import { StartTest } from "@/components/start-test";
 import { TakeTest } from "@/components/take-test";
 import type { DeckOption } from "@/components/selection-cards";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { listDecks } from "@/lib/decks";
-import { attemptsLeft, HIDDEN_SCORE_NOTE, scoredMode } from "@/lib/test-settings";
+import {
+  attemptsLeft,
+  HIDDEN_SCORE_NOTE,
+  scoredMode,
+} from "@/lib/test-settings";
 import {
   countAttempts,
   getAttempt,
@@ -120,12 +125,12 @@ export default async function AttemptPage({
             </p>
           </>
         ) : (
-          <>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <p className="num font-display text-[clamp(4rem,18vw,8rem)] leading-[0.85] font-bold">
               {score}/{attempt.total}
             </p>
-            <p className="num caps text-[20px]">{pct}%</p>
-          </>
+            <ScoreRing pct={pct} />
+          </div>
         )}
         {mine ? (
           <div className="pt-2">

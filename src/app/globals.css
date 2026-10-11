@@ -1069,3 +1069,23 @@ html[data-intro] .intro-right {
 @keyframes verdict-pop {
   from { opacity: 0; transform: scale(0.4); }
 }
+
+/* A finished attempt's score ring fills once to the percent (a rare moment, so it gets a little longer than UI
+   motion). Reduce Motion and calm land it at once through the rules above. */
+@media (prefers-reduced-motion: no-preference) {
+  .score-ring {
+    animation: score-ring 500ms var(--ease-out) 120ms both;
+  }
+}
+@keyframes score-ring {
+  from { stroke-dasharray: 0 100; }
+}
+
+/* Switching an event's tab: the new tab's content fades in as it arrives, while the rule glides over. It runs
+   when the page's root is put in (not the loading placeholder, which has its own timing). Opacity only and
+   short, since members flip tabs often. */
+@media (prefers-reduced-motion: no-preference) {
+  .tab-content > :not(.route-loading) {
+    animation: fade-in 150ms var(--ease-out) both;
+  }
+}
