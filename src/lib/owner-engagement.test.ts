@@ -92,7 +92,7 @@ describe("engagementTable", () => {
       }),
     );
     const started = t.rows.find((r) => r.key === "duel_started");
-    expect(started).toMatchObject({ count: "6", people: "Under 5" });
+    expect(started).toMatchObject({ count: "6", people: "Under 5" });
     expect(t.notCounted.map((n) => n.event)).toEqual(["onboarding_completed"]);
   });
 
@@ -137,7 +137,7 @@ describe("engagementTable", () => {
       count: "Not recorded yet",
       people: "",
     });
-    expect(byKey.feedback_submitted.count).toBe("Under 5");
+    expect(byKey.feedback_submitted.count).toBe("Under 5");
     expect(byKey.exam_completed.count).toBe("0");
     expect(byKey.vocab_round.from).toBe(
       "Recorded when a round ends, since Oct 1, 2026",

@@ -7,10 +7,20 @@ export const MIN_CELL = 5;
 
 const number = new Intl.NumberFormat("en-CA");
 
-// A hidden count reads "Under 5", never a guess. Zero is a real zero.
+// A hidden count reads "Under 5", never a guess. Zero is a real zero. The space is a no-break space, so a narrow
+// table cell never shows "Under" over "5", which reads like two values.
 export function countText(n: number | null | undefined): string {
-  if (n === null || n === undefined) return "Under 5";
+  if (n === null || n === undefined) return "Under 5";
   return number.format(n);
+}
+
+// "1 question", "6 questions", "Under 5 questions": the count and the word that agrees with it.
+export function countOf(
+  n: number | null | undefined,
+  one: string,
+  many: string,
+): string {
+  return `${countText(n)} ${n === 1 ? one : many}`;
 }
 
 // A rounded share, or null (show nothing) when either side is hidden or there is nothing to divide by.

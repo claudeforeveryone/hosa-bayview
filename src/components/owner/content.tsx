@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { reasonLabel } from "@/lib/flag-reasons";
-import { countText, percentText, stampText } from "@/lib/owner-metrics";
+import {
+  countOf,
+  countText,
+  percentText,
+  stampText,
+} from "@/lib/owner-metrics";
 import type { ContentData, ContentEventRow } from "@/lib/owner-types";
 import { DataTable, Figure, Figures, Notice, Sheet } from "./primitives";
 
@@ -22,7 +27,7 @@ export function ContentSection({ data }: { data: ContentData }) {
       <Sheet
         id="content-h"
         title="Content health"
-        note={`${countText(data.questions)} questions in ${countText(data.tests)} tests (${countText(data.published_tests)} posted).`}
+        note={`${countOf(data.questions, "question", "questions")} in ${countOf(data.tests, "test", "tests")} (${countText(data.published_tests)} posted).`}
       >
         <Figures label="Content totals">
           <Figure label="Questions" value={countText(data.questions)} />
@@ -39,7 +44,7 @@ export function ContentSection({ data }: { data: ContentData }) {
           <Figure
             label="Open reports"
             value={countText(data.open_reports)}
-            note={`${countText(data.open_asks)} Ask teacher questions waiting`}
+            note={`${countOf(data.open_asks, "Ask teacher question", "Ask teacher questions")} waiting`}
           />
         </Figures>
       </Sheet>

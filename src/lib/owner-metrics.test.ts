@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   bucketLabel,
   checkFeedback,
+  countOf,
   countText,
   dateText,
   deltaText,
@@ -16,14 +17,27 @@ import {
 } from "./owner-metrics";
 
 describe("countText", () => {
-  it("says Under 5 for a hidden count, never a number", () => {
-    expect(countText(null)).toBe("Under 5");
-    expect(countText(undefined)).toBe("Under 5");
+  // A no-break space: in a narrow table cell "Under" over "5" reads like two values.
+  it("says Under 5 for a hidden count, never a number, and never splits it across lines", () => {
+    expect(countText(null)).toBe("Under 5");
+    expect(countText(undefined)).toBe("Under 5");
   });
   it("shows zero and real counts as they are", () => {
     expect(countText(0)).toBe("0");
     expect(countText(5)).toBe("5");
     expect(countText(2157)).toBe("2,157");
+  });
+});
+
+describe("countOf", () => {
+  it("pairs a count with the singular only for exactly one", () => {
+    expect(countOf(1, "question", "questions")).toBe("1 question");
+    expect(countOf(0, "question", "questions")).toBe("0 questions");
+    expect(countOf(6, "test", "tests")).toBe("6 tests");
+    expect(countOf(2157, "test", "tests")).toBe("2,157 tests");
+  });
+  it("uses the plural for a hidden count", () => {
+    expect(countOf(null, "question", "questions")).toBe("Under 5 questions");
   });
 });
 

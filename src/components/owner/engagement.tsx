@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { engagementTable, type EngagementRow } from "@/lib/owner-engagement";
 import {
   countText,
@@ -15,6 +16,22 @@ import {
   Notice,
   Sheet,
 } from "./primitives";
+
+// An event name is one long snake_case word ("vocab_session_completed"). On a narrow phone it may break after an
+// underscore, so it can't hold the table wider than the screen.
+function breakable(code: string) {
+  const parts = code.split("_");
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {part}
+      {i < parts.length - 1 ? (
+        <>
+          _<wbr />
+        </>
+      ) : null}
+    </Fragment>
+  ));
+}
 
 // "onboarding_completed (this site has no onboarding step)", joined into one sentence for the note under the table.
 function notCountedText(items: { event: string; why: string }[]): string {
@@ -104,7 +121,8 @@ export function EngagementSection({
                   {r.label}
                   {r.event ? (
                     <span className="block text-[13px] font-normal text-ink-2">
-                      {r.shared ? `Counts toward ${r.event}` : r.event}
+                      {r.shared ? "Counts toward " : null}
+                      {breakable(r.event)}
                     </span>
                   ) : null}
                 </>
