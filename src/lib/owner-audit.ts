@@ -2,7 +2,8 @@
 // log on /admin (src/app/(app)/admin/content.tsx), plus feedback triage (0232). Pure, so the test pins it.
 import type { AuditRow } from "./owner-types";
 
-const VERB: Record<string, string> = {
+// owner_audit (0232) searches these same words through private.audit_verb; owner-audit.test.ts keeps the two equal.
+export const AUDIT_VERB: Record<string, string> = {
   role: "changed the role of",
   banned: "banned",
   unbanned: "unbanned",
@@ -28,7 +29,7 @@ export type AuditLine = {
 export function auditLine(r: AuditRow): AuditLine {
   const passcode = r.action === "passcode" || r.action === "passcode_used";
   return {
-    verb: VERB[r.action] ?? r.action,
+    verb: AUDIT_VERB[r.action] ?? r.action,
     // A passcode claim's target is the claimer, so naming it would repeat the actor.
     target:
       r.target_name && r.action !== "passcode_used" ? r.target_name : null,

@@ -46,7 +46,7 @@ create function pg_temp.u(n integer) returns uuid language sql immutable as $$
   select ('00000000-0000-4000-8000-0000000002' || lpad(n::text, 2, '0'))::uuid
 $$;
 
--- u1 the site owner (stats viewer, a trainee by role), u2 an executive who runs the room, u3 a trainee member,
+-- u1 a stats viewer (a trainee by role), u2 an executive who runs the room, u3 a trainee member,
 -- u4 a banned trainee member.
 insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, aud, role) values
   (pg_temp.u(1), 'oc.owner@example.com', '{"full_name":"Console Owner"}', now(), 'authenticated', 'authenticated'),
@@ -609,6 +609,10 @@ begin
     not exists (select 1 from jsonb_array_elements(public.owner_feedback('done') -> 'rows') x where (x ->> 'id')::uuid = fid));
   perform pg_temp.check('audit search finds it',
     exists (select 1 from jsonb_array_elements(public.owner_audit('feedback #' || left(fid::text, 8))) x));
+  -- The log reads "<name> triaged feedback #...": the word on screen finds the line, not only the action code.
+  perform pg_temp.check('audit search finds the verb on screen',
+    exists (select 1 from jsonb_array_elements(public.owner_audit('Triaged')) x
+            where x ->> 'target_name' = 'feedback #' || left(fid::text, 8)));
 end $$;
 select pg_temp.expect('bad triage status',
   $q$select public.owner_triage_feedback((select gen_random_uuid()), 'closed', 'low', '')$q$, '22023');
@@ -625,6 +629,18 @@ begin
   perform pg_temp.as_user(pg_temp.u(1));
   perform pg_temp.check('a search for a literal percent sign is not a wildcard',
     (select count(*) from jsonb_array_elements(public.owner_audit('%'))) = expected);
+end $$;
+do $$
+declare
+  roles integer;
+begin
+  perform pg_temp.as_admin();
+  select count(*) into roles from public.admin_log l where l.action = 'role';
+  perform pg_temp.as_user(pg_temp.u(1));
+  -- Role lines read "changed the role of"; the stored action is just 'role'.
+  perform pg_temp.check('a search for the words on a role line finds role changes',
+    roles = 0 or exists (select 1 from jsonb_array_elements(public.owner_audit('changed the role')) x
+                         where x ->> 'action' = 'role'));
 end $$;
 
 do $$

@@ -1,15 +1,15 @@
 -- Owner console (Omega 0232): everything /developer reads or writes, besides the per-member table (0105).
--- Every function starts with private.require_stats_viewer(): only accounts in private.stats_viewers (the site owner,
--- 0105, granted by uid in the SQL editor) get an answer; everyone else gets 42501. The page hides its link from
--- everyone else, but this check is the guard.
+-- Every function starts with private.require_stats_viewer(): only accounts in private.stats_viewers (0105, granted
+-- by uid in the SQL editor; it can hold more than the site owner) get an answer; everyone else gets 42501. The page
+-- hides its link from everyone else, but this check is the guard.
 --
 -- Small counts: an aggregate about people (members, active members, runs, sessions, people per event) of 1 to 4
 -- comes back null, and the page says "Under 5". Zero stays zero. Inside one answer, parts that add up to a figure in
 -- that same answer hide together (returning plus first-week; new members per growth bucket against the range total).
 -- This is not complementary suppression across answers: the windows overlap (new in 30 days minus new in 7 days, one
 -- growth range against another, a weekly bucket against the daily buckets inside it), so a hidden 1 to 4 can still be
--- worked out by subtraction. The only reader is the site owner, who also has the per-member table (0105), so the rule
--- keeps small numbers off a screen someone else might see; it doesn't hide them from the owner. Content counts
+-- worked out by subtraction. The only readers are the stats viewers, who also have the per-member table (0105), so the
+-- rule keeps small numbers off a screen someone else might see; it doesn't hide them from the viewers. Content counts
 -- (questions, tests, reports per question) are about the material, not about people, and come back exact. Feedback
 -- and the audit log are individual records for triage and are not suppressed.
 --
@@ -25,7 +25,7 @@ language plpgsql stable security definer set search_path = ''
 as $$
 begin
   if not private.can_view_stats((select auth.uid())) then
-    raise exception 'Only the site owner can see this' using errcode = '42501';
+    raise exception 'Only stats viewers can see this' using errcode = '42501';
   end if;
 end
 $$;
@@ -499,7 +499,7 @@ $$;
 revoke all on function public.owner_feedback(text, integer, integer) from public, anon;
 grant execute on function public.owner_feedback(text, integer, integer) to authenticated;
 
--- Triage: status, priority and a resolution note (owner only; the member never sees it). Writes one admin_log row
+-- Triage: status, priority and a resolution note (stats viewers only; the member never sees it). Writes one admin_log row
 -- with the change and no feedback text.
 create or replace function public.owner_triage_feedback(p_id uuid, p_status text, p_priority text, p_resolution text)
 returns void
@@ -542,9 +542,9 @@ begin
     set status = p_status, priority = p_priority, resolution = clean,
         updated_at = now(), triaged_at = now(), triaged_by = uid
     where f.id = p_id;
-  select coalesce(nullif(p.full_name, ''), 'Site owner') into who from public.profiles p where p.id = uid;
+  select coalesce(nullif(p.full_name, ''), 'A stats viewer') into who from public.profiles p where p.id = uid;
   insert into public.admin_log (actor_id, actor_name, action, target_id, target_name, detail)
-  values (uid, coalesce(who, 'Site owner'), 'feedback', null,
+  values (uid, coalesce(who, 'A stats viewer'), 'feedback', null,
           'feedback #' || left(p_id::text, 8), array_to_string(changes, ', '));
 end
 $$;
@@ -552,6 +552,29 @@ revoke all on function public.owner_triage_feedback(uuid, text, text, text) from
 grant execute on function public.owner_triage_feedback(uuid, text, text, text) to authenticated;
 
 -- Audit -----------------------------------------------------------------------------------------------------------
+-- The verb the log shows for an action, as src/lib/owner-audit.ts writes it, so a search for a word on screen
+-- ("triaged", "changed the role of") finds its lines. An action it doesn't know reads as itself, as on the page.
+create or replace function private.audit_verb(p_action text)
+returns text
+language sql immutable set search_path = ''
+as $$
+  select case p_action
+    when 'role' then 'changed the role of'
+    when 'banned' then 'banned'
+    when 'unbanned' then 'unbanned'
+    when 'title' then 'set the title of'
+    when 'warned' then 'warned'
+    when 'removed' then 'removed'
+    when 'passcode' then 'changed the admin passcode'
+    when 'passcode_used' then 'used the admin passcode, which then cleared'
+    when 'chapter_code' then 'updated the chapter code'
+    when 'gif' then 'changed GIF pictures for'
+    when 'feedback' then 'triaged'
+    else p_action
+  end
+$$;
+revoke all on function private.audit_verb(text) from public, anon, authenticated;
+
 -- admin_log (0052) searched by who, what, target and detail, case-insensitive. Empty search lists everything.
 create or replace function public.owner_audit(p_q text default '', p_limit integer default 50, p_offset integer default 0)
 returns jsonb
@@ -569,7 +592,8 @@ begin
     select l.id, l.created_at, l.actor_name, l.action, l.target_name, l.detail
     from public.admin_log l
     where q = ''
-      or l.action ilike needle or l.actor_name ilike needle or l.target_name ilike needle or l.detail ilike needle
+      or l.action ilike needle or private.audit_verb(l.action) ilike needle
+      or l.actor_name ilike needle or l.target_name ilike needle or l.detail ilike needle
     order by l.created_at desc, l.id desc
     limit least(greatest(coalesce(p_limit, 50), 1), 200)
     offset greatest(coalesce(p_offset, 0), 0)

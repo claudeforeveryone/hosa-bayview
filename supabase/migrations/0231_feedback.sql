@@ -2,7 +2,7 @@
 --
 --   Send feedback        Settings > Account, also listed under More (the sidebar's More group, the phone More sheet
 --                        and /more). A bug, an idea or something else, in a few words. New table public.feedback,
---                        read and triaged only by the site owner through the 0232 functions (status, priority, a
+--                        read and triaged only by stats viewers through the 0232 functions (status, priority, a
 --                        resolution note). Members can't read the table back.
 --   Report this question  Practice feedback and test review. Not a new table: it extends Ask teacher (question_flags,
 --                        0031/0099). A flag now has a reason: 'ask' (the old Ask teacher, the default for every

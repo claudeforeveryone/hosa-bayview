@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { auditLine } from "./owner-audit";
+import { AUDIT_VERB, auditLine } from "./owner-audit";
 import type { AuditRow } from "./owner-types";
 
 const row = (action: string, target_name = "", detail = ""): AuditRow => ({
@@ -55,5 +57,40 @@ describe("auditLine", () => {
       feedback: false,
       detail: "",
     });
+  });
+});
+
+// The search box sits over lines that read "Sample Exec triaged feedback #1a2b3c4d", so owner_audit (0232) has to
+// match those verbs, not only the stored action code. The database keeps its own copy in private.audit_verb; this
+// pins the two together, so a verb added here and not there (or the reverse) fails.
+describe("the log's search", () => {
+  const sql = readFileSync(
+    fileURLToPath(
+      new URL("../../supabase/migrations/0232_owner_console.sql", import.meta.url),
+    ),
+    "utf8",
+  );
+  // The body of one function in the migration: what sits between the $$ after its header and the closing $$.
+  const fn = (name: string) => {
+    const at = sql.indexOf(`create or replace function ${name}(`);
+    if (at < 0) return "";
+    const open = sql.indexOf("$$", at) + 2;
+    return sql.slice(open, sql.indexOf("$$", open));
+  };
+
+  it("knows the same verb as the log for every action", () => {
+    const pairs = Object.fromEntries(
+      [...fn("private.audit_verb").matchAll(/when '([a-z_]+)' then '([^']*)'/g)].map(
+        (m) => [m[1], m[2]],
+      ),
+    );
+    expect(pairs).toEqual(AUDIT_VERB);
+    expect(pairs.feedback).toBe("triaged");
+  });
+
+  it("searches the verb as well as the name, the action code and the detail", () => {
+    expect(fn("public.owner_audit")).toMatch(
+      /private\.audit_verb\(l\.action\) ilike needle/,
+    );
   });
 });
