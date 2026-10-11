@@ -32,6 +32,10 @@ import {
   type MeetingRow,
 } from "@/lib/meetings";
 import { avatarSources } from "@/lib/avatar-urls";
+import { SeasonGrid } from "@/components/attendance-tracker";
+import { RosterManage } from "@/components/roster-manage";
+import { classLabel, currentWeekIndex } from "@/lib/roster";
+import { loadRoster } from "@/lib/roster-data";
 import { saveAttendance } from "./actions";
 import {
   getClassroomMarks,
@@ -208,6 +212,10 @@ export default async function AttendanceTab({
       };
     });
 
+  // The weekly tracker sheet (0103): this room only; RLS already limits it to managers.
+  const sheet = await loadRoster(room.id);
+  const sheetRoom = sheet.classes[0] ?? null;
+
   const absences = absenceLeaders({
     meetings,
     sessions,
@@ -276,6 +284,44 @@ export default async function AttendanceTab({
           />
         )}
       </section>
+
+      {sheetRoom ? (
+        <section aria-labelledby="tracker-h" className="grid gap-6">
+          <div className="grid gap-2">
+            <h2 id="tracker-h" className={heading}>
+              Weekly tracker
+            </h2>
+            <p className="text-[16px] text-ink-2">
+              The chapter sheet for this event: tap a box to mark someone
+              present. It saves straight away.
+            </p>
+          </div>
+          {sheet.weeks.length === 0 ? (
+            <EmptyState title="No meeting dates yet">
+              Executives add them from Admin, Attendance.
+            </EmptyState>
+          ) : sheetRoom.members.length > 0 ? (
+            <SeasonGrid
+              key={sheetRoom.id}
+              label={classLabel(sheetRoom.code, sheetRoom.name)}
+              members={sheetRoom.members}
+              weeks={sheet.weeks}
+              currentIndex={currentWeekIndex(sheet.weeks, today)}
+              initialPresent={sheet.present}
+            />
+          ) : (
+            <EmptyState title="No names on this roster yet">
+              Add them under Manage roster.
+            </EmptyState>
+          )}
+          <RosterManage
+            classroomId={sheetRoom.id}
+            code={sheetRoom.code}
+            members={sheetRoom.members}
+            isExec={me.role === "executive"}
+          />
+        </section>
+      ) : null}
 
       <section aria-labelledby="absent-h" className="grid gap-6">
         <div className="grid gap-2">

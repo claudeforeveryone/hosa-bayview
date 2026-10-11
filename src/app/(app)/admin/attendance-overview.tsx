@@ -50,7 +50,7 @@ export async function AttendanceSummary({ canWarn }: { canWarn: boolean }) {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h3 className="caps text-[17px] font-semibold">Most absences</h3>
           <Link
-            href="/admin/attendance#absent-h"
+            href="/admin/attendance?view=reports#absent-h"
             className="caps text-[15px] underline underline-offset-4"
           >
             All absences

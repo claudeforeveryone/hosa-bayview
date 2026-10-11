@@ -55,7 +55,9 @@ export default async function SettingsPage({
       {tab === "look" ? <LookSection /> : null}
       {tab === "sound" ? <SoundSection /> : null}
       {tab === "account" ? <AccountTab /> : null}
-      {tab === "events" ? <EventsTab /> : null}
+      {tab === "events" ? (
+        <EventsTab isExec={profile.role === "executive"} />
+      ) : null}
     </div>
   );
 }
@@ -104,7 +106,7 @@ async function AccountTab() {
   );
 }
 
-function EventsTab() {
+function EventsTab({ isExec }: { isExec: boolean }) {
   return (
     <section
       aria-labelledby="events-h"
@@ -133,6 +135,14 @@ function EventsTab() {
         >
           See your events
         </Link>
+        {isExec ? (
+          <Link
+            href="/admin/attendance"
+            className="caps step press inline-flex h-12 items-center justify-self-start border-2 border-ink px-5 text-[16px] hover:bg-band"
+          >
+            Attendance
+          </Link>
+        ) : null}
       </div>
     </section>
   );

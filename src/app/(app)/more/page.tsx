@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ChevronRight,
+  ClipboardCheck,
   LifeBuoy,
   LogOut,
   Settings,
@@ -96,6 +97,14 @@ export default async function MorePage() {
               ))}
             </ul>
           </li>
+          {isExec ? (
+            <Row
+              href="/admin/attendance"
+              Icon={ClipboardCheck}
+              label="Attendance"
+              hint="Mark who came, every event"
+            />
+          ) : null}
           <Row
             href="/help"
             Icon={LifeBuoy}

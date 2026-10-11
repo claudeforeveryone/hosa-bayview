@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ClipboardCheck } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
 import { requireRole, type Role } from "@/lib/auth";
 import { gifLimitBytes } from "@/lib/avatar";
@@ -161,7 +163,16 @@ export default async function AdminPage() {
 
   return (
     <div className="grid grid-cols-1 gap-10">
-      <PageTitle>Admin</PageTitle>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <PageTitle>Admin</PageTitle>
+        <Link
+          href="/admin/attendance"
+          className="caps step press inline-flex h-12 items-center gap-2 bg-ink px-5 text-[17px] text-ground hover:bg-ink-2"
+        >
+          <ClipboardCheck size={20} strokeWidth={1.75} aria-hidden />
+          Attendance
+        </Link>
+      </div>
       <dl className="grid grid-cols-2 border-t border-l border-rule sm:grid-cols-5">
         {stats.map(([label, n]) => (
           <div
