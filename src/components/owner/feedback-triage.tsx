@@ -73,7 +73,14 @@ export function FeedbackTriage({
           {row.sent_by} · {stampText(row.created_at)}
           {/* What the sender's side said (0231): the app sends the deployed commit, but any member can call
               send_feedback directly with another, so it is labelled as sent and never linked. */}
-          {row.build ? ` · build ${row.build.slice(0, 7)} (as sent)` : ""}
+          {row.build ? (
+            <>
+              {" · "}
+              <span className="whitespace-nowrap">
+                build {row.build.slice(0, 7)} (as sent)
+              </span>
+            </>
+          ) : null}
         </span>
       </div>
       <p className="max-w-[70ch] text-[17px] whitespace-pre-line [overflow-wrap:anywhere]">

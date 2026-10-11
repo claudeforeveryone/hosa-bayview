@@ -75,7 +75,7 @@ function MovedNote({ moved, href }: { moved: MovedFeedback; href: string }) {
     <li
       ref={self}
       tabIndex={-1}
-      className="flex scroll-mt-6 flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-rule py-4 focus-visible:outline-offset-[-2px]"
+      className="my-3 flex scroll-mt-6 flex-wrap items-baseline gap-x-4 gap-y-1 bg-band px-3 py-3 focus-visible:outline-offset-[-2px]"
     >
       <p className="text-[16px]">
         {CATEGORY_LABEL[moved.category]} from {moved.sent_by} moved to {status}.
