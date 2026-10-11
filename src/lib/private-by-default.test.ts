@@ -20,14 +20,16 @@ function walk(dir: string): string[] {
 }
 
 describe("private by default", () => {
-  it("only the auth routes and the exact keepalive path are public", () => {
+  it("only the auth routes, the legal pages and the exact keepalive and sitemap paths are public", () => {
     expect([...PUBLIC_PATHS].sort()).toEqual([
       "/auth",
       "/forgot-password",
       "/login",
+      "/privacy",
       "/signup",
+      "/terms",
     ]);
-    expect(EXACT_PUBLIC_PATHS).toEqual(["/api/keepalive"]);
+    expect(EXACT_PUBLIC_PATHS).toEqual(["/api/keepalive", "/sitemap.xml"]);
   });
 
   it("every other page route redirects a guest to login", () => {
