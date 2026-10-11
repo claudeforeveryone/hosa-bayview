@@ -146,8 +146,3 @@ export function bottomItemsFor(isExec: boolean): NavItem[] {
 export function showJoinLink(isExec: boolean, roomCount: number): boolean {
   return !isExec && roomCount === 0;
 }
-
-// A sidebar dropdown starts open when the page you're on is inside it.
-export function groupOpen(items: { match: (p: string) => boolean }[], path: string): boolean {
-  return items.some((i) => i.match(path));
-}

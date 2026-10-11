@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BLC_ENABLED } from "./features";
-import { bottomItemsFor, groupOpen, navItemsFor, showJoinLink } from "./nav-items";
+import { bottomItemsFor, navItemsFor, showJoinLink } from "./nav-items";
 
 const hrefs = (items: { href: string }[]) => items.map((i) => i.href);
 
@@ -84,12 +84,3 @@ describe("showJoinLink", () => {
   });
 });
 
-describe("groupOpen", () => {
-  const chapter = navItemsFor(false).filter((i) => i.chapter);
-  it("is open when the current page is in the group", () => {
-    expect(groupOpen(chapter, "/calendar")).toBe(true);
-    expect(groupOpen(chapter, "/leaderboard")).toBe(true);
-    expect(groupOpen(chapter, "/")).toBe(false);
-    expect(groupOpen(chapter, "/profile")).toBe(false);
-  });
-});

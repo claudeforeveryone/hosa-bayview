@@ -9,7 +9,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Credit } from "@/components/credit";
 import { formNumber } from "@/lib/join-code";
-import { bottomItemsFor, groupOpen, navItemsFor, showJoinLink } from "@/lib/nav-items";
+import { bottomItemsFor, navItemsFor, showJoinLink } from "@/lib/nav-items";
 
 export type NavRoom = { id: string; num: number; name: string };
 type Props = {
@@ -36,7 +36,7 @@ const rowState = (active: boolean) =>
     ? "bg-on-field text-field"
     : "text-on-field-2 hover:bg-field-2 hover:text-on-field";
 
-// A collapsible group in the panel. Starts open when you're on one of its pages; otherwise a tap away.
+// A collapsible group in the panel.
 function Group({
   title,
   open,
@@ -90,7 +90,8 @@ function PanelBody({ isExec, canTeach, rooms }: Props) {
     <>
       <nav aria-label="Main">
         <ul>{items.filter((i) => !i.chapter).map(link)}</ul>
-        <Group title="Chapter" open={groupOpen(chapter, path)}>
+        {/* Chapter pages are everyday stops, so the group always starts open. */}
+        <Group title="Chapter" open>
           <ul className="mt-1">{chapter.map(link)}</ul>
         </Group>
       </nav>
