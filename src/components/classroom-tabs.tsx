@@ -120,10 +120,10 @@ export function ClassroomTabs({
           })}
           <span
             aria-hidden
-            className="tab-slide pointer-events-none absolute bottom-0 left-0 h-[3px] bg-you-line"
+            // A 1px bar stretched to the tab's width, so the glide is a transform only (no layout per frame).
+            className="tab-slide pointer-events-none absolute bottom-0 left-0 h-[3px] w-px origin-left bg-you-line"
             style={{
-              transform: `translateX(${rule?.x ?? 0}px)`,
-              width: rule?.w ?? 0,
+              transform: `translateX(${rule?.x ?? 0}px) scaleX(${rule?.w ?? 0})`,
               opacity: rule ? 1 : 0,
             }}
           />

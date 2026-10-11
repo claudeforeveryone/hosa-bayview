@@ -1055,9 +1055,9 @@ html[data-intro] .intro-right {
   transition: transform 300ms var(--ease-out);
 }
 
-/* The tab underline (classroom tabs) glides to the active tab. Its size and place are set inline. */
+/* The tab underline (classroom tabs) glides to the active tab. Its place and stretch are one inline transform. */
 .tab-slide {
-  transition: transform 250ms var(--ease-out), width 250ms var(--ease-out);
+  transition: transform 250ms var(--ease-out);
 }
 
 /* A verdict mark (right or wrong) pops in as the answer lands. Fade only under Reduce Motion. */
