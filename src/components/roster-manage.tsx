@@ -4,58 +4,18 @@ import { useActionState } from "react";
 import { ChevronDown } from "lucide-react";
 import type { FormState } from "@/app/(app)/c/actions";
 import {
-  addRosterMember,
   addRosterWeek,
   removeRosterMember,
   setShortCode,
 } from "@/app/(app)/admin/attendance/roster-actions";
 import { ConfirmAction } from "@/components/confirm-action";
-import { Button, Field, FormMessage, Select } from "@/components/form";
+import { Button, Field, FormMessage } from "@/components/form";
 import type { TrackerPerson } from "@/components/attendance-tracker";
 
 function Message({ state }: { state: FormState }) {
   if (state.error) return <FormMessage tone="error">{state.error}</FormMessage>;
   if (state.ok) return <FormMessage tone="ok">{state.ok}</FormMessage>;
   return null;
-}
-
-function AddName({ classroomId }: { classroomId: string }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(
-    addRosterMember.bind(null, classroomId),
-    {},
-  );
-  return (
-    <form action={action} className="grid gap-3">
-      <h3 className="caps text-[16px] font-semibold">Add a name</h3>
-      <div className="grid grid-cols-[minmax(0,1fr)_6.5rem] gap-3">
-        <Field
-          label="Name"
-          name="name"
-          id="roster-name"
-          required
-          maxLength={80}
-          autoComplete="off"
-        />
-        <Select label="Grade" name="grade" id="roster-grade" defaultValue="">
-          <option value="">None</option>
-          {[9, 10, 11, 12].map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </Select>
-      </div>
-      <Button
-        type="submit"
-        variant="line"
-        className="justify-self-start"
-        disabled={pending}
-      >
-        {pending ? "Adding" : "Add"}
-      </Button>
-      <Message state={state} />
-    </form>
-  );
 }
 
 function AddWeek() {
@@ -145,11 +105,16 @@ export function RosterManage({
         />
       </summary>
       <div className="grid gap-8 pt-3 pb-6 lg:grid-cols-2">
-        <AddName classroomId={classroomId} />
+        <div className="grid content-start gap-2">
+          <h3 className="caps text-[16px] font-semibold">Who&apos;s on the list</h3>
+          <p className="text-[16px] text-ink-2">
+            Everyone who joins this event with its code shows up here automatically, and leaving takes them off.
+          </p>
+        </div>
         <div className="grid content-start gap-3">
           <h3 className="caps text-[16px] font-semibold">Remove a name</h3>
           {members.length === 0 ? (
-            <p className="text-[16px] text-ink-2">No names yet.</p>
+            <p className="text-[16px] text-ink-2">No one has joined yet.</p>
           ) : (
             <ul className="border-t border-rule">
               {members.map((m) => (

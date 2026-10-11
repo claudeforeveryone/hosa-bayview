@@ -314,7 +314,7 @@ async function AllEvents({
         )}
       </div>
       {rostered.length === 0 ? (
-        <EmptyState title="No names on any roster yet" />
+        <EmptyState title="No one has joined an event yet">Names show up here as members join events with a code.</EmptyState>
       ) : (
         <WeekBoard
           key={week.id}
@@ -379,8 +379,8 @@ async function Season({
       {weeks.length === 0 ? (
         <NoWeeks isExec={isExec} />
       ) : room.members.length === 0 ? (
-        <EmptyState title="No names on this roster yet">
-          Add them under Manage roster.
+        <EmptyState title="No one has joined this event yet">
+          Share the event&apos;s join code. Members show up here as soon as they join.
         </EmptyState>
       ) : (
         <SeasonGrid

@@ -52,6 +52,8 @@ export const loadRoster = cache(
       .select(
         "id, classroom_id, full_name, grade, user_id, position, roster_marks(week_id, present)",
       )
+      // Current members only (0104): leaving an event archives the row, and the first typed-in names are archived.
+      .eq("archived", false)
       .order("position")
       .order("full_name");
     if (classroomId) {
