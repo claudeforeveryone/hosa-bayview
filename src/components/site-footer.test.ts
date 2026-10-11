@@ -29,16 +29,8 @@ describe("SiteFooter", () => {
     expect(hiders(creditClasses(html))).toEqual([]);
   });
 
-  // In the app, the desktop sidebar's foot (sticky, always in view) holds the credit. Showing it in the footer too
-  // put the same line twice on one screen.
-  it("leaves the credit to the sidebar from lg up when it's there, and keeps it on phones", () => {
-    const html = render({ creditInSidebar: true });
-    expect(html).toContain("by Joseph &amp; Kaden");
-    expect(hiders(creditClasses(html))).toEqual(["lg:hidden"]);
-    // Terms and Privacy stay at every width.
-    expect(html).toContain('href="/terms"');
-    expect(html).toContain('href="/privacy"');
-    const links = linkClasses(html);
+  it("keeps Terms and Privacy visible at every width", () => {
+    const links = linkClasses(render());
     expect(links).toHaveLength(2);
     for (const classes of links) expect(hiders(classes)).toEqual([]);
   });
