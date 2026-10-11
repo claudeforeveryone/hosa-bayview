@@ -12,6 +12,7 @@ import { requireProfile } from "@/lib/auth";
 import { feedbackEnabled } from "@/lib/feedback-enabled";
 import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
+import { FEEDBACK_DESCRIPTION } from "@/lib/owner-metrics";
 import { SETTINGS_TABS, resolveSettingsTab } from "@/lib/settings-tabs";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -111,7 +112,7 @@ async function AccountTab() {
         <SettingsSection
           id="feedback-h"
           title="Send feedback"
-          description="A bug, an idea, or something that could be clearer. Only the site owner reads it."
+          description={FEEDBACK_DESCRIPTION}
         >
           <SendFeedback />
         </SettingsSection>

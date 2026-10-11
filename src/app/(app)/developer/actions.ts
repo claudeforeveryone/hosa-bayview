@@ -37,7 +37,7 @@ export async function triageFeedback(
   });
   if (error) {
     if (error.code === "42501")
-      return { error: "Only the site owner can change this." };
+      return { error: "Only accounts on the stats list can change this." };
     if (error.code === "P0002") return { error: "That feedback is gone." };
     if (error.code === "22023") return { error: `${error.message}.` };
     console.error(`Owner triage failed: ${error.message}`);

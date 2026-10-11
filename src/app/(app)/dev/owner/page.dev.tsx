@@ -37,6 +37,7 @@ import {
   systemFixture,
 } from "@/lib/owner-fixtures";
 import {
+  FEEDBACK_DESCRIPTION,
   parseFeedbackFilter,
   parseRange,
   parseTab,
@@ -221,7 +222,7 @@ function EntryPoints({ banner }: { banner: ReactNode }) {
       <SettingsSection
         id="feedback-h"
         title="Send feedback"
-        description="A bug, an idea, or something that could be clearer. Only the site owner reads it."
+        description={FEEDBACK_DESCRIPTION}
       >
         <SendFeedback readOnly />
       </SettingsSection>

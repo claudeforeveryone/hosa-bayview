@@ -171,6 +171,11 @@ export function parseFeedbackFilter(value: unknown): FeedbackFilter {
 
 export const FEEDBACK_MAX = 1000;
 
+// What Settings > Send feedback tells members. Every account in private.stats_viewers reads the queue (more than
+// one on live), and each item comes with the sender's name, so the line says both. Shared with the dev gallery.
+export const FEEDBACK_DESCRIPTION =
+  "A bug, an idea, or something that could be clearer. The people who run this site read it, with your name.";
+
 // The checks send_feedback makes, so the form can say what's wrong before it sends. Null when the input is fine.
 export function checkFeedback(category: string, body: string): string | null {
   if (!(FEEDBACK_CATEGORIES as readonly string[]).includes(category))

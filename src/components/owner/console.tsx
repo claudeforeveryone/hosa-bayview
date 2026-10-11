@@ -28,7 +28,7 @@ export function OwnerConsole({
   };
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
-      <PageTitle meta="Owner console. Only you can open this page.">
+      <PageTitle meta="Owner console. Only accounts on the stats list can open it.">
         Developer
       </PageTitle>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">

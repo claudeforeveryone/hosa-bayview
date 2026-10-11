@@ -128,7 +128,9 @@ export function FeedbackTriage({
         <div className="grid gap-1.5">
           <label htmlFor={`${id}-note`} className="text-[15px] font-medium">
             Resolution note{" "}
-            <span className="font-normal text-ink-2">(only you see it)</span>
+            <span className="font-normal text-ink-2">
+              (members never see it)
+            </span>
           </label>
           <textarea
             id={`${id}-note`}

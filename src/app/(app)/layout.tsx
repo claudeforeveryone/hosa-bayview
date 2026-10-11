@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         .then(unseenWarning)
         .catch(() => null),
       unreadCount().catch(() => 0),
-      // Only the site owner gets the Developer link; the stats page and RPC check the same thing in the database.
+      // Only stats viewers get the Developer link; the stats page and RPC check the same thing in the database.
       canSeeDevStats().catch(() => false),
       // Send feedback is listed under More once its migration (0231) is on the database.
       feedbackEnabled().catch(() => false),

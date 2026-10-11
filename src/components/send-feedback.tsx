@@ -10,7 +10,8 @@ import {
   type FeedbackCategory,
 } from "@/lib/owner-metrics";
 
-// Settings > Account > Send feedback: what kind it is, then a few words. It goes to the site owner's queue.
+// Settings > Account > Send feedback: what kind it is, then a few words. It goes to the owner console's queue,
+// which every stats viewer reads with the sender's name (FEEDBACK_DESCRIPTION says so to members).
 // `readOnly` is for the dev gallery screenshot: the form shows but can't send.
 export function SendFeedback({ readOnly = false }: { readOnly?: boolean }) {
   const [category, setCategory] = useState<FeedbackCategory>("idea");

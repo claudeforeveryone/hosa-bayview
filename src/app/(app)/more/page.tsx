@@ -66,7 +66,7 @@ export default async function MorePage() {
   const isExec = profile.role === "executive";
   // Everything the phone bar has no room for, so this page reaches every section on its own.
   const onBar = new Set(bottomItemsFor(isExec).map((i) => i.href));
-  // The owner console is listed for the site owner only; the page checks the same viewer list in the database.
+  // The owner console is listed for stats viewers only; the page checks the same viewer list in the database.
   const [canSeeStats, canSendFeedback] = await Promise.all([
     canSeeDevStats().catch(() => false),
     feedbackEnabled().catch(() => false),
