@@ -22,6 +22,7 @@ describe("resolveSettingsTab", () => {
     expect(SETTINGS_TABS.map((t) => t.label)).toEqual([
       "Appearance",
       "Sound",
+      "Phone app",
       "Account",
       "Events",
     ]);

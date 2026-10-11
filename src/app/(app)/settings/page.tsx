@@ -6,10 +6,12 @@ import { AppearanceSection, SoundSection } from "@/components/appearance";
 import { Button } from "@/components/form";
 import { JoinForm } from "@/components/join-form";
 import { PageTitle } from "@/components/page-title";
+import { PhoneAppTab } from "@/components/pwa/phone-app-section";
 import { SettingsSection } from "@/components/settings-section";
 import { requireProfile } from "@/lib/auth";
 import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
+import { pushConfig } from "@/lib/push/config";
 import { SETTINGS_TABS, resolveSettingsTab } from "@/lib/settings-tabs";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -61,6 +63,7 @@ export default async function SettingsPage({
         <div className="min-w-0">
           {tab === "appearance" ? <AppearanceSection /> : null}
           {tab === "sound" ? <SoundSection /> : null}
+          {tab === "app" ? <PhoneAppTab vapidPublicKey={pushConfig()?.publicKey ?? null} /> : null}
           {tab === "account" ? <AccountTab /> : null}
           {tab === "events" ? (
             <EventsTab isExec={profile.role === "executive"} />

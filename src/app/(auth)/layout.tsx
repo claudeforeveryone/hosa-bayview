@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { HeroBanner } from "@/components/hero-banner";
 import { Credit } from "@/components/credit";
+import { PwaLayer } from "@/components/pwa/pwa-layer";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { APPLE_WEB_APP } from "@/lib/pwa/metadata";
+
+// The sign-in pages register the service worker too, so a phone can install HOSA before signing in. No install
+// card here: it would cover the form. It shows after sign-in instead.
+export const metadata: Metadata = { appleWebApp: APPLE_WEB_APP };
 
 // Phone: a navy band just tall enough for the banner, the form straight under it. Desktop: navy field owns the left half.
 export default function AuthLayout({ children }: LayoutProps<"/">) {
@@ -14,6 +21,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
         <div className="w-full max-w-[26rem]">{children}</div>
         <Credit className="mt-auto pt-12 text-ink-2/80 lg:mt-12 lg:pt-0" />
       </section>
+      <PwaLayer />
     </div>
   );
 }

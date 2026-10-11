@@ -3,6 +3,7 @@
 export const SETTINGS_TABS = [
   { id: "appearance", label: "Appearance" },
   { id: "sound", label: "Sound" },
+  { id: "app", label: "Phone app" },
   { id: "account", label: "Account" },
   { id: "events", label: "Events" },
 ] as const;
