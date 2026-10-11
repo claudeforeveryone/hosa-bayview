@@ -3,40 +3,12 @@
 import { useActionState, type ReactNode } from "react";
 import { AvatarForm } from "@/components/avatar-form";
 import { Button, Field, FormMessage, Select } from "@/components/form";
+import { SettingsSection } from "@/components/settings-section";
 import type { AuthState } from "@/app/(auth)/actions";
 import { GRADES } from "@/lib/profile";
-import {
-  changePassword,
-  updateGrade,
-  updateName,
-} from "./actions";
+import { changePassword, updateGrade, updateName } from "./actions";
 
 type Action = (state: AuthState, form: FormData) => Promise<AuthState>;
-
-function Section({
-  id,
-  title,
-  children,
-}: {
-  id: string;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      aria-labelledby={id}
-      className="grid grid-cols-1 gap-5 border-t-[3px] border-ink pt-5 lg:grid-cols-[16rem_minmax(0,32rem)]"
-    >
-      <h2
-        id={id}
-        className="font-display text-[clamp(1.75rem,5vw,2.25rem)] leading-none font-bold uppercase"
-      >
-        {title}
-      </h2>
-      <div>{children}</div>
-    </section>
-  );
-}
 
 function SettingsForm({
   action,
@@ -71,7 +43,11 @@ function SettingsForm({
 
 export function NameSection({ name }: { name: string }) {
   return (
-    <Section id="name-h" title="Name">
+    <SettingsSection
+      id="name-h"
+      title="Name"
+      description="How your name appears in the app."
+    >
       <SettingsForm
         action={updateName}
         submit="Save name"
@@ -88,7 +64,7 @@ export function NameSection({ name }: { name: string }) {
           />
         )}
       </SettingsForm>
-    </Section>
+    </SettingsSection>
   );
 }
 
@@ -108,7 +84,11 @@ export function PictureSection({
   gifLimit: number;
 }) {
   return (
-    <Section id="picture-h" title="Picture">
+    <SettingsSection
+      id="picture-h"
+      title="Picture"
+      description="The picture shown next to your name."
+    >
       <AvatarForm
         userId={userId}
         name={name}
@@ -117,13 +97,17 @@ export function PictureSection({
         animated={animated}
         gifLimit={gifLimit}
       />
-    </Section>
+    </SettingsSection>
   );
 }
 
 export function GradeSection({ grade }: { grade: number | null }) {
   return (
-    <Section id="grade-h" title="Grade">
+    <SettingsSection
+      id="grade-h"
+      title="Grade"
+      description="Shown on your profile."
+    >
       <SettingsForm
         action={updateGrade}
         submit="Save grade"
@@ -146,13 +130,17 @@ export function GradeSection({ grade }: { grade: number | null }) {
           </Select>
         )}
       </SettingsForm>
-    </Section>
+    </SettingsSection>
   );
 }
 
 export function PasswordSection() {
   return (
-    <Section id="password-h" title="Password">
+    <SettingsSection
+      id="password-h"
+      title="Password"
+      description="Change the password you sign in with."
+    >
       <SettingsForm
         action={changePassword}
         submit="Change password"
@@ -189,6 +177,6 @@ export function PasswordSection() {
           </>
         )}
       </SettingsForm>
-    </Section>
+    </SettingsSection>
   );
 }

@@ -42,8 +42,8 @@ const TOPICS: Topic[] = [
     q: "Ask teacher",
     a: (
       <>
-        Stuck on a question? After answering, tap Ask teacher under it and add
-        a short note. Your event&apos;s trainer sees it and replies; you get a
+        Stuck on a question? After answering, tap Ask teacher under it and add a
+        short note. Your event&apos;s trainer sees it and replies; you get a
         notification when they do, and the reply shows under the question.
       </>
     ),
@@ -55,8 +55,8 @@ const TOPICS: Topic[] = [
       <>
         Open an event&apos;s Cards tab. Tap a card to flip it, then mark Know it
         or Still learning; the ones you still need come back. You can make your
-        own decks and paste many cards at once as term and definition pairs.
-        Try Match for a quick game.
+        own decks and paste many cards at once as term and definition pairs. Try
+        Match for a quick game.
       </>
     ),
   },
@@ -76,11 +76,13 @@ const TOPICS: Topic[] = [
     q: "Notifications",
     a: (
       <>
-        The bell shows how many things are new: announcements, events, new
-        tests and replies to your questions. Tap it to read them. A soft chime
-        plays when something new arrives while you&apos;re here; switch it off
-        in{" "}
-        <Link href="/settings?tab=sound" className="underline underline-offset-4">
+        The bell shows how many things are new: announcements, events, new tests
+        and replies to your questions. Tap it to read them. A soft chime plays
+        when something new arrives while you&apos;re here; switch it off in{" "}
+        <Link
+          href="/settings?tab=sound"
+          className="underline underline-offset-4"
+        >
           Settings, Sound
         </Link>
         .
@@ -92,8 +94,11 @@ const TOPICS: Topic[] = [
     q: "Change the look",
     a: (
       <>
-        <Link href="/settings?tab=look" className="underline underline-offset-4">
-          Settings, Look
+        <Link
+          href="/settings?tab=appearance"
+          className="underline underline-offset-4"
+        >
+          Settings, Appearance
         </Link>{" "}
         has light or dark mode (or follow your device), colour themes, a
         highlight colour, bigger text and a dyslexia-friendly font. These are
@@ -152,9 +157,9 @@ export default function HelpPage() {
             Still stuck?
           </h2>
           <p className="max-w-[60ch] text-[17px] text-on-field-2">
-            Ask the chapter executives: catch one at a chapter meeting.
-            For a question about a test or an event,
-            your event&apos;s trainer is the fastest answer (use Ask teacher).
+            Ask the chapter executives: catch one at a chapter meeting. For a
+            question about a test or an event, your event&apos;s trainer is the
+            fastest answer (use Ask teacher).
           </p>
         </div>
       </section>
