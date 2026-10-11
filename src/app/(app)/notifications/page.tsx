@@ -20,7 +20,14 @@ export const metadata: Metadata = { title: "Notifications" };
 
 type Row = {
   id: string;
-  kind: "announcement" | "test" | "reply" | "event" | "competition" | "role" | "question";
+  kind:
+    | "announcement"
+    | "test"
+    | "reply"
+    | "event"
+    | "competition"
+    | "role"
+    | "question";
   title: string;
   body: string;
   link: string;
@@ -54,13 +61,13 @@ function Item({ n, now }: { n: Row; now: number }) {
           size={22}
           strokeWidth={1.75}
           aria-hidden
-          className={`mt-0.5 ${fresh ? "text-you" : "text-ink-2"}`}
+          className={`mt-0.5 ${fresh ? "text-you-line" : "text-ink-2"}`}
         />
         <span className="min-w-0">
           <span className="caps flex items-center gap-2 text-[13px] text-ink-2">
             {fresh ? (
               <span
-                className="inline-block size-2 shrink-0 bg-you"
+                className="inline-block size-2 shrink-0 bg-you-line"
                 aria-label="New"
                 role="img"
               />
@@ -116,7 +123,10 @@ export default async function NotificationsPage() {
         <>
           {fresh.length ? (
             <section aria-labelledby="new-h" className="grid gap-3">
-              <h2 id="new-h" className="caps border-b-[3px] border-ink pb-2 text-[16px]">
+              <h2
+                id="new-h"
+                className="caps border-b-[3px] border-ink pb-2 text-[16px]"
+              >
                 New
               </h2>
               <ul>
@@ -128,7 +138,10 @@ export default async function NotificationsPage() {
           ) : null}
           {earlier.length ? (
             <section aria-labelledby="earlier-h" className="grid gap-3">
-              <h2 id="earlier-h" className="caps border-b-[3px] border-ink pb-2 text-[16px]">
+              <h2
+                id="earlier-h"
+                className="caps border-b-[3px] border-ink pb-2 text-[16px]"
+              >
                 Earlier
               </h2>
               <ul>
