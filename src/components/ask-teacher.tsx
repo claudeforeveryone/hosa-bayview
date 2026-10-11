@@ -30,6 +30,9 @@ const ACTION =
 // shows here once it's in.
 // While a report is open there is no Ask button: Change report holds the note, so adding words never quietly turns
 // the report back into a plain question (the database keeps the report either way, 0231).
+// After the trainer replies, asking again stays closed, but a report can still reopen the thread: a member who later
+// spots a wrong key can say so. The reply isn't lost: the database keeps it on the reopened thread (0231), and it
+// shows here as the earlier reply until the trainer answers again.
 // `canReport`: reports are on the database (0231). Before that only Ask teacher shows.
 // Focus moves into the form when it opens and back to the button that opened it when it closes, so a keyboard or
 // screen-reader user keeps their place in a long review.
@@ -73,9 +76,12 @@ export function AskTeacher({
       )?.focus();
   });
 
+  const answered = current?.status === "answered";
+
   const open = (next: Mode) => {
     setError(null);
-    setNote(current?.note ?? "");
+    // An answered thread starts a fresh note: the old one went with the question the trainer already answered.
+    setNote(answered ? "" : (current?.note ?? ""));
     setReason(reported);
     focusNext.current = "form";
     setMode(next);
@@ -106,7 +112,8 @@ export function AskTeacher({
         id: r.id,
         note: note.trim(),
         status: "open",
-        reply: "",
+        // The database keeps the trainer's last reply on a reopened thread (0231).
+        reply: current?.reply ?? "",
         // An ask on an open report keeps the report (0231).
         reason: from === "report" && reason ? reason : (reported ?? "ask"),
       });
@@ -187,7 +194,9 @@ export function AskTeacher({
         />
         {mode === "report" ? (
           <p className="text-[14px] text-ink-2">
-            Your trainer gets it with your name, like Ask teacher.
+            {answered
+              ? "Your trainer gets it with your name, and their reply stays here."
+              : "Your trainer gets it with your name, like Ask teacher."}
           </p>
         ) : null}
         {error ? (
@@ -237,14 +246,22 @@ export function AskTeacher({
               {current.note ? (
                 <p className="whitespace-pre-line text-ink-2">{current.note}</p>
               ) : null}
+              {current.reply ? (
+                <div className="mt-2 grid gap-1">
+                  <p className="caps text-[13px] text-ink-2">Earlier reply</p>
+                  <p className="whitespace-pre-line text-[16px]">
+                    {current.reply}
+                  </p>
+                </div>
+              ) : null}
             </>
           )}
         </div>
       ) : null}
-      {/* Once the trainer has replied, the thread is closed: asking or reporting again would drop their reply. */}
-      {current?.status !== "answered" ? (
+      {/* After a reply only a report reopens the thread (see the top of this file). */}
+      {!answered || showReport ? (
         <div className="flex flex-wrap gap-2">
-          {reported ? null : (
+          {reported || answered ? null : (
             <button
               ref={askButton}
               type="button"
@@ -261,7 +278,11 @@ export function AskTeacher({
               onClick={() => open("report")}
               className={`${ACTION} border-rule-strong text-ink-2 hover:border-ink hover:text-ink`}
             >
-              {reported ? "Change report" : "Report this question"}
+              {reported
+                ? answered
+                  ? "Report again"
+                  : "Change report"
+                : "Report this question"}
             </button>
           ) : null}
         </div>
