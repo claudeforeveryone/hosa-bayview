@@ -40,20 +40,15 @@ export function useHeartbeat(classroomId: string | null) {
     const beat = async () => {
       if (document.visibilityState !== "visible") return;
       if (Date.now() - lastInput > IDLE_MS) return;
-      const client = createClient();
       const toSend = clicksToReport(clicks);
       clicks = 0;
       try {
+        const client = createClient();
         await client.rpc("heartbeat", { cid: room.current });
+        // Sent only after the beat, so a missing record_clicks (older database) can't cost the presence beat.
+        if (toSend > 0) await client.rpc("record_clicks", { n: toSend });
       } catch {
         // Presence is a convenience; a missed beat just means a minute uncounted.
-      }
-      if (toSend > 0) {
-        try {
-          await client.rpc("record_clicks", { n: toSend });
-        } catch {
-          // Missing on an older database, or a dropped request: this flush's clicks are not counted.
-        }
       }
     };
     beatNow.current = () => {
