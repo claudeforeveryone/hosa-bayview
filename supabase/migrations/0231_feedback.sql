@@ -43,7 +43,9 @@ create table if not exists public.feedback (
   category text not null check (category in ('bug', 'idea', 'other')),
   -- At least one character that isn't whitespace of any kind, and 1000 at most.
   body text not null check (body ~ '[^[:space:]]' and char_length(body) <= 1000),
-  -- The deployed commit the member was on (from the server, not the browser), so a bug report names its build.
+  -- The build the report says it came from. The app's server action fills it from Vercel's VERCEL_GIT_COMMIT_SHA,
+  -- but send_feedback is open to every member through the API with their own session, so a member can put any hex
+  -- string here. A hint for triage, not proof: the console shows it as "build abc1234 (as sent)", with no link.
   build text check (build is null or build ~ '^[0-9a-f]{7,40}$'),
   status text not null default 'new' check (status in ('new', 'planned', 'done', 'wont_fix')),
   priority text not null default 'normal' check (priority in ('low', 'normal', 'high')),

@@ -9,7 +9,8 @@ export type FeedbackResult = { error?: string; ok?: string };
 
 // Settings > Send feedback (0231). send_feedback checks the member, the words and the daily limit again; its
 // messages are our own RAISE texts, so they can be shown as they are. The build is read here on the server from
-// Vercel's variables, never taken from the browser.
+// Vercel's variables, not from the browser. The function is also callable straight through the API with a member's
+// own session, so the stored build is only what the sender's side said; the console labels it "as sent".
 export async function sendFeedback(
   category: string,
   body: string,
