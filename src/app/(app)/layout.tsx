@@ -4,6 +4,7 @@ import { Credit } from "@/components/credit";
 import { LuckyBonus } from "@/components/lucky-bonus";
 import { OnlineHeartbeat } from "@/components/online-heartbeat";
 import { PwaLayer } from "@/components/pwa/pwa-layer";
+import { pushConfig } from "@/lib/push/config";
 import { WarningBanner } from "@/components/warning-banner";
 import { canTeach, getUserId, requireProfile } from "@/lib/auth";
 import { APPLE_WEB_APP } from "@/lib/pwa/metadata";
@@ -87,7 +88,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       </div>
       <BottomNav isExec={nav.isExec} />
       <OnlineHeartbeat />
-      <PwaLayer card signedIn />
+      <PwaLayer
+        card
+        signedIn
+        pushKey={pushConfig()?.publicKey ?? null}
+        userId={profile.id}
+      />
       <LuckyBonus />
     </div>
   );

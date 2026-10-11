@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/form";
 import { SettingsSection } from "@/components/settings-section";
@@ -9,10 +10,14 @@ import { installGuide } from "@/lib/pwa/install-logic";
 import { promptInstall } from "@/lib/pwa/install-store";
 import { trackPwa } from "@/lib/pwa/track";
 import {
-  readError,
-  sameServerKey,
-  urlBase64ToUint8Array,
-} from "@/lib/push/client";
+  PUSH_DEVICE_EVENT,
+  pushSupported,
+  readSubscription,
+  saveDevice,
+  send,
+  subscriptionBody,
+} from "@/lib/push/browser";
+import { sameServerKey, urlBase64ToUint8Array } from "@/lib/push/client";
 import {
   pushUiState,
   type PushFacts,
@@ -101,75 +106,39 @@ function InstallSettings() {
   );
 }
 
-// Each device has its own subscription. The Notification sound setting travels with it as `sound`, so a silent
-// setting on this device makes its pushes silent; the device is re-saved whenever that setting changes.
-const subscribeAppearance = (onChange: () => void) => {
-  window.addEventListener("hosa:appearance", onChange);
-  return () => window.removeEventListener("hosa:appearance", onChange);
-};
+// Each device has its own subscription, saved for whoever is signed in. The layer on every signed-in page
+// (usePushDeviceSync) keeps the server's copy current, including the Notification sound setting from the Sound
+// tab; this section only turns the device on and off.
 
-async function currentSubscription(): Promise<PushSubscription | null> {
-  const registration = await navigator.serviceWorker.getRegistration();
-  return (await registration?.pushManager.getSubscription()) ?? null;
-}
-
-function subscriptionBody(
-  sub: PushSubscription,
-  extra: Record<string, unknown> = {},
-) {
-  const json = sub.toJSON();
-  if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) {
-    throw new Error("This browser didn't give a full subscription. Try again.");
-  }
-  return JSON.stringify({ endpoint: json.endpoint, keys: json.keys, ...extra });
-}
-
-// redirect: "manual" so an ended session reads as an error here instead of quietly following to the sign-in page.
-async function post(
-  url: string,
-  method: "POST" | "DELETE",
-  body: string,
-  fallback: string,
-) {
-  const res = await fetch(url, {
-    method,
-    headers: { "content-type": "application/json" },
-    body,
-    credentials: "same-origin",
-    redirect: "manual",
-  });
-  if (res.type === "opaqueredirect")
-    throw new Error("Sign in again to change notifications.");
-  if (!res.ok) throw new Error(await readError(res, fallback));
-  return res;
-}
-
-const saveDevice = (sub: PushSubscription, sound: boolean) =>
-  post(
-    "/api/push/subscribe",
-    "POST",
-    subscriptionBody(sub, { sound }),
-    "Couldn't save this device. Try again.",
-  );
+const UNSUPPORTED = {
+  supported: false,
+  permission: "unsupported",
+  subscribed: false,
+} as const;
 
 async function readFacts(vapidPublicKey: string | null): Promise<PushFacts> {
   const env = readInstallEnv();
-  const supported =
-    "serviceWorker" in navigator &&
-    "PushManager" in window &&
-    "Notification" in window;
-  const permission = supported ? Notification.permission : "unsupported";
-  const subscribed =
-    supported && vapidPublicKey !== null
-      ? (await currentSubscription()) !== null
-      : false;
-  return {
+  const base = {
     configured: vapidPublicKey !== null,
     iosNeedsHomeScreen: env.platform === "ios" && !env.standalone,
-    supported,
-    permission,
-    subscribed,
   };
+  if (!pushSupported()) return { ...base, ...UNSUPPORTED };
+  try {
+    const sub = vapidPublicKey ? await readSubscription() : null;
+    return {
+      ...base,
+      supported: true,
+      permission: Notification.permission,
+      // A subscription made with an older server key can't receive anything, so it doesn't count as on.
+      subscribed:
+        sub !== null &&
+        vapidPublicKey !== null &&
+        sameServerKey(sub.options.applicationServerKey, vapidPublicKey),
+    };
+  } catch {
+    // The browser won't run service workers for the site (storage or cookies blocked), so no push here.
+    return { ...base, ...UNSUPPORTED };
+  }
 }
 
 function withTimeout<T>(
@@ -191,41 +160,43 @@ function NotificationSettings({
 }: {
   vapidPublicKey: string | null;
 }) {
-  const sound = useSyncExternalStore(
-    subscribeAppearance,
-    readNotifySound,
-    () => "on",
-  );
   const [facts, setFacts] = useState<PushFacts | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<Note>(null);
 
+  // readFacts never throws; the catch is for anything unforeseen, so the section can't hang on "Checking".
   const refresh = useCallback(async () => {
-    setFacts(await readFacts(vapidPublicKey));
+    const next = await readFacts(vapidPublicKey).catch(() => null);
+    if (next) setFacts(next);
   }, [vapidPublicKey]);
 
-  // Reads the browser after mount. The guard drops a late answer if the section has gone.
+  // Reads the browser after mount, and again when the layer drops a dead subscription. The guard drops a late
+  // answer if the section has gone.
   useEffect(() => {
     let current = true;
-    readFacts(vapidPublicKey).then((next) => {
-      if (current) setFacts(next);
-    });
+    const read = () => {
+      readFacts(vapidPublicKey)
+        .then((next) => {
+          if (current) setFacts(next);
+        })
+        .catch(() => {
+          if (current)
+            setFacts({
+              configured: vapidPublicKey !== null,
+              iosNeedsHomeScreen: false,
+              ...UNSUPPORTED,
+            });
+        });
+    };
+    read();
+    window.addEventListener(PUSH_DEVICE_EVENT, read);
     return () => {
       current = false;
+      window.removeEventListener(PUSH_DEVICE_EVENT, read);
     };
   }, [vapidPublicKey]);
 
   const ui: PushUiState | null = facts ? pushUiState(facts) : null;
-
-  // Keeps the server's copy of this device current: on load (the browser may have rotated its keys, or the
-  // device was signed in as someone else before) and whenever the Notification sound setting changes. Quiet on
-  // failure; the switch still shows the browser's real state.
-  useEffect(() => {
-    if (ui !== "on") return;
-    void currentSubscription()
-      .then((sub) => (sub ? saveDevice(sub, sound === "on") : undefined))
-      .catch(() => {});
-  }, [ui, sound]);
 
   async function turnOn() {
     if (!vapidPublicKey) return;
@@ -267,7 +238,7 @@ function NotificationSettings({
           );
         });
       try {
-        await saveDevice(sub, sound === "on");
+        await saveDevice(sub, readNotifySound() === "on");
       } catch (err) {
         await sub.unsubscribe().catch(() => {});
         throw err;
@@ -292,10 +263,10 @@ function NotificationSettings({
     setBusy(true);
     setNote(null);
     try {
-      const sub = await currentSubscription();
+      const sub = await readSubscription();
       if (sub) {
         // The server row goes first, so a failed call leaves this device on and the switch honest.
-        await post(
+        await send(
           "/api/push/subscribe",
           "DELETE",
           JSON.stringify({ endpoint: sub.endpoint }),
@@ -319,9 +290,9 @@ function NotificationSettings({
     setBusy(true);
     setNote(null);
     try {
-      const sub = await currentSubscription();
+      const sub = await readSubscription();
       if (!sub) throw new Error("Turn notifications on first.");
-      await post(
+      await send(
         "/api/push/test",
         "POST",
         subscriptionBody(sub),
@@ -342,7 +313,7 @@ function NotificationSettings({
     <SettingsSection
       id="push-h"
       title="Notifications"
-      description="New announcements, tests, events and competitions, answers to your questions, and role changes, on this device."
+      description="Announcements, tests, events, questions, replies and role changes, on this device."
     >
       <div className="grid gap-4">
         {ui === null ? (
@@ -400,9 +371,21 @@ function NotificationSettings({
               </span>
             </button>
             <p id="push-switch-hint" className="text-[15px] text-ink-2">
-              {ui === "on"
-                ? "On. The chime follows Sound, Notification sound. Stays on until you switch it off here."
-                : "Off. Turning it on asks your browser first."}
+              {ui === "on" ? (
+                <>
+                  On while you&apos;re signed in on this device. Sound follows
+                  the Notification sound switch on the{" "}
+                  <Link
+                    href="/settings?tab=sound"
+                    className="step text-ink underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                  >
+                    Sound tab
+                  </Link>
+                  .
+                </>
+              ) : (
+                "Off. Turning it on asks your browser first."
+              )}
             </p>
             {ui === "on" ? (
               <div>
