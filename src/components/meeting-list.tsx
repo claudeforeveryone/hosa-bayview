@@ -10,6 +10,7 @@ import {
 } from "@/lib/attendance";
 import {
   meetingDateLabel,
+  splitSchedule,
   STATE_LABEL,
   type MeetingState,
 } from "@/lib/meetings";
@@ -46,7 +47,8 @@ const STATUS_TONE: Record<Status, string> = {
 };
 
 // The schedule, oldest first. Managers' rows open to show the roster with pictures and marks; members see
-// their own status on each row.
+// their own status on each row. Past meetings and the next three show; the rest of the season folds away so a
+// phone isn't a wall of weeks to come.
 export function MeetingList({
   items,
   classroomId,
@@ -56,17 +58,40 @@ export function MeetingList({
   classroomId: string;
   manage: boolean;
 }) {
+  const { shown, later } = splitSchedule(items);
+  const row = (item: MeetingItem) => (
+    <li key={item.key} className="border-b border-rule">
+      {item.none || !manage || !item.members ? (
+        <MeetingRowStatic item={item} />
+      ) : (
+        <MeetingRowOpen item={item} classroomId={classroomId} />
+      )}
+    </li>
+  );
   return (
     <ul className="border-t border-rule">
-      {items.map((item) => (
-        <li key={item.key} className="border-b border-rule">
-          {item.none || !manage || !item.members ? (
-            <MeetingRowStatic item={item} />
-          ) : (
-            <MeetingRowOpen item={item} classroomId={classroomId} />
-          )}
+      {shown.map(row)}
+      {later.length ? (
+        <li className="border-b border-rule">
+          <details className="group">
+            <summary className="caps step flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-1 py-3 text-[15px] text-ink-2 hover:bg-band hover:text-ink sm:px-3 [&::-webkit-details-marker]:hidden">
+              <span className="group-open:hidden">
+                {later.length} more later in the season
+              </span>
+              <span className="hidden group-open:inline">
+                Later in the season
+              </span>
+              <ChevronDown
+                size={18}
+                strokeWidth={2}
+                aria-hidden
+                className="motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out group-open:rotate-180"
+              />
+            </summary>
+            <ul className="border-t border-rule">{later.map(row)}</ul>
+          </details>
         </li>
-      ))}
+      ) : null}
     </ul>
   );
 }
@@ -105,17 +130,16 @@ function stateText(item: MeetingItem): string | null {
 
 function MeetingRowStatic({ item }: { item: MeetingItem }) {
   const own = item.ownStatus ?? null;
-  const right = item.none ? null : (
-    <span
-      className={`caps text-[15px] ${own ? STATUS_TONE[own] : "text-ink-2"}`}
-    >
-      {own
-        ? STATUS_LABEL[own]
-        : item.state === "upcoming" || item.state === "today"
-          ? "Not yet"
-          : "Not marked"}
-    </span>
-  );
+  // A meeting still to come already says so in its date line, so it carries no mark.
+  const waiting = item.state === "upcoming" || item.state === "today";
+  const right =
+    item.none || (waiting && !own) ? null : (
+      <span
+        className={`caps text-[15px] ${own ? STATUS_TONE[own] : "text-ink-2"}`}
+      >
+        {own ? STATUS_LABEL[own] : "Not marked"}
+      </span>
+    );
   return (
     <div className="px-1 py-4 sm:px-3">
       <RowHead item={item} right={right} />

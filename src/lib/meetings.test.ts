@@ -7,6 +7,7 @@ import {
   meetingState,
   nextMeetingId,
   offSchedule,
+  splitSchedule,
   type Meeting,
 } from "./meetings";
 
@@ -189,5 +190,83 @@ describe("defaultAbsenceWarning", () => {
     expect(defaultAbsenceWarning(1)).toContain("once");
     expect(defaultAbsenceWarning(3)).toContain("3 times");
     expect(defaultAbsenceWarning(3)).not.toContain("—");
+  });
+});
+
+describe("splitSchedule", () => {
+  type Row = { key: string; date: string; state: string; none: boolean };
+  const row = (date: string, state: string, none = false): Row => ({
+    key: date,
+    date,
+    state,
+    none,
+  });
+
+  it("puts an off-schedule week in its date order instead of at the end", () => {
+    const { shown } = splitSchedule([
+      row("2026-10-01", "taken"),
+      row("2026-10-15", "upcoming"),
+      row("2026-10-08", "off-schedule"),
+    ]);
+    expect(shown.map((r) => r.date)).toEqual([
+      "2026-10-01",
+      "2026-10-08",
+      "2026-10-15",
+    ]);
+  });
+
+  it("shows what has passed, today and the next three to come; the rest waits", () => {
+    const { shown, later } = splitSchedule([
+      row("2026-10-01", "taken"),
+      row("2026-10-08", "today"),
+      row("2026-10-15", "upcoming"),
+      row("2026-10-22", "upcoming"),
+      row("2026-10-29", "upcoming"),
+      row("2026-11-05", "upcoming"),
+      row("2026-11-12", "upcoming"),
+      row("2026-11-19", "upcoming"),
+    ]);
+    expect(shown.map((r) => r.date)).toEqual([
+      "2026-10-01",
+      "2026-10-08",
+      "2026-10-15",
+      "2026-10-22",
+      "2026-10-29",
+    ]);
+    expect(later.map((r) => r.date)).toEqual([
+      "2026-11-05",
+      "2026-11-12",
+      "2026-11-19",
+    ]);
+  });
+
+  it("doesn't count weeks with no meeting toward the three", () => {
+    const { shown } = splitSchedule([
+      row("2026-10-15", "upcoming"),
+      row("2026-10-22", "no-meeting", true),
+      row("2026-10-29", "upcoming"),
+      row("2026-11-05", "upcoming"),
+      row("2026-11-12", "upcoming"),
+      row("2026-11-19", "upcoming"),
+      row("2026-11-26", "upcoming"),
+    ]);
+    expect(shown.map((r) => r.date)).toEqual([
+      "2026-10-15",
+      "2026-10-22",
+      "2026-10-29",
+      "2026-11-05",
+    ]);
+  });
+
+  it("keeps everything out when hiding would save only one or two rows", () => {
+    const { shown, later } = splitSchedule([
+      row("2026-10-15", "upcoming"),
+      row("2026-10-22", "upcoming"),
+      row("2026-10-29", "upcoming"),
+      row("2026-11-05", "upcoming"),
+      row("2026-11-12", "upcoming"),
+    ]);
+    expect(shown).toHaveLength(5);
+    expect(later).toEqual([]);
   });
 });

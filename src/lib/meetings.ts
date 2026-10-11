@@ -91,6 +91,25 @@ export function offSchedule(
     .sort((a, b) => b.week_start.localeCompare(a.week_start));
 }
 
+// The schedule as a list: everything in date order (an off-schedule week sits where its date falls), with
+// what has passed, today and the next `keep` meetings to come up front and the rest of the season held back.
+// Holding back only one or two rows isn't worth a tap, so then everything shows.
+export function splitSchedule<
+  T extends { date: string; state: string; none: boolean },
+>(items: T[], keep = 3): { shown: T[]; later: T[] } {
+  const sorted = [...items].sort((a, b) => a.date.localeCompare(b.date));
+  let seen = 0;
+  let cut = sorted.length;
+  for (let i = 0; i < sorted.length; i++) {
+    if (sorted[i].state === "upcoming" && !sorted[i].none && ++seen === keep) {
+      cut = i + 1;
+      break;
+    }
+  }
+  if (sorted.length - cut < 3) return { shown: sorted, later: [] };
+  return { shown: sorted.slice(0, cut), later: sorted.slice(cut) };
+}
+
 // The first meeting that is today or still to come, for a "Next" marker.
 export function nextMeetingId(rows: MeetingRow[]): string | null {
   return (
