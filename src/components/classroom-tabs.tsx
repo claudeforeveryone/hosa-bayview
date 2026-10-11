@@ -16,6 +16,7 @@ import {
   tabFocusScroll,
   tabsFor,
 } from "@/lib/classroom-tabs";
+import { prefersCalm } from "@/lib/motion";
 
 // The edge chevrons are 40 px wide, so a tab scrolled into view sits 48 px in from either side.
 const CLEAR = 48;
@@ -63,10 +64,9 @@ export function ClassroomTabs({
   const nudge = (dir: 1 | -1) => {
     const scroller = nav.current;
     if (!scroller) return;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     scroller.scrollBy({
       left: dir * scroller.clientWidth * 0.6,
-      behavior: reduce ? "auto" : "smooth",
+      behavior: prefersCalm() ? "auto" : "smooth",
     });
   };
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useState } from "react";
 import { formatCount } from "@/lib/activity";
+import { prefersCalm } from "@/lib/motion";
 
 // Set once the first page load has hydrated. Server-rendered numbers are already on screen by then, so they
 // stay put; numbers that mount later (moving between pages in the app) start at zero and count up.
@@ -21,12 +22,7 @@ export function CountUp({
   const target =
     to === null ? 0 : Math.round(kind === "percent" ? to * 100 : to);
   // Decided once, on mount. `hydrated` is only ever true in the browser, so window is safe to read here.
-  const [animate] = useState(
-    () =>
-      hydrated &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
-      document.documentElement.dataset.motion !== "calm",
-  );
+  const [animate] = useState(() => hydrated && !prefersCalm());
   const [n, setN] = useState(() => (animate ? 0 : target));
 
   useEffect(() => {

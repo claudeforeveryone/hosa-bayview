@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Button, FormMessage } from "@/components/form";
 import { submitProblemText, type SubmitProblem } from "@/lib/attempt-answers";
+import { prefersCalm } from "@/lib/motion";
 
 // The foot of a test: Finish (practice) or Submit (timed), the "still blank" step, and why a submit stopped.
 // The problem shows here, beside the button just tapped: on a long test the question grid sits between this and
@@ -33,10 +34,9 @@ export function SubmitBar({
   // Keep the reason in view: below the button it can land under the phone's bottom bar (scroll-margin clears it).
   useEffect(() => {
     if (!problem) return;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
     message.current?.scrollIntoView({
       block: "nearest",
-      behavior: reduce ? "auto" : "smooth",
+      behavior: prefersCalm() ? "auto" : "smooth",
     });
   }, [problem]);
 
