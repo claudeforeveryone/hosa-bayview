@@ -2,9 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type FocusEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type Category, tabClearScroll, tabsFor } from "@/lib/classroom-tabs";
+import {
+  type Category,
+  tabClearScroll,
+  tabFocusScroll,
+  tabsFor,
+} from "@/lib/classroom-tabs";
+
+// The edge chevrons are 40 px wide, so a tab scrolled into view sits 48 px in from either side.
+const CLEAR = 48;
 
 // Condensed caps tabs; one "you" rule slides under the active tab. Scrolls sideways on phones.
 export function ClassroomTabs({
@@ -68,7 +82,7 @@ export function ClassroomTabs({
     return () => window.removeEventListener("resize", measure);
   }, [path]);
 
-  // On phones the strip scrolls; keep a tab on screen and clear of the edge chevrons (40 px each, so 48 px).
+  // On phones the strip scrolls; keep a tab on screen and clear of the edge chevrons.
   const keepClear = (tab: HTMLElement | null | undefined) => {
     const scroller = nav.current;
     if (!scroller || !tab) return;
@@ -77,7 +91,7 @@ export function ClassroomTabs({
       width: scroller.clientWidth,
       left: tab.offsetLeft,
       right: tab.offsetLeft + tab.offsetWidth,
-      edge: 48,
+      edge: CLEAR,
     });
     if (to !== null) scroller.scrollLeft = to;
   };
@@ -90,7 +104,14 @@ export function ClassroomTabs({
   }, [path]);
 
   // Pointer-only cues: the chevrons stay out of the tab order, and a tab that gets keyboard focus scrolls clear
-  // of them (the browser alone leaves a tab under a chevron when a sliver of it shows).
+  // of them (the browser alone leaves a tab under a chevron when a sliver of it shows). A click or tap also
+  // focuses the link, on press: moving the strip then would lose the tap, so only keyboard focus moves it.
+  const onFocus = (e: FocusEvent<HTMLElement>) => {
+    const scroller = nav.current;
+    if (!scroller || !(e.target instanceof HTMLElement)) return;
+    const to = tabFocusScroll(e.target, scroller, CLEAR);
+    if (to !== null) scroller.scrollLeft = to;
+  };
   const edge =
     "step absolute top-0 bottom-px z-10 grid w-10 place-items-center bg-ground text-ink-2 hover:text-ink";
   return (
@@ -98,7 +119,7 @@ export function ClassroomTabs({
       <nav
         ref={nav}
         aria-label="Event"
-        onFocus={(e) => keepClear(e.target as HTMLElement)}
+        onFocus={onFocus}
         className="overflow-x-auto border-b border-rule [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <div

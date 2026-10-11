@@ -5,6 +5,7 @@ import {
   parseRecentRooms,
   pushRecentRoom,
   tabClearScroll,
+  tabFocusScroll,
   tabsFor,
 } from "./classroom-tabs";
 
@@ -150,5 +151,33 @@ describe("tabClearScroll", () => {
 
   it("keeps the start of a tab wider than the clear space in view", () => {
     expect(tabClearScroll({ ...strip, scrollLeft: 0, left: 400, right: 800 })).toBe(352);
+  });
+});
+
+// Chrome and Firefox focus a link on mousedown and on a touch tap too. Scrolling the strip then slides the next
+// tab under the finger before mouseup, the click lands on the strip and the tap is lost, so only keyboard focus
+// (the browser's :focus-visible) moves it.
+describe("tabFocusScroll", () => {
+  const scroller = { scrollLeft: 0, clientWidth: 390 };
+  // People at 316-385, partly under the right chevron.
+  const people = (focusVisible: boolean | "unsupported") => ({
+    offsetLeft: 316,
+    offsetWidth: 69,
+    matches: (selector: string) => {
+      if (focusVisible === "unsupported") throw new SyntaxError(selector);
+      return selector === ":focus-visible" && focusVisible;
+    },
+  });
+
+  it("scrolls a keyboard-focused tab clear of the chevron", () => {
+    expect(tabFocusScroll(people(true), scroller, 48)).toBe(43);
+  });
+
+  it("leaves the strip alone when a mouse click or touch tap focuses the tab", () => {
+    expect(tabFocusScroll(people(false), scroller, 48)).toBeNull();
+  });
+
+  it("leaves the strip alone in a browser without :focus-visible", () => {
+    expect(tabFocusScroll(people("unsupported"), scroller, 48)).toBeNull();
   });
 });

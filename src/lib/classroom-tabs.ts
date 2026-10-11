@@ -123,3 +123,28 @@ export function tabClearScroll({
   target = Math.max(0, target);
   return target === scrollLeft ? null : target;
 }
+
+// Where a tab that just took focus scrolls the strip to: clear of the chevrons, but only for keyboard focus.
+// Chrome and Firefox also focus a link on mousedown and on a touch tap; moving the strip then would slide the
+// next tab under the finger before mouseup, and the tap would follow no link. Null means leave it alone (also
+// in a browser that doesn't know :focus-visible).
+export function tabFocusScroll(
+  tab: { matches(selector: string): boolean; offsetLeft: number; offsetWidth: number },
+  strip: { scrollLeft: number; clientWidth: number },
+  edge: number,
+): number | null {
+  let keyboard = false;
+  try {
+    keyboard = tab.matches(":focus-visible");
+  } catch {
+    // An older browser throws on the selector: no scroll, so taps always work.
+  }
+  if (!keyboard) return null;
+  return tabClearScroll({
+    scrollLeft: strip.scrollLeft,
+    width: strip.clientWidth,
+    left: tab.offsetLeft,
+    right: tab.offsetLeft + tab.offsetWidth,
+    edge,
+  });
+}
