@@ -39,6 +39,13 @@ type Props = {
 const toggleHref = (base: string, metric: Metric, period: Period) =>
   `${base}?metric=${metric}&period=${period}`;
 
+// First, second and third: a gold, silver or bronze tile for the numeral and the same metal down the row's edge.
+const MEDALS = {
+  1: { tile: "bg-gold", edge: "border-l-gold", name: "gold" },
+  2: { tile: "bg-silver", edge: "border-l-silver", name: "silver" },
+  3: { tile: "bg-bronze", edge: "border-l-bronze", name: "bronze" },
+} as const;
+
 function BoardLine({
   row,
   metric,
@@ -67,24 +74,28 @@ function BoardLine({
   ]
     .filter(Boolean)
     .join(" · ");
+  const medal = row.place === 1 || row.place === 2 || row.place === 3 ? MEDALS[row.place] : null;
   return (
     <li
       className={`grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule px-2 py-2.5 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:px-3 ${
         // Your row is banded, so it's easy to find in a long board.
         you ? "bg-band" : ""
-      } ${rise ? "rise" : ""}`}
+      } ${medal ? `border-l-[6px] ${medal.edge} pl-1 sm:pl-2` : ""} ${rise ? "rise" : ""}`}
       style={rise ? ({ "--i": index } as CSSProperties) : undefined}
     >
-      <span
-        className={`num text-center font-display leading-none font-bold ${
-          // The top three get poster-scale numerals; everyone else stays quiet. One centred column either way.
-          row.place !== null && row.place <= 3
-            ? "text-30 text-ink"
-            : "text-20 font-semibold text-ink-2"
-        }`}
-      >
-        {row.place ?? "—"}
-      </span>
+      {medal ? (
+        // The top three get a medal tile; everyone else stays quiet. One centred column either way.
+        <span
+          className={`num grid size-10 place-items-center justify-self-center font-display text-26 leading-none font-bold text-on-medal sm:size-11 sm:text-30 ${medal.tile}`}
+        >
+          {row.place}
+          <span className="sr-only"> ({medal.name})</span>
+        </span>
+      ) : (
+        <span className="num text-center font-display text-20 leading-none font-semibold text-ink-2">
+          {row.place ?? "—"}
+        </span>
+      )}
       <span className="min-w-0">
         <span className="flex min-w-0 items-center gap-2.5">
           <Avatar

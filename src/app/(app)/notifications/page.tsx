@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   CalendarDays,
   ClipboardList,
@@ -17,7 +16,7 @@ import { pushConfig } from "@/lib/push/config";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/when";
-import { MarkRead } from "./mark-read";
+import { MarkAllRead, NotificationLink } from "./mark-read";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -56,7 +55,9 @@ function Item({ n, now }: { n: Row; now: number }) {
   const fresh = !n.read_at;
   return (
     <li className="border-b border-rule">
-      <Link
+      <NotificationLink
+        id={n.id}
+        fresh={fresh}
         href={safeLink(n.link)}
         className="step grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 gap-y-1 px-1 py-4 hover:bg-band sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:px-3"
       >
@@ -94,7 +95,7 @@ function Item({ n, now }: { n: Row; now: number }) {
         <span className="num caps hidden pt-0.5 text-14 text-ink-2 sm:block">
           {timeAgo(n.created_at, now)}
         </span>
-      </Link>
+      </NotificationLink>
     </li>
   );
 }
@@ -128,7 +129,8 @@ export default async function NotificationsPage() {
       >
         Notifications
       </PageTitle>
-      <MarkRead unread={fresh.length} />
+      {/* Nothing is marked read just by opening the page: tap one to read it, or mark them all here. */}
+      {fresh.length ? <MarkAllRead /> : null}
       {rows.length ? (
         <>
           {fresh.length ? (

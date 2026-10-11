@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { MemberStatRows } from "@/components/member-stats";
 import { SkillStrip } from "@/components/skill-badges";
 import { Button } from "@/components/form";
-import { formatCount } from "@/lib/activity";
 import { getMemberStats } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
 import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
@@ -16,7 +14,6 @@ import { gradeLabel } from "@/lib/profile";
 import { roleLabel } from "@/lib/role-label";
 import { chapterSkills } from "@/lib/skills-data";
 import { createClient } from "@/lib/supabase/server";
-import { formatWhen } from "@/lib/when";
 import { AvatarButton } from "./avatar-button";
 import { NameEdit } from "./name-edit";
 
@@ -51,12 +48,6 @@ export default async function ProfilePage() {
   const picture = profile.avatar_path
     ? (sources.get(profile.avatar_path) ?? null)
     : null;
-  const right = career.filter((r) => r.is_correct === true).length;
-  const wrong = career.filter((r) => r.is_correct === false).length;
-  const starred = new Set(
-    career.filter((r) => r.favorite && r.question_id).map((r) => r.question_id),
-  ).size;
-  const recent = career.slice(0, 3);
   // The same skills as /skills, from the reads this page already made.
   const skills = chapterSkills(stats, career, wins);
   return (
@@ -111,66 +102,6 @@ export default async function ProfilePage() {
           <MemberStatRows stats={stats} />
         </section>
       ) : null}
-      <section aria-labelledby="career-h" className="grid gap-4">
-        <h2 id="career-h" className={H2}>
-          Career
-        </h2>
-        <ul aria-label="Career totals" className="grid grid-cols-3 border-2 border-ink">
-          {(
-            [
-              ["Right", formatCount(right), "/career?result=right"],
-              ["Wrong", formatCount(wrong), "/career?result=wrong"],
-              ["Favourites", formatCount(starred), "/career?result=favorites"],
-            ] as const
-          ).map(([label, value, href], i) => (
-            <li key={label} className={i ? "border-l-2 border-ink" : ""}>
-              <Link href={href} className="grid h-full gap-1 p-3 hover:bg-band sm:p-4">
-                <span className="caps text-14 text-ink-2">{label}</span>
-                <span className="num font-display text-[clamp(1.6rem,6vw,2.2rem)] leading-none font-bold">
-                  {value}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        {recent.length ? (
-          <ol className="grid gap-2">
-            {recent.map((item, i) => (
-              <li
-                key={`${item.answered_at}-${i}`}
-                className={`grid gap-1 border border-l-[6px] border-rule-strong p-3 ${
-                  item.is_correct === null
-                    ? "border-l-rule-strong"
-                    : item.is_correct
-                      ? "border-l-ok"
-                      : "border-l-danger"
-                }`}
-              >
-                <p className="flex flex-wrap gap-x-3 text-14 text-ink-2">
-                  <span className={`caps font-semibold ${item.is_correct === null ? "" : item.is_correct ? "text-ok" : "text-danger"}`}>
-                    {item.is_correct === null ? "Answered" : item.is_correct ? "Right" : "Wrong"}
-                  </span>
-                  <span className="num">{formatWhen(item.answered_at)}</span>
-                </p>
-                <p className="line-clamp-2 text-17 leading-snug">{item.prompt}</p>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="text-17 text-ink-2">
-            No questions answered yet. Practise a test and every answer shows up in your career.
-          </p>
-        )}
-        <Link
-          href="/career"
-          className="caps step inline-flex h-12 items-center justify-between gap-3 bg-ink px-4 text-17 text-ground hover:bg-ink-2"
-        >
-          {career.length
-            ? `Open career: all ${formatCount(career.length)}`
-            : "Open career"}
-          <ArrowRight size={20} strokeWidth={2} aria-hidden />
-        </Link>
-      </section>
       <form action={logout}>
         <Button variant="line" type="submit">
           <LogOut size={20} strokeWidth={1.75} aria-hidden />

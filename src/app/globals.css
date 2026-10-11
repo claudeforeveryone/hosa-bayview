@@ -166,6 +166,11 @@
   --color-you: var(--you);
   --color-on-you: var(--on-you);
   --color-you-line: var(--you-line);
+  /* Leaderboard medals, the same in both modes: solid metal tiles with dark numerals. */
+  --color-gold: #e3b23c;
+  --color-silver: #c3ccd6;
+  --color-bronze: #c97c43;
+  --color-on-medal: #1a1406;
   --color-danger: var(--danger);
   --color-ok: var(--ok);
   --font-sans: var(--face-sans);
