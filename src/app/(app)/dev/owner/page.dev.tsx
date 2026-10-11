@@ -22,7 +22,7 @@ import {
   auditFixture,
   contentFixture,
   engagementFixture,
-  feedbackFixture,
+  feedbackFixtureFor,
   growth7Fixture,
   growth90Fixture,
   growthAllFixture,
@@ -30,7 +30,6 @@ import {
   membersFixture,
   overviewFixture,
   smallEngagementFixture,
-  smallFeedbackFixture,
   smallGrowth90Fixture,
   smallGrowthFixture,
   smallOverviewFixture,
@@ -138,17 +137,20 @@ function section(
           }
         />
       );
-    case "feedback":
+    case "feedback": {
+      // ?status filters the rows as owner_feedback does; ?scale=small is an empty queue (the nothing-here notes).
+      const filter = parseFeedbackFilter(sp.status);
       return (
         <FeedbackSection
           base={BASE}
-          filter={parseFeedbackFilter(sp.status)}
+          filter={filter}
           page={0}
-          queue={small ? smallFeedbackFixture : feedbackFixture}
+          queue={feedbackFixtureFor(filter, small)}
           extra={extra}
           readOnly
         />
       );
+    }
     case "members":
       return (
         <MembersSection

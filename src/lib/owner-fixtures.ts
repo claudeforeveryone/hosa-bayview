@@ -2,10 +2,12 @@
 // page.dev.tsx). Only that page imports this file, and that page is never built for production (next.config.ts
 // adds the .dev.tsx page extension in the dev server only), so none of this ships. Nothing here is real data.
 import type { DevStatsRow } from "./dev-stats";
+import type { FeedbackFilter } from "./owner-metrics";
 import type {
   ContentData,
   EngagementData,
   FeedbackQueue,
+  FeedbackRow,
   GrowthData,
   OwnerOverview,
   AuditRow,
@@ -308,8 +310,8 @@ export const contentFixture: ContentData = {
   tests: 214,
   published_tests: 188,
   missing_explanations: 2310,
-  open_reports: 4,
-  open_asks: 6,
+  open_reports: 5,
+  open_asks: 1,
   duplicate_groups: 37,
   per_event: [
     {
@@ -332,7 +334,7 @@ export const contentFixture: ContentData = {
       questions: 804,
       missing_explanations: 611,
       repeated: 0,
-      open_reports: 1,
+      open_reports: 2,
     },
     {
       id: `${ROOM}03`,
@@ -405,6 +407,18 @@ export const contentFixture: ContentData = {
       reports: 2,
       last_at: `${day(-4)}T15:10:00Z`,
     },
+    {
+      question_id: "00000000-0000-4000-8000-00000000e003",
+      test_id: "00000000-0000-4000-8000-00000000d004",
+      classroom_id: `${ROOM}04`,
+      test_title: "Sample Dosage Drill",
+      room: "Sample Event Delta",
+      pos: 7,
+      prompt: "Sample question: how many milligrams are in 2.5 grams?",
+      reasons: ["other"],
+      reports: 1,
+      last_at: `${day(-6)}T20:05:00Z`,
+    },
   ],
   duplicates: [
     {
@@ -437,62 +451,126 @@ export const contentFixture: ContentData = {
   ],
 };
 
+// Newest first, as owner_feedback sends them: two new, one planned, two done and one won't fix, each closed one with
+// the note it was closed with. The gallery filters these by ?status the way the database does.
+const feedbackRows: FeedbackRow[] = [
+  {
+    id: "c0000001-0000-4000-8000-00000000c001",
+    category: "bug",
+    body: "Sample feedback: the timer kept running after I submitted a timed test on my phone.",
+    build: "a1b2c3d",
+    status: "new",
+    priority: "high",
+    resolution: "",
+    created_at: `${TODAY}T13:05:00Z`,
+    updated_at: `${TODAY}T14:02:00Z`,
+    triaged_at: `${TODAY}T14:02:00Z`,
+    sent_by: "Sample Trainee A",
+  },
+  {
+    id: "c0000002-0000-4000-8000-00000000c002",
+    category: "idea",
+    body: "Sample feedback: a dark calendar view would be easier to read at night.",
+    build: null,
+    status: "planned",
+    priority: "normal",
+    resolution: "Sample note: after the calendar rework.",
+    created_at: `${day(-3)}T22:40:00Z`,
+    updated_at: `${day(-2)}T09:00:00Z`,
+    triaged_at: `${day(-2)}T09:00:00Z`,
+    sent_by: "Sample Trainee B",
+  },
+  {
+    id: "c0000003-0000-4000-8000-00000000c003",
+    category: "other",
+    body: "Sample feedback: thanks for the flashcards.",
+    build: "a1b2c3d",
+    status: "new",
+    priority: "low",
+    resolution: "",
+    created_at: `${day(-5)}T17:20:00Z`,
+    updated_at: `${day(-5)}T17:20:00Z`,
+    triaged_at: null,
+    sent_by: "Sample Trainer C",
+  },
+  {
+    id: "c0000004-0000-4000-8000-00000000c004",
+    category: "bug",
+    body: "Sample feedback: the leaderboard showed me twice after I changed my name.",
+    build: "9f8e7d6",
+    status: "done",
+    priority: "high",
+    resolution:
+      "Sample note: fixed in the next build. Names now update everywhere at once.",
+    created_at: `${day(-8)}T15:00:00Z`,
+    updated_at: `${day(-6)}T21:10:00Z`,
+    triaged_at: `${day(-6)}T21:10:00Z`,
+    sent_by: "Sample Trainee D",
+  },
+  {
+    id: "c0000005-0000-4000-8000-00000000c005",
+    category: "idea",
+    body: "Sample feedback: shuffle flashcards by default.",
+    build: "9f8e7d6",
+    status: "done",
+    priority: "normal",
+    resolution: "Sample note: added. Decks start shuffled now.",
+    created_at: `${day(-12)}T19:30:00Z`,
+    updated_at: `${day(-10)}T17:00:00Z`,
+    triaged_at: `${day(-10)}T17:00:00Z`,
+    sent_by: "Sample Trainee A",
+  },
+  {
+    id: "c0000006-0000-4000-8000-00000000c006",
+    category: "idea",
+    body: "Sample feedback: could the site send texts before a test?",
+    build: null,
+    status: "wont_fix",
+    priority: "low",
+    resolution:
+      "Sample note: texts cost money per message. Push notifications cover this once the app is installed.",
+    created_at: `${day(-15)}T12:00:00Z`,
+    updated_at: `${day(-14)}T10:20:00Z`,
+    triaged_at: `${day(-14)}T10:20:00Z`,
+    sent_by: "Sample Trainee E",
+  },
+];
+
 export const feedbackFixture: FeedbackQueue = {
-  counts: { new: 3, planned: 2, done: 6, wont_fix: 1 },
-  rows: [
-    {
-      id: "c0000001-0000-4000-8000-00000000c001",
-      category: "bug",
-      body: "Sample feedback: the timer kept running after I submitted a timed test on my phone.",
-      build: "a1b2c3d",
-      status: "new",
-      priority: "high",
-      resolution: "",
-      created_at: `${TODAY}T13:05:00Z`,
-      updated_at: `${TODAY}T13:05:00Z`,
-      triaged_at: null,
-      sent_by: "Sample Trainee A",
-    },
-    {
-      id: "c0000002-0000-4000-8000-00000000c002",
-      category: "idea",
-      body: "Sample feedback: a dark calendar view would be easier to read at night.",
-      build: null,
-      status: "planned",
-      priority: "normal",
-      resolution: "Sample note: after the calendar rework.",
-      created_at: `${day(-3)}T22:40:00Z`,
-      updated_at: `${day(-2)}T09:00:00Z`,
-      triaged_at: `${day(-2)}T09:00:00Z`,
-      sent_by: "Sample Trainee B",
-    },
-    {
-      id: "c0000003-0000-4000-8000-00000000c003",
-      category: "other",
-      body: "Sample feedback: thanks for the flashcards.",
-      build: "a1b2c3d",
-      status: "new",
-      priority: "low",
-      resolution: "",
-      created_at: `${day(-5)}T17:20:00Z`,
-      updated_at: `${day(-5)}T17:20:00Z`,
-      triaged_at: null,
-      sent_by: "Sample Trainer C",
-    },
-  ],
+  counts: { new: 2, planned: 1, done: 2, wont_fix: 1 },
+  rows: feedbackRows,
 };
 
+// What owner_feedback(p_status) returns for one filter: the same counts, and only the rows that match it.
+export function feedbackFixtureFor(
+  filter: FeedbackFilter,
+  small: boolean,
+): FeedbackQueue {
+  if (small) return smallFeedbackFixture;
+  return {
+    counts: feedbackFixture.counts,
+    rows: feedbackRows.filter((r) =>
+      filter === "all"
+        ? true
+        : filter === "open"
+          ? r.status === "new" || r.status === "planned"
+          : r.status === filter,
+    ),
+  };
+}
+
 export const auditFixture: AuditRow[] = [
+  // Triage lines match the feedback fixture: what changed, never the text.
   {
-    id: 905,
+    id: 909,
     created_at: `${TODAY}T14:02:00Z`,
     actor_name: "Sample Owner",
     action: "feedback",
     target_name: "feedback #c0000001",
-    detail: "status new to planned, priority normal to high",
+    detail: "priority normal to high",
   },
   {
-    id: 904,
+    id: 908,
     created_at: `${day(-1)}T18:30:00Z`,
     actor_name: "Sample Executive",
     action: "role",
@@ -500,7 +578,7 @@ export const auditFixture: AuditRow[] = [
     detail: "trainee to trainer",
   },
   {
-    id: 903,
+    id: 907,
     created_at: `${day(-2)}T11:15:00Z`,
     actor_name: "Sample Executive",
     action: "title",
@@ -508,7 +586,23 @@ export const auditFixture: AuditRow[] = [
     detail: "Event lead",
   },
   {
-    id: 902,
+    id: 906,
+    created_at: `${day(-2)}T09:00:00Z`,
+    actor_name: "Sample Owner",
+    action: "feedback",
+    target_name: "feedback #c0000002",
+    detail: "status new to planned, note edited",
+  },
+  {
+    id: 905,
+    created_at: `${day(-6)}T21:10:00Z`,
+    actor_name: "Sample Owner",
+    action: "feedback",
+    target_name: "feedback #c0000004",
+    detail: "status new to done, priority normal to high, note edited",
+  },
+  {
+    id: 904,
     created_at: `${day(-6)}T20:45:00Z`,
     actor_name: "Sample Executive",
     action: "warned",
@@ -516,12 +610,28 @@ export const auditFixture: AuditRow[] = [
     detail: "Sample warning text",
   },
   {
-    id: 901,
+    id: 903,
     created_at: `${day(-9)}T16:00:00Z`,
     actor_name: "Sample Executive",
     action: "chapter_code",
     target_name: "",
     detail: "",
+  },
+  {
+    id: 902,
+    created_at: `${day(-10)}T17:00:00Z`,
+    actor_name: "Sample Executive",
+    action: "feedback",
+    target_name: "feedback #c0000005",
+    detail: "status new to done, note edited",
+  },
+  {
+    id: 901,
+    created_at: `${day(-14)}T10:20:00Z`,
+    actor_name: "Sample Owner",
+    action: "feedback",
+    target_name: "feedback #c0000006",
+    detail: "status new to wont_fix, note edited",
   },
   // A passcode claim names the claimer as its target; the log leaves it off.
   {
