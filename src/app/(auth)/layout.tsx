@@ -11,7 +11,9 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
         <ThemeToggle className="absolute top-3 right-3 text-on-field sm:top-4 sm:right-4" />
       </section>
       <section className="flex flex-col px-4 pt-8 pb-6 sm:px-8 lg:justify-end lg:px-12 lg:pt-10 lg:pb-12">
-        <div className="w-full max-w-[26rem]">{children}</div>
+        <main id="main" className="w-full max-w-[26rem]">
+          {children}
+        </main>
         <SiteFooter className="mt-auto pt-10 text-ink-2 lg:mt-10 lg:pt-0" />
       </section>
     </div>

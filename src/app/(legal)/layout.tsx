@@ -23,7 +23,8 @@ export default function LegalLayout({ children }: LayoutProps<"/">) {
         <div
           className={`${column} flex items-center justify-between gap-4 py-3 sm:py-4`}
         >
-          <Link href="/" aria-label="HOSA Bayview home" className="block">
+          {/* Named by the logo itself ("HOSA Bayview 2026–2027"), so the visible season is part of the link's name. */}
+          <Link href="/" className="block">
             <ClassicLogo className="h-[72px] sm:h-[96px]" />
           </Link>
           <ThemeToggle className="-mr-3 text-on-field-2 hover:text-on-field" />
