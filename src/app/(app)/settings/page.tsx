@@ -33,7 +33,7 @@ export default async function SettingsPage({
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <PageTitle meta={profile.email}>Settings</PageTitle>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
-        {/* Phones: one row of tabs sharing the width (all five fit from 360 px; narrower, it scrolls sideways). Desktop: a rail on the left. */}
+        {/* Phones: one row of tabs sharing the width (all five fit from 360 px, each at least 44 px wide; narrower, it scrolls sideways). Desktop: a rail on the left. */}
         <nav
           aria-label="Settings sections"
           className="min-w-0 lg:sticky lg:top-6 lg:self-start"
@@ -49,7 +49,7 @@ export default async function SettingsPage({
                   <Link
                     href={`/settings?tab=${t.id}`}
                     aria-current={on ? "page" : undefined}
-                    className={`caps step flex min-h-12 items-center justify-center px-1.5 text-[15px] sm:px-5 lg:justify-start sm:text-[18px] lg:min-h-14 ${
+                    className={`caps step flex min-h-12 min-w-11 items-center justify-center px-1 text-[15px] sm:px-5 lg:justify-start sm:text-[18px] lg:min-h-14 ${
                       on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                     }`}
                   >
