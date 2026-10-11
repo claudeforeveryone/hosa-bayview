@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, UserCheck } from "lucide-react";
+import { Check, UserCheck, X } from "lucide-react";
 import {
   markAllPresent,
   setRosterMark,
@@ -17,6 +17,12 @@ import {
   type RosterWeek,
 } from "@/lib/roster";
 
+
+// Present is green and absent is red, so a week reads at a glance. Weeks still to come stay neutral in the
+// season grid (nobody has been absent yet).
+const PRESENT = "border-ok bg-ok text-ground font-semibold";
+const ABSENT = "border-danger bg-danger text-ground hover:opacity-90";
+const UPCOMING = "border-rule-strong text-ink-2 hover:border-ink hover:bg-band";
 // The weekly attendance tracker: the chapter's paper sheet, live. Every tap saves at once (one upsert),
 // the screen changes first and goes back if the save fails.
 
@@ -173,9 +179,7 @@ export function WeekBoard({
                         aria-pressed={on}
                         onClick={() => toggle(m.id, week.id)}
                         className={`step press flex min-h-12 w-full items-center gap-2.5 border px-3 py-2 text-left ${
-                          on
-                            ? "border-you bg-you text-on-you"
-                            : "border-rule-strong text-ink-2 hover:border-ink hover:bg-band"
+                          on ? PRESENT : ABSENT
                         }`}
                       >
                         <span className="flex min-w-0 flex-1 items-center gap-2">
@@ -190,8 +194,10 @@ export function WeekBoard({
                         <span className="caps flex w-[7.5rem] shrink-0 items-center justify-end gap-1.5 text-[14px]">
                           {on ? (
                             <Check size={18} strokeWidth={3} aria-hidden />
-                          ) : null}
-                          {on ? "Present" : "Not present"}
+                          ) : (
+                            <X size={18} strokeWidth={3} aria-hidden />
+                          )}
+                          {on ? "Present" : "Absent"}
                         </span>
                       </button>
                     </li>
@@ -308,13 +314,13 @@ export function SeasonGrid({
                         aria-label={`${m.name}, ${weekColumnLabel(w.meet_on)}`}
                         onClick={() => toggle(m.id, w.id)}
                         className={`step press mx-auto grid h-10 w-11 place-items-center border ${
-                          on
-                            ? "border-you bg-you text-on-you"
-                            : "border-rule-strong hover:border-ink hover:bg-band"
+                          on ? PRESENT : i <= currentIndex ? ABSENT : UPCOMING
                         }`}
                       >
                         {on ? (
                           <Check size={20} strokeWidth={3} aria-hidden />
+                        ) : i <= currentIndex ? (
+                          <X size={18} strokeWidth={3} aria-hidden />
                         ) : null}
                       </button>
                     </td>
@@ -385,7 +391,7 @@ export function ClassPicker({
           </option>
         ))}
         {empty.length ? (
-          <optgroup label="No names yet">
+          <optgroup label="No one joined yet">
             {empty.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.label}
