@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { ClassicLogo } from "@/components/classic-logo";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteJsonLd } from "@/components/site-json-ld";
@@ -8,8 +9,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 // so the mark, the text and the toggle line up.
 const column = "mx-auto w-full max-w-[42rem] px-4 sm:px-8";
 
-// Terms and privacy. A navy band with the mark (the same field as the sign-in pages people come from), the reading
-// column, the footer. No app navigation, so a guest and a member read the same page.
+// Terms and privacy. A navy band with the mark (the same field as the sign-in pages people come from) and a way back
+// to the app, the reading column, the footer. No app navigation, so a guest and a member read the same page.
 export default function LegalLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-dvh flex-col">
@@ -27,7 +28,18 @@ export default function LegalLayout({ children }: LayoutProps<"/">) {
           <Link href="/" className="block">
             <ClassicLogo className="h-[72px] sm:h-[96px]" />
           </Link>
-          <ThemeToggle className="-mr-3 text-on-field-2 hover:text-on-field" />
+          {/* Members reach these pages from the app's footer, and the installed app has no browser back button, so
+              the way back is spelled out. A guest who follows it lands on sign-in. */}
+          <div className="flex items-center gap-1 sm:gap-3">
+            <Link
+              href="/"
+              className="caps inline-flex min-h-11 items-center gap-1.5 text-[15px] text-on-field-2 hover:text-on-field hover:underline hover:underline-offset-4"
+            >
+              <ArrowLeft size={18} strokeWidth={2} aria-hidden />
+              Back to the app
+            </Link>
+            <ThemeToggle className="-mr-3 text-on-field-2 hover:text-on-field" />
+          </div>
         </div>
       </header>
       <main id="main" className={`${column} flex-1 pt-8 pb-14 sm:pt-12`}>
