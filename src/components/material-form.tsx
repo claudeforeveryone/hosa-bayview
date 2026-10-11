@@ -195,7 +195,7 @@ export function MaterialForm({
                 <span className="num">{formatBytes(file.size)}</span>
               </>
             ) : (
-              "Any type, up to 10 MB."
+              "Any type, up to 50 MB."
             )}
           </p>
         </div>

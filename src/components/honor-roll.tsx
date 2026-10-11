@@ -13,7 +13,7 @@ export function HonorRoll({
   const shown = limit ? rows.slice(0, limit) : rows;
   return (
     <section aria-labelledby="honor-h" className="grid gap-4">
-      <div className="grid gap-1 px-1 sm:px-3">
+      <div className="grid gap-1">
         <h2
           id="honor-h"
           className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
@@ -30,12 +30,12 @@ export function HonorRoll({
           return (
             <li
               key={row.user_id}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-rule px-1 py-3 sm:px-3"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-rule px-2 py-2.5 sm:px-3"
             >
               <span className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
                 <Link
                   href={`/members/${row.user_id}`}
-                  className="step truncate font-display text-[clamp(1.4rem,5vw,1.9rem)] leading-tight font-semibold uppercase hover:underline"
+                  className="step truncate font-display text-[18px] leading-tight font-semibold uppercase hover:underline sm:text-[20px]"
                 >
                   {row.full_name || "Member"}
                 </Link>
@@ -45,7 +45,7 @@ export function HonorRoll({
                   </span>
                 ) : null}
               </span>
-              <span className="num font-display text-[clamp(1.4rem,5vw,1.9rem)] leading-none font-bold">
+              <span className="num font-display text-[22px] leading-none font-bold">
                 {formatStreak(row.streak)}
               </span>
             </li>

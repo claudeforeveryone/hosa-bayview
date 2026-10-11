@@ -20,7 +20,7 @@ export default async function LeaderboardPage(
     getHonorRoll(),
   ]);
   return (
-    <div className="grid grid-cols-1 gap-8">
+    <div className="grid max-w-3xl grid-cols-1 gap-10">
       <PageTitle meta="All of HOSA Bayview">Leaderboard</PageTitle>
       <BoardView
         base="/leaderboard"

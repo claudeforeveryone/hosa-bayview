@@ -103,7 +103,7 @@ export default function TermsPage() {
             </>,
             <>
               Only post or upload what you&apos;re allowed to share with the
-              chapter. Files can be up to 10 MB and profile pictures up to 2 MB.
+              chapter. Files can be up to 50 MB and profile pictures up to 2 MB.
             </>,
             <>Executives can remove anything that breaks these terms.</>,
           ]}

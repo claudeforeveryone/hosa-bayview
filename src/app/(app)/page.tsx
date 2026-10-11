@@ -94,12 +94,8 @@ function ClubBoard({
       }}
     >
       <div className="grid gap-2 py-3">
-        {place ? (
-          <p className="caps num px-1 text-[15px] text-ink-2 sm:px-3">
-            You&apos;re #{place} of {ranked.length}
-          </p>
-        ) : null}
         <BoardView
+          lead={place ? `You're #${place} of ${ranked.length}` : undefined}
           base="/"
           metric={metric}
           period={period}
