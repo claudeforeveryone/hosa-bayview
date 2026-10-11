@@ -17,12 +17,13 @@ import { SECTION_MAX, formatBytes, tooBigMessage, titleFromFile, uploadType } fr
 type Mode = "file" | "link";
 type Action = (state: FormState, form: FormData) => Promise<FormState>;
 
-// Add a file or a link. A file goes straight from the browser to storage on a signed URL, then the server
+// Add a link or a file. Link is first and the default: the free storage plan is small, so a link (Drive, Docs)
+// is the preferred way to share. A file goes straight from the browser to storage on a signed URL, then the server
 // action records the row. Adding clears the form after it saves.
 export function MaterialForm({
   action,
   classroomId,
-  modes = ["file", "link"],
+  modes = ["link", "file"],
   sections = [],
 }: {
   action: Action;
@@ -194,7 +195,7 @@ export function MaterialForm({
                 <span className="num">{formatBytes(file.size)}</span>
               </>
             ) : (
-              "Any type, up to 50 MB."
+              "Any type, up to 10 MB."
             )}
           </p>
         </div>

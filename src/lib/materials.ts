@@ -1,7 +1,7 @@
 // Pure helpers for the file and link library: names, storage paths, sizes, labels. Safe on client and server.
 import { hostOf } from "@/lib/resources";
 
-export const MAX_MATERIAL_BYTES = 52428800; // 50 MB, the bucket limit too.
+export const MAX_MATERIAL_BYTES = 10485760; // 10 MB, the bucket limit too.
 export const MAX_PATH_NAME = 100;
 
 export type MaterialRow = {
@@ -118,7 +118,7 @@ export function titleFromFile(fileName: string): string {
   return (stem || name).slice(0, 120);
 }
 
-export const TOO_BIG = "Files can be up to 50 MB. Add big files as a link instead.";
+export const TOO_BIG = "Files can be up to 10 MB. Add bigger ones as a link instead.";
 
 // A row with neither a file nor a link: a titled slot that says what is coming ("Link coming soon").
 export function isPlaceholder(row: { path: string | null; url: string | null }): boolean {

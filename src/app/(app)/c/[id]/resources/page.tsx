@@ -4,10 +4,12 @@ import { EmptyState } from "@/components/empty-state";
 import { TopicList } from "@/components/topic-breakdown";
 import { TopicEditor } from "@/components/topic-editor";
 import { getClassroom } from "@/lib/classrooms";
+import { getProfile } from "@/lib/auth";
 import { saveMaterial } from "@/app/(app)/library/actions";
 import { getMaterials } from "@/app/(app)/library/queries";
 import { MaterialForm } from "@/components/material-form";
 import { MaterialList } from "@/components/material-list";
+import { StorageBar } from "@/components/storage-bar";
 import { sectionNames } from "@/lib/materials";
 import { saveTopics } from "./actions";
 import { getTopicWeights } from "./queries";
@@ -21,10 +23,11 @@ export default async function ResourcesTab({
   params,
 }: PageProps<"/c/[id]/resources">) {
   const { id } = await params;
-  const [room, files, topics] = await Promise.all([
+  const [room, files, topics, profile] = await Promise.all([
     getClassroom(id),
     getMaterials(id),
     getTopicWeights(id),
+    getProfile(),
   ]);
   if (!room) notFound();
 
@@ -42,6 +45,7 @@ export default async function ResourcesTab({
         {room.can_manage ? (
           <div className="grid gap-5 border-t border-rule pt-8">
             <h3 className="caps text-[17px] font-semibold">Add a file or link</h3>
+            {profile?.role === "executive" ? <StorageBar /> : null}
             <MaterialForm
               action={saveMaterial.bind(null, room.id)}
               classroomId={room.id}

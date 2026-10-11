@@ -43,8 +43,8 @@ insert into public.classroom_members (classroom_id, user_id) values (pg_temp.r(1
 -- Category and bucket limit.
 select pg_temp.expect('bad category rejected',
   format($$insert into public.classrooms (name, owner_id, category) values ('Bad', %L, 'nope')$$, pg_temp.u(2)), '23514');
-select pg_temp.check('bucket limit is 50 MB',
-  (select file_size_limit from storage.buckets where id = 'materials') = 52428800);
+select pg_temp.check('bucket limit is 10 MB (0106 lowered it from 50 MB)',
+  (select file_size_limit from storage.buckets where id = 'materials') = 10485760);
 
 -- Materials: section, 50 MB, placeholder rows.
 select pg_temp.as_user(pg_temp.u(2));

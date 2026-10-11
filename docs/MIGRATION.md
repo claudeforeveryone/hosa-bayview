@@ -19,7 +19,7 @@ Started 2026-10-10. The site keeps running on the old project the whole time; th
 - Extensions: plpgsql, pg_stat_statements, uuid-ossp, pgcrypto, supabase_vault. No pg_cron, no edge functions.
 - Realtime publication: empty (battles' 0097 not applied yet).
 - Auth: 6 users, email provider only, "Confirm email" off.
-- Storage: `avatars` (private, 2 MB limit, 3 objects) and `materials` (private, 50 MB limit, type allowlist from 0057c, empty).
+- Storage: `avatars` (private, 2 MB limit, 3 objects) and `materials` (private, 10 MB limit from 0106, type allowlist from 0057c, empty).
 - Migrations: 82 applied. Local files not applied at audit time: 0049, 0057c, 0083, 0085, 0090, 0095-0098 (battles). 0073 is deferred on purpose. 0084 (keepalive) was applied 2026-10-10 after the audit. 0085 rewrites `save_question` from its 0013 base, so diff it against the live definition before applying. Re-check with `list_migrations` before relying on this list; other sessions apply migrations too.
 
 ## Deploy side

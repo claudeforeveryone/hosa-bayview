@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MaterialForm } from "@/components/material-form";
 import { MaterialList } from "@/components/material-list";
+import { StorageBar } from "@/components/storage-bar";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
 import { sectionNames } from "@/lib/materials";
@@ -39,6 +40,7 @@ export default async function LibraryPage() {
           <h2 id="add-h" className={heading}>
             Add a resource
           </h2>
+          <StorageBar />
           <MaterialForm
             action={saveMaterial.bind(null, null)}
             classroomId={null}
