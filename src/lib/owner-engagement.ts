@@ -39,8 +39,8 @@ const FEATURE: Record<FeatureId, { label: string; from: string }> = {
     from: "Settings > Send feedback",
   },
   question_reported: {
-    label: "Questions reported",
-    from: "Report this question",
+    label: "Question reports sent",
+    from: "Each report sent from Report this question",
   },
   install_prompt_shown: {
     label: "Install prompt shown",
@@ -89,17 +89,28 @@ export function engagementTable(data: EngagementData): {
     { event: "onboarding_completed", why: "this site has no onboarding step" },
   ];
   if (data.duels.available) {
-    const duel = (key: TaxonomyEvent, label: string, n: Count) => ({
+    const duel = (
+      key: TaxonomyEvent,
+      label: string,
+      n: Count,
+      people: Count,
+    ) => ({
       key,
       label,
       event: key,
       count: countText(n),
-      people: countText(data.duels.available ? data.duels.people : null),
+      people: countText(people),
       from: "Battles",
     });
+    const d = data.duels;
     rows.push(
-      duel("duel_started", "Battles started", data.duels.started),
-      duel("duel_completed", "Battles finished", data.duels.completed),
+      duel("duel_started", "Battles started", d.started, d.people),
+      duel(
+        "duel_completed",
+        "Battles finished",
+        d.completed,
+        d.completed_people,
+      ),
     );
   } else {
     const why = "battles aren't on this database yet";

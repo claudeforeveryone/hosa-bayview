@@ -71,7 +71,14 @@ export type Funnel = { started: Count; completed: Count; people: Count };
 
 export type DuelFigures =
   | { available: false }
-  | { available: true; started: Count; completed: Count; people: Count };
+  | {
+      available: true;
+      started: Count;
+      completed: Count;
+      // People in any battle started in the range, and people in one that finished.
+      people: Count;
+      completed_people: Count;
+    };
 
 // Rooms with 5 or more runs, busiest first. A ranking only: no run counts (they'd add up against the funnels).
 export type BusyEvent = {
@@ -111,7 +118,8 @@ export type ReportedQuestion = {
   test_title: string;
   room: string;
   pos: number;
-  prompt: string;
+  // The question's wording, or null for a viewer who isn't an executive (0232): they get the count and the link.
+  prompt: string | null;
   reasons: ReportReason[];
   reports: number;
   last_at: string;
@@ -119,9 +127,10 @@ export type ReportedQuestion = {
 
 export type DuplicateStem = {
   // Lower case, spacing and end punctuation stripped: the key the copies share, not something to show.
-  stem: string;
+  // Null, like example, for a viewer who isn't an executive (0232).
+  stem: string | null;
   // One copy's wording as written, and where that copy lives.
-  example: string;
+  example: string | null;
   test_id: string;
   classroom_id: string;
   copies: number;

@@ -36,7 +36,7 @@ const data = (duels: EngagementData["duels"]): EngagementData => ({
     feature("card_reviews", null, "table", 310, 7),
     feature("resource_opened", "resource_opened", "tracked", 0, 0, null),
     feature("feedback_submitted", "feedback_submitted", "table", null, null),
-    feature("question_reported", "feedback_submitted", "table", 0, 0),
+    feature("question_reported", "feedback_submitted", "tracked", 0, 0, null),
     feature("install_prompt_shown", "install_prompt_shown", "tracked", 0, 0),
     feature("app_installed", "app_installed", "tracked", 0, 0),
     feature("push_enabled", "push_enabled", "tracked", 0, 0),
@@ -54,7 +54,13 @@ describe("engagementTable", () => {
   it("accounts for every taxonomy event, with or without battles", () => {
     const without = engagementTable(data({ available: false }));
     const withBattles = engagementTable(
-      data({ available: true, started: 6, completed: 5, people: null }),
+      data({
+        available: true,
+        started: 6,
+        completed: 5,
+        people: null,
+        completed_people: null,
+      }),
     );
     expect([...covered(without)].sort()).toEqual([...TAXONOMY_EVENTS].sort());
     expect([...covered(withBattles)].sort()).toEqual(
@@ -77,11 +83,33 @@ describe("engagementTable", () => {
 
   it("shows battle rows with their counts once battles exist", () => {
     const t = engagementTable(
-      data({ available: true, started: 6, completed: 5, people: null }),
+      data({
+        available: true,
+        started: 6,
+        completed: 5,
+        people: null,
+        completed_people: null,
+      }),
     );
     const started = t.rows.find((r) => r.key === "duel_started");
     expect(started).toMatchObject({ count: "6", people: "Under 5" });
     expect(t.notCounted.map((n) => n.event)).toEqual(["onboarding_completed"]);
+  });
+
+  // Ten people started battles, six of them were in one that finished: the finished row says six, not ten.
+  it("counts the people behind finished battles apart from everyone who started one", () => {
+    const t = engagementTable(
+      data({
+        available: true,
+        started: 12,
+        completed: 8,
+        people: 10,
+        completed_people: 6,
+      }),
+    );
+    const byKey = Object.fromEntries(t.rows.map((r) => [r.key, r]));
+    expect(byKey.duel_started).toMatchObject({ count: "12", people: "10" });
+    expect(byKey.duel_completed).toMatchObject({ count: "8", people: "6" });
   });
 
   it("marks rows that share an event as counting toward it, and leaves one-to-one rows plain", () => {
@@ -93,7 +121,7 @@ describe("engagementTable", () => {
     });
     expect(byKey.vocab_match.shared).toBe(true);
     expect(byKey.question_reported).toMatchObject({
-      label: "Questions reported",
+      label: "Question reports sent",
       event: "feedback_submitted",
       shared: true,
     });
@@ -114,5 +142,10 @@ describe("engagementTable", () => {
     expect(byKey.vocab_round.from).toBe(
       "Recorded when a round ends, since Oct 1, 2026",
     );
+    // Reports are recorded from the day the button ships, one per report sent.
+    expect(byKey.question_reported).toMatchObject({
+      count: "Not recorded yet",
+      from: "Each report sent from Report this question",
+    });
   });
 });
