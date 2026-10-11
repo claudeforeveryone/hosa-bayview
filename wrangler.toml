@@ -1,3 +1,16 @@
+name = "hosa-bayview"
+main = ".open-next/worker.js"
+compatibility_date = "2026-10-06"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "hosa-bayview"
+
 [[durable_objects.bindings]]
 name = "BUCKET_CACHE_PURGE"
 class_name = "BucketCachePurge"
