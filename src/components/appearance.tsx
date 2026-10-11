@@ -58,6 +58,7 @@ import {
   type Toggle,
 } from "@/lib/appearance";
 import { feedback } from "@/lib/feedback";
+import { watchThemeColor } from "@/lib/pwa/theme-color";
 import { SettingsSection } from "@/components/settings-section";
 
 const TOGGLES: { id: Toggle; label: string }[] = [
@@ -75,8 +76,9 @@ function subscribe(onChange: () => void) {
 }
 
 // In the root layout. On Device, follows the device when it switches between light and dark, and picks up a
-// change made in another tab.
+// change made in another tab. Keeps the status bar's theme-color on the page's ground as the look changes.
 export function AppearanceSync() {
+  useEffect(() => watchThemeColor(), []);
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onScheme = () => {

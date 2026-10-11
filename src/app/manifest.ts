@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 
 // What a phone uses when HOSA is added to its home screen. Field navy (the site's --field token) is the icon
 // ground, the splash and the title bar, so opening the app is one continuous navy screen. Icons come from
-// scripts/make-pwa-icons.py. The pages' own theme-color (root layout) takes over once a page has loaded.
+// scripts/make-pwa-icons.py. Once a page loads, its theme-color tags take over, kept on the page's own ground
+// for the member's mode and colour theme (src/lib/pwa/theme-color.ts).
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",

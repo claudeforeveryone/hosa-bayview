@@ -18,12 +18,16 @@ const FONTS = [
   )
   .join("\n");
 
+// The header's navy in each mode. The status bar takes the same colour (SCRIPT sets theme-color), so the top of the
+// screen is one band.
+const FIELD = { light: "#1e3d62", dark: "#0f2440" };
+
 // Light and dark tokens copied from globals.css (Bayview navy, the default palette). Header and main share one
 // centred column, so the logo lines up with the headline at every width.
 const CSS = `
 ${FONTS}
-:root{color-scheme:light;--ground:#e8f2fa;--band:#d6e6f3;--ink:#0f2440;--ink-2:#33506f;--field:#1e3d62;--on-field:#e8f2fa;--on-field-2:#b4cbe0}
-:root[data-theme=dark]{color-scheme:dark;--ground:#1e3d62;--band:#183353;--ink:#e8f2fa;--ink-2:#b4cbe0;--field:#0f2440;--on-field:#e8f2fa;--on-field-2:#a9c1d8}
+:root{color-scheme:light;--ground:#e8f2fa;--band:#d6e6f3;--ink:#0f2440;--ink-2:#33506f;--field:${FIELD.light};--on-field:#e8f2fa;--on-field-2:#b4cbe0}
+:root[data-theme=dark]{color-scheme:dark;--ground:#1e3d62;--band:#183353;--ink:#e8f2fa;--ink-2:#b4cbe0;--field:${FIELD.dark};--on-field:#e8f2fa;--on-field-2:#a9c1d8}
 *{box-sizing:border-box;margin:0;border-radius:0}
 html{-webkit-text-size-adjust:100%}
 body{min-height:100dvh;display:flex;flex-direction:column;background:var(--ground);color:var(--ink);font:17px/1.5 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -39,10 +43,12 @@ a.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 @media (min-width:768px){header img{height:96px}main{padding-top:64px}}
 `;
 
-// Applies the theme chosen in Settings (or the device's), and reloads by itself once the phone is back online.
+// Applies the theme chosen in Settings (or the device's), colours the status bar to match the header, and reloads
+// by itself once the phone is back online.
 const SCRIPT =
   "(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');" +
-  "if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}d.dataset.theme=t}catch(e){}" +
+  "if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}d.dataset.theme=t;" +
+  `var m=document.querySelector('meta[name="theme-color"]');if(m){m.content=t==='dark'?'${FIELD.dark}':'${FIELD.light}'}}catch(e){}` +
   "addEventListener('online',function(){location.reload()})})()";
 
 export function offlineHtml(nonce: string | null): string {
@@ -56,7 +62,7 @@ export function offlineHtml(nonce: string | null): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#1e3d62">
+<meta name="theme-color" content="${FIELD.light}">
 <title>Offline · HOSA Bayview</title>
 ${script}
 <style>${CSS}</style>

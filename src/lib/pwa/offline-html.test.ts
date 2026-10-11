@@ -60,4 +60,31 @@ describe("offlineHtml", () => {
     expect(html).toContain('<a class="btn" href="">Try again</a>');
     expect(html).toContain('<html lang="en"');
   });
+
+  it("colours the status bar like its navy header, in light and dark", () => {
+    const html = offlineHtml("abc123DEF456");
+    const script = html.match(/<script[^>]*>([^<]*)<\/script>/)?.[1] ?? "";
+    const field = (theme: "light" | "dark") =>
+      html.match(
+        theme === "dark"
+          ? /:root\[data-theme=dark\]\{[^}]*--field:(#[0-9a-f]{6})/
+          : /:root\{[^}]*--field:(#[0-9a-f]{6})/,
+      )?.[1];
+    expect(html).toMatch(/header\{background:var\(--field\)/);
+    for (const theme of ["light", "dark"] as const) {
+      const tag = { content: "#1e3d62" };
+      const env = {
+        document: {
+          documentElement: { dataset: {} as Record<string, string> },
+          querySelector: (sel: string) =>
+            sel === 'meta[name="theme-color"]' ? tag : null,
+        },
+        localStorage: { getItem: (k: string) => (k === "theme" ? theme : null) },
+        matchMedia: () => ({ matches: false }),
+        addEventListener: () => {},
+      };
+      new Function(...Object.keys(env), script)(...Object.values(env));
+      expect(tag.content, theme).toBe(field(theme));
+    }
+  });
 });

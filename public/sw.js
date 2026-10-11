@@ -3,7 +3,7 @@
 // It never stores member data. Pages always come from the network (network first); only when the network is gone
 // does the precached /offline page answer, at the address the member asked for. API routes, Supabase calls and
 // anything cross-origin are left alone. Bump VERSION when the precache list or the offline page changes.
-const VERSION = "hosa-v4";
+const VERSION = "hosa-v5";
 const SHELL = `${VERSION}-shell`;
 const STATIC = "hosa-static";
 const STATIC_LIMIT = 160;
