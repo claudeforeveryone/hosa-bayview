@@ -58,9 +58,11 @@ export function isDismissed(stored: string | null, now: number): boolean {
 }
 
 // Pages that need full attention (a test in progress, a live battle, a study or match round) never get the card,
-// and nor does Settings, whose Phone app tab already has the full steps.
+// and nor does Settings, whose Phone app tab already has the full steps, or /notifications, whose own line
+// (pushHintMode) is the one ask there.
 const QUIET = [
   /^\/settings(\/|$)/,
+  /^\/notifications$/,
   /^\/c\/[^/]+\/tests\/[^/]+\/a\//,
   /^\/battle\//,
   /^\/flashcards\/[^/]+\/(study|match)$/,
@@ -114,6 +116,20 @@ function installMode(v: InstallView): InstallCard {
   if (v.platform === "android" && v.browser === "menu-install")
     return "android-menu";
   // Chrome on Android: wait for its install prompt (it never comes once the app is installed).
+  return null;
+}
+
+// The one line on /notifications: turn notifications on (in Settings), or on iPhone, add HOSA to the Home Screen
+// first. Silent where a tap can't help, and for 30 days after a "Not now" on the matching ask, whether it was
+// the card's or the line's own (they share the keys).
+export type PushHint = "turn-on" | "home-screen" | null;
+
+export function pushHintMode(
+  push: PushUiState | null,
+  v: Pick<InstallView, "dismissed" | "pushDismissed">,
+): PushHint {
+  if (push === "off") return v.pushDismissed ? null : "turn-on";
+  if (push === "needs-home-screen") return v.dismissed ? null : "home-screen";
   return null;
 }
 

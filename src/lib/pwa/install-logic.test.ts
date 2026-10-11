@@ -7,6 +7,7 @@ import {
   isDismissed,
   isQuietPath,
   platformOf,
+  pushHintMode,
   type InstallView,
 } from "./install-logic";
 
@@ -101,6 +102,11 @@ describe("isQuietPath", () => {
     expect(isQuietPath("/settings")).toBe(true);
     expect(isQuietPath("/settings/anything")).toBe(true);
     expect(isQuietPath("/settingsx")).toBe(false);
+  });
+
+  it("keeps it off /notifications, whose own line is the one ask there", () => {
+    expect(isQuietPath("/notifications")).toBe(true);
+    expect(isQuietPath("/notifications/x")).toBe(false);
   });
 
   it("lets it show on ordinary pages", () => {
@@ -279,5 +285,42 @@ describe("installGuide (the permanent entry in Settings)", () => {
     expect(
       installGuide({ ...view, platform: "other", browser: "chromium" }),
     ).toBe("desktop");
+  });
+});
+
+describe("pushHintMode (the line on /notifications)", () => {
+  const fresh = { dismissed: false, pushDismissed: false };
+
+  it("asks to turn notifications on while a tap in Settings can do it", () => {
+    expect(pushHintMode("off", fresh)).toBe("turn-on");
+  });
+
+  it("points an iPhone in the browser to the Home Screen first", () => {
+    expect(pushHintMode("needs-home-screen", fresh)).toBe("home-screen");
+  });
+
+  it("stops asking after a Not now on the matching ask (the card's or its own)", () => {
+    expect(pushHintMode("off", { ...fresh, pushDismissed: true })).toBeNull();
+    expect(
+      pushHintMode("needs-home-screen", { ...fresh, dismissed: true }),
+    ).toBeNull();
+    // Each Not now silences only its own ask.
+    expect(pushHintMode("off", { ...fresh, dismissed: true })).toBe("turn-on");
+    expect(
+      pushHintMode("needs-home-screen", { ...fresh, pushDismissed: true }),
+    ).toBe("home-screen");
+  });
+
+  it("stays silent where a tap can't help, and while the browser is still being read", () => {
+    for (const state of [
+      null,
+      "on",
+      "blocked",
+      "unsupported",
+      "unavailable",
+      "needs-stay-signed-in",
+    ] as const) {
+      expect(pushHintMode(state, fresh), String(state)).toBeNull();
+    }
   });
 });
