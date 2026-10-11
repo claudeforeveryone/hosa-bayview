@@ -67,7 +67,7 @@ export function EngagementSection({
       <Sheet
         id="engagement-h"
         title="Engagement"
-        note="What members do, counted from the records the site already keeps. A few things no record covers are logged on purpose, and say so."
+        note="What members do, from records the site already keeps. Flashcard rounds, opened resources, question reports, the install prompt, app installs and notifications have no record of their own, so the site logs them just for this page."
         actions={
           <Choices
             label="Range"

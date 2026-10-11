@@ -30,7 +30,7 @@ export function OwnerConsole({
   };
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
-      <PageTitle meta="Owner console. Only accounts on the stats list can open it.">
+      <PageTitle meta="Chapter numbers, feedback and site health">
         Developer
       </PageTitle>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 xl:grid-cols-[13rem_minmax(0,1fr)] xl:gap-12">

@@ -51,7 +51,7 @@ export function OverviewSection({ data }: { data: OwnerOverview }) {
         <Sheet
           id="back-h"
           title="Coming back"
-          note="This week's active members: back from an earlier day, or here for the first time. The two hide together."
+          note="This week's active members, split into returning and first-week. If either is 1 to 4, both show as Under 5."
         >
           <Ledger
             label="Returning and first-week members"
