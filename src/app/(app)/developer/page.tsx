@@ -43,7 +43,7 @@ export default async function DeveloperPage(props: PageProps<"/developer">) {
   const sp = await props.searchParams;
   const tab = parseTab(sp.tab);
   return (
-    <OwnerConsole base={BASE} tab={tab} wide={tab === "members"}>
+    <OwnerConsole base={BASE} tab={tab}>
       {await section(tab, sp)}
     </OwnerConsole>
   );

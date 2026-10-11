@@ -210,70 +210,93 @@ export type Column<T> = {
   header: string;
   numeric?: boolean;
   cell: (row: T) => ReactNode;
-  // Phones only: leave this pair out of the row's block (always, or for rows where `when` says no).
+  // Phones only: leave this pair out of the row's block (always, or for rows where `when` says no). In a table that
+  // doesn't stack, the whole column is left out below the phone breakpoint.
   hideOnPhone?: boolean;
   when?: (row: T) => boolean;
 };
 
 // A table on wide screens; on phones each row becomes a short block (first column as its title, the rest as
-// label and value pairs), so nothing scrolls sideways at 390px.
+// label and value pairs), so nothing scrolls sideways at 390px. A narrow table (two or three short columns) passes
+// stackOnPhone={false} and stays a real table at every width: one line per row instead of a block per row.
 export function DataTable<T>({
   caption,
   columns,
   rows,
   rowKey,
+  stackOnPhone = true,
 }: {
   caption: string;
   columns: Column<T>[];
   rows: T[];
   rowKey: (row: T) => string;
+  stackOnPhone?: boolean;
 }) {
   const [first, ...rest] = columns;
+  // Columns a phone leaves out, when the table shows there too. The last column a phone does show ends flush.
+  const lastOnPhone = columns.findLastIndex((c) => !c.hideOnPhone);
+  const phoneHidden = (c: Column<T>, i: number) =>
+    stackOnPhone
+      ? ""
+      : c.hideOnPhone
+        ? "hidden sm:table-cell"
+        : i === lastOnPhone
+          ? "max-sm:pr-0"
+          : "";
   return (
     <>
-      <ul aria-label={caption} className="border-t-[3px] border-ink sm:hidden">
-        {rows.map((row) => {
-          const pairs = rest.filter(
-            (c) => !c.hideOnPhone && (c.when?.(row) ?? true),
-          );
-          return (
-            <li
-              key={rowKey(row)}
-              className="grid gap-2 border-b border-rule py-3"
-            >
-              <div className="text-[16px] font-medium">{first.cell(row)}</div>
-              {pairs.length ? (
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                  {pairs.map((c) => (
-                    <div key={c.key} className="min-w-0">
-                      <dt className="caps text-[12px] leading-tight text-ink-2">
-                        {c.header}
-                      </dt>
-                      <dd
-                        className={`text-[16px] ${c.numeric ? "num font-semibold" : ""}`}
-                      >
-                        {c.cell(row)}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-      <div className="hidden overflow-x-auto sm:block">
+      {stackOnPhone ? (
+        <ul
+          aria-label={caption}
+          className="border-t-[3px] border-ink sm:hidden"
+        >
+          {rows.map((row) => {
+            const pairs = rest.filter(
+              (c) => !c.hideOnPhone && (c.when?.(row) ?? true),
+            );
+            return (
+              <li
+                key={rowKey(row)}
+                className="grid gap-2 border-b border-rule py-3"
+              >
+                <div className="text-[16px] font-medium">{first.cell(row)}</div>
+                {pairs.length ? (
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    {pairs.map((c) => (
+                      <div key={c.key} className="min-w-0">
+                        <dt className="caps text-[12px] leading-tight text-ink-2">
+                          {c.header}
+                        </dt>
+                        <dd
+                          className={`text-[16px] ${c.numeric ? "num font-semibold" : ""}`}
+                        >
+                          {c.cell(row)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+      <div
+        className={
+          stackOnPhone ? "hidden overflow-x-auto sm:block" : "overflow-x-auto"
+        }
+      >
         <table className="w-full border-collapse">
           <caption className="sr-only">{caption}</caption>
           <thead>
             <tr>
-              {columns.map((c) => (
+              {columns.map((c, i) => (
                 <th
                   key={c.key}
                   scope="col"
                   className={`caps border-b-[3px] border-ink py-2 pr-4 text-[13px] font-semibold text-ink-2 last:pr-0 ${
                     c.numeric ? "text-right" : "text-left"
-                  }`}
+                  } ${phoneHidden(c, i)}`}
                 >
                   {c.header}
                 </th>
@@ -296,8 +319,11 @@ export function DataTable<T>({
                     <td
                       key={c.key}
                       className={`py-2.5 pr-4 text-[16px] last:pr-0 ${
-                        c.numeric ? "num text-right whitespace-nowrap" : ""
-                      }`}
+                        c.numeric
+                          ? // A table that stays on phones lets a worded value ("Not recorded yet") wrap there.
+                            `num text-right ${stackOnPhone ? "whitespace-nowrap" : "sm:whitespace-nowrap"}`
+                          : ""
+                      } ${phoneHidden(c, i)}`}
                     >
                       {c.cell(row)}
                     </td>

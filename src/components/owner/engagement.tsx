@@ -92,6 +92,7 @@ export function EngagementSection({
       >
         <DataTable<EngagementRow>
           caption="Each event in the shared list, with its count, the people behind it and where it is counted from."
+          stackOnPhone={false}
           rowKey={(r) => r.key}
           rows={table.rows}
           columns={[
@@ -150,6 +151,7 @@ export function EngagementSection({
         ) : (
           <DataTable<BusyEvent & { rank: number }>
             caption="Event rooms ranked by runs started, busiest first."
+            stackOnPhone={false}
             rowKey={(e) => e.id}
             rows={data.events.map((e, i) => ({ ...e, rank: i + 1 }))}
             columns={[

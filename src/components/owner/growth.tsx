@@ -80,6 +80,7 @@ export function GrowthSection({
               )}
               <DataTable
                 caption={`${data.new_by_bucket ? "New and active" : "Active"} members per ${unit}, newest first.`}
+                stackOnPhone={false}
                 rowKey={(b) => b.start}
                 rows={[...data.buckets].reverse()}
                 columns={[
@@ -173,12 +174,13 @@ function ActiveChart({
           })}
         </div>
         <span />
+        {/* The chart's two ends: the first day it counts and the last (today), whether columns are days or weeks. */}
         <div className="flex justify-between text-[12px] text-ink-2">
           <span>{bucketLabel(buckets[0].start, buckets[0].start)}</span>
           <span>
             {bucketLabel(
-              buckets[buckets.length - 1].start,
-              buckets[buckets.length - 1].start,
+              buckets[buckets.length - 1].end,
+              buckets[buckets.length - 1].end,
             )}
           </span>
         </div>
