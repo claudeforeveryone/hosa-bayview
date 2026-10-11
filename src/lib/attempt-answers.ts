@@ -1,6 +1,7 @@
 // The rules for a taker's answers on a test page, kept pure so they can be tested without a browser.
 // settleAnswer: what one settled save does to the screen. submitBlock: whether a Submit/Finish waits.
-import type { Settled } from "@/lib/answer-saves";
+// pickErrorText and submitProblemText: what the taker reads when a pick or a submit goes wrong.
+import { SAVE_FAILED, type Settled } from "@/lib/answer-saves";
 
 export type Answer = {
   selected: number;
@@ -70,13 +71,13 @@ export function showAnswer(
 // It never waits when time is up or when the timer submits (the attempt closes with what the server has),
 // and a second tap for the same questions goes through, so a connection that keeps failing can't trap anyone.
 // Picks the server refused ("Time is up") aren't in `unsaved`: the screen already shows what it holds.
+// Returns the questions (paper numbers) to name, and a key for them.
 export function submitBlock({
   unsaved,
   byTap,
   deadlinePassed,
   warned,
   rows,
-  practice,
 }: {
   unsaved: string[];
   byTap: boolean;
@@ -84,8 +85,7 @@ export function submitBlock({
   // The key of the last warning shown, or null.
   warned: string | null;
   rows: { question_id: string }[];
-  practice: boolean;
-}): { key: string; message: string } | null {
+}): { key: string; numbers: number[] } | null {
   if (!byTap || deadlinePassed || !unsaved.length) return null;
   // In paper order, so the same questions always make the same key.
   const hit = rows.flatMap((r, i) =>
@@ -93,15 +93,42 @@ export function submitBlock({
   );
   const key = hit.map((h) => h.id).join(",");
   if (!hit.length || key === warned) return null;
-  const numbers = hit.map((h) => h.n);
-  const verb = practice ? "Finish" : "Submit";
+  return { key, numbers: hit.map((h) => h.n) };
+}
+
+// Why a submit stopped: picks that didn't save (the gate above), no reply at all, or the server's own reason.
+export type SubmitProblem =
+  | { kind: "unsaved"; numbers: number[] }
+  | { kind: "offline" }
+  | { kind: "refused"; message: string };
+
+// The text sits beside the submit buttons and names the one on screen as it shows (`button`: Finish, Submit,
+// or Submit now while the "still blank" step is open), so it never points at a button that isn't there.
+export function submitProblemText(problem: SubmitProblem, button: string): string {
+  if (problem.kind === "refused") return problem.message;
+  if (problem.kind === "offline")
+    return `That didn't go through. Check your connection, then tap ${button}.`;
+  const { numbers } = problem;
   const list =
     numbers.length === 1
       ? `Question ${numbers[0]}`
       : `Questions ${numbers.slice(0, -1).join(", ")} and ${numbers.at(-1)}`;
   const them = numbers.length === 1 ? "it" : "them";
-  return {
-    key,
-    message: `${list} didn't save. Pick ${them} again, or tap ${verb} again to hand in what's saved.`,
-  };
+  return `${list} didn't save. Pick ${them} again, or tap ${button} to hand in what's saved.`;
+}
+
+// A failed pick's text, read against the question on screen now: a save can fail after the taker has moved on,
+// and "tap it again" under question 3 would read as question 3. Another question's lost pick says which one;
+// a refusal ("Time is up.") gets the number in front.
+export function pickErrorText(
+  error: { qid: string; message: string },
+  onScreen: string,
+  rows: { question_id: string }[],
+): string {
+  if (error.qid === onScreen) return error.message;
+  const n = rows.findIndex((r) => r.question_id === error.qid) + 1;
+  if (n === 0) return error.message;
+  return error.message === SAVE_FAILED
+    ? `Question ${n}'s answer didn't save. Go back and pick it again.`
+    : `Question ${n}: ${error.message}`;
 }

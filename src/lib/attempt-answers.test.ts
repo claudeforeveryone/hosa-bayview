@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { SAVE_FAILED } from "./answer-saves";
 import {
+  pickErrorText,
   showAnswer,
   settleAnswer,
   submitBlock,
+  submitProblemText,
   type Answer,
 } from "./attempt-answers";
 
@@ -148,23 +150,17 @@ describe("submitBlock", () => {
     deadlinePassed: false,
     warned: null,
     rows,
-    practice: false,
   };
 
   it("stops a tapped submit when a pick never reached the server, naming the question", () => {
-    expect(submitBlock(base)).toEqual({
-      key: "c",
-      message:
-        "Question 3 didn't save. Pick it again, or tap Submit again to hand in what's saved.",
-    });
+    expect(submitBlock(base)).toEqual({ key: "c", numbers: [3] });
   });
 
-  it("names every question that didn't save, in paper order, and says Finish in practice", () => {
-    expect(
-      submitBlock({ ...base, unsaved: ["c", "a"], practice: true })?.message,
-    ).toBe(
-      "Questions 1 and 3 didn't save. Pick them again, or tap Finish again to hand in what's saved.",
-    );
+  it("names every question that didn't save, in paper order", () => {
+    expect(submitBlock({ ...base, unsaved: ["c", "a"] })).toEqual({
+      key: "a,c",
+      numbers: [1, 3],
+    });
   });
 
   it("lets the second tap through, so a pick that keeps failing can't trap the taker", () => {
@@ -187,5 +183,63 @@ describe("submitBlock", () => {
 
   it("lets everything through when every pick saved", () => {
     expect(submitBlock({ ...base, unsaved: [] })).toBeNull();
+  });
+});
+
+// The text is built when it shows, from the button on screen then: Finish, Submit, or Submit now once the
+// "still blank" step is open (a lost practice pick always leaves its question blank, so that is the usual one).
+describe("submitProblemText", () => {
+  it("names the question and the button the taker can see", () => {
+    expect(
+      submitProblemText({ kind: "unsaved", numbers: [1] }, "Submit now"),
+    ).toBe(
+      "Question 1 didn't save. Pick it again, or tap Submit now to hand in what's saved.",
+    );
+  });
+
+  it("lists several questions", () => {
+    expect(
+      submitProblemText({ kind: "unsaved", numbers: [1, 2, 5] }, "Submit"),
+    ).toBe(
+      "Questions 1, 2 and 5 didn't save. Pick them again, or tap Submit to hand in what's saved.",
+    );
+  });
+
+  it("asks for another tap of the same button when the submit couldn't reach the server", () => {
+    expect(submitProblemText({ kind: "offline" }, "Finish")).toBe(
+      "That didn't go through. Check your connection, then tap Finish.",
+    );
+  });
+
+  it("passes the server's own reason through", () => {
+    expect(
+      submitProblemText(
+        { kind: "refused", message: "That attempt doesn't exist." },
+        "Submit",
+      ),
+    ).toBe("That attempt doesn't exist.");
+  });
+});
+
+// A save fails for the question it was sent for, which may not be the one on screen by the time it settles.
+describe("pickErrorText", () => {
+  const rows = [{ question_id: "a" }, { question_id: "b" }, { question_id: "c" }];
+
+  it("keeps the plain text on the question it is about", () => {
+    expect(pickErrorText({ qid: "b", message: SAVE_FAILED }, "b", rows)).toBe(
+      SAVE_FAILED,
+    );
+  });
+
+  it("names a question the taker has moved past, and says to go back to it", () => {
+    expect(pickErrorText({ qid: "b", message: SAVE_FAILED }, "c", rows)).toBe(
+      "Question 2's answer didn't save. Go back and pick it again.",
+    );
+  });
+
+  it("puts the question number on a refusal for another question", () => {
+    expect(pickErrorText({ qid: "a", message: "Time is up." }, "c", rows)).toBe(
+      "Question 1: Time is up.",
+    );
   });
 });

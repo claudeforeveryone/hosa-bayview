@@ -10,6 +10,7 @@ import {
 import { AskTeacher, type FlagState } from "@/components/ask-teacher";
 import { Button, FormMessage } from "@/components/form";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
+import { SubmitBar } from "@/components/submit-bar";
 import { answerKeysLabel, keysLine } from "@/lib/answer-keys";
 import {
   createAnswerSaves,
@@ -17,10 +18,12 @@ import {
   type Settled,
 } from "@/lib/answer-saves";
 import {
+  pickErrorText,
   settleAnswer,
   showAnswer,
   submitBlock,
   type Answer,
+  type SubmitProblem,
 } from "@/lib/attempt-answers";
 import { feedback, primeFeedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
@@ -84,7 +87,13 @@ export function TakeTest({
     const firstOpen = rows.findIndex((q) => !(q.question_id in stored));
     return firstOpen === -1 ? 0 : firstOpen;
   });
-  const [error, setError] = useState<string | null>(null);
+  // A pick that didn't save, kept with its question: it shows by the question, worded for the one on screen.
+  const [pickError, setPickError] = useState<{
+    qid: string;
+    message: string;
+  } | null>(null);
+  // Why the last submit stopped. It shows by the submit buttons (SubmitBar).
+  const [problem, setProblem] = useState<SubmitProblem | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [submitting, startSubmit] = useTransition();
   // The practice question whose verdict just came back, so only a fresh verdict animates (not one you go back to).
@@ -117,7 +126,7 @@ export function TakeTest({
     confirmed.current = out.confirmed;
     const { show } = out;
     if (show !== undefined) setAnswers((a) => showAnswer(a, s.qid, show));
-    if (out.error) setError(out.error);
+    if (out.error) setPickError({ qid: s.qid, message: out.error });
     if (out.verdict !== undefined) {
       setFresh(s.qid);
       feedback(out.verdict ? "correct" : "wrong");
@@ -138,7 +147,7 @@ export function TakeTest({
     (byTap = true) => {
       if (submitted.current) return false;
       submitted.current = true;
-      setError(null);
+      setProblem(null);
       if (byTap) primeFeedback();
       startSubmit(async () => {
         const timeUp = () =>
@@ -155,20 +164,21 @@ export function TakeTest({
           deadlinePassed: timeUp(),
           warned: warned.current,
           rows,
-          practice,
         });
         if (block) {
           warned.current = block.key;
           submitted.current = false;
-          setError(block.message);
+          setProblem({ kind: "unsaved", numbers: block.numbers });
           return;
         }
-        const r = await submitAttempt(attemptId).catch(() => ({
-          error: `That didn't go through. Check your connection and tap ${practice ? "Finish" : "Submit"} again.`,
-        }));
-        if (r.error) {
+        const r = await submitAttempt(attemptId).catch(() => null);
+        if (!r || r.error) {
           submitted.current = false;
-          setError(r.error);
+          setProblem(
+            r?.error
+              ? { kind: "refused", message: r.error }
+              : { kind: "offline" },
+          );
         } else {
           feedback("submit", { sound: byTap });
           void rollLuckyBonus("test");
@@ -177,7 +187,7 @@ export function TakeTest({
       });
       return true;
     },
-    [attemptId, deadline, offset, practice, router, rows],
+    [attemptId, deadline, offset, router, rows],
   );
 
   // Countdown against the server's clock; submits itself at zero.
@@ -212,7 +222,9 @@ export function TakeTest({
   const pick = (original: number) => {
     if (locked || submitting) return;
     const qid = q.question_id;
-    setError(null);
+    // A new pick answers this question's error, and makes the last submit warning stale (it warns afresh).
+    setPickError((e) => (e?.qid === qid ? null : e));
+    setProblem(null);
     warned.current = null;
     // Practice: the verdict sound comes after the server answers, so wake audio now, inside the tap.
     // Timed: no verdict until the end, so the tap itself gets a soft tick.
@@ -393,7 +405,11 @@ export function TakeTest({
             flag={flags[q.question_id] ?? null}
           />
         ) : null}
-        {error ? <FormMessage tone="error">{error}</FormMessage> : null}
+        {pickError ? (
+          <FormMessage tone="error">
+            {pickErrorText(pickError, q.question_id, rows)}
+          </FormMessage>
+        ) : null}
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -447,46 +463,16 @@ export function TakeTest({
         </ol>
       </nav>
 
-      <div className="grid justify-items-start gap-3 border-t border-rule pt-6">
-        {confirming ? (
-          <div
-            className="grid gap-3"
-            role="group"
-            aria-label="Submit with questions left"
-          >
-            <p>
-              {left} question{left === 1 ? "" : "s"} still blank. Submit anyway?
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="you"
-                onClick={() => submit()}
-                disabled={submitting}
-              >
-                {submitting ? "Submitting" : "Submit now"}
-              </Button>
-              <Button
-                type="button"
-                variant="line"
-                onClick={() => setConfirming(false)}
-                disabled={submitting}
-                autoFocus
-              >
-                Keep going
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Button
-            type="button"
-            onClick={() => (left ? setConfirming(true) : submit())}
-            disabled={submitting}
-          >
-            {submitting ? "Submitting" : practice ? "Finish" : "Submit"}
-          </Button>
-        )}
-      </div>
+      <SubmitBar
+        practice={practice}
+        confirming={confirming}
+        left={left}
+        submitting={submitting}
+        problem={problem}
+        onFinish={() => (left ? setConfirming(true) : submit())}
+        onSubmitNow={() => submit()}
+        onKeepGoing={() => setConfirming(false)}
+      />
     </div>
   );
 }
