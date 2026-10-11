@@ -1,4 +1,4 @@
-import { ChevronDown, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { AnnouncementForm } from "@/components/announcement-form";
 import { AnnouncementList } from "@/components/announcement-list";
 import { BattleEntry } from "@/components/battle-entry";
@@ -20,7 +20,7 @@ import { getUpcomingForRoom } from "@/lib/events";
 import { listDecks } from "@/lib/decks";
 import { createClient } from "@/lib/supabase/server";
 import { getClassroomFlags, getClassroomTests } from "@/lib/tests";
-import { ClassroomFlagList } from "@/components/flag-list";
+import { ClassroomFlagsPanel } from "@/components/flag-list";
 import { saveAnnouncement } from "@/app/(app)/announcements/actions";
 import { getSkills } from "./skills/queries";
 
@@ -137,34 +137,12 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
       ) : null}
 
       {canPost ? (
-        // Open questions stay folded away so they don't push the page down; ?asks=1 opens them.
-        <details
-          className="group border-[3px] border-ink"
+        // Open questions and reports stay folded away so they don't push the page down; ?asks=1 opens them.
+        <ClassroomFlagsPanel
+          classroomId={id}
+          flags={flags}
           open={sp.asks === "1"}
-        >
-          <summary className="caps step flex min-h-14 cursor-pointer items-center justify-between gap-3 px-3 py-2 text-[17px] hover:bg-band [&::-webkit-details-marker]:hidden">
-            <span className="flex items-center gap-3">
-              Ask teacher
-              <span
-                className={`num px-2 py-0.5 font-sans text-[15px] font-semibold tracking-normal ${flags.length ? "bg-you text-on-you" : "border border-rule-strong text-ink-2"}`}
-              >
-                {flags.length}
-              </span>
-              <span className="sr-only">
-                {flags.length === 1 ? "open question" : "open questions"}
-              </span>
-            </span>
-            <ChevronDown
-              size={22}
-              strokeWidth={1.75}
-              aria-hidden
-              className="shrink-0 group-open:rotate-180"
-            />
-          </summary>
-          <div className="border-t-2 border-ink px-1 pt-2 pb-4 sm:px-3">
-            <ClassroomFlagList classroomId={id} flags={flags} />
-          </div>
-        </details>
+        />
       ) : null}
 
       <HubComingUp rows={upcoming} />

@@ -73,7 +73,7 @@ insert into public.attempts (id, test_id, user_id, mode, total, counts, started_
   ('00000000-0000-4000-8000-0000000000a9', '00000000-0000-4000-8000-0000000000e9', '00000000-0000-4000-8000-0000000000d2',
    'practice', 1, true, now(), now());
 
--- Elo: one answer (2 points) and one correct (3 points), both now. Chapter Elo is 1200 + 5.
+-- Elo: one answer (2 points) and one correct (3 points), both now. Elo starts at 0 (0105_elo_from_zero), so 5.
 insert into public.elo_events (user_id, classroom_id, source, ref_id, points, multiplier, earned_at) values
   ('00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c9', 'answer', '00000000-0000-4000-8000-0000000000f9', 2, 1, now()),
   ('00000000-0000-4000-8000-0000000000d2', '00000000-0000-4000-8000-0000000000c9', 'correct', '00000000-0000-4000-8000-0000000000f9', 3, 1, now());
@@ -119,7 +119,7 @@ begin
   perform pg_temp.check('clicks in period (all)', r.clicks_period = 315);
   perform pg_temp.check('answered', r.answered = 1);
   perform pg_temp.check('correct', r.correct = 1);
-  perform pg_temp.check('elo is 1200 plus points', r.elo = 1205);
+  perform pg_temp.check('elo is the sum of points', r.elo = 5);
   perform pg_temp.check('elo gain', r.elo_gain = 5);
   perform pg_temp.check('attempts', r.attempts = 1);
   perform pg_temp.check('finished', r.finished = 1);
@@ -135,12 +135,12 @@ begin
   perform pg_temp.check('today period clicks', r.clicks_period = 300);
   perform pg_temp.check('today period answered', r.answered = 1);
 
-  -- An executive with no activity still gets a row, with zeros and Elo 1200.
+  -- An executive with no activity still gets a row, with zeros and Elo 0.
   select * into r from public.dev_member_stats('all') where user_id = '00000000-0000-4000-8000-0000000000d3';
   perform pg_temp.check('idle row present', r.user_id is not null);
   perform pg_temp.check('idle minutes zero', r.minutes_all = 0);
   perform pg_temp.check('idle clicks zero', r.clicks_all = 0);
-  perform pg_temp.check('idle elo base', r.elo = 1200);
+  perform pg_temp.check('idle elo zero', r.elo = 0);
   perform pg_temp.check('idle never seen', r.last_seen is null and r.seen_today = false);
 end $$;
 

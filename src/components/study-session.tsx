@@ -10,6 +10,7 @@ import { keysLine } from "@/lib/answer-keys";
 import { feedback, feedbackThenWin } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import { permutation } from "@/lib/shuffle";
+import { track } from "@/lib/track";
 
 export type StudyCard = { id: string; term: string; definition: string };
 
@@ -76,6 +77,8 @@ export function StudySession({
     const verdict = known ? "correct" : "wrong";
     if (last) feedbackThenWin(verdict);
     else feedback(verdict);
+    // A finished flip round is a usage event (0230): from a deck or from Career, nothing about the cards.
+    if (last) void track("vocab_session_completed", persist ? "deck" : "career");
     moved.current = true;
     setError(null);
     setTally((t) => ({

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
 // Fixed security headers for every response. The Content-Security-Policy is per request (it carries a nonce),
 // so src/proxy.ts sets it; frame-ancestors 'none' there and X-Frame-Options here both stop framing.
@@ -52,4 +53,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Dev-only pages are named page.dev.tsx (the owner console's fixture gallery). Only `next dev` reads .dev.tsx as a
+// page, so a production build has no such route and never bundles what it imports (src/lib/dev-only-routes.test.ts).
+const PAGE_EXTENSIONS = ["tsx", "ts", "jsx", "js"];
+
+export default function config(phase: string): NextConfig {
+  return {
+    ...nextConfig,
+    pageExtensions:
+      phase === PHASE_DEVELOPMENT_SERVER
+        ? ["dev.tsx", ...PAGE_EXTENSIONS]
+        : PAGE_EXTENSIONS,
+  };
+}

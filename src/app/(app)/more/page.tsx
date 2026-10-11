@@ -5,12 +5,15 @@ import {
   ClipboardCheck,
   LifeBuoy,
   LogOut,
+  MessageSquareText,
   Settings,
   type LucideIcon,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { PageTitle } from "@/components/page-title";
 import { requireProfile } from "@/lib/auth";
+import { canSeeDevStats } from "@/lib/dev-stats-data";
+import { feedbackEnabled } from "@/lib/feedback-enabled";
 import { bottomItemsFor, navItemsFor } from "@/lib/nav-items";
 
 export const metadata: Metadata = { title: "More" };
@@ -63,7 +66,14 @@ export default async function MorePage() {
   const isExec = profile.role === "executive";
   // Everything the phone bar has no room for, so this page reaches every section on its own.
   const onBar = new Set(bottomItemsFor(isExec).map((i) => i.href));
-  const elsewhere = navItemsFor(isExec).filter((i) => !onBar.has(i.href));
+  // The owner console is listed for stats viewers only; the page checks the same viewer list in the database.
+  const [canSeeStats, canSendFeedback] = await Promise.all([
+    canSeeDevStats().catch(() => false),
+    feedbackEnabled().catch(() => false),
+  ]);
+  const elsewhere = navItemsFor(isExec, canSeeStats).filter(
+    (i) => !onBar.has(i.href),
+  );
 
   return (
     <div className="grid grid-cols-1 gap-10">
@@ -111,6 +121,14 @@ export default async function MorePage() {
             label="Help"
             hint="How things work and who to ask"
           />
+          {canSendFeedback ? (
+            <Row
+              href="/settings?tab=account#feedback-h"
+              Icon={MessageSquareText}
+              label="Send feedback"
+              hint="A bug, an idea, or something that could be clearer"
+            />
+          ) : null}
           <li className="border-t-2 border-ink">
             <form action={logout}>
               <button type="submit" className={`${rowClass} text-danger`}>

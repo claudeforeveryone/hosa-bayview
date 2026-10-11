@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Pencil } from "lucide-react";
-import { FlagList } from "@/components/flag-list";
+import { TestFlagsSection } from "@/components/flag-list";
 import { StartTest } from "@/components/start-test";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
@@ -163,18 +163,7 @@ export default async function TestPage({
       ) : null}
 
       {room.can_manage ? (
-        <section aria-labelledby="asks-h" className="grid gap-3">
-          <h3
-            id="asks-h"
-            className="flex items-baseline gap-3 font-display text-[28px] leading-none font-bold uppercase"
-          >
-            Ask teacher
-            <span className="num border border-ink px-2 py-0.5 font-sans text-[16px] font-semibold tracking-normal">
-              {openFlags.length}
-            </span>
-          </h3>
-          <FlagList testId={test.id} flags={openFlags} />
-        </section>
+        <TestFlagsSection testId={test.id} flags={openFlags} />
       ) : null}
 
       {room.can_manage ? (

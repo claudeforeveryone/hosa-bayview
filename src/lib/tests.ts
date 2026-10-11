@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { uuid } from "@/lib/classrooms";
+import { flagReason, type FlagReason } from "@/lib/flag-reasons";
 import type { GradeRow } from "@/lib/grades";
 import type { TestSettings } from "@/lib/test-settings";
 
@@ -94,6 +95,7 @@ export type TestFlag = {
   reply: string;
   created_at: string;
   answered_at: string | null;
+  reason: FlagReason;
 };
 
 // Grades timed attempts whose time ran out while the tab was closed. Safe to call on every view.
@@ -236,7 +238,41 @@ export async function getTestFlags(testId: string): Promise<TestFlag[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("test_flags", { tid: testId });
   if (error) throw new Error(`Questions lookup failed: ${error.message}`);
-  return (data ?? []) as TestFlag[];
+  return withReasons((data ?? []) as Omit<TestFlag, "reason">[]);
+}
+
+// Ids per reason lookup: short enough for a request URL, and far under PostgREST's row limit, so no answer is cut off.
+const REASON_BATCH = 100;
+
+// Ask teacher or a report (0231). test_flags and classroom_flags stay as they were, so the reason is read from the
+// table itself, for exactly the rows on screen (RLS lets the viewer read them: own flags, or flags on tests they
+// manage). Before 0231 there is no reason column, and if a read fails the flags still show, as plain questions.
+async function withReasons<T extends { id: string }>(
+  rows: T[],
+): Promise<(T & { reason: FlagReason })[]> {
+  if (!rows.length) return [];
+  const supabase = await createClient();
+  const ids = [...new Set(rows.map((r) => r.id))];
+  const batches: string[][] = [];
+  for (let i = 0; i < ids.length; i += REASON_BATCH)
+    batches.push(ids.slice(i, i + REASON_BATCH));
+  const answers = await Promise.all(
+    batches.map((batch) =>
+      supabase.from("question_flags").select("id, reason").in("id", batch),
+    ),
+  );
+  const reasons = new Map<string, unknown>();
+  let failed: string | null = null;
+  for (const { data, error } of answers) {
+    if (error) {
+      if (error.code !== "42703") failed = error.message;
+      continue;
+    }
+    for (const r of (data ?? []) as { id: string; reason: unknown }[])
+      reasons.set(r.id, r.reason);
+  }
+  if (failed) console.error(`Flag reasons lookup failed: ${failed}`);
+  return rows.map((r) => ({ ...r, reason: flagReason(reasons.get(r.id)) }));
 }
 
 // Open Ask teacher questions across every test in a classroom. Managers only (the RPC returns nothing otherwise).
@@ -250,14 +286,19 @@ export type ClassroomFlag = {
   prompt: string;
   note: string;
   created_at: string;
+  reason: FlagReason;
 };
 
-export async function getClassroomFlags(classroomId: string): Promise<ClassroomFlag[]> {
+export async function getClassroomFlags(
+  classroomId: string,
+): Promise<ClassroomFlag[]> {
   if (!uuid.safeParse(classroomId).success) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("classroom_flags", { cid: classroomId });
+  const { data, error } = await supabase.rpc("classroom_flags", {
+    cid: classroomId,
+  });
   if (error) throw new Error(`Questions lookup failed: ${error.message}`);
-  return (data ?? []) as ClassroomFlag[];
+  return withReasons((data ?? []) as Omit<ClassroomFlag, "reason">[]);
 }
 
 // Best score per member per posted test for a classroom. Members get only their own rows (RLS in the RPC).

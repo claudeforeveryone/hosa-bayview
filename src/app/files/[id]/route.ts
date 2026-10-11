@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { MATERIAL_LINK_SECONDS } from "@/lib/link-lifetimes";
 import { openableUrl } from "@/lib/materials";
@@ -17,6 +17,31 @@ function go(to: string | URL): NextResponse {
   const res = NextResponse.redirect(to, 302);
   res.headers.set("Cache-Control", NO_STORE["Cache-Control"]);
   return res;
+}
+
+// A usage event (0230) once the redirect is on its way: file or link, never which one. Before 0230 the function
+// is missing; any failure is logged at most and never reaches the member.
+function opened(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  code: "file" | "link",
+) {
+  // after() itself throws outside a request (tests, scripts): that, too, must not cost the member the file.
+  try {
+    after(async () => {
+      try {
+        const { error } = await supabase.rpc("record_event", {
+          p_name: "resource_opened",
+          p_code: code,
+        });
+        if (error && error.code !== "PGRST202")
+          console.error("[files:event]", error.message);
+      } catch {
+        // Analytics never matters more than the file.
+      }
+    });
+  } catch {
+    // Same.
+  }
 }
 
 // Opens a material. The row is read with the caller's own session, so RLS decides who may see it (anything
@@ -71,9 +96,12 @@ export async function GET(
         headers: NO_STORE,
       });
     }
+    opened(supabase, "file");
     return go(data.signedUrl);
   }
 
   const link = openableUrl(row.url);
-  return link ? go(link) : notFound();
+  if (!link) return notFound();
+  opened(supabase, "link");
+  return go(link);
 }

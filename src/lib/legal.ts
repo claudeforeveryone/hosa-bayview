@@ -18,8 +18,8 @@ export type PolicyCovers = {
 };
 export const POLICY_COVERS: PolicyCovers = {
   phoneApp: false,
-  usageCounts: false,
-  feedback: false,
+  usageCounts: true,
+  feedback: true,
 };
 
 export const HOSA_ORG = "HOSA-Future Health Professionals";
