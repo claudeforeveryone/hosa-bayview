@@ -79,7 +79,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Credit className="text-ink-2/80" />
         </footer>
       </div>
-      <BottomNav isExec={nav.isExec} />
+      <BottomNav isExec={nav.isExec} canSeeStats={nav.canSeeStats} />
       <OnlineHeartbeat />
       <LuckyBonus />
     </div>

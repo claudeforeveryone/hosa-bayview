@@ -207,10 +207,10 @@ export function moreItemsFor(isExec: boolean): NavItem[] {
 }
 
 // The phone bar's More sheet: every place the bar has no room for, then the More items.
-export function sheetItemsFor(isExec: boolean): NavItem[] {
+export function sheetItemsFor(isExec: boolean, canSeeStats = false): NavItem[] {
   const onBar = new Set(bottomItemsFor(isExec).map((i) => i.href));
   return [
-    ...navItemsFor(isExec).filter((i) => !onBar.has(i.href) && i.href !== "/more"),
+    ...navItemsFor(isExec, canSeeStats).filter((i) => !onBar.has(i.href) && i.href !== "/more"),
     ...moreItemsFor(isExec),
   ];
 }

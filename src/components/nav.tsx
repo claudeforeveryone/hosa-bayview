@@ -36,7 +36,7 @@ function useItems(isExec: boolean, canSeeStats: boolean) {
     items: withActive(navItemsFor(isExec, canSeeStats)),
     bottom: withActive(bottomItemsFor(isExec)),
     more: withActive(moreItemsFor(isExec)),
-    sheet: withActive(sheetItemsFor(isExec)),
+    sheet: withActive(sheetItemsFor(isExec, canSeeStats)),
   };
 }
 
@@ -274,8 +274,14 @@ export function MobileBar(props: Props) {
 }
 
 // Phone: fixed navy bar with the five main places; the active glyph fills. More opens a sheet with the rest.
-export function BottomNav({ isExec }: { isExec: boolean }) {
-  const { path, bottom, sheet } = useItems(isExec, false);
+export function BottomNav({
+  isExec,
+  canSeeStats,
+}: {
+  isExec: boolean;
+  canSeeStats: boolean;
+}) {
+  const { path, bottom, sheet } = useItems(isExec, canSeeStats);
   const sheetRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
