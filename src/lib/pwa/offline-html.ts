@@ -9,6 +9,7 @@ const NONCE = /^[A-Za-z0-9+/=]{8,64}$/;
 const FONTS = [
   ["Barlow", 400, "barlow-latin-400-normal"],
   ["Barlow", 600, "barlow-latin-600-normal"],
+  ['"Barlow Condensed"', 600, "barlow-condensed-latin-600-normal"],
   ['"Barlow Condensed"', 700, "barlow-condensed-latin-700-normal"],
 ]
   .map(
@@ -32,7 +33,7 @@ header img{display:block;height:72px;width:auto}
 main{flex:1;padding-top:40px;padding-bottom:calc(40px + env(safe-area-inset-bottom));display:grid;align-content:start;gap:20px}
 h1{font-family:"Barlow Condensed","Roboto Condensed","Arial Narrow",sans-serif-condensed,system-ui,sans-serif;font-stretch:condensed;font-weight:700;text-transform:uppercase;font-size:clamp(2.75rem,12vw,4.5rem);line-height:.92;letter-spacing:-.01em;border-top:3px solid var(--ink);padding-top:16px}
 p{color:var(--ink-2);max-width:34ch}
-a.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;width:fit-content;background:var(--ink);color:var(--ground);font-weight:600;text-transform:uppercase;letter-spacing:.06em;text-decoration:none}
+a.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;width:fit-content;background:var(--ink);color:var(--ground);font-family:"Barlow Condensed","Roboto Condensed","Arial Narrow",sans-serif-condensed,system-ui,sans-serif;font-stretch:condensed;font-size:17px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;text-decoration:none}
 a.btn:hover{background:var(--ink-2)}
 a.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 @media (min-width:768px){header img{height:96px}main{padding-top:64px}}

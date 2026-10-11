@@ -30,6 +30,7 @@ describe("offlineHtml", () => {
     const html = offlineHtml(null);
     const fonts = [...html.matchAll(/url\(([^)]+)\)/g)].map((m) => m[1]);
     expect(fonts.sort()).toEqual([
+      "/fonts/barlow-condensed-latin-600-normal.woff2",
       "/fonts/barlow-condensed-latin-700-normal.woff2",
       "/fonts/barlow-latin-400-normal.woff2",
       "/fonts/barlow-latin-600-normal.woff2",
@@ -43,6 +44,14 @@ describe("offlineHtml", () => {
     }
     expect(html).toMatch(/h1\{font-family:"Barlow Condensed"/);
     expect(html).toMatch(/body\{[^}]*font:[^;}]*Barlow,/);
+  });
+
+  it("sets Try again like the app's buttons (.caps): Barlow Condensed 600, uppercase, 0.06em", () => {
+    const btn = offlineHtml(null).match(/a\.btn\{([^}]*)\}/)?.[1] ?? "";
+    expect(btn).toMatch(/font-family:"Barlow Condensed"/);
+    expect(btn).toMatch(/font-weight:600/);
+    expect(btn).toMatch(/text-transform:uppercase/);
+    expect(btn).toMatch(/letter-spacing:\.06em/);
   });
 
   it("says what happened and offers a retry of the same page", () => {

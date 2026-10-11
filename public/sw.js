@@ -3,7 +3,7 @@
 // It never stores member data. Pages always come from the network (network first); only when the network is gone
 // does the precached /offline page answer, at the address the member asked for. API routes, Supabase calls and
 // anything cross-origin are left alone. Bump VERSION when the precache list or the offline page changes.
-const VERSION = "hosa-v3";
+const VERSION = "hosa-v4";
 const SHELL = `${VERSION}-shell`;
 const STATIC = "hosa-static";
 const STATIC_LIMIT = 160;
@@ -16,6 +16,7 @@ const PRECACHE = [
   // The offline page's type (src/lib/pwa/offline-html.ts).
   "/fonts/barlow-latin-400-normal.woff2",
   "/fonts/barlow-latin-600-normal.woff2",
+  "/fonts/barlow-condensed-latin-600-normal.woff2",
   "/fonts/barlow-condensed-latin-700-normal.woff2",
 ];
 // Content-hashed build files never change, so the cached copy is always right.

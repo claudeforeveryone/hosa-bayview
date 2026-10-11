@@ -65,7 +65,7 @@ export function IosSteps({ browser }: { browser: Browser }) {
         Open <strong className="font-semibold">HOSA</strong> from your home
         screen
         <span className={hint}>
-          Then turn on notifications in Settings, Phone app.
+          Then turn on notifications below, in the app.
         </span>
       </Step>
     </ol>
