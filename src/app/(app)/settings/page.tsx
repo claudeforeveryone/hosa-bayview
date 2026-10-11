@@ -6,6 +6,7 @@ import { AppearanceSection, SoundSection } from "@/components/appearance";
 import { Button } from "@/components/form";
 import { JoinForm } from "@/components/join-form";
 import { PageTitle } from "@/components/page-title";
+import { SendFeedback } from "@/components/send-feedback";
 import { SettingsSection } from "@/components/settings-section";
 import { requireProfile } from "@/lib/auth";
 import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
@@ -103,6 +104,13 @@ async function AccountTab() {
         gifLimit={gifLimit}
       />
       <PasswordSection />
+      <SettingsSection
+        id="feedback-h"
+        title="Send feedback"
+        description="A bug, an idea, or something that could be clearer. Only the site owner reads it."
+      >
+        <SendFeedback />
+      </SettingsSection>
       <SettingsSection
         id="logout-h"
         title="Log out"

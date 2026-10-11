@@ -191,13 +191,18 @@ select pg_temp.check('one thread per question, reason updated',
   and exists (select 1 from public.question_flags f where f.user_id = pg_temp.u(3) and f.reason = 'typo'));
 select pg_temp.check('a reason change alone notifies again',
   exists (select 1 from public.notifications n where n.user_id = pg_temp.u(2) and n.body = 'Typo: Key says Ulna'));
--- The old Ask teacher call still works and leaves the reason alone.
+-- Ask teacher after a report turns the thread back into a question, and the trainer hears it as one.
 select pg_temp.as_user(pg_temp.u(3));
 select public.flag_question('00000000-0000-4000-8000-0000000002f1', 'Still think it is wrong');
+select pg_temp.expect('ask about an unanswered question',
+  $q$select public.flag_question('00000000-0000-4000-8000-0000000002f2', '')$q$, '22023');
 select pg_temp.as_admin();
-select pg_temp.check('flag_question keeps the reason',
-  exists (select 1 from public.question_flags f where f.user_id = pg_temp.u(3) and f.reason = 'typo'
-          and f.note = 'Still think it is wrong'));
+select pg_temp.check('flag_question makes it an ask',
+  exists (select 1 from public.question_flags f where f.user_id = pg_temp.u(3) and f.reason = 'ask'
+          and f.note = 'Still think it is wrong' and f.status = 'open'));
+select pg_temp.check('room owner told it is a question',
+  exists (select 1 from public.notifications n where n.user_id = pg_temp.u(2)
+          and n.title = 'Console Member asked about Console test' and n.body = 'Still think it is wrong'));
 select pg_temp.as_user(pg_temp.u(4));
 select pg_temp.expect('banned report',
   $q$select public.report_question('00000000-0000-4000-8000-0000000002f1', 'typo', '')$q$, '42501');

@@ -7,6 +7,7 @@ import type { FormState } from "@/app/(app)/c/actions";
 import { canTeach, requireProfile } from "@/lib/auth";
 import { UNTITLED_TEST } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
+import { checkReport } from "@/lib/flag-reasons";
 import { IMPORT_MAX, checkQuestion } from "@/lib/question-rules";
 import { parseAttemptsAllowed, practiceRuleOk } from "@/lib/test-settings";
 
@@ -450,10 +451,43 @@ export async function askTeacher(
     note: clean,
   });
   if (error) {
-    if (error.code === "22023") return { error: `${error.message}.` };
+    if (error.code === "22023" || error.code === "53400")
+      return { error: `${error.message}.` };
     if (error.code === "42501")
       return { error: "You can't ask about this test." };
     return failed("ask teacher", error.message);
+  }
+  return { id: String(data) };
+}
+
+// Report this question (0231): the same thread as Ask teacher, with what is wrong (wrong key, unclear, typo or
+// something else). The room's trainer gets it like a question; the owner console counts the open ones.
+export async function reportQuestion(
+  testId: string,
+  questionId: string,
+  reason: string,
+  note: string,
+): Promise<FlagResult> {
+  await requireProfile();
+  if (!id.safeParse(testId).success || !id.safeParse(questionId).success)
+    return { error: "That question doesn't exist." };
+  const clean = note.replace(/\r\n?/g, "\n").trim();
+  const problem = checkReport(reason, clean);
+  if (problem) return { error: problem };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("report_question", {
+    qid: questionId,
+    reason,
+    note: clean,
+  });
+  if (error) {
+    if (error.code === "22023" || error.code === "53400")
+      return { error: `${error.message}.` };
+    if (error.code === "42501")
+      return { error: "You can't report questions on this test." };
+    if (error.code === "PGRST202" || error.code === "42883")
+      return { error: "Reports aren't switched on yet. Use Ask teacher for now." };
+    return failed("report question", error.message);
   }
   return { id: String(data) };
 }

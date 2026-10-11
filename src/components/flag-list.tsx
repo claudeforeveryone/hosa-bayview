@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { replyToFlag } from "@/app/(app)/c/[id]/tests/actions";
 import { Button, FormMessage } from "@/components/form";
+import { isReportReason, reasonLabel } from "@/lib/flag-reasons";
 import type { ClassroomFlag, TestFlag } from "@/lib/tests";
 
-type RowFlag = Pick<TestFlag, "id" | "full_name" | "pos" | "prompt" | "note">;
+type RowFlag = Pick<TestFlag, "id" | "full_name" | "pos" | "prompt" | "note" | "reason">;
 
 // Open Ask teacher questions on one test. The trainer replies (optional) and marks each answered.
 export function FlagList({
@@ -114,6 +115,12 @@ function FlagRow({
           ) : null}
           Q{flag.pos}
         </p>
+        {/* A report (0231) says what is wrong; a plain Ask teacher has no tag. */}
+        {isReportReason(flag.reason) ? (
+          <p className="caps border border-ink px-2 text-[14px] leading-6">
+            Reported: {reasonLabel(flag.reason)}
+          </p>
+        ) : null}
       </div>
       <p className="whitespace-pre-line">{flag.prompt}</p>
       {flag.note ? (

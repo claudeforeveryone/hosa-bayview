@@ -104,7 +104,7 @@ revoke all on function private.flag_reason_label(text) from public, anon, authen
 
 -- Ask teacher with a reason. Same rules as flag_question (0031): only a question the member answered in practice or
 -- in a submitted attempt, one thread per member per question (sending again reopens it with the new reason and note).
--- flag_question keeps working for older pages and leaves the reason as it was.
+-- flag_question (below) now goes through here as a plain 'ask', so the ban check and the daily cap cover both.
 create or replace function public.report_question(qid uuid, reason text, note text)
 returns uuid
 language plpgsql volatile security definer set search_path = ''
@@ -141,7 +141,8 @@ begin
     join public.attempts a on a.id = aa.attempt_id
     where a.user_id = uid and aa.question_id = qid and (a.mode = 'practice' or a.submitted_at is not null)
   ) then
-    raise exception 'Report a question once you have answered it in practice or after you submit' using errcode = '22023';
+    raise exception '% once you have answered it in practice or after you submit',
+      case when why = 'ask' then 'Ask about a question' else 'Report a question' end using errcode = '22023';
   end if;
   -- Each send notifies the trainer, so cap how many threads one member can open or reopen in a day.
   perform pg_advisory_xact_lock(hashtextextended('flags:' || uid::text, 0));
@@ -161,6 +162,15 @@ end
 $$;
 revoke all on function public.report_question(uuid, text, text) from public, anon;
 grant execute on function public.report_question(uuid, text, text) to authenticated;
+
+-- Ask teacher (0031) is a report with the reason 'ask'. Asking again after a report turns the thread back into a
+-- question instead of keeping the old reason, and the trainer's notification says so. Same grants as before.
+create or replace function public.flag_question(qid uuid, note text)
+returns uuid
+language sql volatile security invoker set search_path = ''
+as $$
+  select public.report_question(qid, 'ask', note)
+$$;
 
 -- The trainer's notification (0099) now says which it is: a question for the teacher, or a report with its reason.
 -- It also fires when only the reason changes on an open thread.

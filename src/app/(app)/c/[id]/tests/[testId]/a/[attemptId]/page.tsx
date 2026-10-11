@@ -59,7 +59,13 @@ export default async function AttemptPage({
   const flagByQuestion = Object.fromEntries(
     flags.map((f) => [
       f.question_id,
-      { id: f.id, note: f.note, status: f.status, reply: f.reply },
+      {
+        id: f.id,
+        note: f.note,
+        status: f.status,
+        reply: f.reply,
+        reason: f.reason,
+      },
     ]),
   );
 
