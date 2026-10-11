@@ -71,7 +71,7 @@ export function Figure({
 }: {
   label: string;
   value: string;
-  note?: string | null;
+  note?: ReactNode;
 }) {
   return (
     <div className="grid min-w-0 content-start gap-1 border-t border-rule px-1 py-3 @min-[30rem]:px-3 [&:nth-child(-n+2)]:border-t-0 @min-[40rem]:[&:nth-child(-n+4)]:border-t-0">

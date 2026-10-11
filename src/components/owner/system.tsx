@@ -16,6 +16,7 @@ const FEATURE_LABEL: Record<
 
 // The site as it runs right now: which build, whether the database answers and how fast, what is on the database.
 // Nothing secret: the commit and branch are public on GitHub, and the database check uses the owner's own session.
+// Each fact once: the Build figure carries the commit (linked), environment and branch; the rows under it don't.
 // There is no "database down" state: this page's own gate asks the database first, so with the database out of
 // reach the page doesn't open at all. What can show here is an answer that came back as an error.
 export function SystemSection({ info }: { info: SystemInfo }) {
@@ -26,7 +27,7 @@ export function SystemSection({ info }: { info: SystemInfo }) {
       <Sheet
         id="system-h"
         title="System"
-        note="Checked when this page loaded. If the database were out of reach, this page wouldn't open at all."
+        note="Checked when this page loaded. Build details come from Vercel. If the database were out of reach, this page wouldn't open at all."
       >
         <Figures label="Health">
           <Figure
@@ -44,38 +45,34 @@ export function SystemSection({ info }: { info: SystemInfo }) {
             label="Build"
             value={d.commit ? d.commit.slice(0, 7) : "Unknown"}
             note={
-              d.environment
-                ? `${d.environment}${d.branch ? `, ${d.branch}` : ""}`
-                : "No Vercel build details"
+              d.environment || link ? (
+                <>
+                  {d.environment
+                    ? `${d.environment}${d.branch ? `, ${d.branch}` : ""}`
+                    : null}
+                  {d.environment && link ? " · " : null}
+                  {link ? (
+                    <a
+                      href={link}
+                      className="underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                    >
+                      Open the commit
+                    </a>
+                  ) : null}
+                </>
+              ) : (
+                "No Vercel build details"
+              )
             }
           />
         </Figures>
       </Sheet>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-12 xl:grid-cols-2 xl:gap-10">
-        <Sheet id="deploy-h" title="Deployment">
+        <Sheet id="server-h" title="Server">
           <Ledger
-            label="Deployment"
+            label="Server"
             rows={[
-              {
-                label: "Commit",
-                value: d.commit ? (
-                  link ? (
-                    <a
-                      href={link}
-                      className="underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
-                    >
-                      {d.commit.slice(0, 7)}
-                    </a>
-                  ) : (
-                    d.commit.slice(0, 7)
-                  )
-                ) : (
-                  "Unknown"
-                ),
-              },
-              { label: "Branch", value: d.branch ?? "Unknown" },
-              { label: "Environment", value: d.environment ?? "Unknown" },
               {
                 label: "Database clock",
                 value: data ? stampText(data.db_time) : "Unknown",
@@ -84,7 +81,7 @@ export function SystemSection({ info }: { info: SystemInfo }) {
               {
                 label: "Server errors",
                 value: "Not stored",
-                note: "Read them in the host's runtime logs. Build details here come from Vercel's variables.",
+                note: "Read them in the host's runtime logs.",
               },
             ]}
           />
