@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Period } from "@/lib/activity";
 import type { DevStatsRow } from "@/lib/dev-stats";
@@ -58,7 +59,8 @@ type RawRow = Omit<
 
 // Whether the signed-in account may open the stats. Any failure reads as no.
 // Deliberately no try/catch around createClient: Next's dynamic-rendering signal must not be swallowed.
-export async function canSeeDevStats(): Promise<boolean> {
+// Cached for the request, so the layout (nav link) and /developer (its gate) ask the database once between them.
+export const canSeeDevStats = cache(async (): Promise<boolean> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("can_see_dev_stats");
   if (error) {
@@ -67,7 +69,7 @@ export async function canSeeDevStats(): Promise<boolean> {
     return false;
   }
   return data === true;
-}
+});
 
 // Null when the viewer may not see the stats, the period is unknown, or the function isn't there yet.
 export async function getDevStats(

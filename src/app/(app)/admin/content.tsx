@@ -32,6 +32,7 @@ const VERB: Record<string, string> = {
   passcode_used: "used the admin passcode, which then cleared",
   chapter_code: "updated the chapter code",
   gif: "changed GIF pictures for",
+  feedback: "triaged",
 };
 
 // Who did what to whom: roles, bans, titles, warnings, removals, passcode changes. Filled by triggers.

@@ -201,10 +201,11 @@ const COLUMNS: Column[] = [
 const TEXT_KEYS: DevSortKey[] = ["name", "role", "joined", "last_seen"];
 
 // Phone sort menu: every column, named the way people read it.
-const SORT_OPTIONS = COLUMNS.map((c) => ({
-  key: c.key,
-  text: `${c.group === "Member" ? "" : `${c.group}: `}${c.label}`,
-}));
+const sortOptions = (columns: Column[]) =>
+  columns.map((c) => ({
+    key: c.key,
+    text: `${c.group === "Member" ? "" : `${c.group}: `}${c.label}`,
+  }));
 
 // The groups above the table header, in column order, with how many columns each spans.
 function groupsOf(columns: Column[]) {
@@ -220,13 +221,21 @@ function groupsOf(columns: Column[]) {
 const dayTime = (iso: string | null) =>
   iso ? seenFormat.format(new Date(iso)) : "Never";
 
+// `battles` is false while battles (0095) aren't on the database: the column would be a zero for everyone, which
+// reads as a result. The owner console's Overview has the chapter-wide counts, so the strip here keeps only the
+// period totals it can't show.
 export function DevStatsView({
   rows,
   period,
+  battles = true,
 }: {
   rows: DevStatsRow[];
   period: Period;
+  battles?: boolean;
 }) {
+  const columns = battles
+    ? COLUMNS
+    : COLUMNS.filter((c) => c.key !== "battle_wins");
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<DevSortKey>("minutes_all");
   const [dir, setDir] = useState<SortDir>("desc");
@@ -247,15 +256,12 @@ export function DevStatsView({
   };
 
   const stats: { label: string; value: string }[] = [
-    { label: "Members", value: summary.members },
-    { label: "Active today", value: summary.activeToday },
-    { label: "Active this week", value: summary.activeWeek },
     { label: `Hours, ${PERIOD_LABEL[period]}`, value: summary.hours },
     { label: `Questions, ${PERIOD_LABEL[period]}`, value: summary.questions },
     { label: `Clicks, ${PERIOD_LABEL[period]}`, value: summary.clicks },
   ];
 
-  const groups = groupsOf(COLUMNS);
+  const groups = groupsOf(columns);
   const sortIcon = (key: DevSortKey) => {
     if (key !== sortKey) return <ChevronsUpDown size={15} aria-hidden />;
     return dir === "asc" ? (
@@ -271,7 +277,7 @@ export function DevStatsView({
     <div className="grid gap-6">
       <section
         aria-label="Chapter summary"
-        className="grid grid-cols-2 border-t-[3px] border-ink sm:grid-cols-3 lg:grid-cols-6"
+        className="grid grid-cols-3 border-t-[3px] border-ink"
       >
         {stats.map((s) => (
           <div key={s.label} className="border-b border-rule px-1 py-3 sm:px-3">
@@ -310,7 +316,7 @@ export function DevStatsView({
               onChange={(e) => pick(e.target.value as DevSortKey)}
               className="step h-12 min-w-0 flex-1 border border-rule-strong bg-ground px-2 text-[16px] text-ink outline-none focus:border-ink"
             >
-              {SORT_OPTIONS.map((o) => (
+              {sortOptions(columns).map((o) => (
                 <option key={o.key} value={o.key}>
                   {o.text}
                 </option>
@@ -382,7 +388,12 @@ export function DevStatsView({
                     value={`${count(r.attempts)} / ${count(r.finished)}`}
                   />
                   <MiniStat label="Flashcards" value={count(r.reviews)} />
-                  <MiniStat label="Battles won" value={count(r.battle_wins)} />
+                  {battles ? (
+                    <MiniStat
+                      label="Battles won"
+                      value={count(r.battle_wins)}
+                    />
+                  ) : null}
                 </dl>
                 <p className="text-[13px] text-ink-2">
                   Figures under Questions, Accuracy, Tests and Flashcards follow
@@ -413,7 +424,7 @@ export function DevStatsView({
                   ))}
                 </tr>
                 <tr>
-                  {COLUMNS.map((c, i) => (
+                  {columns.map((c, i) => (
                     <th
                       key={c.key}
                       scope="col"
@@ -442,7 +453,7 @@ export function DevStatsView({
                     key={r.user_id}
                     className="border-b border-rule hover:bg-band"
                   >
-                    {COLUMNS.map((c, i) => (
+                    {columns.map((c, i) => (
                       <td
                         key={c.key}
                         className={`px-2 py-2.5 ${c.numeric ? "num text-right" : "text-left"} ${
