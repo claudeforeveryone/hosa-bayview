@@ -97,13 +97,19 @@ describe("isQuietPath", () => {
     }
   });
 
+  it("keeps it off Settings, whose Phone app tab already has the full steps", () => {
+    expect(isQuietPath("/settings")).toBe(true);
+    expect(isQuietPath("/settings/anything")).toBe(true);
+    expect(isQuietPath("/settingsx")).toBe(false);
+  });
+
   it("lets it show on ordinary pages", () => {
     for (const path of [
       "/",
       "/events",
       "/c/r1",
       "/c/r1/tests",
-      "/settings",
+      "/more",
       "/calendar",
     ]) {
       expect(isQuietPath(path), path).toBe(false);

@@ -94,3 +94,46 @@ export function AndroidMenuSteps() {
     </ol>
   );
 }
+
+// The install card's one-line versions. The numbered steps above live in Settings > Phone app ("Show me").
+const inlineGlyph = "mx-0.5 inline-block align-[-4px]";
+
+export function IosShortSteps({ browser }: { browser: Browser }) {
+  return (
+    <div className="grid gap-1">
+      <p className="text-[17px] leading-snug">
+        Tap <ShareGlyph size={20} className={inlineGlyph} />{" "}
+        <strong className="font-semibold">Share</strong>, then{" "}
+        <strong className="font-semibold">Add to Home Screen</strong>.
+      </p>
+      {browser === "safari" ? (
+        <p className="text-[15px] leading-snug text-ink-2">
+          On iOS 26, tap{" "}
+          <Ellipsis
+            size={16}
+            strokeWidth={2}
+            aria-label="More"
+            className={inlineGlyph}
+          />{" "}
+          first.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function AndroidMenuShortSteps() {
+  return (
+    <p className="text-[17px] leading-snug">
+      Open the browser menu{" "}
+      <EllipsisVertical
+        size={20}
+        strokeWidth={1.75}
+        aria-label="(three dots)"
+        className={inlineGlyph}
+      />
+      , then <strong className="font-semibold">Install</strong> or{" "}
+      <strong className="font-semibold">Add to Home screen</strong>.
+    </p>
+  );
+}

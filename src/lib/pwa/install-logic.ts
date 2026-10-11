@@ -54,8 +54,10 @@ export function isDismissed(stored: string | null, now: number): boolean {
   return now - at < DISMISS_DAYS * DAY_MS;
 }
 
-// Pages that need full attention (a test in progress, a live battle, a study or match round) never get the card.
+// Pages that need full attention (a test in progress, a live battle, a study or match round) never get the card,
+// and nor does Settings, whose Phone app tab already has the full steps.
 const QUIET = [
+  /^\/settings(\/|$)/,
   /^\/c\/[^/]+\/tests\/[^/]+\/a\//,
   /^\/battle\//,
   /^\/flashcards\/[^/]+\/(study|match)$/,
