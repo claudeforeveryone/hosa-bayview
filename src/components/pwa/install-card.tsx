@@ -12,7 +12,11 @@ import {
 } from "@/lib/pwa/install-logic";
 import { promptInstall } from "@/lib/pwa/install-store";
 import { trackPwa } from "@/lib/pwa/track";
-import { AndroidMenuShortSteps, IosShortSteps } from "./install-steps";
+import {
+  AndroidMenuShortSteps,
+  IosShortSteps,
+  OpenInBrowserSteps,
+} from "./install-steps";
 import { rememberDismissal, useInstallEnv } from "./use-install-env";
 import { usePushControl } from "./use-push-control";
 
@@ -158,12 +162,10 @@ export function InstallCard({ pushKey }: { pushKey: string | null }) {
         {mode === "ios" ? <IosShortSteps browser={env.browser} /> : null}
         {mode === "android-menu" ? <AndroidMenuShortSteps /> : null}
         {mode === "open-in-browser" ? (
-          <p className="text-[16px] text-ink-2">
-            This app&apos;s built-in browser can&apos;t add HOSA to your home
-            screen. Open this page in{" "}
-            {env.platform === "ios" ? "Safari" : "Chrome"}, then add it from
-            there.
-          </p>
+          <OpenInBrowserSteps
+            platform={env.platform}
+            then="and add it from there."
+          />
         ) : null}
         {asking ? (
           <p className="text-[16px] text-ink-2">

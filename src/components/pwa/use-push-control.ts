@@ -171,7 +171,7 @@ export function usePushControl(vapidPublicKey: string | null): PushControl {
         throw err;
       }
       trackPwa({ name: "push_enabled" });
-      setNote({ tone: "ok", text: "On. Send yourself a test to check it." });
+      setNote({ tone: "ok", text: "Send yourself a test to check it." });
       on = true;
       return true;
     } catch (err) {

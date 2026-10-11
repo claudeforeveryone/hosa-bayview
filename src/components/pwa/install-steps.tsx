@@ -1,6 +1,6 @@
 import { Ellipsis, EllipsisVertical, SquarePlus } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Browser } from "@/lib/pwa/install-logic";
+import type { Browser, Platform } from "@/lib/pwa/install-logic";
 import { ShareGlyph } from "./share-glyph";
 
 // The steps to add HOSA to a home screen, with the glyphs the member will actually tap. Shared by the install
@@ -122,18 +122,61 @@ export function IosShortSteps({ browser }: { browser: Browser }) {
   );
 }
 
+// The vertical dots sit in the middle of a square icon box, so their box is pulled in on both sides; otherwise the
+// comma after them floats a space away.
+const tallDots = "-mx-1.5 inline-block align-[-4px]";
+
 export function AndroidMenuShortSteps() {
   return (
     <p className="text-[17px] leading-snug">
       Open the browser menu{" "}
-      <EllipsisVertical
-        size={20}
-        strokeWidth={1.75}
-        aria-label="(three dots)"
-        className={inlineGlyph}
-      />
-      , then <strong className="font-semibold">Install</strong> or{" "}
+      <span className="whitespace-nowrap">
+        <EllipsisVertical
+          size={20}
+          strokeWidth={1.75}
+          aria-label="(three dots)"
+          className={tallDots}
+        />
+        ,
+      </span>{" "}
+      then <strong className="font-semibold">Install</strong> or{" "}
       <strong className="font-semibold">Add to Home screen</strong>.
+    </p>
+  );
+}
+
+// Instagram, TikTok, Snapchat and co. open links in their own browser, which can't install anything. Their menu
+// (top right: three dots across on iPhone, down on Android) has the way out.
+export function OpenInBrowserSteps({
+  platform,
+  then,
+}: {
+  platform: Platform;
+  then: string;
+}) {
+  return (
+    <p className="text-[16px] text-ink-2">
+      This app&apos;s built-in browser can&apos;t add HOSA to your home screen.
+      Tap{" "}
+      {platform === "ios" ? (
+        <Ellipsis
+          size={18}
+          strokeWidth={2}
+          aria-label="(three dots)"
+          className={inlineGlyph}
+        />
+      ) : (
+        <EllipsisVertical
+          size={18}
+          strokeWidth={2}
+          aria-label="(three dots)"
+          className={tallDots}
+        />
+      )}{" "}
+      at the top right, then{" "}
+      <strong className="font-semibold text-ink">Open in browser</strong>
+      {platform === "ios" ? " (or Open in Safari)" : " (or Open in Chrome)"},{" "}
+      {then}
     </p>
   );
 }

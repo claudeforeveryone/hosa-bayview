@@ -8,7 +8,11 @@ import { Button } from "@/components/form";
 import { SettingsSection } from "@/components/settings-section";
 import { installGuide } from "@/lib/pwa/install-logic";
 import { promptInstall } from "@/lib/pwa/install-store";
-import { AndroidMenuSteps, IosSteps } from "./install-steps";
+import {
+  AndroidMenuSteps,
+  IosSteps,
+  OpenInBrowserSteps,
+} from "./install-steps";
 import { useInstallEnv } from "./use-install-env";
 import { usePushControl } from "./use-push-control";
 
@@ -69,11 +73,10 @@ function InstallSettings() {
         {guide === "ios" && env ? <IosSteps browser={env.browser} /> : null}
         {guide === "android-menu" ? <AndroidMenuSteps /> : null}
         {guide === "open-in-browser" && env ? (
-          <p className={copy}>
-            This app&apos;s built-in browser can&apos;t install HOSA. Open this
-            page in {env.platform === "ios" ? "Safari" : "Chrome"}, then come
-            back here.
-          </p>
+          <OpenInBrowserSteps
+            platform={env.platform}
+            then="and come back to this page."
+          />
         ) : null}
         {guide === "desktop" ? (
           <p className={copy}>
@@ -175,7 +178,7 @@ function NotificationSettings({
                     .
                   </>
                 ) : (
-                  "Off. Turning it on asks your browser first."
+                  "Off. Tap On, then Allow if asked."
                 )
               }
             />
