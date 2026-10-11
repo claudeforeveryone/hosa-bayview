@@ -2,8 +2,9 @@ import { IndependenceNote, Mail } from "@/components/legal-doc";
 
 // Who built the site, shown under every Settings tab.
 const CREDITS: { role: string; names: string[] }[] = [
-  { role: "Main engineers", names: ["Joseph Leung", "Kaden Li"] },
-  { role: "Contributors", names: ["Alvin Ip", "Jay Tong", "Robert Wang"] },
+  { role: "Main engineer", names: ["Joseph Leung"] },
+  { role: "Side engineering", names: ["Kaden Li"] },
+  { role: "Contributors", names: ["Ryan Bordbar", "Jay Tong", "Robert Wang"] },
 ];
 
 // The credits spot: a short About block under every Settings tab. A layout, so the Settings page itself is
