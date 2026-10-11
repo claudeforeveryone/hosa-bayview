@@ -77,6 +77,9 @@ insert into public.notifications (user_id, kind, title, link) values (pg_temp.u(
 insert into public.chapter_meetings (meets_on, title, kind) values ('2031-01-02', 'PM meeting', 'training')
   on conflict (meets_on) do nothing;
 
+-- The member has a grade, so the member_details cells can tell a full row from a picture-only one (0206).
+update public.profiles set grade = 11 where id = pg_temp.u(4);
+
 -- Bans last, through the moderation flag, so the fixtures above aren't refused.
 select set_config('hosa.moderation', 'on', true);
 update public.profiles set banned_until = now() + interval '1 day', ban_reason = 'PM test'
@@ -170,9 +173,12 @@ insert into pm_checks (label, kind, stmt, expected) values
 -- Board RPCs read through can_read_board / can_view_classroom
 ('rpc: classroom_roster(room 1)', 'read', 'select 1 from public.classroom_roster(''{r1}'')', 'YYYYNNNN'),
 ('rpc: classroom_tests(room 1)', 'read', 'select 1 from public.classroom_tests(''{r1}'')', 'YYYYNNNN'),
--- Chapter-wide directory and board RPCs: every signed-in member, never a banned one or anon.
-('rpc: member_directory()', 'read', 'select 1 from public.member_directory() where user_id = ''{u4}''', 'YYYYYNNN'),
+-- Chapter-wide directory and board RPCs: every signed-in member, never a banned one or anon. The bulk name and role
+-- list is for executives (0204); the bulk details give grade and title only on your own row or to an executive (0206).
+('rpc: member_directory()', 'read', 'select 1 from public.member_directory() where user_id = ''{u4}''', 'YNNNNNNN'),
 ('rpc: member_details()', 'read', 'select 1 from public.member_details() where user_id = ''{u4}''', 'YYYYYNNN'),
+('rpc: member_details() grade of the member', 'read', 'select 1 from public.member_details() where user_id = ''{u4}'' and grade is not null', 'YNNYNNNN'),
+('rpc: member_detail(member)', 'read', 'select 1 from public.member_detail(''{u4}'') where grade is not null', 'YYYYYNNN'),
 ('rpc: competitions()', 'read', 'select 1 from public.competitions() where id = ''{r4}''', 'YYYYYNNN'),
 ('rpc: honor_roll()', 'call', 'select * from public.honor_roll()', 'YYYYYNNN'),
 ('rpc: member_stats(member)', 'call', 'select * from public.member_stats(''{u4}'')', 'YYYYYNNN'),
@@ -271,10 +277,12 @@ begin
                and a.grantee = 'anon'::regrole) then
     fails := fails || 'grants: new public objects are still granted to anon by default'::text;
   end if;
-  -- Functions: the only public function anon may execute is keepalive() (0084, the Vercel cron's database touch).
+  -- Functions: anon may execute only keepalive() (0084, the Vercel cron's database touch) and chapter_gate_active()
+  -- (0090, the sign-up form asks whether a chapter code is needed).
   if exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace
-               and p.proname <> 'keepalive' and has_function_privilege('anon', p.oid, 'execute')) then
-    fails := fails || 'grants: anon can execute a public function other than keepalive()'::text;
+               and p.proname not in ('keepalive', 'chapter_gate_active')
+               and has_function_privilege('anon', p.oid, 'execute')) then
+    fails := fails || 'grants: anon can execute a public function other than keepalive() and chapter_gate_active()'::text;
   end if;
   if cardinality(fails) > 0 then
     raise exception E'FAIL permissions matrix, % cell(s):\n%', cardinality(fails), array_to_string(fails, E'\n');

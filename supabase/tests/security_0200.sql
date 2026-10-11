@@ -1,8 +1,10 @@
--- Omega security checks: audit H1, H2, M1, M4, M7, the chapter-code gate (0090) and battles (0095-0098), for
--- migrations 0200-0204. Impersonates anon, a trainee and an executive, and plays the auth server for sign-ups while
--- a chapter code is on. One transaction that rolls back; raises if any check fails.
--- Writes only rows the rollback removes (a chapter code, two throwaway sign-ups). It makes no classrooms, tests,
--- decks or admin_log rows, whose number sequences would move on a live project even after a rollback.
+-- Omega security checks: audit H1 (attempt scores, and the Elo side channel), H2, M1, M4, M7, the chapter-code gate
+-- (0090) and battles (0095-0098), for migrations 0200-0206. Impersonates anon, a trainee and an executive, and plays
+-- the auth server for sign-ups while a chapter code is on. One transaction that rolls back; raises if any check fails.
+-- Writes only rows the rollback removes: two questions in a test the trainee can practise (and that test's
+-- show_answers, flipped off and on), practice runs, a chapter code, two throwaway sign-ups, and every executive made a
+-- trainee for the M1 check. It makes no classrooms, tests, decks or admin_log rows (the profile log trigger is off for
+-- the M1 part), whose number sequences would move on a live project even after a rollback.
 -- Accounts: set omega.trainee_id and omega.exec_id first to pick them (ids are never committed); otherwise the
 -- newest trainee and the oldest executive are used. Set omega.report_only = 'on' to list results without raising
 -- (shows which checks fail before the migrations are applied).
@@ -54,6 +56,13 @@ select
      order by p.created_at desc limit 1)) as trainee_id,
   coalesce(nullif(current_setting('omega.exec_id', true), '')::uuid,
     (select p.id from public.profiles p where p.role = 'executive' order by p.created_at limit 1)) as exec_id;
+alter table _who add column members bigint, add column with_details bigint, add column exec_grade smallint,
+  add column exec_title text;
+update _who set
+  members = (select count(*) from public.profiles),
+  with_details = (select count(*) from public.profiles where grade is not null or title is not null),
+  exec_grade = (select grade from public.profiles where id = _who.exec_id),
+  exec_title = (select title from public.profiles where id = _who.exec_id);
 grant select on _who to anon, authenticated, service_role;
 
 select pg_temp.ok('setup: the trainee account is a trainee',
@@ -111,6 +120,7 @@ select pg_temp.expect('anon: attempts refused', 'select id from public.attempts 
 select pg_temp.expect('anon: profiles refused', 'select id from public.profiles limit 1', '42501');
 select pg_temp.expect('anon: member_directory refused', 'select * from public.member_directory()', '42501');
 select pg_temp.expect('anon: member_details refused', 'select * from public.member_details()', '42501');
+select pg_temp.expect('anon: member_detail refused', 'select * from public.member_detail(gen_random_uuid())', '42501');
 select pg_temp.expect('anon: member_stats refused', 'select * from public.member_stats(gen_random_uuid())', '42501');
 select pg_temp.expect('anon: leaderboard refused', $q$select * from public.leaderboard('all', null)$q$, '42501');
 select pg_temp.expect('anon: gif_exempt_ids refused', 'select * from public.gif_exempt_ids()', '42501');
@@ -137,7 +147,16 @@ select pg_temp.ok('H2 trainee: member_directory returns no rows',
   'select count(*) = 0 from public.member_directory()');
 select pg_temp.ok('H2 trainee: profiles shows only their own row',
   'select count(*) filter (where id <> (select trainee_id from _who)) = 0 from public.profiles');
-select pg_temp.expect('H2 trainee: member_details still works (board pictures)', 'select * from public.member_details()', '');
+select pg_temp.ok('H2 trainee: member_details still gives every member''s picture (boards, rosters)',
+  'select count(*) = (select members from _who) from public.member_details()');
+select pg_temp.ok('H2 trainee: member_details gives grade and title for their own row only',
+  $q$select count(*) filter (where user_id <> (select trainee_id from _who) and (grade is not null or title is not null)) = 0
+     from public.member_details()$q$);
+select pg_temp.ok('H2 trainee: member_detail(uid) gives that one member''s grade and title (member page)',
+  $q$select count(*) = 1 and bool_and(user_id = (select exec_id from _who)
+         and grade is not distinct from (select exec_grade from _who)
+         and title is not distinct from (select exec_title from _who))
+     from public.member_detail((select exec_id from _who))$q$);
 select pg_temp.expect('H2 trainee: leaderboard still works', $q$select * from public.leaderboard('all', null)$q$, '');
 select pg_temp.expect('H2 trainee: member_stats still works (member pages)',
   'select * from public.member_stats((select exec_id from _who))', '');
@@ -182,6 +201,9 @@ select pg_temp.expect('H1 executive: attempts.score refused too (scores come thr
 select pg_temp.expect('H1 executive: attempt_list works', 'select * from public.attempt_list(null, null, null)', '');
 select pg_temp.ok('H2 executive: member_directory lists every member',
   'select (select count(*) from public.member_directory()) = (select count(*) from public.profiles)');
+select pg_temp.ok('H2 executive: member_details gives every grade and title (the Members list)',
+  $q$select count(*) filter (where grade is not null or title is not null) = (select with_details from _who)
+     from public.member_details()$q$);
 select pg_temp.expect('H2 executive: check_chapter_code is still server only',
   $q$select public.check_chapter_code('x', '203.0.113.1')$q$, '42501');
 select pg_temp.expect('M4 executive: gif_exempt_ids works', 'select count(*) from public.gif_exempt_ids()', '');
@@ -190,12 +212,93 @@ select pg_temp.ok('M4 executive: can_use_gif(member) answers',
 select pg_temp.expect('executive: storage_usage works', 'select * from public.storage_usage()', '');
 reset role;
 
+-- ---- H1, the Elo side channel (0205) -----------------------------------------------------------------------------
+-- On a test that hides its answers, Elo and the correct count must not move by whether an answer was right until the
+-- answers are shown. Two new questions go into a test the trainee can practise (A is answered right, B wrong) and the
+-- test hides its answers. The trainee answers both, submits, answers both again in a second run (repeat points), and
+-- then the test shows its answers again, which pays A's bonus. Showing them a second time pays nothing more.
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
+select pg_temp.keep('elo_test', $q$
+  select t.id::text from public.tests t
+  where t.is_published and t.allow_practice and private.can_take_test(t.id)
+    and private.test_state(t.id) not in ('open', 'upcoming')
+    and not private.practice_locked(t.id, (select trainee_id from _who))
+  order by t.created_at, t.id limit 1$q$);
+select set_config('request.jwt.claims', '', true);
+select pg_temp.ok('H1 Elo setup: the trainee can practise a published test', $q$select v is not null from _t where k = 'elo_test'$q$);
+insert into public.questions (id, test_id, position, prompt, options)
+select x.id, t.v::uuid,
+  coalesce((select max(q.position) from public.questions q where q.test_id = t.v::uuid), 0) + x.n,
+  'Omega Elo check ' || x.n, array['first', 'second']
+from _t t
+cross join (values (1, '00000000-0000-4000-8000-0000000000a1'::uuid), (2, '00000000-0000-4000-8000-0000000000a2'::uuid)) x(n, id)
+where t.k = 'elo_test' and t.v is not null;
+insert into public.question_keys (question_id, correct_index)
+select q.id, 0 from public.questions q where q.id in ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2');
+update public.tests set show_answers = false where id = (select v::uuid from _t where k = 'elo_test');
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select pg_temp.keep('correct_before', $q$select correct::text from public.member_stats((select trainee_id from _who))$q$);
+select pg_temp.keep('run1', $q$select public.start_attempt((select v::uuid from _t where k = 'elo_test'), 'practice')::text$q$);
+select pg_temp.expect('H1 Elo: the trainee answers A (right) on the hidden test',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'run1'), '00000000-0000-4000-8000-0000000000a1', 0)$q$, '');
+select pg_temp.expect('H1 Elo: the trainee answers B (wrong) on the hidden test',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'run1'), '00000000-0000-4000-8000-0000000000a2', 1)$q$, '');
+select pg_temp.ok('H1 Elo: a right answer on a hidden test leaves the correct count alone',
+  $q$select correct = (select v::bigint from _t where k = 'correct_before') from public.member_stats((select trainee_id from _who))$q$);
+select pg_temp.expect('H1 Elo: the trainee submits the first run',
+  $q$select * from public.submit_attempt((select v::uuid from _t where k = 'run1'))$q$, '');
+select pg_temp.keep('run2', $q$select public.start_attempt((select v::uuid from _t where k = 'elo_test'), 'practice')::text$q$);
+select pg_temp.expect('H1 Elo: the trainee answers A (right) again',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'run2'), '00000000-0000-4000-8000-0000000000a1', 0)$q$, '');
+select pg_temp.expect('H1 Elo: the trainee answers B (wrong) again',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'run2'), '00000000-0000-4000-8000-0000000000a2', 1)$q$, '');
+select pg_temp.ok('H1 Elo: repeat answers on a hidden test leave the correct count alone',
+  $q$select correct = (select v::bigint from _t where k = 'correct_before') from public.member_stats((select trainee_id from _who))$q$);
+reset role;
+select set_config('request.jwt.claims', '', true);
+-- The ledger has no client grant. Elo, gain, correct and accuracy on the boards and member pages are sums over it.
+select pg_temp.ok('H1 Elo: while answers are hidden, right and wrong earn the same points and no correct bonus',
+  $q$select count(*) filter (where source = 'answer') = 2 and count(*) filter (where source = 'repeat') = 2
+       and count(*) filter (where source = 'correct') = 0
+       and sum(points) filter (where ref_id = '00000000-0000-4000-8000-0000000000a1') = sum(points) filter (where ref_id = '00000000-0000-4000-8000-0000000000a2')
+     from public.elo_events where user_id = (select trainee_id from _who) and ref_id in ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2')$q$);
+update public.tests set show_answers = true where id = (select v::uuid from _t where k = 'elo_test');
+select pg_temp.ok('H1 Elo: showing the answers pays A its correct bonus and repeat point, and B nothing',
+  $q$select count(*) filter (where source = 'correct' and ref_id = '00000000-0000-4000-8000-0000000000a1') = 1
+       and count(*) filter (where source = 'correct' and ref_id = '00000000-0000-4000-8000-0000000000a2') = 0
+       and sum(points) filter (where source = 'repeat' and ref_id = '00000000-0000-4000-8000-0000000000a1') = 2
+       and sum(points) filter (where source = 'repeat' and ref_id = '00000000-0000-4000-8000-0000000000a2') = 1
+     from public.elo_events where user_id = (select trainee_id from _who) and ref_id in ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2')$q$);
+update public.tests set show_answers = false where id = (select v::uuid from _t where k = 'elo_test');
+update public.tests set show_answers = true where id = (select v::uuid from _t where k = 'elo_test');
+select pg_temp.ok('H1 Elo: showing the answers a second time pays nothing more',
+  $q$select count(*) filter (where source = 'correct') = 1 and sum(points) filter (where source = 'repeat') = 3
+     from public.elo_events where user_id = (select trainee_id from _who) and ref_id in ('00000000-0000-4000-8000-0000000000a1', '00000000-0000-4000-8000-0000000000a2')$q$);
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select pg_temp.ok('H1 Elo: once answers are shown, the correct count includes A',
+  $q$select correct = (select v::bigint from _t where k = 'correct_before') + 1 from public.member_stats((select trainee_id from _who))$q$);
+reset role;
+select set_config('request.jwt.claims', '', true);
+
 -- ---- The chapter code gate, end to end ----------------------------------------------------------------------------
 -- An executive sets a code (here by hand, to keep admin_log's id sequence where it is).
 insert into private.settings (key, value)
 values ('chapter_passcode_hash', extensions.crypt('omega-gate-check', extensions.gen_salt('bf', 4)))
 on conflict (key) do update set value = excluded.value;
--- A stale first-executive setting must not promote anyone (M1).
+-- A stale first-executive setting must not promote anyone (M1). The old bootstrap only fired while no executive
+-- existed, so every executive becomes a trainee first. Both profile triggers are off for that: the guard would refuse
+-- the last one, and the log trigger would take admin_log ids. The log stays off for the sign-ups too, in case an
+-- unpatched bootstrap promotes someone.
+alter table public.profiles disable trigger guard_profile_update;
+alter table public.profiles disable trigger profiles_log_change;
+update public.profiles set role = 'trainee' where role = 'executive';
+alter table public.profiles enable trigger guard_profile_update;
 insert into private.settings (key, value) values ('first_executive_email', 'omega.gate.e2@example.com')
 on conflict (key) do update set value = excluded.value;
 
@@ -232,7 +335,7 @@ select pg_temp.expect('H2 gate: the same ticket does not work twice',
 select set_config('hosa.chapter_code_check', 'off', true);
 select pg_temp.ok('H2 gate: the ticket is not kept on the account',
   $q$select not (raw_user_meta_data ? 'chapter_ticket') from auth.users where id = '00000000-0000-4000-8000-0000000000e2'$q$);
-select pg_temp.ok('M1: signing up with the stale first-executive email gives a trainee',
+select pg_temp.ok('M1: with no executive left, signing up with the stale first-executive email still gives a trainee',
   $q$select role = 'trainee' from public.profiles where id = '00000000-0000-4000-8000-0000000000e2'$q$);
 
 do $$
