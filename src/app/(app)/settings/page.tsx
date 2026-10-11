@@ -53,7 +53,18 @@ export default async function SettingsPage({
                       on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                     }`}
                   >
-                    {t.label}
+                    {t.short ? (
+                      <>
+                        <span aria-hidden className="sm:hidden">
+                          {t.short}
+                        </span>
+                        <span className="sr-only sm:not-sr-only">
+                          {t.label}
+                        </span>
+                      </>
+                    ) : (
+                      t.label
+                    )}
                   </Link>
                 </li>
               );
@@ -63,7 +74,9 @@ export default async function SettingsPage({
         <div className="min-w-0">
           {tab === "appearance" ? <AppearanceSection /> : null}
           {tab === "sound" ? <SoundSection /> : null}
-          {tab === "app" ? <PhoneAppTab vapidPublicKey={pushConfig()?.publicKey ?? null} /> : null}
+          {tab === "app" ? (
+            <PhoneAppTab vapidPublicKey={pushConfig()?.publicKey ?? null} />
+          ) : null}
           {tab === "account" ? <AccountTab /> : null}
           {tab === "events" ? (
             <EventsTab isExec={profile.role === "executive"} />
