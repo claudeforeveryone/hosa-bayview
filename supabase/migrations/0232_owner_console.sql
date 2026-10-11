@@ -4,10 +4,14 @@
 -- everyone else, but this check is the guard.
 --
 -- Small counts: an aggregate about people (members, active members, runs, sessions, people per event) of 1 to 4
--- comes back null, and the page says "Under 5". Zero stays zero. Where two figures add up to a third the page also
--- shows, both halves hide together, so a hidden one can't be worked out by subtraction. Content counts (questions,
--- tests, reports per question) are about the material, not about people, and come back exact. Feedback and the audit
--- log are individual records for triage and are not suppressed.
+-- comes back null, and the page says "Under 5". Zero stays zero. Inside one answer, parts that add up to a figure in
+-- that same answer hide together (returning plus first-week; new members per growth bucket against the range total).
+-- This is not complementary suppression across answers: the windows overlap (new in 30 days minus new in 7 days, one
+-- growth range against another, a weekly bucket against the daily buckets inside it), so a hidden 1 to 4 can still be
+-- worked out by subtraction. The only reader is the site owner, who also has the per-member table (0105), so the rule
+-- keeps small numbers off a screen someone else might see; it doesn't hide them from the owner. Content counts
+-- (questions, tests, reports per question) are about the material, not about people, and come back exact. Feedback
+-- and the audit log are individual records for triage and are not suppressed.
 --
 -- Ranges: 7d, 30d, 90d or all, in Toronto days (today counts as day one).
 
@@ -115,8 +119,8 @@ revoke all on function public.owner_overview() from public, anon;
 grant execute on function public.owner_overview() to authenticated;
 
 -- Growth ----------------------------------------------------------------------------------------------------------
--- One bucket per day (7d, 30d) or per Monday-to-Sunday week (90d, all; the last one stops today): new members and
--- active members. No running total per bucket: two running totals side by side would give away a hidden new count.
+-- One bucket per day (7d, 30d) or per Monday-to-Sunday week (90d, all; the first one starts on the range's first day
+-- and the last one stops today, so each bucket's dates are exactly the days it counts): new members and active members. No running total per bucket: two running totals side by side would give away a hidden new count.
 -- New members per bucket add up to new_total (and to the overview's 7 and 30 day figures), so hiding one small
 -- bucket alone would leave it as a subtraction. If any bucket has 1 to 4, the whole new series is withheld for that
 -- range (new_by_bucket false, every 'new' null); the totals stay. Active members per bucket don't add up to anything
@@ -152,7 +156,7 @@ begin
       where s.day between first_day and today),
     'new_by_bucket', not coalesce(bool_or(b.signups between 1 and 4), false),
     'buckets', coalesce(jsonb_agg(jsonb_build_object(
-        'start', b.b_start,
+        'start', greatest(b.b_start, first_day),
         'end', b.b_end,
         'new', case when b.any_small then null else b.signups end,
         'active', private.small_cell(b.active)
@@ -324,17 +328,17 @@ begin
     -- Rooms with 5 or more runs, busiest first, as a ranking only. Run counts per room would add up, with the
     -- funnel totals above, to the rooms left off the list.
     'events', (select coalesce(jsonb_agg(jsonb_build_object(
-        'name', e.name, 'event', e.event, 'people', private.small_cell(e.people)
-      ) order by e.runs desc, e.name), '[]'::jsonb)
+        'id', e.id, 'name', e.name, 'event', e.event, 'people', private.small_cell(e.people)
+      ) order by e.runs desc, e.name, e.id), '[]'::jsonb)
       from (
-        select c.name, c.event, count(a.id) as runs, count(distinct a.user_id) as people
+        select c.id, c.name, c.event, count(a.id) as runs, count(distinct a.user_id) as people
         from public.attempts a
         join public.tests t on t.id = a.test_id
         join public.classrooms c on c.id = t.classroom_id
         where a.started_at >= since_at and c.kind = 'class'
         group by c.id, c.name, c.event
         having count(a.id) >= 5
-        order by count(a.id) desc, c.name
+        order by count(a.id) desc, c.name, c.id
         limit 10
       ) e)
   ) into out;
@@ -348,7 +352,7 @@ grant execute on function public.owner_engagement(text) to authenticated;
 -- Totals, then per event room: tests, questions, questions with no explanation, extra copies of a stem already in
 -- that room (the same question pasted into more than one test), open reports. The open reports themselves
 -- (question_flags with a reason other than 'ask', grouped by question, with a link target), and the stems with the
--- most copies (case, spacing and end punctuation ignored).
+-- most copies (case, spacing and end punctuation ignored), each shown by one real copy's wording with a link to its test.
 create or replace function public.owner_content()
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -358,7 +362,7 @@ declare
 begin
   perform private.require_stats_viewer();
   with q as (
-    select qu.id, qu.test_id, t.classroom_id, t.is_published,
+    select qu.id, qu.test_id, t.classroom_id, t.is_published, qu.prompt,
       coalesce(btrim(k.explanation), '') = '' as no_expl,
       lower(regexp_replace(regexp_replace(btrim(qu.prompt), '\s+', ' ', 'g'), '[[:space:][:punct:]]+$', '')) as stem
     from public.questions qu
@@ -408,15 +412,21 @@ begin
         limit 25
       ) r),
     'duplicates', (select coalesce(jsonb_agg(jsonb_build_object(
-        'stem', d.stem, 'copies', d.copies, 'tests', d.tests, 'rooms', d.rooms
+        'stem', d.stem, 'example', d.example, 'test_id', d.test_id, 'classroom_id', d.classroom_id,
+        'copies', d.copies, 'tests', d.tests, 'rooms', d.rooms
       ) order by d.copies desc, d.stem), '[]'::jsonb)
       from (
-        select left(g.stem, 240) as stem, g.copies, g.tests,
+        select left(g.stem, 240) as stem, left(g.example, 240) as example, g.test_id, g.classroom_id,
+          g.copies, g.tests,
           (select coalesce(array_agg(c.name order by c.name), '{}') from public.classrooms c
             where c.id = any (g.room_ids)) as rooms
         from (
+          -- One copy, the same one for its wording and its link: the first by test, then question id.
           select q.stem, count(*) as copies, count(distinct q.test_id) as tests,
-            array_agg(distinct q.classroom_id) as room_ids
+            array_agg(distinct q.classroom_id) as room_ids,
+            (array_agg(q.prompt order by q.test_id, q.id))[1] as example,
+            (array_agg(q.test_id order by q.test_id, q.id))[1] as test_id,
+            (array_agg(q.classroom_id order by q.test_id, q.id))[1] as classroom_id
           from q
           where q.stem <> ''
           group by q.stem
@@ -483,7 +493,7 @@ as $$
 declare
   uid uuid := (select auth.uid());
   who text;
-  clean text := btrim(coalesce(p_resolution, ''));
+  clean text := private.trim_space(p_resolution);
   before_row public.feedback%rowtype;
   changes text[] := '{}';
 begin
