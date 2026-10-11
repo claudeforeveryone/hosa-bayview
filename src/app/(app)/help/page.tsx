@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { ClassicLogo } from "@/components/classic-logo";
 import { PageTitle } from "@/components/page-title";
+import { SocialLinks } from "@/components/social-links";
 
 export const metadata: Metadata = { title: "Help" };
 
@@ -162,6 +163,8 @@ export default function HelpPage() {
             For a question about a test or an event,
             your event&apos;s trainer is the fastest answer (use Ask teacher).
           </p>
+          {/* The chapter's own channels. The Members page has them too, but only executives can open it. */}
+          <SocialLinks tone="field" labelled />
         </div>
       </section>
     </div>
