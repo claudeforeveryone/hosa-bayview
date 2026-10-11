@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  IndependenceNote,
   LegalDoc,
   LegalSection,
   List,
   Mail,
   Term,
 } from "@/components/legal-doc";
-import { INDEPENDENCE_NOTE } from "@/lib/legal";
 import { publicPage } from "@/lib/seo";
 
 export const metadata: Metadata = publicPage({
@@ -17,8 +17,9 @@ export const metadata: Metadata = publicPage({
   path: "/privacy",
 });
 
-// Every line here was checked against the database (tables, foreign keys, region) and the app code. If a feature
-// starts collecting something new, add it here and change LEGAL_EFFECTIVE in src/lib/legal.ts.
+// Checked against the migrations, the live database (tables, foreign keys, row-level security and the functions that
+// decide who reads what, region) and the app code. If a feature starts collecting something new, or lets a role
+// see more, add it here and change LEGAL_EFFECTIVE in src/lib/legal.ts.
 export default function PrivacyPage() {
   return (
     <LegalDoc
@@ -35,6 +36,10 @@ export default function PrivacyPage() {
           numbers.
         </>,
         <>
+          Trainers can see your results in the events they run. Executives can
+          see your email address, all your results and your private decks.
+        </>,
+        <>
           To see, fix or delete your information, email <Mail />.
         </>,
       ]}
@@ -43,7 +48,7 @@ export default function PrivacyPage() {
         <p>
           HOSA Bayview is a study site for members of the HOSA Bayview chapter
           at Bayview Secondary School in Ontario. Two student members, Joseph
-          &amp; Kaden, built it and run it. {INDEPENDENCE_NOTE}
+          &amp; Kaden, built it and run it. <IndependenceNote />
         </p>
         <p>
           We try to follow the principles of Canada&apos;s privacy law (PIPEDA):
@@ -67,6 +72,11 @@ export default function PrivacyPage() {
               and finish, the answers you pick and your scores, flashcards you
               mark known or still learning, match-game times, questions you
               favourite or flag, and the points (Elo) you earn and why.
+            </>,
+            <>
+              <Term>Battles.</Term> The live quiz battles you join: your team,
+              when you joined, left and were last seen, each answer you pick and
+              when, its points, and whether you won.
             </>,
             <>
               <Term>Your study time.</Term> While the site is open and
@@ -101,6 +111,12 @@ export default function PrivacyPage() {
               address or your device details.
             </>,
             <>
+              <Term>Wrong codes.</Term> To stop guessing, each wrong event join
+              code is logged with your account and the time. If the chapter
+              turns on a sign-up code, each wrong one is logged with the time
+              and a scrambled form of the IP address it came from.
+            </>,
+            <>
               <Term>On your device.</Term> Cookies that keep you signed in and
               remember the calendar view and your recent event rooms. Your
               Appearance and Sound settings are saved in your browser only.
@@ -108,9 +124,7 @@ export default function PrivacyPage() {
             <>
               <Term>Server logs.</Term> Our hosting providers keep standard logs
               of requests (including IP address and browser type) to run and
-              protect the service. If the chapter turns on a sign-up code,
-              failed tries are counted against a scrambled form of the IP
-              address for one day, to stop guessing.
+              protect the service.
             </>,
           ]}
         </List>
@@ -152,20 +166,28 @@ export default function PrivacyPage() {
             <>
               <Term>Every signed-in member</Term> can see your name, picture,
               grade, role and title, your stats (time on site, questions
-              answered, accuracy, points and streak) on the leaderboards and
-              your profile, and when you&apos;re online in an event room you
-              share. Flashcard decks you keep private are hidden from other
-              members.
+              answered, accuracy, points, streak and battles won) on the
+              leaderboards and your profile, and when you&apos;re online in an
+              event room you share. Flashcard decks you keep private are hidden
+              from other members.
             </>,
             <>
-              <Term>Trainers</Term> can see the results and attendance of
-              members in the events they run.
+              <Term>In a battle</Term>, anyone who can open that event room sees
+              the players&apos; names and teams, and once each round closes,
+              every player&apos;s pick and points for it.
+            </>,
+            <>
+              <Term>Trainers</Term> can see, for members of the events they run,
+              their email address, test results and the answers they picked, the
+              questions they flagged, and their attendance.
             </>,
             <>
               <Term>Executives</Term> can see every member&apos;s account
-              (including email address), every classroom and its attendance, and
-              the list of all tests, decks and files (private decks included),
-              so they can moderate.
+              (including email address), test results and the answers they
+              picked, flashcard progress, flagged questions, warnings, every
+              classroom and its attendance, the moderation log, and every test,
+              deck and file, including what&apos;s inside private decks. They
+              need this to run the chapter and moderate.
             </>,
             <>
               <Term>The people who run the site</Term> (Joseph &amp; Kaden) can
@@ -204,15 +226,15 @@ export default function PrivacyPage() {
               deleted.
             </>,
             <>Usage counts: 13 months.</>,
-            <>Failed sign-up code tries: one day.</>,
+            <>Wrong join codes and sign-up codes: up to two days.</>,
             <>Server logs: on our providers&apos; own schedules.</>,
             <>
-              When an account is deleted, its profile, picture, results, study
-              time, notifications and warnings go with it. Things you made, like
-              announcements, tests, flashcard decks, files and calendar events,
-              stay without your name on them unless you ask us to remove them
-              too. Attendance lists keep the name as it was typed, and the
-              moderation log keeps the names it recorded.
+              When an account is deleted, its profile, picture, results, battle
+              picks, study time, notifications and warnings go with it. Things
+              you made, like announcements, tests, flashcard decks, files and
+              calendar events, stay without your name on them unless you ask us
+              to remove them too. Attendance lists keep the name as it was
+              typed, and the moderation log keeps the names it recorded.
             </>,
           ]}
         </List>
@@ -241,8 +263,9 @@ export default function PrivacyPage() {
               Account.
             </>,
             <>
-              Turn notifications off in Settings or in your device&apos;s
-              settings.
+              Turn push notifications off in Settings, Phone app, or in your
+              device&apos;s settings. Notices inside the site (the bell) stay
+              on.
             </>,
             <>
               Ask for a copy of your information, ask us to correct it, or ask
@@ -269,9 +292,8 @@ export default function PrivacyPage() {
           Most members are high school students, and many are under 18. If
           that&apos;s you, please go over this policy with a parent or guardian.
           A parent or guardian can email us to see or delete their child&apos;s
-          information. The site is meant for high school members: if we learn
-          that someone under 13 made an account without a parent&apos;s okay,
-          we&apos;ll delete it.
+          information. The site is for members 13 and older: if we learn that
+          someone under 13 made an account, we&apos;ll delete it.
         </p>
       </LegalSection>
 
