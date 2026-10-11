@@ -115,7 +115,8 @@ export function ClassroomTabs({
                 key={label}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`caps step block px-2.5 py-3 text-[16px] sm:px-4 sm:text-[18px] ${
+                // The ring sits inside the tab: the scrolling strip would clip its top and bottom.
+                className={`caps step block px-2.5 py-3 text-[16px] focus-visible:-outline-offset-2 sm:px-4 sm:text-[18px] ${
                   active ? "text-ink" : "text-ink-2 hover:text-ink"
                 }`}
               >
