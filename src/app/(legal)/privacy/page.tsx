@@ -20,6 +20,10 @@ export const metadata: Metadata = publicPage({
 // Checked against the migrations, the live database (tables, foreign keys, row-level security and the functions that
 // decide who reads what, region) and the app code. If a feature starts collecting something new, or lets a role
 // see more, add it here and change LEGAL_EFFECTIVE in src/lib/legal.ts.
+// Two retention lines depend on the daily cron (/api/keepalive): wrong codes (0250) and deleted accounts' pictures
+// (0251). Production runs on Vercel (vercel.json: Montreal, the cron). main also carries an OpenNext/Cloudflare setup
+// (wrangler.toml): if production moves there, rewrite "Our service providers" and "Where it's stored", and give the
+// cron a Cloudflare Cron Trigger, or those two promises stop being kept.
 export default function PrivacyPage() {
   return (
     <LegalDoc
@@ -165,11 +169,13 @@ export default function PrivacyPage() {
             </>,
             <>
               <Term>Every signed-in member</Term> can see your name, picture,
-              grade, role and title, your stats (time on site, questions
-              answered, accuracy, points, streak and battles won) on the
-              leaderboards and your profile, and when you&apos;re online in an
-              event room you share. Flashcard decks you keep private are hidden
-              from other members.
+              grade, role and title; your stats on the leaderboards and your
+              profile (time on site, flashcards reviewed, questions answered,
+              accuracy, points, streaks, battles won, and your last five lucky
+              bonuses and when you got them); your best match-game times on
+              decks they can open; and when you&apos;re online in an event room
+              you share. Flashcard decks you keep private are hidden from other
+              members.
             </>,
             <>
               <Term>In a battle</Term>, anyone who can open that event room sees
@@ -229,12 +235,13 @@ export default function PrivacyPage() {
             <>Wrong join codes and sign-up codes: up to two days.</>,
             <>Server logs: on our providers&apos; own schedules.</>,
             <>
-              When an account is deleted, its profile, picture, results, battle
-              picks, study time, notifications and warnings go with it. Things
-              you made, like announcements, tests, flashcard decks, files and
-              calendar events, stay without your name on them unless you ask us
-              to remove them too. Attendance lists keep the name as it was
-              typed, and the moderation log keeps the names it recorded.
+              When an account is deleted, its profile, results, battle picks,
+              study time, notifications and warnings go with it, and its picture
+              is erased within a day. Things you made, like announcements,
+              tests, flashcard decks, files and calendar events, stay without
+              your name on them unless you ask us to remove them too. Attendance
+              lists keep the name as it was typed, and the moderation log keeps
+              the names it recorded.
             </>,
           ]}
         </List>
