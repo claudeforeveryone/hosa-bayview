@@ -277,12 +277,14 @@ begin
                and a.grantee = 'anon'::regrole) then
     fails := fails || 'grants: new public objects are still granted to anon by default'::text;
   end if;
-  -- Functions: anon may execute only keepalive() (0084, the Vercel cron's database touch) and chapter_gate_active()
-  -- (0090, the sign-up form asks whether a chapter code is needed).
+  -- Functions: anon may execute only keepalive() (0084, the Vercel cron's database touch), chapter_gate_active()
+  -- (0090, the sign-up form asks whether a chapter code is needed) and purge_attempt_logs() (0250 on the
+  -- omega/hosa-trust branch: the same cron deletes wrong-code logs past retention; listed so this holds whichever
+  -- branch merges first).
   if exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace
-               and p.proname not in ('keepalive', 'chapter_gate_active')
+               and p.proname not in ('keepalive', 'chapter_gate_active', 'purge_attempt_logs')
                and has_function_privilege('anon', p.oid, 'execute')) then
-    fails := fails || 'grants: anon can execute a public function other than keepalive() and chapter_gate_active()'::text;
+    fails := fails || 'grants: anon can execute a public function other than keepalive(), chapter_gate_active() and purge_attempt_logs()'::text;
   end if;
   if cardinality(fails) > 0 then
     raise exception E'FAIL permissions matrix, % cell(s):\n%', cardinality(fails), array_to_string(fails, E'\n');
