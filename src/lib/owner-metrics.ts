@@ -10,7 +10,7 @@ const number = new Intl.NumberFormat("en-CA");
 // A hidden count reads "Under 5", never a guess. Zero is a real zero. The space is a no-break space, so a narrow
 // table cell never shows "Under" over "5", which reads like two values.
 export function countText(n: number | null | undefined): string {
-  if (n === null || n === undefined) return "Under 5";
+  if (n === null || n === undefined) return "Under\u00a05";
   return number.format(n);
 }
 
