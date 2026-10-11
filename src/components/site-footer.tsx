@@ -23,15 +23,8 @@ export function LegalLinks({ className = "" }: { className?: string }) {
   );
 }
 
-// The quiet foot of every page: Terms and Privacy, then the credit. In the app the desktop sidebar already ends
-// with the credit, so there it shows on phones only.
-export function SiteFooter({
-  className = "",
-  creditInSidebar = false,
-}: {
-  className?: string;
-  creditInSidebar?: boolean;
-}) {
+// The quiet foot of every page: Terms and Privacy, then the credit.
+export function SiteFooter({ className = "" }: { className?: string }) {
   return (
     <footer
       className={`flex flex-wrap items-center gap-x-6 text-[14px] ${className}`}
@@ -39,7 +32,7 @@ export function SiteFooter({
       <nav aria-label="Legal">
         <LegalLinks />
       </nav>
-      <Credit className={creditInSidebar ? "lg:hidden" : ""} />
+      <Credit />
     </footer>
   );
 }

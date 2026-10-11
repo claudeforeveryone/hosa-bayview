@@ -75,9 +75,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         >
           {children}
         </main>
-        {/* Terms and Privacy at the foot of every page; the credit too on phones (the desktop sidebar has it). */}
+        {/* Terms, Privacy and the credit at the foot of every page. The desktop sidebar ends with the credit too, but
+            below its own scroll on most screens, so the footer keeps it at every width. */}
         <div className="mx-auto w-full max-w-[80rem] px-4 sm:px-8 lg:px-12">
-          <SiteFooter creditInSidebar className="border-t border-rule pt-1 pb-4 text-ink-2 lg:pb-6" />
+          <SiteFooter className="border-t border-rule pt-1 pb-4 text-ink-2 lg:pb-6" />
         </div>
       </div>
       <BottomNav isExec={nav.isExec} />
