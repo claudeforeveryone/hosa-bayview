@@ -20,14 +20,22 @@ function walk(dir: string): string[] {
 }
 
 describe("private by default", () => {
-  it("only the auth routes and the exact keepalive path are public", () => {
+  it("only the auth routes and a few exact paths are public", () => {
     expect([...PUBLIC_PATHS].sort()).toEqual([
       "/auth",
       "/forgot-password",
       "/login",
       "/signup",
     ]);
-    expect(EXACT_PUBLIC_PATHS).toEqual(["/api/keepalive"]);
+    // Each exact path is public for a stated reason: keepalive (cron), push delivery (database, secret checked in
+    // the route), and the install/offline files that must load before sign-in.
+    expect(EXACT_PUBLIC_PATHS).toEqual([
+      "/api/keepalive",
+      "/api/push/deliver",
+      "/manifest.webmanifest",
+      "/sw.js",
+      "/offline",
+    ]);
   });
 
   it("every other page route redirects a guest to login", () => {
@@ -84,12 +92,14 @@ describe("private by default", () => {
     }
   });
 
-  it("route handlers are only /auth, /api/keepalive and the session-checked /files/[id]", () => {
+  it("route handlers are only /auth, /api/keepalive, the push pair (deliver is secret-checked, subscribe is session-checked) and the session-checked /files/[id]", () => {
     const handlers = walk("src/app")
       .map((f) => f.replaceAll(String.fromCharCode(92), "/"))
       .filter((f) => /\/route\.ts$/.test(f));
     expect(handlers.sort()).toEqual([
       "src/app/api/keepalive/route.ts",
+      "src/app/api/push/deliver/route.ts",
+      "src/app/api/push/subscribe/route.ts",
       "src/app/auth/callback/route.ts",
       "src/app/auth/confirm/route.ts",
       "src/app/auth/signout/route.ts",
