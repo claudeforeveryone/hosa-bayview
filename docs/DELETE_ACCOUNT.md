@@ -15,12 +15,14 @@ under 13. Reply within 30 days.
      (`remove_member()`, 0033) and erases their current picture file straight away. It can't remove an executive:
      demote them first.
    - Or in Supabase: Authentication > Users > the user > Delete user. This leaves the picture file (step 4).
-4. **The picture.** Deleting the auth user anywhere but the app leaves the file in the `avatars` bucket (folder = the
-   user id). The policy says the picture is erased, so delete it: Supabase > Storage > avatars > the folder named after
-   the user id > delete. Once the daily sweep is on (`HOUSEKEEPING=on` in Vercel Production, with 0250 and 0251
-   applied), the cron (`/api/keepalive`, scheduled 09:00 UTC; Vercel's Hobby plan runs it at some minute in that hour)
-   also erases every file whose folder has no account (`orphan_avatar_files()`, 0251), within about 25 hours, so a
-   folder you missed still goes. Next day, check the folder is gone.
+4. **The picture, every time.** The policy says that when we delete an account because they asked, we check the
+   picture is gone. Open Supabase > Storage > avatars > the folder named after the user id, and delete anything in it.
+   Don't skip this after an in-app removal: the app erases only the picture the profile points at, so an upload that
+   never got saved to the profile, or an erase that failed, stays (an in-app removal on 2026-10-09 left one). Once the
+   daily sweep is on (`HOUSEKEEPING=on` in Vercel Production, with 0250 and 0251 applied), the cron (`/api/keepalive`,
+   scheduled 09:00 UTC; Vercel's Hobby plan runs it at some minute in that hour) also erases every file whose folder
+   has no account (`orphan_avatar_files()`, 0251), within about 25 hours, so a folder you missed still goes. Next day,
+   check the folder is gone.
 5. **Tell them it's done.**
 
 ## When the daily sweep stops
