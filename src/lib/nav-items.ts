@@ -27,7 +27,7 @@ export type NavItem = {
   Icon: LucideIcon;
   match: (p: string) => boolean;
   exec?: boolean;
-  // Only the site owner (private.stats_viewers, 0104) sees this.
+  // Only the site owner (private.stats_viewers, 0105) sees this.
   stats?: boolean;
   chapter?: boolean;
   bottom?: boolean;

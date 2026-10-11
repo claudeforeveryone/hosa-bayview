@@ -1,4 +1,4 @@
--- Developer stats checks (migration 0104): can_see_dev_stats(), dev_member_stats(period) and record_clicks(n).
+-- Developer stats checks (migration 0105): can_see_dev_stats(), dev_member_stats(period) and record_clicks(n).
 -- Only the account listed in private.stats_viewers may read the stats. Chapter leads (exec_granters) don't get it.
 -- Runs in one transaction and rolls back; raises on the first failure. Throwaway users only.
 begin;

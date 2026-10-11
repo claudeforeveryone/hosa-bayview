@@ -1,4 +1,4 @@
--- Developer stats (0104): one row per member, for one account only: the site owner, listed by hand in
+-- Developer stats (0105): one row per member, for one account only: the site owner, listed by hand in
 -- private.stats_viewers (no ids in the repo, filled in the SQL editor). Chapter leads (0101) don't get it.
 --   private.stats_viewers           who may see the stats. Not readable or writable by clients.
 --   private.can_view_stats(uid)     the check, security definer.
@@ -76,6 +76,24 @@ end
 $$;
 revoke all on function public.record_clicks(integer) from public, anon;
 grant execute on function public.record_clicks(integer) to authenticated;
+
+-- Battle wins per member since a time. Battles (0095) may not be on the database yet: then nobody has any.
+-- Dynamic SQL so this function, and dev_member_stats, work either way.
+create or replace function private.dev_battle_wins(since_at timestamptz)
+returns table (uid uuid, n bigint)
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  if to_regclass('public.battle_players') is null or to_regclass('public.battles') is null then
+    return;
+  end if;
+  return query execute
+    'select bp.user_id, count(*) from public.battle_players bp join public.battles b on b.id = bp.battle_id
+     where bp.won and b.created_at >= $1 group by bp.user_id'
+  using since_at;
+end
+$$;
+revoke all on function private.dev_battle_wins(timestamptz) from public, anon, authenticated;
 
 create or replace function public.dev_member_stats(period text)
 returns table (
@@ -163,11 +181,7 @@ begin
     group by r.user_id
   ),
   wins as (
-    select bp.user_id as uid, count(*) as n
-    from public.battle_players bp
-    join public.battles b on b.id = bp.battle_id
-    where bp.won and b.created_at >= since_at
-    group by bp.user_id
+    select w.uid, w.n from private.dev_battle_wins(since_at) w
   ),
   rooms as (
     select cm.user_id as uid, count(*) as n

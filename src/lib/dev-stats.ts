@@ -1,4 +1,4 @@
-// Pure helpers for the developer stats page (migration 0104): the row shape, the chapter summary, search and
+// Pure helpers for the developer stats page (migration 0105): the row shape, the chapter summary, search and
 // sort. No database or server imports, so they test directly. The numbers come from dev_member_stats.
 import { filterMembers, formatCount, formatHours } from "./activity";
 import type { Role } from "./auth";

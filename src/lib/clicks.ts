@@ -1,5 +1,5 @@
 // Click counting for developer stats. The browser counts clicks in memory and sends the count with each
-// heartbeat; the database (0104, record_clicks) caps every minute at the same number, so a flood can't inflate it.
+// heartbeat; the database (0105, record_clicks) caps every minute at the same number, so a flood can't inflate it.
 export const CLICK_CAP = 300;
 
 // The number to send for a count taken since the last flush: whole, never negative, never above the cap.

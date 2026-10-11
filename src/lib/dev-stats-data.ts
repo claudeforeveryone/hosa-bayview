@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Period } from "@/lib/activity";
 import type { DevStatsRow } from "@/lib/dev-stats";
 
-// Server reads for the developer stats page (migration 0104). The database decides who may see them: the
-// viewer check is private.stats_viewers, and anyone else gets 42501. Until 0104 is applied the RPCs don't exist,
+// Server reads for the developer stats page (migration 0105). The database decides who may see them: the
+// viewer check is private.stats_viewers, and anyone else gets 42501. Until 0105 is applied the RPCs don't exist,
 // so a missing function reads as "no page" (null) and the route answers not found instead of crashing.
 
 // PostgREST says PGRST202 for a function it doesn't know; Postgres says 42883.

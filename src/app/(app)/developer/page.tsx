@@ -11,7 +11,7 @@ import {
 } from "@/lib/activity";
 import { getDevStats } from "@/lib/dev-stats-data";
 
-// Visible only to the site owner (private.stats_viewers, 0104). Anyone else, or a database without 0104, gets
+// Visible only to the site owner (private.stats_viewers, 0105). Anyone else, or a database without 0105, gets
 // the not-found page; the RPC refuses them too, so hiding the link is never the only guard.
 export const metadata: Metadata = { title: "Developer" };
 
