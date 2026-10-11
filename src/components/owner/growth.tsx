@@ -187,10 +187,14 @@ function ActiveChart({
       </div>
       {hasHidden ? (
         <p className="flex items-start gap-2 text-[14px] text-ink-2">
+          {/* A hidden column in small: open at the bottom, standing on a short stretch of the chart's axis, so it
+              reads as a chart key and not as a box to tick. */}
           <span
             aria-hidden
-            className="mt-1 inline-block size-3 shrink-0 border-[1.5px] border-ink-2"
-          />
+            className="mt-[3px] flex h-4 w-4 shrink-0 items-end justify-center border-b border-rule-strong"
+          >
+            <span className="block h-3.5 w-2 border-[1.5px] border-b-0 border-ink-2" />
+          </span>
           <span>
             Outlined columns are under 5 (the exact count is hidden).
             {small
