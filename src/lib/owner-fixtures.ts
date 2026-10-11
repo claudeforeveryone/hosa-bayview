@@ -32,7 +32,7 @@ export const overviewFixture: OwnerOverview = {
   wau_prev: 88,
   mau: 151,
   returning_7d: 81,
-  first_week_7d: null,
+  first_week_7d: 15,
 };
 
 // Thirty days, oldest first. Quiet days fall under 5 (null), as the database would send them.
@@ -167,7 +167,7 @@ export const engagementFixture: EngagementData = {
       source: "tracked",
       count: 214,
       people: 63,
-      tracked_since: day(-12),
+      tracked_since: `${day(-12)}T14:00:00Z`,
     },
     {
       id: "vocab_match",
@@ -191,7 +191,7 @@ export const engagementFixture: EngagementData = {
       source: "tracked",
       count: 133,
       people: 52,
-      tracked_since: day(-12),
+      tracked_since: `${day(-12)}T14:00:00Z`,
     },
     {
       id: "feedback_submitted",
@@ -215,7 +215,7 @@ export const engagementFixture: EngagementData = {
       source: "tracked",
       count: null,
       people: null,
-      tracked_since: day(-3),
+      tracked_since: `${day(-3)}T14:00:00Z`,
     },
     {
       id: "app_installed",

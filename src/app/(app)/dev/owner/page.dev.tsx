@@ -103,7 +103,7 @@ function section(tab: ReturnType<typeof parseTab>, sp: Search) {
         <FeedbackSection
           base={BASE}
           filter={parseFeedbackFilter(sp.status)}
-          page={1}
+          page={0}
           queue={feedbackFixture}
           readOnly
         />
@@ -118,7 +118,7 @@ function section(tab: ReturnType<typeof parseTab>, sp: Search) {
         />
       );
     case "audit":
-      return <AuditSection base={BASE} q="" page={1} rows={auditFixture} />;
+      return <AuditSection base={BASE} q="" page={0} rows={auditFixture} />;
     case "system":
       return (
         <SystemSection

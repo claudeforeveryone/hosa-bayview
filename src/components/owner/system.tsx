@@ -1,5 +1,5 @@
 import { commitUrl } from "@/lib/deployment";
-import { stampText } from "@/lib/owner-metrics";
+import { dateText, stampText } from "@/lib/owner-metrics";
 import type { SystemInfo } from "@/lib/owner-types";
 import { Figure, Figures, Ledger, Sheet } from "./primitives";
 
@@ -105,7 +105,7 @@ export function SystemSection({ info }: { info: SystemInfo }) {
                   label: "Usage events stored",
                   value: data.analytics.rows.toLocaleString("en-CA"),
                   note: data.analytics.oldest
-                    ? `Oldest ${stampText(data.analytics.oldest)}. Kept 13 months.`
+                    ? `Oldest from ${dateText(data.analytics.oldest)}. Kept 13 months, then deleted by the daily job.`
                     : "Kept 13 months, then deleted by the daily job.",
                 },
               ]}

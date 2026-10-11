@@ -1,10 +1,10 @@
 import {
   countText,
+  dateText,
   featureState,
   percentText,
   RANGE_LABEL,
   RANGES,
-  stampText,
   type Range,
 } from "@/lib/owner-metrics";
 import type {
@@ -91,7 +91,7 @@ function rowsFor(data: EngagementData): Row[] {
       people: state === "untracked" ? "" : countText(f.people),
       from:
         f.source === "tracked" && f.tracked_since
-          ? `${meta.from}, since ${stampText(f.tracked_since)}`
+          ? `${meta.from}, since ${dateText(f.tracked_since)}`
           : meta.from,
     };
   });

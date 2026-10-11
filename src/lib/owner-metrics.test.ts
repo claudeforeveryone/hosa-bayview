@@ -3,6 +3,7 @@ import {
   bucketLabel,
   checkFeedback,
   countText,
+  dateText,
   deltaText,
   featureState,
   isStatsViewer,
@@ -97,6 +98,14 @@ describe("bucketLabel", () => {
   });
   it("names a week by its two ends", () => {
     expect(bucketLabel("2026-09-28", "2026-10-04")).toBe("Sep 28 to Oct 4");
+  });
+});
+
+describe("dateText", () => {
+  it("gives the Toronto calendar day of a moment", () => {
+    // 01:30 UTC on Sep 29 is still the evening of Sep 28 in Toronto.
+    expect(dateText("2026-09-29T01:30:00Z")).toBe("Sep 28, 2026");
+    expect(dateText("2026-09-29T16:00:00+00:00")).toBe("Sep 29, 2026");
   });
 });
 

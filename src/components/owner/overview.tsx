@@ -18,13 +18,13 @@ export function OverviewSection({ data }: { data: OwnerOverview }) {
       >
         <Figures label="Headline figures">
           <Figure label="Members" value={countText(data.members)} />
+          <Figure label="Active today" value={countText(data.dau)} />
           <Figure
             label="Active, 7 days"
             value={countText(data.wau)}
             note={deltaText(data.wau, data.wau_prev, "the 7 days before")}
           />
-          <Figure label="Active today" value={countText(data.dau)} />
-          <Figure label="New, 7 days" value={countText(data.new_7d)} />
+          <Figure label="Active, 30 days" value={countText(data.mau)} />
         </Figures>
       </Sheet>
 
@@ -49,22 +49,15 @@ export function OverviewSection({ data }: { data: OwnerOverview }) {
           />
         </Sheet>
         <Sheet
-          id="active-h"
-          title="Active and new"
-          note={`Toronto days, up to today (${data.today}).`}
+          id="new-h"
+          title="New members"
+          note={`Accounts created, Toronto days up to today (${data.today}).`}
         >
           <Ledger
-            label="Active and new members"
+            label="New members"
             rows={[
-              { label: "Active today", value: countText(data.dau) },
-              { label: "Active, last 7 days", value: countText(data.wau) },
-              {
-                label: "Active, the 7 days before",
-                value: countText(data.wau_prev),
-              },
-              { label: "Active, last 30 days", value: countText(data.mau) },
-              { label: "New, last 7 days", value: countText(data.new_7d) },
-              { label: "New, last 30 days", value: countText(data.new_30d) },
+              { label: "Last 7 days", value: countText(data.new_7d) },
+              { label: "Last 30 days", value: countText(data.new_30d) },
             ]}
           />
         </Sheet>

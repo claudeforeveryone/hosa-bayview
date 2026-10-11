@@ -188,3 +188,12 @@ const stampFormat = new Intl.DateTimeFormat("en-CA", {
 export function stampText(iso: string): string {
   return stampFormat.format(new Date(iso));
 }
+
+// Just the Toronto calendar day, for "since" and "oldest" notes where the time adds nothing.
+const dateFormat = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Toronto",
+  dateStyle: "medium",
+});
+export function dateText(iso: string): string {
+  return dateFormat.format(new Date(iso));
+}

@@ -62,30 +62,39 @@ export function GrowthSection({
       ) : (
         <>
           <ActiveChart buckets={data.buckets} unit={unit} />
-          <DataTable
-            caption={`New and active members per ${unit}, newest first.`}
-            rowKey={(b) => b.start}
-            rows={[...data.buckets].reverse()}
-            columns={[
-              {
-                key: "when",
-                header: unit === "day" ? "Day" : "Week",
-                cell: (b) => bucketLabel(b.start, b.end),
-              },
-              {
-                key: "new",
-                header: "New",
-                numeric: true,
-                cell: (b) => countText(b.new),
-              },
-              {
-                key: "active",
-                header: "Active",
-                numeric: true,
-                cell: (b) => countText(b.active),
-              },
-            ]}
-          />
+          {/* The exact numbers behind the chart, one row per bucket. Folded so a 30-day range isn't a wall of rows. */}
+          <details className="group">
+            <summary className="caps step inline-flex h-11 cursor-pointer list-none items-center justify-self-start border border-ink px-4 text-[15px] hover:bg-band [&::-webkit-details-marker]:hidden">
+              <span className="group-open:hidden">Show every {unit}</span>
+              <span className="hidden group-open:inline">Hide the table</span>
+            </summary>
+            <div className="pt-4">
+              <DataTable
+                caption={`New and active members per ${unit}, newest first.`}
+                rowKey={(b) => b.start}
+                rows={[...data.buckets].reverse()}
+                columns={[
+                  {
+                    key: "when",
+                    header: unit === "day" ? "Day" : "Week",
+                    cell: (b) => bucketLabel(b.start, b.end),
+                  },
+                  {
+                    key: "new",
+                    header: "New",
+                    numeric: true,
+                    cell: (b) => countText(b.new),
+                  },
+                  {
+                    key: "active",
+                    header: "Active",
+                    numeric: true,
+                    cell: (b) => countText(b.active),
+                  },
+                ]}
+              />
+            </div>
+          </details>
         </>
       )}
     </Sheet>

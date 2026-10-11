@@ -21,7 +21,7 @@ export function Sheet({
   return (
     <section
       aria-labelledby={id}
-      className="grid grid-cols-[minmax(0,1fr)] gap-5 border-t-[3px] border-ink pt-4"
+      className="grid grid-cols-[minmax(0,1fr)] content-start gap-5 border-t-[3px] border-ink pt-4"
     >
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="grid min-w-0 gap-1.5">
