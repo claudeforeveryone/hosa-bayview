@@ -173,7 +173,7 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
 
   // The code is checked (and rate limited per IP, plus a cap for everyone) in the database, which hands back a
   // single-use ticket. The account insert redeems it, so the auth API can't be used to skip this step. Only the
-  // server may test a code, so the IP passed is the one Vercel saw.
+  // server may test a code, so the IP passed is the one the host's proxy saw (clientIp trusts only its header).
   let ticket: string | null = null;
   if (gate) {
     let admin: ReturnType<typeof createAdminClient>;

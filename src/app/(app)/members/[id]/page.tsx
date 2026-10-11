@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { MemberStatRows, RecentBonuses } from "@/components/member-stats";
 import {
-  getMemberDetails,
+  getMemberDetail,
   getMemberStats,
   getRecentBonuses,
 } from "@/lib/activity-data";
@@ -17,15 +17,15 @@ export const metadata: Metadata = { title: "Member" };
 // Any signed-in member can see another member's numbers. Emails never leave the database for this page.
 export default async function MemberPage(props: PageProps<"/members/[id]">) {
   const { id } = await props.params;
-  await requireProfile();
-  const [stats, details] = await Promise.all([
+  const me = await requireProfile();
+  // One member's picture, grade and title (0206); the bulk list only carries grade and title for yourself.
+  const [stats, detail] = await Promise.all([
     getMemberStats(id),
-    getMemberDetails(),
+    getMemberDetail(id),
   ]);
   if (!stats) notFound();
   // A failed bonus lookup leaves the line out rather than failing the profile.
   const bonuses = await getRecentBonuses(id).catch(() => []);
-  const detail = details.get(stats.user_id);
 
   return (
     <div className="grid max-w-2xl gap-8">
@@ -50,11 +50,12 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
       </header>
       <MemberStatRows stats={stats} />
       <RecentBonuses rows={bonuses} />
+      {/* The full list is for executives (0204); everyone else goes back to the board they came from. */}
       <Link
-        href="/members"
+        href={me.role === "executive" ? "/members" : "/leaderboard"}
         className="caps step justify-self-start text-[17px] underline underline-offset-4"
       >
-        All members
+        {me.role === "executive" ? "All members" : "Leaderboard"}
       </Link>
     </div>
   );

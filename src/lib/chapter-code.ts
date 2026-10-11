@@ -31,9 +31,28 @@ export async function readChapterGate(
   throw new Error(`Chapter code lookup failed: ${error.message}`);
 }
 
-// The caller's IP for the per-IP limit. On Vercel the first x-forwarded-for entry is the client (Vercel sets the
-// header itself); x-real-ip is the fallback. Empty when neither is there, and those callers share one bucket.
-export function clientIp(headers: Headers): string {
-  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return (forwarded || headers.get("x-real-ip")?.trim() || "").slice(0, 100);
+// Which platform's proxy put the caller's address in the headers. Only that proxy's own header is trusted, because a
+// client can send any of these headers itself.
+export type Edge = "vercel" | "cloudflare";
+
+// The OpenNext Cloudflare build runs inside a Worker, where navigator.userAgent is "Cloudflare-Workers" (the
+// global_navigator flag, on by default for any recent compatibility_date). Everything else, including next dev, is
+// treated as Vercel, the host today.
+export function currentEdge(): Edge {
+  return typeof navigator !== "undefined" &&
+    navigator?.userAgent === "Cloudflare-Workers"
+    ? "cloudflare"
+    : "vercel";
+}
+
+// The caller's IP for the per-IP limit. Vercel overwrites x-forwarded-for with the client's address (x-real-ip is
+// the same), so its first entry is the client. Cloudflare appends to a client-supplied x-forwarded-for instead, so
+// there only cf-connecting-ip counts. Empty when the trusted header is missing, and those callers share one bucket.
+export function clientIp(headers: Headers, edge: Edge = currentEdge()): string {
+  const ip =
+    edge === "cloudflare"
+      ? headers.get("cf-connecting-ip")
+      : headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        headers.get("x-real-ip");
+  return (ip?.trim() || "").slice(0, 100);
 }

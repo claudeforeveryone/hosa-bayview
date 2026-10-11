@@ -1,7 +1,11 @@
--- Role and RLS checks for profiles (migrations 0001-0005).
--- Run as a superuser (Supabase SQL editor or MCP execute_sql). Works on a live project:
+-- Role and RLS checks for profiles (migrations 0001-0005, with 0101 chapter leads, 0201 no email bootstrap and 0203
+-- no client deletes). Run as a superuser (Supabase SQL editor or MCP execute_sql). Works on a live project:
 -- everything happens in one transaction that rolls back. Raises if any check fails.
+-- The profile log triggers are off for the whole run: logging is checked elsewhere (moderation.sql), and on a live
+-- project every logged role change would take an admin_log id that the rollback does not give back.
 begin;
+alter table public.profiles disable trigger profiles_log_change;
+alter table public.profiles disable trigger profiles_log_delete;
 
 create temp table _r (test text, result text, pass boolean);
 grant all on _r to authenticated, anon;
@@ -72,17 +76,26 @@ insert into _r select 'name falls back to email local part', full_name, full_nam
   from public.profiles where id = 'aaaaaaaa-0000-0000-0000-00000000000f';
 insert into _r select 'long signup names are truncated to 60', char_length(full_name)::text, char_length(full_name) = 60
   from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000010';
-insert into _r select 'confirmed signup on exec email promotes (case-insensitive)', role::text, role = 'executive'
+-- 0201 retired the email bootstrap: a confirmed signup on the email no longer promotes, and the setting is left alone.
+insert into _r select 'confirmed signup on exec email stays trainee (bootstrap retired, 0201)', role::text, role = 'trainee'
   from public.profiles where id = 'aaaaaaaa-0000-0000-0000-00000000000e';
 update public.profiles set role = 'trainer' where id = 'aaaaaaaa-0000-0000-0000-0000000000bb';
-insert into _r select 'promotion is one-shot (setting consumed)', count(*)::text, count(*) = 0
+insert into _r select 'setting is not consumed by a signup (retired)', count(*)::text, count(*) = 1
   from private.settings where key = 'first_executive_email';
+-- The first executive is now granted by uid, by hand (what a chapter lead or the SQL editor does). The executive
+-- checks further down use this account.
+update public.profiles set role = 'executive' where id = 'aaaaaaaa-0000-0000-0000-00000000000e';
+-- Only the chapter leads (0101) can give or take executive, so the test executive is one; otherwise every executive
+-- role change below stops at that check before reaching the one under test.
+insert into private.exec_granters (user_id) values ('aaaaaaaa-0000-0000-0000-00000000000e');
 
-insert into private.settings values ('first_executive_email', 'second-exec@example.com');
+-- The setting is still there (not consumed), so this replaces it.
+insert into private.settings values ('first_executive_email', 'second-exec@example.com')
+  on conflict (key) do update set value = excluded.value;
 insert into auth.users (instance_id, id, aud, role, email, raw_user_meta_data, email_confirmed_at, created_at, updated_at) values
   ('00000000-0000-0000-0000-000000000000', 'aaaaaaaa-0000-0000-0000-000000000011', 'authenticated', 'authenticated',
    'second-exec@example.com', '{}', now(), now(), now());
-insert into _r select 'no promotion while an executive exists', role::text, role = 'trainee'
+insert into _r select 'second email signup stays trainee too', role::text, role = 'trainee'
   from public.profiles where id = 'aaaaaaaa-0000-0000-0000-000000000011';
 
 update auth.users set email = 'renamed@example.com' where id = 'aaaaaaaa-0000-0000-0000-00000000000f';
@@ -123,7 +136,8 @@ reset role;
 -- As anon
 select set_config('request.jwt.claims', '', true);
 set local role anon;
-insert into _r select 'anon reads no profiles', count(*)::text, count(*) = 0 from public.profiles;
+-- anon holds no grant on profiles at all (0069), so this is a permission error rather than zero rows.
+select pg_temp.expect('anon reads no profiles', 'select count(*) from public.profiles', '42501');
 select pg_temp.expect('anon cannot call helpers', 'select private.is_executive()', '42501');
 reset role;
 
@@ -136,12 +150,15 @@ select pg_temp.rows('exec can rename others',
   $q$update public.profiles set full_name = 'Fixed Name' where id = 'aaaaaaaa-0000-0000-0000-00000000000f'$q$, 1);
 select pg_temp.expect('last exec cannot demote self',
   $q$update public.profiles set role = 'trainee' where id = 'aaaaaaaa-0000-0000-0000-00000000000e'$q$, 'P0001');
-select pg_temp.rows('profiles cannot be deleted through the API',
-  $q$delete from public.profiles where id = 'aaaaaaaa-0000-0000-0000-00000000000f'$q$, 0);
+-- 0203 took the DELETE grant away, so this is a permission error rather than RLS matching no rows.
+select pg_temp.expect('profiles cannot be deleted through the API',
+  $q$delete from public.profiles where id = 'aaaaaaaa-0000-0000-0000-00000000000f'$q$, '42501');
 select pg_temp.expect('exec cannot change emails directly',
   $q$update public.profiles set email = 'y@example.com' where id = 'aaaaaaaa-0000-0000-0000-00000000000f'$q$, '42501');
 reset role;
 
+-- As the SQL editor: no signed-in user (reset role keeps the executive's claims, so clear them).
+select set_config('request.jwt.claims', '', true);
 select pg_temp.expect('deleting last exec account is blocked',
   $q$delete from auth.users where id = 'aaaaaaaa-0000-0000-0000-00000000000e'$q$, 'P0001');
 update public.profiles set role = 'executive' where id = 'aaaaaaaa-0000-0000-0000-0000000000bb';

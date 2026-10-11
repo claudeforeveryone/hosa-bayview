@@ -6,7 +6,7 @@ import { PageTitle } from "@/components/page-title";
 import { SocialLinks } from "@/components/social-links";
 import { filterMembers, formatCount } from "@/lib/activity";
 import { getDirectory, getMemberDetails } from "@/lib/activity-data";
-import { requireProfile } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { roleLabel } from "@/lib/role-label";
 import { GRADES, filterByGrade, gradeLabel, parseGrade } from "@/lib/profile";
 
@@ -16,8 +16,10 @@ export default async function MembersPage(props: PageProps<"/members">) {
   const sp = await props.searchParams;
   const q = typeof sp.q === "string" ? sp.q.slice(0, 80) : "";
   const grade = parseGrade(sp.grade);
-  const [me, all, details] = await Promise.all([
-    requireProfile(),
+  // The full directory is an executive tool: the nav lists it for them only, and member_directory (0204) answers
+  // only executives. Members still reach each other's pages from boards and rosters.
+  const me = await requireRole("executive");
+  const [all, details] = await Promise.all([
     getDirectory(),
     getMemberDetails(),
   ]);

@@ -1,4 +1,4 @@
--- Battles (Task 18, migrations 0095-0098): RLS, key secrecy before a round closes (in battles and in the test
+-- Battles (Task 18, migrations 0095-0098, 0207): RLS, key secrecy before a round closes (in battles and in the test
 -- RPCs), one answer per round, late answers refused after the grace, the advance race, away players, stale
 -- battles, non-members and banned members kept out, no Elo, wins and the farm rule, realtime wiring.
 -- Runs in one transaction and rolls back. Every check runs; the last statement raises with the failures (or
@@ -368,6 +368,10 @@ select pg_temp.ok('the state marks u2 away', $q$
 select pg_temp.step('u3 answers A at once (20 s left)', $q$select public.answer_battle(pg_temp.get('b1'), 4, 0)$q$);
 select pg_temp.ok('away u2 did not block: round 4 closed, a fast right answer pays 150 (team 2 now 375)', $q$
   select (s -> 'current' ->> 'closed_at') is not null and (s -> 'teams') = '[0, 375]'::jsonb from pg_temp.st() s$q$);
+select pg_temp.as_user(pg_temp.u(4));
+select pg_temp.step('before round 5, u4 starts a timed run of t1', $q$select pg_temp.save('t1run', public.start_attempt(pg_temp.t(1), 'timed'))$q$);
+select pg_temp.step('u4 answers round 5''s question in it while that round has not started', $q$
+  select public.answer_question(pg_temp.get('t1run'), pg_temp.get('q5'), 0)$q$);
 select pg_temp.as_user(pg_temp.u(2));
 select pg_temp.step('u2 pings again', $q$select public.battle_ping(pg_temp.get('b1'))$q$);
 select pg_temp.step('host presses Next', $q$select public.advance_battle(pg_temp.get('b1'), 4, 'reveal')$q$);
@@ -388,9 +392,23 @@ select pg_temp.ok('review sheet: the live question''s key is hidden, the rest sh
 select pg_temp.ok('taking list: the live question''s key is hidden', $q$
   select bool_and((question_id = pg_temp.get('q5')) = (correct_index is null))
   from public.attempt_questions(pg_temp.get('p1'))$q$);
-select pg_temp.step('u4 starts a timed run of t1', $q$select pg_temp.save('t1run', public.start_attempt(pg_temp.t(1), 'timed'))$q$);
-select pg_temp.step('u4 answers the live question in the timed run (stored, no verdict)', $q$
-  select public.answer_question(pg_temp.get('t1run'), pg_temp.get('q5'), 0)$q$);
+-- A timed answer has no verdict, but submitting grades it, and Elo pays a right one at once, so a player's timed answer
+-- on their own live round is refused (0207). u4 only watches, gains nothing in the battle, and keeps their answer.
+select pg_temp.ok('a watcher''s timed answer on the live question saves (only players are held back)', $q$
+  select selected_index = 1 from public.answer_question(pg_temp.get('t1run'), pg_temp.get('q5'), 1)$q$);
+select pg_temp.ok('timed answer on a question not in play still saves', $q$
+  select selected_index = 0 from public.answer_question(pg_temp.get('t1run'), pg_temp.get('free'), 0)$q$);
+select pg_temp.as_user(pg_temp.u(3));
+select pg_temp.step('player u3 starts a timed run of t1 mid-round', $q$select pg_temp.save('u3run', public.start_attempt(pg_temp.t(1), 'timed'))$q$);
+select pg_temp.expect('a player''s timed answer on their live round''s question is refused (submitting would grade it and pay Elo)', $q$
+  select public.answer_question(pg_temp.get('u3run'), pg_temp.get('q5'), 0)$q$, '22023');
+select pg_temp.ok('the player''s timed answer on a question not in play saves', $q$
+  select selected_index = 0 from public.answer_question(pg_temp.get('u3run'), pg_temp.get('free'), 0)$q$);
+select pg_temp.step('u3 leaves mid-round', $q$select public.leave_battle(pg_temp.get('b1'))$q$);
+select pg_temp.expect('having left, still refused: a player can rejoin mid-game', $q$
+  select public.answer_question(pg_temp.get('u3run'), pg_temp.get('q5'), 0)$q$, '22023');
+select pg_temp.ok('u3 rejoins on team 2', $q$select public.join_battle(pg_temp.get('b1')) = 2$q$);
+select pg_temp.as_user(pg_temp.u(4));
 select pg_temp.ok('submitting it hides the score while the question is live', $q$
   select score is null from public.submit_attempt(pg_temp.get('t1run'))$q$);
 select pg_temp.ok('attempt list hides that score too', $q$
@@ -430,9 +448,10 @@ select pg_temp.ok('a finished battle drops off open_battles', $q$select not exis
 select pg_temp.expect('no answers after the end', $q$select public.answer_battle(pg_temp.get('b1'), 5, 0)$q$, '22023');
 
 select pg_temp.as_admin();
-select pg_temp.ok('no Elo: battles wrote no elo_events and no attempts for the players', $q$
+select pg_temp.ok('no Elo: battles wrote no elo_events and no attempts for the players (u3''s own timed run aside)', $q$
   select not exists (select 1 from public.elo_events where user_id in (pg_temp.u(2), pg_temp.u(3)))
-     and not exists (select 1 from public.attempts where user_id in (pg_temp.u(2), pg_temp.u(3)))$q$);
+     and not exists (select 1 from public.attempts where user_id in (pg_temp.u(2), pg_temp.u(3))
+                     and id is distinct from pg_temp.get('u3run'))$q$);
 
 -- Play again, and the farm rule: a win where one side barely played doesn't count -----------------------------------
 select pg_temp.as_user(pg_temp.u(3));

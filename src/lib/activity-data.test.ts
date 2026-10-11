@@ -23,7 +23,7 @@ vi.mock("@/lib/avatar-urls", () => ({
   avatarSources: async () => new Map([["u1.png", "https://signed/u1"]]),
 }));
 
-const { getBoard } = await import("./activity-data");
+const { getBoard, getMemberDetail } = await import("./activity-data");
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 const row = {
@@ -64,5 +64,55 @@ describe("getBoard", () => {
     });
     pending.member_details.resolve({ data: [], error: null });
     expect(await board).toEqual([]);
+  });
+});
+
+describe("getMemberDetail", () => {
+  const id = "00000000-0000-4000-8000-000000000001";
+
+  it("reads one member's picture, grade and title from member_detail", async () => {
+    calls.length = 0;
+    const detail = getMemberDetail(id);
+    await flush();
+    expect(calls).toEqual(["member_detail"]);
+    expect(rpc).toHaveBeenLastCalledWith("member_detail", { uid: id });
+    pending.member_detail.resolve({
+      data: [{ user_id: id, avatar_path: "u1.png", grade: 11, title: "President" }],
+      error: null,
+    });
+    expect(await detail).toEqual({
+      user_id: id,
+      avatar_url: "https://signed/u1",
+      grade: 11,
+      title: "President",
+    });
+  });
+
+  it("falls back to the member list while member_detail isn't in the database yet", async () => {
+    calls.length = 0;
+    const detail = getMemberDetail(id);
+    await flush();
+    pending.member_detail.resolve({
+      data: null,
+      error: { code: "PGRST202", message: "Could not find the function" },
+    });
+    await flush();
+    expect(calls).toEqual(["member_detail", "member_details"]);
+    pending.member_details.resolve({
+      data: [{ user_id: id, avatar_path: null, grade: 10, title: null }],
+      error: null,
+    });
+    expect(await detail).toEqual({ user_id: id, avatar_url: null, grade: 10, title: null });
+  });
+
+  it("is null for a bad id or another error, without asking twice", async () => {
+    calls.length = 0;
+    expect(await getMemberDetail("not-a-uuid")).toBeNull();
+    expect(calls).toEqual([]);
+    const detail = getMemberDetail(id);
+    await flush();
+    pending.member_detail.resolve({ data: null, error: { code: "42501", message: "no" } });
+    expect(await detail).toBeNull();
+    expect(calls).toEqual(["member_detail"]);
   });
 });

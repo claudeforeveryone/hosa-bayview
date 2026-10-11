@@ -84,7 +84,8 @@ insert into public.card_reviews (user_id, card_id, known, reviewed_at) values
   ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000ab', true, now()),
   ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000ac', false, now());
 
--- Farming guard: a repeat practice attempt and a repeat review later the same day must not add credit.
+-- Farming guard: a repeat review later the same day adds no credit, and a repeat answer earns only the repeat point
+-- (0105: 1 when wrong, once per question per day).
 insert into public.attempts (id, test_id, user_id, mode, total, counts) values
   ('00000000-0000-4000-8000-0000000000a4', '00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000b1', 'practice', 2, true);
 insert into public.attempt_answers (attempt_id, question_id, selected_index, is_correct, answered_at) values
@@ -174,10 +175,11 @@ select pg_temp.check('chapter board: b1 answered 3 right 2, 1 counted review',
   (select answered = 3 and correct = 2 and reviews = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 select pg_temp.check('streak counts today for b1',
   (select streak = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
--- Study gains: 1 counted review + 3 answered x 2 + 2 right x 3 = 13 (minutes do not count); streak 1 gives x1.02 => 13.26.
--- Plus 5 for today's sign-in: 1200 + 18.26 = 1218. Everything happened today, so the gain is 18 too.
-select pg_temp.check('elo in the board matches the formula (1218, gain 18)',
-  (select elo = 1218 and gain = 18 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+-- Study gains: 1 counted review + 3 answered x 2 + 2 right x 3 + 1 wrong repeat (0105) = 14 (minutes do not count);
+-- streak 1 gives x1.02 => 14.28. Plus 5 for today's sign-in (x1): 19.28, so Elo 19 (no base since 0105). Everything
+-- happened today, so the gain is 19 too.
+select pg_temp.check('elo in the board matches the formula (19, gain 19)',
+  (select elo = 19 and gain = 19 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
 -- Career: own answers; trainers see answers in their rooms; executives see all; trainees never see others'
 select pg_temp.check('career keeps every graded answer, repeats included (history, not score)',
@@ -205,11 +207,15 @@ select pg_temp.check('executive sees all answers',
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
 select pg_temp.check('profile stats visible to another member, with a rank',
   (select count(*) = 1 and bool_and(rank >= 1) from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
-select pg_temp.check('profile shows sign-in streak (1, today) and all-time elo 1218',
-  (select sign_in_streak = 1 and elo = 1218 from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
+select pg_temp.check('profile shows sign-in streak (1, today) and all-time elo 19',
+  (select sign_in_streak = 1 and elo = 19 from public.member_stats('00000000-0000-4000-8000-0000000000b1')));
 select pg_temp.check('profile for a missing member is empty',
   (select count(*) from public.member_stats('00000000-0000-4000-8000-0000000000ff')) = 0);
-select pg_temp.check('directory lists members by name',
+-- The full directory is an executive tool (0204): another member gets no rows, an executive gets everyone.
+select pg_temp.check('directory lists no one for a member',
+  (select count(*) from public.member_directory()) = 0);
+select pg_temp.as_user('00000000-0000-4000-8000-0000000000b4');
+select pg_temp.check('directory lists members by name for an executive',
   (select count(*) from public.member_directory() where user_id in ('00000000-0000-4000-8000-0000000000b1', '00000000-0000-4000-8000-0000000000b3')) = 2);
 
 -- Streaks, all in Toronto days -----------------------------------------------------------
@@ -245,17 +251,18 @@ select pg_temp.check('sign-in streak: none for a member who never signed in (b5)
   private.sign_in_streak('00000000-0000-4000-8000-0000000000b5') = 0);
 
 -- Elo gained by period: b4 has minutes and sign-ins only on past days, so today's gain is zero.
--- All time: 2 sign-ins x 5 = 10. The two minutes rows add nothing: time no longer counts. Total elo is all-time in every period.
+-- All time: 2 sign-ins x 5 = 10. The two minutes rows add nothing: time no longer counts. Total elo is all-time in every
+-- period, with no base (0105).
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
-select pg_temp.check('gain today leaves out past days (b4 gains 0 today, elo 1210)',
-  (select gain = 0 and elo = 1210 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
+select pg_temp.check('gain today leaves out past days (b4 gains 0 today, elo 10)',
+  (select gain = 0 and elo = 10 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
 select pg_temp.check('gain all time counts every day, minutes excluded (b4 gains 10)',
-  (select gain = 10 and elo = 1210 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
-select pg_temp.check('gain today for b1 is today activity plus today sign-in (18, elo 1218)',
-  (select gain = 18 and elo = 1218 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
-select pg_temp.check('week and month gains for b1 are 18 (all of it is this week)',
-  (select bool_and(gain = 18) from public.leaderboard('week', null) where user_id = '00000000-0000-4000-8000-0000000000b1')
-  and (select bool_and(gain = 18) from public.leaderboard('month', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+  (select gain = 10 and elo = 10 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b4'));
+select pg_temp.check('gain today for b1 is today activity plus today sign-in (19, elo 19)',
+  (select gain = 19 and elo = 19 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
+select pg_temp.check('week and month gains for b1 are 19 (all of it is this week)',
+  (select bool_and(gain = 19) from public.leaderboard('week', null) where user_id = '00000000-0000-4000-8000-0000000000b1')
+  and (select bool_and(gain = 19) from public.leaderboard('month', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 select pg_temp.check('hours stat still reported on the board (b1 has 1 minute)',
   (select minutes = 1 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b1'));
 
@@ -281,12 +288,12 @@ insert into public.elo_bonuses (user_id, amount, reason, created_at) values
   ('00000000-0000-4000-8000-0000000000b8', 50, 'test', now() - interval '2 days'),
   ('00000000-0000-4000-8000-0000000000b8', 5, 'flashcards', now() - interval '3 days');
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b2');
-select pg_temp.check('bonuses count toward all-time elo (b8: 1200 + 110)',
-  (select elo = 1310 and gain = 110 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b8'));
+select pg_temp.check('bonuses count toward all-time elo (b8: 110)',
+  (select elo = 110 and gain = 110 from public.leaderboard('all', null) where user_id = '00000000-0000-4000-8000-0000000000b8'));
 select pg_temp.check('bonuses count toward today gain, old ones leave out (b8: 55)',
-  (select gain = 55 and elo = 1310 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b8'));
-select pg_temp.check('member profile elo includes bonuses (b8 1310)',
-  (select elo = 1310 from public.member_stats('00000000-0000-4000-8000-0000000000b8')));
+  (select gain = 55 and elo = 110 from public.leaderboard('today', null) where user_id = '00000000-0000-4000-8000-0000000000b8'));
+select pg_temp.check('member profile elo includes bonuses (b8 110)',
+  (select elo = 110 from public.member_stats('00000000-0000-4000-8000-0000000000b8')));
 select pg_temp.check('recent bonuses: five rows, newest first (b8)',
   (select count(*) = 5 from public.recent_bonuses('00000000-0000-4000-8000-0000000000b8'))
   and (select amount = 25 from public.recent_bonuses('00000000-0000-4000-8000-0000000000b8') limit 1)
