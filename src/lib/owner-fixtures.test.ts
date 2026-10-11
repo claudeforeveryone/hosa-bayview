@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { isReportReason, REPORT_REASONS } from "./flag-reasons";
 import { FEEDBACK_FILTERS, STATUS_LABEL } from "./owner-metrics";
 import {
   auditFixture,
   contentFixture,
   engagementFixture,
+  feedbackAfterMoveFixture,
   feedbackFixtureFor,
   growth7Fixture,
   growth90Fixture,
@@ -17,6 +19,7 @@ import {
   smallGrowthAllFixture,
   smallGrowthFixture,
   smallOverviewFixture,
+  trainerTestFixture,
 } from "./owner-fixtures";
 import type { EngagementData, GrowthData, OwnerOverview } from "./owner-types";
 
@@ -66,6 +69,19 @@ describe("the gallery's feedback queue", () => {
         r.priority !== "normal" || r.status !== "new" || r.resolution !== "";
       if (touched) expect(r.triaged_at, r.id).not.toBeNull();
     }
+  });
+
+  it("moves an item out of Open the way a save would: gone from the rows, counted under Done, noted in its place", () => {
+    const before = feedbackFixtureFor("open", false);
+    const { queue, moved } = feedbackAfterMoveFixture();
+    expect(moved).toHaveLength(1);
+    const [note] = moved;
+    expect(queue.rows.some((r) => r.id === note.id)).toBe(false);
+    expect(before.rows.some((r) => r.id === note.id)).toBe(true);
+    expect(queue.rows.length).toBe(before.rows.length - 1);
+    expect(queue.counts.new + queue.counts.planned).toBe(queue.rows.length);
+    expect(queue.counts.done).toBe(before.counts.done + 1);
+    expect(note.status).toBe("done");
   });
 
   it("has an empty small-chapter queue for the nothing-here states", () => {
@@ -158,6 +174,79 @@ describe("the gallery's content health", () => {
         .reduce((n, r) => n + r.reports, 0);
       expect(listed, room.name).toBe(room.open_reports);
     }
+  });
+});
+
+// The trainer's side of reports (?view=entry): the sample test is one Content lists, so the two views agree.
+describe("the gallery's trainer view", () => {
+  const { testId, flags } = trainerTestFixture;
+
+  it("has a plain ask and a report of every reason, all open", () => {
+    expect(flags.some((f) => f.reason === "ask")).toBe(true);
+    for (const reason of REPORT_REASONS)
+      expect(
+        flags.some((f) => f.reason === reason),
+        reason,
+      ).toBe(true);
+    for (const f of flags) expect(f.status, f.id).toBe("open");
+  });
+
+  // One thread per member per question (question_flags is unique on both).
+  it("gives each member one thread per question", () => {
+    const keys = flags.map((f) => `${f.user_id}:${f.question_id}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("matches Content's reported questions on that test: reports, reasons and last send", () => {
+    const listed = contentFixture.reported.filter((r) => r.test_id === testId);
+    const reports = flags.filter((f) => isReportReason(f.reason));
+    const questions = new Set(reports.map((f) => f.question_id));
+    expect(listed.map((r) => r.question_id).sort()).toEqual(
+      [...questions].sort(),
+    );
+    for (const r of listed) {
+      const mine = reports.filter((f) => f.question_id === r.question_id);
+      expect(mine.length, r.question_id).toBe(r.reports);
+      expect([...new Set(mine.map((f) => f.reason))].sort()).toEqual(
+        [...r.reasons].sort(),
+      );
+      expect(
+        mine
+          .map((f) => f.created_at)
+          .sort()
+          .at(-1),
+        r.question_id,
+      ).toBe(r.last_at);
+      expect(mine.every((f) => f.pos === r.pos)).toBe(true);
+    }
+  });
+
+  it("has no more plain asks than Content says are waiting", () => {
+    expect(flags.filter((f) => f.reason === "ask").length).toBeLessThanOrEqual(
+      contentFixture.open_asks,
+    );
+  });
+
+  // Every open report was sent at least once since it was last touched, and here all of them were sent after
+  // Engagement started counting report sends, so Engagement counts at least that many.
+  it("has Engagement count at least one send for every open report", () => {
+    const row = engagementFixture.features.find(
+      (f) => f.id === "question_reported",
+    );
+    const since = row?.tracked_since ?? engagementFixture.from;
+    for (const r of contentFixture.reported)
+      expect(r.last_at >= since, r.question_id).toBe(true);
+    expect(row?.count ?? 0).toBeGreaterThanOrEqual(contentFixture.open_reports);
+  });
+
+  // owner_content lists reported questions with the most reports first, then the latest.
+  it("orders Content's reported questions the way owner_content does", () => {
+    const order = [...contentFixture.reported].sort(
+      (a, b) => b.reports - a.reports || b.last_at.localeCompare(a.last_at),
+    );
+    expect(contentFixture.reported.map((r) => r.question_id)).toEqual(
+      order.map((r) => r.question_id),
+    );
   });
 });
 

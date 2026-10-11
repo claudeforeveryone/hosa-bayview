@@ -52,7 +52,7 @@ export function ContentSection({ data }: { data: ContentData }) {
       <Sheet
         id="reported-h"
         title="Reported questions"
-        note="Members report a wrong key, unclear wording or a typo from practice and review. The event's trainer is told and replies in the test's question list."
+        note="Members report a wrong key, unclear wording or a typo from practice and review. The event's trainer is told and replies under Ask teacher and reports, on the test's page."
       >
         {data.reported.length === 0 ? (
           <Notice>No open reports.</Notice>

@@ -2,6 +2,12 @@
 // page.dev.tsx). Only that page imports this file, and that page is never built for production (next.config.ts
 // adds the .dev.tsx page extension in the dev server only), so none of this ships. Nothing here is real data.
 import type { DevStatsRow } from "./dev-stats";
+import {
+  noteAfterSave,
+  placeMoved,
+  type MovedFeedback,
+} from "./feedback-moves";
+import type { ClassroomFlag, TestFlag } from "./tests";
 import { inFeedbackFilter, type FeedbackFilter } from "./owner-metrics";
 import type {
   ContentData,
@@ -248,7 +254,7 @@ export const engagementFixture: EngagementData = {
       id: "question_reported",
       event: "feedback_submitted",
       source: "tracked",
-      count: 7,
+      count: 9,
       people: null,
       tracked_since: `${day(-12)}T14:00:00Z`,
     },
@@ -317,7 +323,7 @@ export const contentFixture: ContentData = {
   tests: 82,
   published_tests: 70,
   missing_explanations: 1553,
-  open_reports: 5,
+  open_reports: 8,
   open_asks: 1,
   duplicate_groups: 3,
   per_event: [
@@ -330,7 +336,7 @@ export const contentFixture: ContentData = {
       questions: 1012,
       missing_explanations: 140,
       repeated: 4,
-      open_reports: 2,
+      open_reports: 5,
     },
     {
       id: `${ROOM}02`,
@@ -413,6 +419,42 @@ export const contentFixture: ContentData = {
       reasons: ["unclear", "typo"],
       reports: 2,
       last_at: `${day(-4)}T15:10:00Z`,
+    },
+    {
+      question_id: "00000000-0000-4000-8000-00000000e011",
+      test_id: "00000000-0000-4000-8000-00000000d001",
+      classroom_id: `${ROOM}01`,
+      test_title: "Sample Practice Set 3",
+      room: "Sample Event Alpha",
+      pos: 9,
+      prompt: "Sample question: which term means a cut into the trachea?",
+      reasons: ["unclear"],
+      reports: 1,
+      last_at: `${day(-2)}T20:30:00Z`,
+    },
+    {
+      question_id: "00000000-0000-4000-8000-00000000e012",
+      test_id: "00000000-0000-4000-8000-00000000d001",
+      classroom_id: `${ROOM}01`,
+      test_title: "Sample Practice Set 3",
+      room: "Sample Event Alpha",
+      pos: 11,
+      prompt: "Sample question: which suffix means a blood condition?",
+      reasons: ["typo"],
+      reports: 1,
+      last_at: `${day(-3)}T18:15:00Z`,
+    },
+    {
+      question_id: "00000000-0000-4000-8000-00000000e013",
+      test_id: "00000000-0000-4000-8000-00000000d001",
+      classroom_id: `${ROOM}01`,
+      test_title: "Sample Practice Set 3",
+      room: "Sample Event Alpha",
+      pos: 20,
+      prompt: "Sample question: name the chamber of the heart shown.",
+      reasons: ["other"],
+      reports: 1,
+      last_at: `${day(-5)}T17:00:00Z`,
     },
     {
       question_id: "00000000-0000-4000-8000-00000000e003",
@@ -557,6 +599,25 @@ export function feedbackFixtureFor(
   return {
     counts: feedbackFixture.counts,
     rows: feedbackRows.filter((r) => inFeedbackFilter(r.status, filter)),
+  };
+}
+
+// ?tab=feedback&moved=1: the Open queue just after the owner set the oldest new item to Done. The refreshed list no
+// longer has it and the counts have moved it; the console keeps a note in its place (FeedbackList).
+export function feedbackAfterMoveFixture(): {
+  queue: FeedbackQueue;
+  moved: MovedFeedback[];
+} {
+  const open = feedbackFixtureFor("open", false).rows;
+  const item = open[open.length - 1];
+  const note = noteAfterSave(placeMoved(open, []), item, "done", "open");
+  const { counts } = feedbackFixture;
+  return {
+    queue: {
+      counts: { ...counts, new: counts.new - 1, done: counts.done + 1 },
+      rows: open.filter((r) => r.id !== item.id),
+    },
+    moved: note ? [note] : [],
   };
 }
 
@@ -835,3 +896,126 @@ export const smallFeedbackFixture: FeedbackQueue = {
   counts: { new: 0, planned: 0, done: 0, wont_fix: 0 },
   rows: [],
 };
+
+// The trainer's side of question reports (?view=entry): the open threads on Alpha's "Sample Practice Set 3", a plain
+// Ask teacher question and a report of every reason. They are the reports Content lists for that test (same
+// questions, reasons and last send), and the ask is the one Content says is waiting. One thread per member per
+// question, so the two wrong-key reports on Q14 come from two members. Members are the Members tab's samples.
+const PRACTICE_SET = "00000000-0000-4000-8000-00000000d001";
+const sampleFlag = (
+  id: number,
+  who: number,
+  name: string,
+  q: string,
+  pos: number,
+  prompt: string,
+  reason: TestFlag["reason"],
+  note: string,
+  at: string,
+): TestFlag => ({
+  id: `00000000-0000-4000-8000-0000000fa00${id}`,
+  question_id: `00000000-0000-4000-8000-00000000e0${q}`,
+  user_id: `${MEMBER}${String(who).padStart(2, "0")}`,
+  full_name: name,
+  pos,
+  prompt,
+  note,
+  status: "open",
+  reply: "",
+  created_at: at,
+  answered_at: null,
+  reason,
+});
+
+// Oldest first, as test_flags (0031) sends them.
+export const trainerTestFixture = {
+  testId: PRACTICE_SET,
+  title: "Sample Practice Set 3",
+  classroomId: `${ROOM}01`,
+  flags: [
+    sampleFlag(
+      6,
+      4,
+      "Sample Trainee D",
+      "13",
+      20,
+      "Sample question: name the chamber of the heart shown.",
+      "other",
+      "Sample note: there's no picture with this one.",
+      `${day(-5)}T17:00:00Z`,
+    ),
+    sampleFlag(
+      1,
+      5,
+      "Sample Trainee E",
+      "14",
+      3,
+      "Sample question: which root means kidney?",
+      "ask",
+      "Sample note: why nephr- and not ren-? Both mean kidney.",
+      `${day(-4)}T15:00:00Z`,
+    ),
+    sampleFlag(
+      5,
+      2,
+      "Sample Trainee B",
+      "12",
+      11,
+      "Sample question: which suffix means a blood condition?",
+      "typo",
+      "Sample note: option C says -emai.",
+      `${day(-3)}T18:15:00Z`,
+    ),
+    sampleFlag(
+      3,
+      2,
+      "Sample Trainee B",
+      "01",
+      14,
+      "Sample question: which suffix means inflammation?",
+      "wrong_answer",
+      "",
+      `${day(-2)}T16:05:00Z`,
+    ),
+    sampleFlag(
+      4,
+      1,
+      "Sample Trainee A",
+      "11",
+      9,
+      "Sample question: which term means a cut into the trachea?",
+      "unclear",
+      "Sample note: B and D both look right to me.",
+      `${day(-2)}T20:30:00Z`,
+    ),
+    sampleFlag(
+      2,
+      1,
+      "Sample Trainee A",
+      "01",
+      14,
+      "Sample question: which suffix means inflammation?",
+      "wrong_answer",
+      "Sample note: the key says -osis. It should be -itis.",
+      `${day(-1)}T19:42:00Z`,
+    ),
+  ] satisfies TestFlag[],
+};
+
+// The same threads on the classroom hub, newest first as classroom_flags (0099) sends them, each naming its test.
+export const classroomFlagsFixture: ClassroomFlag[] = [
+  ...trainerTestFixture.flags,
+]
+  .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  .map((f) => ({
+    id: f.id,
+    test_id: PRACTICE_SET,
+    test_title: trainerTestFixture.title,
+    question_id: f.question_id,
+    full_name: f.full_name,
+    pos: f.pos,
+    prompt: f.prompt,
+    note: f.note,
+    created_at: f.created_at,
+    reason: f.reason,
+  }));

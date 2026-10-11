@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { AskTeacher } from "@/components/ask-teacher";
+import { ClassroomFlagsPanel, TestFlagsSection } from "@/components/flag-list";
+import { BottomNav, Sidebar } from "@/components/nav";
 import { AuditForExecutives, AuditSection } from "@/components/owner/audit";
 import { OwnerConsole } from "@/components/owner/console";
 import { ContentSection } from "@/components/owner/content";
@@ -20,8 +22,10 @@ import { parsePeriod } from "@/lib/activity";
 import {
   FIXTURE_MARKER,
   auditFixture,
+  classroomFlagsFixture,
   contentFixture,
   engagementFixture,
+  feedbackAfterMoveFixture,
   feedbackFixtureFor,
   growth7Fixture,
   growth90Fixture,
@@ -36,6 +40,7 @@ import {
   smallGrowthFixture,
   smallOverviewFixture,
   systemFixture,
+  trainerTestFixture,
 } from "@/lib/owner-fixtures";
 import {
   FEEDBACK_DESCRIPTION,
@@ -46,8 +51,8 @@ import {
 } from "@/lib/owner-metrics";
 import type { ContentData, GrowthData } from "@/lib/owner-types";
 
-// Dev server only: the owner console and the two student entry points, filled with made-up data, for screenshots
-// and design review. ?scale=small swaps in a chapter the size of today's (13 members, all new this month, a few
+// Dev server only: the owner console, the two student entry points with the trainer's side of reports (?view=entry),
+// and the owner's navigation (?view=nav), filled with made-up data, for screenshots and design review. ?scale=small swaps in a chapter the size of today's (13 members, all new this month, a few
 // quiet days), so the mostly-Under-5 first look gets reviewed too. The .dev.tsx extension is a page only under `next dev` (next.config.ts), so production builds
 // have no /dev/owner route at all; the NODE_ENV check is a second lock. Signed-in pages, like the rest of (app).
 export const metadata: Metadata = { title: "Owner console fixtures" };
@@ -63,24 +68,26 @@ export default async function OwnerGallery({
 }) {
   if (process.env.NODE_ENV === "production") notFound();
   const sp = await searchParams;
+  const views = [
+    { view: undefined, href: BASE, label: "Owner console" },
+    { view: "entry", href: `${BASE}?view=entry`, label: "Entry points" },
+    { view: "nav", href: `${BASE}?view=nav`, label: "Owner's navigation" },
+  ].filter((v) => v.view !== sp.view);
   const banner = (
     <Notice>
       {FIXTURE_MARKER}: made-up data on the dev server.{" "}
-      {sp.view === "entry" ? (
-        <Link href={BASE} className="underline underline-offset-4">
-          Owner console
-        </Link>
-      ) : (
-        <Link
-          href={`${BASE}?view=entry`}
-          className="underline underline-offset-4"
-        >
-          Student entry points
-        </Link>
-      )}
+      {views.map((v, i) => (
+        <span key={v.href}>
+          {i ? " · " : null}
+          <Link href={v.href} className="underline underline-offset-4">
+            {v.label}
+          </Link>
+        </span>
+      ))}
     </Notice>
   );
   if (sp.view === "entry") return <EntryPoints banner={banner} />;
+  if (sp.view === "nav") return <OwnerNav banner={banner} />;
 
   const tab = parseTab(sp.tab);
   const extra: Record<string, string> | undefined =
@@ -140,14 +147,20 @@ function section(
         />
       );
     case "feedback": {
-      // ?status filters the rows as owner_feedback does; ?scale=small is an empty queue (the nothing-here notes).
+      // ?status filters the rows as owner_feedback does; ?scale=small is an empty queue (the nothing-here notes);
+      // ?moved=1 is Open just after an item was set to Done (the note left in its place).
       const filter = parseFeedbackFilter(sp.status);
+      const after =
+        sp.moved === "1" && filter === "open" && !small
+          ? feedbackAfterMoveFixture()
+          : null;
       return (
         <FeedbackSection
           base={BASE}
           filter={filter}
           page={0}
-          queue={feedbackFixtureFor(filter, small)}
+          queue={after ? after.queue : feedbackFixtureFor(filter, small)}
+          moved={after?.moved}
           extra={extra}
           readOnly
         />
@@ -185,7 +198,7 @@ function section(
               commit: "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
               branch: "main",
               environment: "production",
-              repo: null,
+              repo: "sample-owner/sample-repo",
             },
             db: "up",
             latencyMs: 42,
@@ -220,7 +233,8 @@ function withoutWording(data: ContentData): ContentData {
 const Q = "00000000-0000-4000-8000-00000000e00";
 const T = "00000000-0000-4000-8000-00000000d001";
 
-// Settings > Account > Send feedback, and Report this question under a reviewed answer, as members see them.
+// Settings > Account > Send feedback, and Report this question under a reviewed answer, as members see them; then
+// where the reports land: the trainer's list on the test page and the classroom hub (replies switched off here).
 function EntryPoints({ banner }: { banner: ReactNode }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-10">
@@ -314,9 +328,74 @@ function EntryPoints({ banner }: { banner: ReactNode }) {
           />
         </ReviewSample>
       </section>
+      <section
+        aria-labelledby="trainer-h"
+        className="grid gap-8 border-t-[3px] border-ink pt-5"
+      >
+        <h2
+          id="trainer-h"
+          className="font-display text-[clamp(1.75rem,5vw,2.25rem)] leading-none font-bold uppercase"
+        >
+          Trainer&rsquo;s side
+        </h2>
+        <p className="caps num text-[15px] text-ink-2">
+          Test page · {trainerTestFixture.title}
+        </p>
+        <TestFlagsSection
+          testId={trainerTestFixture.testId}
+          flags={trainerTestFixture.flags}
+          readOnly
+        />
+        <p className="caps num text-[15px] text-ink-2">Classroom hub</p>
+        <ClassroomFlagsPanel
+          classroomId={trainerTestFixture.classroomId}
+          flags={classroomFlagsFixture}
+          open
+          readOnly
+        />
+      </section>
     </div>
   );
 }
+
+// The owner's navigation: an executive on the stats list, with Send feedback on the database. The real sidebar
+// (desktop) and the real phone bar, whose More sheet lists Developer and Send feedback; the layout's own bar is the
+// signed-in account's, so this one sits above it. /more reads the same two checks on the server.
+function OwnerNav({ banner }: { banner: ReactNode }) {
+  const owner = {
+    isExec: true,
+    canSeeStats: true,
+    canSendFeedback: true,
+  };
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
+      {banner}
+      <PageTitle meta="An executive on the stats list, with Send feedback on">
+        Owner&rsquo;s navigation
+      </PageTitle>
+      <p className="text-[17px] text-ink-2 lg:hidden">
+        Tap More on the bar below for the sheet.
+      </p>
+      {/* Full height here, so the whole panel (More group included) shows without the sidebar's own scroll. */}
+      <div className="hidden w-[18rem] lg:block [&>aside]:static [&>aside]:h-auto">
+        <Sidebar
+          {...owner}
+          canTeach
+          rooms={[
+            { id: `${SAMPLE_ROOM}01`, num: 1, name: "Sample Event Alpha" },
+            { id: `${SAMPLE_ROOM}02`, num: 2, name: "Sample Event Bravo" },
+          ]}
+          unread={0}
+        />
+      </div>
+      <div className="relative z-50 lg:hidden">
+        <BottomNav {...owner} />
+      </div>
+    </div>
+  );
+}
+
+const SAMPLE_ROOM = "00000000-0000-4000-8000-00000000f0";
 
 function ReviewSample({
   n,
