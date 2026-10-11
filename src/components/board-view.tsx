@@ -1,5 +1,6 @@
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
 import { BoardMenu } from "@/components/board-menu";
@@ -32,6 +33,7 @@ type Props = {
   metrics?: readonly Metric[]; // measures to offer; a single one hides the measure switch
   scope?: BoardScope; // a room board calls its score Points, the chapter board Elo
   rise?: boolean; // the full board's rows rise in once; Home's short board stays still
+  lead?: ReactNode; // a short line on the controls row's left, e.g. Home's "You're #3 of 15"
 };
 
 const toggleHref = (base: string, metric: Metric, period: Period) =>
@@ -60,23 +62,24 @@ function BoardLine({
     count(row.reviews, "card"),
     count(row.answered, "question"),
     row.accuracy === null ? null : formatPercent(row.accuracy),
-    `${metricLabel("elo", scope)} ${formatCount(row.elo)}`,
+    // All-time Elo already sits on the right, so don't say it twice; other periods show period points there.
+    metric === "elo" && period === "all" ? null : `${metricLabel("elo", scope)} ${formatCount(row.elo)}`,
   ]
     .filter(Boolean)
     .join(" · ");
   return (
     <li
-      className={`grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-rule px-1 py-2 sm:px-3 ${
+      className={`grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule px-2 py-2.5 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:px-3 ${
         // Your row is banded, so it's easy to find in a long board.
         you ? "bg-band" : ""
       } ${rise ? "rise" : ""}`}
       style={rise ? ({ "--i": index } as CSSProperties) : undefined}
     >
       <span
-        className={`num font-display font-bold ${
-          // The top three get poster-scale numerals; everyone else stays quiet.
+        className={`num text-center font-display leading-none font-bold ${
+          // The top three get poster-scale numerals; everyone else stays quiet. One centred column either way.
           row.place !== null && row.place <= 3
-            ? "text-[30px] leading-none text-ink"
+            ? "text-[30px] text-ink"
             : "text-[20px] font-semibold text-ink-2"
         }`}
       >
@@ -103,7 +106,7 @@ function BoardLine({
         </span>
         <span className="block truncate text-[13px] text-ink-2">{caption}</span>
       </span>
-      <span className="num font-display text-[22px] leading-none font-bold">
+      <span className="num min-w-12 text-right font-display text-[22px] leading-none font-bold">
         {formatValue(row.value, metric, period)}
       </span>
     </li>
@@ -124,12 +127,14 @@ export function BoardView({
   metrics = METRICS,
   scope = "chapter",
   rise = false,
+  lead,
 }: Props) {
   const shown = limit ? rows.slice(0, limit) : rows;
   const since = periodSince(period, new Date());
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 px-1 sm:px-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 px-2 sm:px-3">
+        {lead ? <p className="caps num text-[15px] text-ink-2">{lead}</p> : null}
         {metrics.length > 1 ? (
           <BoardMenu
             label="Measure"
@@ -156,10 +161,18 @@ export function BoardView({
         </div>
       </div>
       {since ? (
-        <p className="caps text-[15px] text-ink-2">Since {since}</p>
+        <p className="caps -mt-2 px-2 text-[15px] text-ink-2 sm:px-3">Since {since}</p>
       ) : null}
       {shown.length ? (
         <ol className="border-t border-rule">
+          <li
+            aria-hidden
+            className="caps grid grid-cols-[2.5rem_minmax(0,1fr)_auto] gap-3 border-b border-rule px-2 py-1.5 text-[13px] text-ink-2 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:px-3"
+          >
+            <span className="text-center">#</span>
+            <span>Member</span>
+            <span className="text-right">{metricLabel(metric, scope)}</span>
+          </li>
           {shown.map((row, index) => (
             <BoardLine
               key={row.user_id}
@@ -185,7 +198,18 @@ export function BoardView({
         </Link>
       ) : null}
       {elo ? (
-        <p className="max-w-[65ch] text-[15px] text-ink-2">{ELO_SUMMARY}</p>
+        <details className="group max-w-[65ch]">
+          <summary className="caps step inline-flex min-h-11 cursor-pointer list-none items-center gap-2 text-[14px] text-ink-2 hover:text-ink [&::-webkit-details-marker]:hidden">
+            How Elo works
+            <ChevronDown
+              size={16}
+              strokeWidth={2}
+              aria-hidden
+              className="group-open:rotate-180 motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out"
+            />
+          </summary>
+          <p className="pb-2 text-[15px] text-ink-2">{ELO_SUMMARY}</p>
+        </details>
       ) : null}
     </div>
   );

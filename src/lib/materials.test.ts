@@ -112,7 +112,7 @@ describe("formatBytes", () => {
     expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(1024)).toBe("1 KB");
     expect(formatBytes(2516582)).toBe("2.4 MB");
-    expect(formatBytes(MAX_MATERIAL_BYTES)).toBe("10 MB");
+    expect(formatBytes(MAX_MATERIAL_BYTES)).toBe("50 MB");
     expect(formatBytes(3 * 1024 ** 3)).toBe("3 GB");
   });
 
@@ -127,11 +127,11 @@ describe("formatBytes", () => {
 });
 
 describe("tooBigMessage", () => {
-  it("allows up to 10 MB and refuses empty or larger files", () => {
+  it("allows up to 50 MB and refuses empty or larger files", () => {
     expect(tooBigMessage(1)).toBeNull();
     expect(tooBigMessage(MAX_MATERIAL_BYTES)).toBeNull();
     expect(tooBigMessage(MAX_MATERIAL_BYTES + 1)).toBe(
-      "Files can be up to 10 MB. Add bigger ones as a link instead.",
+      "Files can be up to 50 MB. Add bigger ones as a link instead.",
     );
     expect(tooBigMessage(0)).toBe("That file is empty.");
   });
@@ -207,10 +207,10 @@ describe("uploadType", () => {
 });
 
 describe("MAX_MATERIAL_BYTES", () => {
-  it("is 10 MB, the bucket limit", () => {
-    expect(MAX_MATERIAL_BYTES).toBe(10485760);
-    expect(tooBigMessage(9 * 1024 * 1024)).toBeNull();
-    expect(tooBigMessage(11 * 1024 * 1024)).not.toBeNull();
+  it("is 50 MB, the bucket limit", () => {
+    expect(MAX_MATERIAL_BYTES).toBe(52428800);
+    expect(tooBigMessage(49 * 1024 * 1024)).toBeNull();
+    expect(tooBigMessage(51 * 1024 * 1024)).not.toBeNull();
   });
 });
 
