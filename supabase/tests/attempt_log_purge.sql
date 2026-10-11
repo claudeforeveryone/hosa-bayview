@@ -22,6 +22,9 @@ insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, aud, 
 
 insert into private.join_attempts (user_id, at) values
   ('00000000-0000-4000-8000-0000000025a1', now() - interval '25 hours'),
+  -- Vercel's Hobby cron fires anywhere in its hour, so two runs can be 25 hours apart. A try 23 hours old must go now:
+  -- left for the next run, it would be about 48 hours old by then, past the policy's "up to two days".
+  ('00000000-0000-4000-8000-0000000025a1', now() - interval '23 hours'),
   ('00000000-0000-4000-8000-0000000025a1', now() - interval '2 hours');
 insert into private.passcode_attempts (user_id, at) values
   ('00000000-0000-4000-8000-0000000025a1', now() - interval '3 days'),
@@ -43,6 +46,9 @@ reset role;
 select pg_temp.check('join: day-old try gone',
   not exists (select 1 from private.join_attempts
               where user_id = '00000000-0000-4000-8000-0000000025a1' and at < now() - interval '1 day'));
+select pg_temp.check('join: 23-hour-old try gone too (runs can be 25 hours apart)',
+  not exists (select 1 from private.join_attempts
+              where user_id = '00000000-0000-4000-8000-0000000025a1' and at < now() - interval '22 hours'));
 select pg_temp.check('join: recent try kept (the 10-minute limit still sees it)',
   exists (select 1 from private.join_attempts
           where user_id = '00000000-0000-4000-8000-0000000025a1' and at > now() - interval '3 hours'));
@@ -52,14 +58,14 @@ select pg_temp.check('passcode: old try gone',
 select pg_temp.check('passcode: recent try kept',
   exists (select 1 from private.passcode_attempts
           where user_id = '00000000-0000-4000-8000-0000000025a1' and at > now() - interval '1 hour'));
-select pg_temp.check('no log anywhere older than a day',
-  not exists (select 1 from private.join_attempts where at < now() - interval '1 day')
-  and not exists (select 1 from private.passcode_attempts where at < now() - interval '1 day'));
+select pg_temp.check('no log anywhere older than 22 hours',
+  not exists (select 1 from private.join_attempts where at < now() - interval '22 hours')
+  and not exists (select 1 from private.passcode_attempts where at < now() - interval '22 hours'));
 
 do $$ begin
   if to_regclass('private.chapter_code_attempts') is not null then
     perform pg_temp.check('chapter code: old miss gone',
-      not exists (select 1 from private.chapter_code_attempts where at < now() - interval '1 day'));
+      not exists (select 1 from private.chapter_code_attempts where at < now() - interval '22 hours'));
     perform pg_temp.check('chapter code: recent miss kept',
       exists (select 1 from private.chapter_code_attempts where ip_hash = 'purge-test'));
     perform pg_temp.check('chapter code: expired ticket gone, live one kept',
