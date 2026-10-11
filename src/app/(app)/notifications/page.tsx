@@ -121,7 +121,6 @@ export default async function NotificationsPage() {
         Notifications
       </PageTitle>
       <MarkRead unread={fresh.length} />
-      <PushHint vapidPublicKey={pushConfig()?.publicKey ?? null} />
       {rows.length ? (
         <>
           {fresh.length ? (
@@ -166,6 +165,9 @@ export default async function NotificationsPage() {
           </p>
         </div>
       )}
+      {/* Last on the page: it can only be decided in the browser, after the list has drawn, and nothing below it
+          can move when it appears. */}
+      <PushHint vapidPublicKey={pushConfig()?.publicKey ?? null} />
     </div>
   );
 }

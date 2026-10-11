@@ -132,7 +132,7 @@ function NotificationSettings({
     <SettingsSection
       id="push-h"
       title="Notifications"
-      description="Announcements, tests, events, questions, replies and role changes, on this device."
+      description="Everything the bell shows, on this device."
     >
       <div className="grid gap-4">
         {ui === null ? <p {...line}>Checking this browser&hellip;</p> : null}
