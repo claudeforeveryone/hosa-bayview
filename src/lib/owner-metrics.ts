@@ -201,6 +201,16 @@ export function feedbackCount(
   return counts[filter];
 }
 
+// Whether an item with this status is listed under the filter, the way owner_feedback (0232) filters.
+export function inFeedbackFilter(
+  status: FeedbackStatus,
+  filter: FeedbackFilter,
+): boolean {
+  if (filter === "all") return true;
+  if (filter === "open") return status === "new" || status === "planned";
+  return status === filter;
+}
+
 export function parseFeedbackFilter(value: unknown): FeedbackFilter {
   return typeof value === "string" &&
     (FEEDBACK_FILTERS as readonly string[]).includes(value)

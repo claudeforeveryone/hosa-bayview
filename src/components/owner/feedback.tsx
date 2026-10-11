@@ -1,13 +1,16 @@
+import type { MovedFeedback } from "@/lib/feedback-moves";
 import {
   FEEDBACK_FILTERS,
+  FEEDBACK_STATUSES,
   FILTER_LABEL,
   feedbackCount,
   hasOlderPage,
   type FeedbackFilter,
+  type FeedbackStatus,
 } from "@/lib/owner-metrics";
 import type { FeedbackQueue } from "@/lib/owner-types";
-import { FeedbackTriage } from "./feedback-triage";
-import { Choices, Notice, Pager, Sheet } from "./primitives";
+import { FeedbackList } from "./feedback-list";
+import { Choices, Pager, Sheet } from "./primitives";
 
 // The feedback queue from Settings > Send feedback. Question reports go to the event's trainer instead (Content
 // lists the open ones).
@@ -18,6 +21,7 @@ export function FeedbackSection({
   queue,
   extra,
   readOnly = false,
+  moved,
 }: {
   base: string;
   filter: FeedbackFilter;
@@ -25,6 +29,8 @@ export function FeedbackSection({
   queue: FeedbackQueue;
   extra?: Record<string, string>;
   readOnly?: boolean;
+  // Dev gallery only: notes for items already moved out of this filter.
+  moved?: MovedFeedback[];
 }) {
   const countFor = (f: FeedbackFilter) => feedbackCount(queue.counts, f);
   const href = (f: FeedbackFilter) => {
@@ -50,19 +56,23 @@ export function FeedbackSection({
           count: countFor(f),
         }))}
       />
-      {queue.rows.length === 0 ? (
-        <Notice>
-          {filter === "open"
+      <FeedbackList
+        key={`${filter}:${page}`}
+        rows={queue.rows}
+        filter={filter}
+        hrefs={
+          Object.fromEntries(
+            FEEDBACK_STATUSES.map((s) => [s, href(s)]),
+          ) as Record<FeedbackStatus, string>
+        }
+        empty={
+          filter === "open"
             ? "Nothing waiting. New feedback shows up here."
-            : "Nothing with this status."}
-        </Notice>
-      ) : (
-        <ul className="border-t-[3px] border-ink">
-          {queue.rows.map((row) => (
-            <FeedbackTriage key={row.id} row={row} readOnly={readOnly} />
-          ))}
-        </ul>
-      )}
+            : "Nothing with this status."
+        }
+        readOnly={readOnly}
+        initialMoved={moved}
+      />
       <Pager
         base={base}
         params={params}

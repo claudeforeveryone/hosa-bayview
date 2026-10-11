@@ -20,13 +20,16 @@ const field =
   "step h-12 w-full border border-rule-strong bg-ground px-2 text-[16px] text-ink outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] disabled:opacity-60";
 
 // One piece of feedback with its triage controls. Saving writes the change and an audit row (the member never
-// sees the note). In the dev gallery the controls show but are switched off, so nothing is written.
+// sees the note). In the dev gallery the controls show but are switched off, so nothing is written. `onSaved`
+// tells the list the status it was saved with: one that leaves the filter on screen becomes a note (FeedbackList).
 export function FeedbackTriage({
   row,
   readOnly = false,
+  onSaved,
 }: {
   row: FeedbackRow;
   readOnly?: boolean;
+  onSaved?: (status: FeedbackStatus) => void;
 }) {
   const [status, setStatus] = useState<FeedbackStatus>(row.status);
   const [priority, setPriority] = useState<FeedbackPriority>(row.priority);
@@ -46,11 +49,9 @@ export function FeedbackTriage({
     setMessage(null);
     start(async () => {
       const r = await triageFeedback(row.id, status, priority, resolution);
-      setMessage(
-        r.error
-          ? { tone: "error", text: r.error }
-          : { tone: "ok", text: "Saved." },
-      );
+      if (r.error) return setMessage({ tone: "error", text: r.error });
+      setMessage({ tone: "ok", text: "Saved." });
+      onSaved?.(status);
     });
   };
 
@@ -70,7 +71,9 @@ export function FeedbackTriage({
         ) : null}
         <span className="text-[15px] text-ink-2">
           {row.sent_by} · {stampText(row.created_at)}
-          {row.build ? ` · build ${row.build.slice(0, 7)}` : ""}
+          {/* What the sender's side said (0231): the app sends the deployed commit, but any member can call
+              send_feedback directly with another, so it is labelled as sent and never linked. */}
+          {row.build ? ` · build ${row.build.slice(0, 7)} (as sent)` : ""}
         </span>
       </div>
       <p className="max-w-[70ch] text-[17px] whitespace-pre-line [overflow-wrap:anywhere]">

@@ -2,7 +2,7 @@
 // page.dev.tsx). Only that page imports this file, and that page is never built for production (next.config.ts
 // adds the .dev.tsx page extension in the dev server only), so none of this ships. Nothing here is real data.
 import type { DevStatsRow } from "./dev-stats";
-import type { FeedbackFilter } from "./owner-metrics";
+import { inFeedbackFilter, type FeedbackFilter } from "./owner-metrics";
 import type {
   ContentData,
   EngagementData,
@@ -556,13 +556,7 @@ export function feedbackFixtureFor(
   if (small) return smallFeedbackFixture;
   return {
     counts: feedbackFixture.counts,
-    rows: feedbackRows.filter((r) =>
-      filter === "all"
-        ? true
-        : filter === "open"
-          ? r.status === "new" || r.status === "planned"
-          : r.status === filter,
-    ),
+    rows: feedbackRows.filter((r) => inFeedbackFilter(r.status, filter)),
   };
 }
 
