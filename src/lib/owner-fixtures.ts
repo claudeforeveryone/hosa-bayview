@@ -311,14 +311,15 @@ export const engagementFixture: EngagementData = {
   ],
 };
 
+// The rooms add up to the totals, and every repeated question is listed (owner-fixtures.test.ts checks both).
 export const contentFixture: ContentData = {
-  questions: 6420,
-  tests: 214,
-  published_tests: 188,
-  missing_explanations: 2310,
+  questions: 2878,
+  tests: 82,
+  published_tests: 70,
+  missing_explanations: 1553,
   open_reports: 5,
   open_asks: 1,
-  duplicate_groups: 37,
+  duplicate_groups: 3,
   per_event: [
     {
       id: `${ROOM}01`,
@@ -328,7 +329,7 @@ export const contentFixture: ContentData = {
       tests: 31,
       questions: 1012,
       missing_explanations: 140,
-      repeated: 12,
+      repeated: 4,
       open_reports: 2,
     },
     {
@@ -350,7 +351,7 @@ export const contentFixture: ContentData = {
       tests: 18,
       questions: 702,
       missing_explanations: 702,
-      repeated: 3,
+      repeated: 0,
       open_reports: 0,
     },
     {
@@ -361,7 +362,7 @@ export const contentFixture: ContentData = {
       tests: 9,
       questions: 260,
       missing_explanations: 0,
-      repeated: 0,
+      repeated: 1,
       open_reports: 1,
     },
     {
@@ -492,7 +493,7 @@ const feedbackRows: FeedbackRow[] = [
     body: "Sample feedback: thanks for the flashcards.",
     build: "a1b2c3d",
     status: "new",
-    priority: "low",
+    priority: "normal",
     resolution: "",
     created_at: `${day(-5)}T17:20:00Z`,
     updated_at: `${day(-5)}T17:20:00Z`,

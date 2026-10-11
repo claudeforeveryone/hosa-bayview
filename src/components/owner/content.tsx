@@ -170,7 +170,7 @@ export function ContentSection({ data }: { data: ContentData }) {
       <Sheet
         id="dupes-h"
         title="Same question in several places"
-        note={`${countText(data.duplicate_groups)} ${data.duplicate_groups === 1 ? "question appears" : "questions appear"} more than once, across every event (capitals, spacing and end punctuation ignored). Top 20 by copies.`}
+        note={`${countText(data.duplicate_groups)} ${data.duplicate_groups === 1 ? "question appears" : "questions appear"} more than once, across every event (capitals, spacing and end punctuation ignored). ${data.duplicate_groups > 20 ? "Top 20 by copies." : "Most copies first."}`}
       >
         {data.duplicates.length === 0 ? (
           <Notice>No repeated questions.</Notice>

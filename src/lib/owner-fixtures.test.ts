@@ -58,6 +58,16 @@ describe("the gallery's feedback queue", () => {
     }
   });
 
+  // The column defaults to 'normal' and owner_triage_feedback stamps triaged_at on every change (0231, 0232), so
+  // anything other than an untouched new item has been triaged.
+  it("has a triage time on every row that has been triaged", () => {
+    for (const r of feedbackFixtureFor("all", false).rows) {
+      const touched =
+        r.priority !== "normal" || r.status !== "new" || r.resolution !== "";
+      if (touched) expect(r.triaged_at, r.id).not.toBeNull();
+    }
+  });
+
   it("has an empty small-chapter queue for the nothing-here states", () => {
     expect(feedbackFixtureFor("done", true)).toEqual(smallFeedbackFixture);
     expect(smallFeedbackFixture.rows).toEqual([]);
@@ -71,6 +81,75 @@ describe("the gallery's content health", () => {
       0,
     );
     expect(sum).toBe(contentFixture.open_reports);
+  });
+
+  // owner_content builds per_event from every classroom and every test has one, so the rooms add up to the totals.
+  it("adds the rooms' questions, tests and missing explanations up to the totals", () => {
+    const sum = (k: "questions" | "tests" | "missing_explanations") =>
+      contentFixture.per_event.reduce((n, e) => n + e[k], 0);
+    expect(sum("questions")).toBe(contentFixture.questions);
+    expect(sum("tests")).toBe(contentFixture.tests);
+    expect(sum("missing_explanations")).toBe(
+      contentFixture.missing_explanations,
+    );
+    expect(contentFixture.published_tests).toBeLessThanOrEqual(
+      contentFixture.tests,
+    );
+    for (const e of contentFixture.per_event) {
+      expect(e.missing_explanations, e.name).toBeLessThanOrEqual(e.questions);
+      expect(e.repeated, e.name).toBeLessThan(Math.max(1, e.questions));
+    }
+  });
+
+  it("orders the rooms the way owner_content does: most questions first, then by name", () => {
+    const order = [...contentFixture.per_event].sort(
+      (a, b) => b.questions - a.questions || a.name.localeCompare(b.name),
+    );
+    expect(contentFixture.per_event.map((e) => e.id)).toEqual(
+      order.map((e) => e.id),
+    );
+  });
+
+  // owner_content lists the top 20 groups by copies and counts all of them.
+  it("lists as many repeated questions as it counts, up to 20, most copies first", () => {
+    const { duplicates, duplicate_groups } = contentFixture;
+    expect(duplicates.length).toBe(Math.min(duplicate_groups, 20));
+    for (let i = 1; i < duplicates.length; i++)
+      expect(duplicates[i - 1].copies).toBeGreaterThanOrEqual(
+        duplicates[i].copies,
+      );
+    for (const d of duplicates) {
+      expect(d.copies, d.example ?? "").toBeGreaterThan(1);
+      expect(d.tests, d.example ?? "").toBeLessThanOrEqual(d.copies);
+      expect(d.rooms.length, d.example ?? "").toBeLessThanOrEqual(d.tests);
+    }
+  });
+
+  // A room's "repeated" is its extra copies of a stem it already has. With every repeated stem listed, each one
+  // adds between copies - rooms (copies spread as evenly as possible) and copies - 1 (all in one room), a room
+  // can only have extras if a listed stem is in it, and a stem kept to one room puts all its extras there.
+  it("gives the rooms the extra copies the listed repeated questions account for", () => {
+    const { duplicates, duplicate_groups, per_event } = contentFixture;
+    expect(duplicate_groups).toBeLessThanOrEqual(20);
+    const repeated = per_event.reduce((n, e) => n + e.repeated, 0);
+    const least = duplicates.reduce(
+      (n, d) => n + d.copies - d.rooms.length,
+      0,
+    );
+    const most = duplicates.reduce((n, d) => n + d.copies - 1, 0);
+    expect(repeated).toBeGreaterThanOrEqual(least);
+    expect(repeated).toBeLessThanOrEqual(most);
+    for (const e of per_event.filter((e) => e.repeated > 0))
+      expect(
+        duplicates.some((d) => d.rooms.includes(e.name)),
+        e.name,
+      ).toBe(true);
+    for (const d of duplicates.filter((d) => d.rooms.length === 1)) {
+      const room = per_event.find((e) => e.name === d.rooms[0]);
+      expect(room?.repeated ?? 0, d.rooms[0]).toBeGreaterThanOrEqual(
+        d.copies - 1,
+      );
+    }
   });
 
   // owner_content counts both from the same open report flags, and lists up to 25 questions, so with this few
