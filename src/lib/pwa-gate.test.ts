@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildCsp } from "./csp";
+import { config } from "../proxy";
 import { routeGate } from "./route-gate";
 
 function directives(csp: string) {
@@ -15,6 +16,20 @@ describe("PWA files and push delivery reach guests", () => {
   it("lets a signed-out phone fetch the manifest, service worker and offline page", () => {
     for (const path of ["/manifest.webmanifest", "/sw.js", "/offline"]) {
       expect(routeGate(path, "", false), path).toBeNull();
+    }
+  });
+
+  it("never runs the proxy (so never redirects to /login) for the app icons", () => {
+    const runsProxy = (path: string) => new RegExp(`^${config.matcher[0]}$`).test(path);
+    for (const path of [
+      "/icons/icon-192.png",
+      "/icons/icon-512.png",
+      "/icons/maskable-512.png",
+      "/icons/badge-96.png",
+      "/icon.png",
+      "/apple-icon.png",
+    ]) {
+      expect(runsProxy(path), path).toBe(false);
     }
   });
 

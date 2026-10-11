@@ -27,6 +27,7 @@ import {
   warnMember,
   type ModState,
 } from "./moderation-actions";
+import { BanButtons } from "./ban-buttons";
 import { GifSwitch } from "./gif-switch";
 import { RoleSwitch } from "./role-switch";
 import { roleLabel } from "@/lib/role-label";
@@ -210,32 +211,13 @@ function BanForm({ userId, name }: { userId: string; name: string }) {
       <p id={`${groupId}-preview`} className="text-[16px]">
         Ban {name} {preview}.
       </p>
-      {confirming ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={pending || until === null}>
-            {pending ? "Banning" : "Yes, ban"}
-          </Button>
-          <Button
-            variant="line"
-            type="button"
-            onClick={() => setConfirming(false)}
-            disabled={pending}
-          >
-            Cancel
-          </Button>
-        </div>
-      ) : (
-        <div>
-          <Button
-            variant="line"
-            type="button"
-            onClick={() => setConfirming(true)}
-            disabled={until === null}
-          >
-            Ban
-          </Button>
-        </div>
-      )}
+      <BanButtons
+        confirming={confirming}
+        pending={pending}
+        disabled={until === null}
+        onArm={() => setConfirming(true)}
+        onCancel={() => setConfirming(false)}
+      />
       <Result state={state} />
     </form>
   );
@@ -255,7 +237,7 @@ function UnbanForm({ userId, name }: { userId: string; name: string }) {
     <form action={action} className="grid gap-4" noValidate>
       <input type="hidden" name="userId" value={userId} />
       {confirming ? (
-        <div className="flex flex-wrap items-center gap-3">
+        <div key="confirm" className="flex flex-wrap items-center gap-3">
           <p className="text-[16px]">Lift the ban on {name}?</p>
           <Button type="submit" disabled={pending}>
             {pending ? "Lifting" : "Yes, lift ban"}
@@ -270,7 +252,7 @@ function UnbanForm({ userId, name }: { userId: string; name: string }) {
           </Button>
         </div>
       ) : (
-        <div>
+        <div key="arm">
           <Button
             variant="line"
             type="button"
