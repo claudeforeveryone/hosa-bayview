@@ -303,7 +303,7 @@ export function DevStatsView({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name"
-            className="step h-12 min-w-0 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink"
+            className="step h-12 min-w-0 border border-rule-strong bg-transparent px-3 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
           />
         </div>
         <div className="grid gap-1 lg:hidden">
@@ -315,7 +315,7 @@ export function DevStatsView({
               id="dev-sort"
               value={sortKey}
               onChange={(e) => pick(e.target.value as DevSortKey)}
-              className="step h-12 min-w-0 flex-1 border border-rule-strong bg-ground px-2 text-[16px] text-ink outline-none focus:border-ink"
+              className="step h-12 min-w-0 flex-1 border border-rule-strong bg-ground px-2 text-[16px] text-ink outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
             >
               {sortOptions(columns).map((o) => (
                 <option key={o.key} value={o.key}>

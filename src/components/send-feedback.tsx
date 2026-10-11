@@ -89,7 +89,7 @@ export function SendFeedback({ readOnly = false }: { readOnly?: boolean }) {
           rows={4}
           onChange={(e) => setBody(e.target.value)}
           aria-describedby={`${id}-hint`}
-          className="step w-full resize-y border border-rule-strong bg-transparent px-3 py-2 text-[17px] outline-none focus:border-ink"
+          className="step w-full resize-y border border-rule-strong bg-transparent px-3 py-2 text-[17px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)]"
         />
         <p id={`${id}-hint`} className="text-[14px] text-ink-2">
           Skip passwords and anything private. Up to 1,000 characters.

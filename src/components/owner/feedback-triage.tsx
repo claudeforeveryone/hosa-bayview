@@ -17,7 +17,7 @@ import {
 import type { FeedbackRow } from "@/lib/owner-types";
 
 const field =
-  "step h-12 w-full border border-rule-strong bg-ground px-2 text-[16px] text-ink outline-none focus:border-ink disabled:opacity-60";
+  "step h-12 w-full border border-rule-strong bg-ground px-2 text-[16px] text-ink outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] disabled:opacity-60";
 
 // One piece of feedback with its triage controls. Saving writes the change and an audit row (the member never
 // sees the note). In the dev gallery the controls show but are switched off, so nothing is written.
@@ -139,7 +139,7 @@ export function FeedbackTriage({
             rows={2}
             disabled={readOnly || pending}
             onChange={(e) => setResolution(e.target.value)}
-            className="step w-full resize-y border border-rule-strong bg-transparent px-3 py-2 text-[16px] outline-none focus:border-ink disabled:opacity-60"
+            className="step w-full resize-y border border-rule-strong bg-transparent px-3 py-2 text-[16px] outline-none focus:border-ink focus:shadow-[inset_0_0_0_1px_var(--ink)] disabled:opacity-60"
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
