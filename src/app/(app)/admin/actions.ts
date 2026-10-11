@@ -10,7 +10,7 @@ const uuid = z.string().uuid();
 
 export type RoleState = { error?: string };
 
-const role = z.enum(["executive", "trainer", "trainee"]);
+const role = z.enum(["executive", "trainer", "trainee", "jobless"]);
 
 export async function setRole(userId: string, _: RoleState, form: FormData): Promise<RoleState> {
   await requireRole("executive");

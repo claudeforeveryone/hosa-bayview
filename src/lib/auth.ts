@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sessionState } from "@/lib/session-state";
 import { banStatus } from "@/lib/moderation";
 
-export type Role = "executive" | "trainer" | "trainee";
+export type Role = "executive" | "trainer" | "trainee" | "jobless";
 
 export type Profile = {
   id: string;

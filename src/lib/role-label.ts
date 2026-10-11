@@ -4,6 +4,7 @@ const LABEL: Record<Role, string> = {
   executive: "Executive",
   trainer: "Trainer",
   trainee: "Trainee",
+  jobless: "Jobless",
 };
 
 // What people see for someone's role. A title an executive set (e.g. "Developer") stands in for it;

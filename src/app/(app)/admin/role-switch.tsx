@@ -5,13 +5,14 @@ import type { Role } from "@/lib/auth";
 import { setRole, type RoleState } from "./actions";
 
 const ROLES: { value: Role; label: string }[] = [
+  { value: "jobless", label: "Jobless" },
   { value: "trainee", label: "Trainee" },
   { value: "trainer", label: "Trainer" },
   { value: "executive", label: "Exec" },
 ];
-const NAME: Record<Role, string> = { trainee: "a trainee", trainer: "a trainer", executive: "an executive" };
+const NAME: Record<Role, string> = { jobless: "jobless", trainee: "a trainee", trainer: "a trainer", executive: "an executive" };
 
-// Three-way switch: the current role is filled. Picking another one asks once before it saves.
+// Four-way switch: the current role is filled. Picking another one asks once before it saves.
 // Giving or removing executive is for the chapter leads only (0101): others don't get the Exec option, and an
 // executive's role is shown but locked for them.
 export function RoleSwitch({
