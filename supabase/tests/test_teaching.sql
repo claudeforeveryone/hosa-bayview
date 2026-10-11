@@ -160,13 +160,14 @@ select pg_temp.check('trainer grid: members times tests, timed beats practice, p
               where g.user_id = '00000000-0000-4000-8000-0000000000a2' and g.test_id = '00000000-0000-4000-8000-0000000000c2'
                 and g.mode = 'practice' and g.best_score = 0 and g.best_total = 1));
 
--- Re-asking reopens the same flag and clears the old reply.
+-- Re-asking reopens the same flag. The trainer's last reply stays on it until they answer again (0231).
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000a2');
 -- Separate statements: test_flags is stable, so it can't see a write made in the same statement.
 select pg_temp.check('asking again keeps the same flag', public.flag_question('00000000-0000-4000-8000-0000000000d1', 'again') = pg_temp.get('f1'));
-select pg_temp.check('asking again reopens it and clears the old reply',
+select pg_temp.check('asking again reopens it and keeps the last reply',
   exists (select 1 from public.test_flags('00000000-0000-4000-8000-0000000000c1') f
-          where f.id = pg_temp.get('f1') and f.status = 'open' and f.reply = '' and f.note = 'again'));
+          where f.id = pg_temp.get('f1') and f.status = 'open' and f.reply = 'Because B is the textbook answer.'
+            and f.answered_at is null and f.note = 'again'));
 
 -- A practice run that was open when the trainer turned practice off can't be answered any more.
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000a3');

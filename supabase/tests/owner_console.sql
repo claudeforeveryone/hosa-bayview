@@ -2,7 +2,8 @@
 -- reports on question_flags (report_question), and the owner_* functions behind /developer.
 -- Only accounts in private.stats_viewers get the owner functions; everyone else gets 42501, including executives.
 -- Runs in one transaction and rolls back; raises on the first failure. Throwaway users only, plus a read-only check
--- that a real stats viewer is let in and a real trainee is not (picked from the data, no ids in this file).
+-- that every real stats viewer is let in and real trainees are not (picked from the data, no ids in this file).
+-- Section 9 expects the live database: it fails when no real stats viewer exists.
 begin;
 
 create function pg_temp.as_user(uid uuid) returns void language plpgsql as $$
@@ -139,6 +140,8 @@ select pg_temp.check('table-sourced name refused', not public.record_event('prac
 select pg_temp.check('unknown code refused', not public.record_event('resource_opened', 'pdf'));
 select pg_temp.check('missing code refused', not public.record_event('resource_opened', null));
 select pg_temp.check('a code from another list refused', not public.record_event('app_installed', 'desktop'));
+-- Question reports are recorded by report_question itself; the browser can't send one.
+select pg_temp.check('a client can''t send a question report event', not public.record_event('feedback_submitted', 'question'));
 -- A phone-app event without a code is stored as 'other'. Checked inside a block that is undone, so the event counts
 -- and the "never recorded" checks further down are unchanged.
 do $$
@@ -169,6 +172,26 @@ select pg_temp.check('still 120 for u3',
 select pg_temp.expect('table refuses a stray code as admin too',
   $q$insert into public.analytics_events (name, code, user_id) values ('resource_opened', 'video', '00000000-0000-4000-8000-000000000203')$q$,
   '23514');
+select pg_temp.expect('table refuses feedback_submitted with another code',
+  $q$insert into public.analytics_events (name, code, user_id) values ('feedback_submitted', 'idea', '00000000-0000-4000-8000-000000000203')$q$,
+  '23514');
+-- Report events don't use up the browser's hourly allowance: with 119 browser events and 10 reports in the hour,
+-- the 120th browser event still goes in. Undone at the end of the block.
+do $$
+begin
+  begin
+    perform pg_temp.as_admin();
+    insert into public.analytics_events (name, code, user_id)
+      select 'resource_opened', 'link', pg_temp.u(2) from generate_series(1, 119);
+    insert into public.analytics_events (name, code, user_id)
+      select 'feedback_submitted', 'question', pg_temp.u(2) from generate_series(1, 10);
+    perform pg_temp.as_user(pg_temp.u(2));
+    raise exception using errcode = 'XX006', message = public.record_event('resource_opened', 'file')::text;
+  exception when sqlstate 'XX006' then
+    perform pg_temp.check('reports leave the hourly cap to browser events, got ' || sqlerrm, sqlerrm = 'true');
+  end;
+end $$;
+select pg_temp.as_admin();
 
 -- 4. send_feedback ------------------------------------------------------------------------------------------------
 select pg_temp.as_user(pg_temp.u(3));
@@ -247,6 +270,9 @@ begin
   perform pg_temp.as_admin();
   perform pg_temp.check('an ask on an answered report is a question',
     exists (select 1 from public.question_flags f where f.id = fid and f.reason = 'ask' and f.status = 'open'));
+  perform pg_temp.check('reopening keeps the trainer''s last reply and clears the answered stamp',
+    exists (select 1 from public.question_flags f where f.id = fid and f.reply = 'Fixed the key'
+            and f.answered_at is null and f.answered_by is null));
   perform pg_temp.check('room owner told it is a question',
     exists (select 1 from public.notifications n where n.user_id = pg_temp.u(2)
             and n.title = 'Console Member asked about Console test' and n.body = 'Why is it the femur?'));
@@ -260,6 +286,14 @@ select pg_temp.check('back to a report',
 select pg_temp.as_user(pg_temp.u(4));
 select pg_temp.expect('banned report',
   $q$select public.report_question('00000000-0000-4000-8000-0000000002f1', 'typo', '')$q$, '42501');
+-- Every report sent is one feedback_submitted event, asks are not: report, report, ask, ask, report = 3. The banned
+-- member's refused report left none.
+select pg_temp.as_admin();
+select pg_temp.check('one usage event per report sent, none per ask',
+  (select count(*) from public.analytics_events e
+   where e.user_id = pg_temp.u(3) and e.name = 'feedback_submitted' and e.code = 'question') = 3);
+select pg_temp.check('a refused report records nothing',
+  not exists (select 1 from public.analytics_events e where e.user_id = pg_temp.u(4) and e.name = 'feedback_submitted'));
 
 -- The daily cap counts sends, not threads. Each block below is undone at its end, so later checks see the state above.
 -- (a) Threads a trainer touched today (answer_flag sets updated_at) don't count: a member with 45 of them can send.
@@ -430,6 +464,12 @@ begin
     (select jsonb_typeof(x -> 'people') from jsonb_array_elements(e -> 'features') x where x ->> 'id' = 'resource_opened') = 'null'
     or (select (x ->> 'people')::bigint from jsonb_array_elements(e -> 'features') x where x ->> 'id' = 'resource_opened') >= 5);
   perform pg_temp.check('duels say whether they exist', e -> 'duels' ? 'available');
+  perform pg_temp.check('finished battles carry their own people figure',
+    not (e -> 'duels' ->> 'available')::boolean or e -> 'duels' ? 'completed_people');
+  -- u3's three reports, counted from their events: under 5, so hidden, but recorded (a date, not "never").
+  perform pg_temp.check('question reports come from their events',
+    (select x ->> 'source' = 'tracked' and x ->> 'tracked_since' is not null and pg_temp.small_ok(x -> 'count')
+     from jsonb_array_elements(e -> 'features') x where x ->> 'id' = 'question_reported'));
   perform pg_temp.check('busiest events are a ranking without run counts',
     not exists (select 1 from jsonb_array_elements(e -> 'events') x where x ? 'runs'));
   perform pg_temp.check('busiest events people suppressed',
@@ -444,6 +484,7 @@ begin
     pg_temp.small_ok(e -> 'practice' -> 'started') and pg_temp.small_ok(e -> 'practice' -> 'completed'));
 end $$;
 
+-- u1 is a stats viewer with the trainee role: counts and links, never question wording.
 do $$
 declare
   c jsonb := public.owner_content();
@@ -455,32 +496,82 @@ begin
   perform pg_temp.check('reported question reasons', r -> 'reasons' = '["typo"]'::jsonb and (r ->> 'reports')::int = 1);
   perform pg_temp.check('reported question links to its room',
     r ->> 'classroom_id' = '00000000-0000-4000-8000-0000000002c1' and r ->> 'test_id' = '00000000-0000-4000-8000-0000000002e1');
-  -- The top list holds the 20 stems with the most copies, so a two-copy test stem may not make it on a busy database.
-  perform pg_temp.check('top duplicates are real duplicates',
-    jsonb_array_length(c -> 'duplicates') <= 20
-    and not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x where (x ->> 'copies')::int < 2));
-  -- Compared with the questions as the admin: the owner role can't read every room's questions directly.
-  perform pg_temp.as_admin();
-  perform pg_temp.check('each duplicate shows one real copy and links to its test',
+  perform pg_temp.check('a trainee-role viewer gets no wording for reported questions',
+    not exists (select 1 from jsonb_array_elements(c -> 'reported') x
+                where coalesce(jsonb_typeof(x -> 'prompt'), 'missing') <> 'null'));
+  perform pg_temp.check('a trainee-role viewer gets no wording for repeated questions',
     not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x
-                where x ->> 'example' is null or x ->> 'test_id' is null or x ->> 'classroom_id' is null
-                   or not exists (select 1 from public.questions qu join public.tests t on t.id = qu.test_id
-                                  where qu.test_id = (x ->> 'test_id')::uuid and t.classroom_id = (x ->> 'classroom_id')::uuid
-                                    and left(qu.prompt, 240) = x ->> 'example')));
-  perform pg_temp.check('the test stem shows its first copy as written',
-    not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x where x ->> 'stem' = 'console stem: which bone is longest')
-    or exists (select 1 from jsonb_array_elements(c -> 'duplicates') x
-               where x ->> 'stem' = 'console stem: which bone is longest'
-                 and x ->> 'example' = 'Console stem: which bone is longest?'
-                 and x ->> 'test_id' = '00000000-0000-4000-8000-0000000002e1'));
+                where coalesce(jsonb_typeof(x -> 'example'), 'missing') <> 'null'
+                   or coalesce(jsonb_typeof(x -> 'stem'), 'missing') <> 'null'));
+  -- The top list holds the 20 stems with the most copies, so a two-copy test stem may not make it on a busy database.
+  perform pg_temp.check('top duplicates are real duplicates, each with a link',
+    jsonb_array_length(c -> 'duplicates') <= 20
+    and not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x
+                    where (x ->> 'copies')::int < 2 or x ->> 'test_id' is null or x ->> 'classroom_id' is null));
   perform pg_temp.check('duplicate groups counted', (c ->> 'duplicate_groups')::int >= 1);
   select x into ev from jsonb_array_elements(c -> 'per_event') x where x ->> 'id' = '00000000-0000-4000-8000-0000000002c1';
   perform pg_temp.check('per-event content',
     (ev ->> 'questions')::int = 3 and (ev ->> 'tests')::int = 2 and (ev ->> 'missing_explanations')::int = 1
     and (ev ->> 'repeated')::int = 1 and (ev ->> 'open_reports')::int = 1);
   perform pg_temp.check('content totals present', (c ->> 'questions')::int >= 3 and (c ->> 'open_reports')::int >= 1);
-  perform pg_temp.as_user(pg_temp.u(1));
 end $$;
+
+-- A draft test with 30 copies of one stem (so it tops the repeated list on any database): a trainee-role viewer sees
+-- that it exists and where, never its words; an executive viewer (u2, made a viewer here) sees the wording, the same
+-- copy it links to. Undone at the end of the block.
+do $$
+declare
+  c jsonb;
+  d jsonb;
+  r jsonb;
+begin
+  begin
+    perform pg_temp.as_admin();
+    insert into private.stats_viewers (user_id) values (pg_temp.u(2));
+    insert into public.tests (id, classroom_id, title, is_published, created_by) values
+      ('00000000-0000-4000-8000-0000000002e3', '00000000-0000-4000-8000-0000000002c1', 'Console draft', false, pg_temp.u(2));
+    insert into public.questions (id, test_id, position, prompt, options)
+      select ('00000000-0000-4000-8000-0000000004' || lpad(g::text, 2, '0'))::uuid, '00000000-0000-4000-8000-0000000002e3',
+             g, 'Console draft wording: unseen until the draft opens?', array['A', 'B']
+      from generate_series(1, 30) g;
+
+    perform pg_temp.as_user(pg_temp.u(1));
+    c := public.owner_content();
+    select x into d from jsonb_array_elements(c -> 'duplicates') x where x ->> 'test_id' = '00000000-0000-4000-8000-0000000002e3';
+    perform pg_temp.check('the draft''s repeated question is listed with its link', (d ->> 'copies')::int = 30);
+    perform pg_temp.check('a trainee-role viewer never reads the draft''s wording',
+      jsonb_typeof(d -> 'example') = 'null' and jsonb_typeof(d -> 'stem') = 'null'
+      and strpos(c::text, 'unseen until the draft opens') = 0);
+
+    perform pg_temp.as_user(pg_temp.u(2));
+    c := public.owner_content();
+    select x into d from jsonb_array_elements(c -> 'duplicates') x where x ->> 'test_id' = '00000000-0000-4000-8000-0000000002e3';
+    perform pg_temp.check('an executive viewer reads the wording',
+      d ->> 'example' = 'Console draft wording: unseen until the draft opens?'
+      and d ->> 'stem' = 'console draft wording: unseen until the draft opens');
+    select x into r from jsonb_array_elements(c -> 'reported') x where x ->> 'question_id' = '00000000-0000-4000-8000-0000000002f1';
+    perform pg_temp.check('an executive viewer reads a reported question''s wording',
+      r ->> 'prompt' = 'Console stem: which bone is longest?');
+    perform pg_temp.check('the test stem shows its first copy as written',
+      not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x where x ->> 'stem' = 'console stem: which bone is longest')
+      or exists (select 1 from jsonb_array_elements(c -> 'duplicates') x
+                 where x ->> 'stem' = 'console stem: which bone is longest'
+                   and x ->> 'example' = 'Console stem: which bone is longest?'
+                   and x ->> 'test_id' = '00000000-0000-4000-8000-0000000002e1'));
+    -- Compared with the questions as the admin: a viewer role can't read every room's questions directly.
+    perform pg_temp.as_admin();
+    perform pg_temp.check('each duplicate shows one real copy and links to its test',
+      not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x
+                  where x ->> 'example' is null or x ->> 'test_id' is null or x ->> 'classroom_id' is null
+                     or not exists (select 1 from public.questions qu join public.tests t on t.id = qu.test_id
+                                    where qu.test_id = (x ->> 'test_id')::uuid and t.classroom_id = (x ->> 'classroom_id')::uuid
+                                      and left(qu.prompt, 240) = x ->> 'example')));
+    raise exception using errcode = 'XX005', message = 'checked';
+  exception when sqlstate 'XX005' then
+    perform pg_temp.check('wording block ran to the end', sqlerrm = 'checked');
+  end;
+end $$;
+select pg_temp.as_user(pg_temp.u(1));
 
 -- 7. Feedback triage and the audit row --------------------------------------------------------------------------------
 do $$
@@ -559,32 +650,68 @@ select pg_temp.check('old event purged',
 select pg_temp.check('12-month event kept',
   exists (select 1 from public.analytics_events e where e.user_id = pg_temp.u(2) and e.occurred_at < now() - interval '11 months'));
 
--- 9. Real accounts, read-only: a real stats viewer is let in, a real trainee is not ----------------------------------
+-- 9. Real accounts, read-only: every real stats viewer is let in to every owner function (the guard passes; a made-up
+-- feedback id is then "gone", P0002, so nothing is written), and real trainees who aren't viewers are refused by every
+-- one: the QA trainee (found by its display name while it exists) and the three oldest trainees. Picked from the data,
+-- so no ids live in this file. The live database must have at least one of each.
 do $$
 declare
-  viewer uuid;
-  trainee uuid;
+  who uuid;
+  stmt text;
+  viewers integer := 0;
+  refused integer := 0;
+  reads text[] := array[
+    $q$select public.owner_overview()$q$,
+    $q$select public.owner_growth('30d')$q$,
+    $q$select public.owner_growth('all')$q$,
+    $q$select public.owner_engagement('30d')$q$,
+    $q$select public.owner_content()$q$,
+    $q$select public.owner_feedback('all')$q$,
+    $q$select public.owner_audit('')$q$,
+    $q$select public.owner_system()$q$];
 begin
-  select v.user_id into viewer from private.stats_viewers v
-  where v.user_id::text not like '00000000-0000-4000-8000-%' order by v.user_id limit 1;
-  select p.id into trainee from public.profiles p
-  where p.role = 'trainee' and p.id::text not like '00000000-0000-4000-8000-%'
-    and not exists (select 1 from private.stats_viewers v where v.user_id = p.id)
-  order by p.created_at limit 1;
-  if viewer is not null then
-    perform pg_temp.as_user(viewer);
-    perform public.owner_overview();
-    perform public.owner_system();
+  for who in
+    select v.user_id from private.stats_viewers v
+    where v.user_id::text not like '00000000-0000-4000-8000-%' order by v.user_id
+  loop
+    perform pg_temp.as_user(who);
+    perform pg_temp.check('a real viewer can see the stats', public.can_see_dev_stats());
+    perform pg_temp.check('a real viewer''s overview has members', public.owner_overview() ? 'members');
+    foreach stmt in array reads loop
+      execute stmt;
+    end loop;
+    perform pg_temp.expect('a real viewer passes the triage guard',
+      $q$select public.owner_triage_feedback(gen_random_uuid(), 'done', 'low', '')$q$, 'P0002');
     perform pg_temp.as_admin();
-  end if;
-  if trainee is not null then
-    perform pg_temp.as_user(trainee);
-    perform pg_temp.expect('real trainee refused', $q$select public.owner_overview()$q$, '42501');
-    perform pg_temp.expect('real trainee refused triage',
+    viewers := viewers + 1;
+  end loop;
+  perform pg_temp.check('the live database has a real stats viewer', viewers >= 1);
+
+  for who in
+    select t.id from (
+      (select p.id from public.profiles p where p.full_name = 'Omega QA (test account)')
+      union
+      (select p.id from public.profiles p
+       where p.role = 'trainee' and p.id::text not like '00000000-0000-4000-8000-%'
+         and not exists (select 1 from private.stats_viewers v where v.user_id = p.id)
+       order by p.created_at limit 3)
+    ) t
+    where t.id::text not like '00000000-0000-4000-8000-%'
+      and not exists (select 1 from private.stats_viewers v where v.user_id = t.id)
+  loop
+    perform pg_temp.as_user(who);
+    perform pg_temp.check('a real trainee can''t see the stats', not public.can_see_dev_stats());
+    foreach stmt in array reads loop
+      perform pg_temp.expect('a real trainee refused: ' || stmt, stmt, '42501');
+    end loop;
+    perform pg_temp.expect('a real trainee refused triage',
       $q$select public.owner_triage_feedback(gen_random_uuid(), 'done', 'low', '')$q$, '42501');
     perform pg_temp.as_admin();
-  end if;
+    refused := refused + 1;
+  end loop;
+  perform pg_temp.check('real trainees were checked', refused >= 1);
+  perform set_config('owner_console.real', viewers || ' real viewer(s) let in, ' || refused || ' real trainee(s) refused', true);
 end $$;
 
-select 'owner_console: all checks passed' as result;
+select 'owner_console: all checks passed; ' || current_setting('owner_console.real') as result;
 rollback;

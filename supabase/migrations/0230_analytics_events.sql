@@ -15,15 +15,19 @@
 --   resource_opened          analytics_events code 'file' or 'link' (written by /files/[id])
 --   duel_started             battles.created_at, once battles (0095) are on the database
 --   duel_completed           battles with status 'done'
---   feedback_submitted       feedback (0231) and question reports (question_flags with a reason other than 'ask', 0231)
+--   feedback_submitted       feedback.created_at (0231, one row per message sent) plus analytics_events code
+--                            'question': one per report sent from Report this question, written by report_question
+--                            (0231). question_flags keeps one thread per member per question, so it can't count sends
 --   install_prompt_shown     analytics_events code 'android', 'ios' or 'other' (sent by the phone-app layer)
 --   app_installed            analytics_events, same codes
 --   push_enabled             analytics_events, same codes (sent without a code, it is stored as 'other')
 --
--- So analytics_events stores only five names. Each row is the name, the time, the member's id (for distinct-people
--- counts only) and one short code from a fixed list. Never question text, answers, free text, IP, user agent or
--- location. Rows older than 13 months are deleted by private.purge_analytics(), which the daily keep-alive runs.
--- Writes go through public.record_event only. The owner reads aggregates through the 0232 functions only.
+-- So analytics_events stores six names. Each row is the name, the time, the member's id (for distinct-people counts
+-- only) and one short code from a fixed list. Never question text, answers, free text, IP, user agent or location.
+-- Rows older than 13 months are deleted by private.purge_analytics(), which the daily keep-alive runs.
+-- The browser writes the five in analytics_code_ok through public.record_event. feedback_submitted 'question' is
+-- written only by report_question (0231), after its own checks, so no client can send one. The owner reads
+-- aggregates through the 0232 functions only.
 
 create or replace function private.analytics_code_ok(p_name text, p_code text)
 returns boolean
@@ -46,7 +50,9 @@ create table if not exists public.analytics_events (
   code text not null,
   user_id uuid not null references public.profiles (id) on delete cascade,
   occurred_at timestamptz not null default now(),
-  constraint analytics_events_taxonomy check (private.analytics_code_ok(name, code))
+  constraint analytics_events_taxonomy check (
+    private.analytics_code_ok(name, code) or (name = 'feedback_submitted' and code = 'question')
+  )
 );
 create index if not exists analytics_events_name_at_idx on public.analytics_events (name, occurred_at);
 create index if not exists analytics_events_user_at_idx on public.analytics_events (user_id, occurred_at);
@@ -57,8 +63,9 @@ alter table public.analytics_events enable row level security;
 revoke all on public.analytics_events from public, anon, authenticated;
 
 -- One call per tracked moment. True when stored. False, and nothing stored, for: no session, a banned member, a name
--- or code outside the taxonomy, or more than 120 events from this member in the last hour. Never raises for those, so
--- a client can fire and forget. The three phone-app events may come without a code (platform unknown): 'other'.
+-- or code outside the browser's list (analytics_code_ok, so never feedback_submitted), or more than 120 of these
+-- events from this member in the last hour. Never raises for those, so a client can fire and forget. The three
+-- phone-app events may come without a code (platform unknown): 'other'.
 create or replace function public.record_event(p_name text, p_code text)
 returns boolean
 language plpgsql volatile security definer set search_path = ''
@@ -78,7 +85,7 @@ begin
   -- One member's calls queue here, so two at once can't both slip under the limit.
   perform pg_advisory_xact_lock(hashtextextended('analytics:' || uid::text, 0));
   select count(*) into recent from public.analytics_events e
-  where e.user_id = uid and e.occurred_at > now() - interval '1 hour';
+  where e.user_id = uid and e.occurred_at > now() - interval '1 hour' and e.name <> 'feedback_submitted';
   if recent >= 120 then
     return false;
   end if;

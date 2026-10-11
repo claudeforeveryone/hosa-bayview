@@ -8,7 +8,9 @@
 --                        0031/0099). A flag now has a reason: 'ask' (the old Ask teacher, the default for every
 --                        existing row), or 'wrong_answer', 'unclear', 'typo', 'other'. The event's trainer gets the
 --                        same notification and replies in the same list, so a wrong key gets fixed by the person who
---                        can fix it; the owner sees the open reports under Content health.
+--                        can fix it; the owner sees the open reports under Content health. Each report sent is also
+--                        one feedback_submitted usage event (analytics_events, code 'question': no question, no
+--                        text), so Engagement counts sends on the day they happen.
 --
 -- Both write paths are definer functions with their own checks and per-member limits. Banned members are refused.
 -- The app calls public.feedback_enabled() first and shows neither entry point until it answers, so a deploy that
@@ -140,6 +142,8 @@ revoke all on private.flag_sends from public, anon, authenticated;
 -- in a submitted attempt, one thread per member per question (sending again reopens it with the new reason and note).
 -- flag_question (below) now goes through here as a plain 'ask', so the ban check and the daily cap cover both.
 -- An 'ask' on a thread with an open report keeps the report: the member is adding words, not taking it back.
+-- Reopening a thread the trainer answered keeps their last reply on it (the member still sees it) until they answer
+-- again; only the answered stamp is cleared. A report (not an ask) is also recorded as one feedback_submitted event.
 create or replace function public.report_question(qid uuid, reason text, note text)
 returns uuid
 language plpgsql volatile security definer set search_path = ''
@@ -201,8 +205,11 @@ begin
             then question_flags.reason
           else excluded.reason
         end,
-        status = 'open', reply = '', answered_at = null, answered_by = null, updated_at = now()
+        status = 'open', answered_at = null, answered_by = null, updated_at = now()
   returning id into fid;
+  if why <> 'ask' then
+    insert into public.analytics_events (name, code, user_id) values ('feedback_submitted', 'question', uid);
+  end if;
   return fid;
 end
 $$;

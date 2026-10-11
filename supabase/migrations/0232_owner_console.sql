@@ -13,6 +13,10 @@
 -- (questions, tests, reports per question) are about the material, not about people, and come back exact. Feedback
 -- and the audit log are individual records for triage and are not suppressed.
 --
+-- Being a stats viewer is separate from role. Question wording (Content's reported and repeated lists) comes back
+-- only to a viewer who is also an executive, who can read every question anyway; any other viewer gets the counts and
+-- links, never the text of a draft test or a mock competition that hasn't opened.
+--
 -- Ranges: 7d, 30d, 90d or all, in Toronto days (today counts as day one).
 
 create or replace function private.require_stats_viewer()
@@ -192,20 +196,25 @@ declare
   started bigint;
   done bigint;
   people bigint;
+  done_people bigint;
 begin
   if to_regclass('public.battles') is null or to_regclass('public.battle_players') is null then
     return jsonb_build_object('available', false);
   end if;
   execute 'select count(*), count(*) filter (where b.status = ''done'') from public.battles b where b.created_at >= $1'
     into started, done using since_at;
-  execute 'select count(distinct bp.user_id) from public.battle_players bp join public.battles b on b.id = bp.battle_id
+  -- People in any battle started in the range, and people in one that finished: two figures, so the finished row
+  -- never counts the players of a battle that was abandoned.
+  execute 'select count(distinct bp.user_id), count(distinct bp.user_id) filter (where b.status = ''done'')
+           from public.battle_players bp join public.battles b on b.id = bp.battle_id
            where b.created_at >= $1'
-    into people using since_at;
+    into people, done_people using since_at;
   return jsonb_build_object(
     'available', true,
     'started', private.small_cell(started),
     'completed', private.small_cell(done),
-    'people', private.small_cell(people)
+    'people', private.small_cell(people),
+    'completed_people', private.small_cell(done_people)
   );
 end
 $$;
@@ -213,7 +222,9 @@ revoke all on function private.owner_duels(timestamptz) from public, anon, authe
 
 -- One row per taxonomy event (0230), counted from its source, plus flashcard reviews. 'tracked_since' is set only for
 -- rows that come from analytics_events: null there means the site has never recorded one, so the page says "not
--- tracked yet" instead of a zero. Then practice and exam funnels, and a ranking of the busiest events (5 runs or more).
+-- tracked yet" instead of a zero. Question reports are counted from those events too (one per report sent, on the
+-- day it was sent), not from question_flags, which keeps one thread per member per question and moves on every
+-- resend. Then practice and exam funnels, and a ranking of the busiest events (5 runs or more).
 create or replace function public.owner_engagement(p_range text)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -291,10 +302,10 @@ begin
       (select count(distinct fb.user_id) from public.feedback fb where fb.created_at >= since_at),
       null, 10
     union all
-    select 'question_reported', 'feedback_submitted', 'table',
-      (select count(*) from public.question_flags qf where qf.reason <> 'ask' and qf.created_at >= since_at),
-      (select count(distinct qf.user_id) from public.question_flags qf where qf.reason <> 'ask' and qf.created_at >= since_at),
-      null, 11
+    select 'question_reported', 'feedback_submitted', 'tracked',
+      (select count(*) from tracked t where t.name = 'feedback_submitted' and t.code = 'question'),
+      (select count(distinct t.user_id) from tracked t where t.name = 'feedback_submitted' and t.code = 'question'),
+      (select f.since from firsts f where f.name = 'feedback_submitted'), 11
     union all
     select 'install_prompt_shown', 'install_prompt_shown', 'tracked',
       (select count(*) from tracked t where t.name = 'install_prompt_shown'),
@@ -353,14 +364,17 @@ grant execute on function public.owner_engagement(text) to authenticated;
 -- that room (the same question pasted into more than one test), open reports. The open reports themselves
 -- (question_flags with a reason other than 'ask', grouped by question, with a link target), and the stems with the
 -- most copies (case, spacing and end punctuation ignored), each shown by one real copy's wording with a link to its test.
+-- The wording (prompt, stem, example) is null unless the viewer is an executive (see the header).
 create or replace function public.owner_content()
 returns jsonb
 language plpgsql stable security definer set search_path = ''
 as $$
 declare
+  wording boolean;
   out jsonb;
 begin
   perform private.require_stats_viewer();
+  wording := private.is_executive();
   with q as (
     select qu.id, qu.test_id, t.classroom_id, t.is_published, qu.prompt,
       coalesce(btrim(k.explanation), '') = '' as no_expl,
@@ -395,7 +409,7 @@ begin
       ) x),
     'reported', (select coalesce(jsonb_agg(jsonb_build_object(
         'question_id', r.question_id, 'test_id', r.test_id, 'classroom_id', r.classroom_id,
-        'test_title', r.test_title, 'room', r.room, 'pos', r.pos, 'prompt', r.prompt,
+        'test_title', r.test_title, 'room', r.room, 'pos', r.pos, 'prompt', case when wording then r.prompt end,
         'reasons', r.reasons, 'reports', r.reports, 'last_at', r.last_at
       ) order by r.reports desc, r.last_at desc), '[]'::jsonb)
       from (
@@ -412,7 +426,8 @@ begin
         limit 25
       ) r),
     'duplicates', (select coalesce(jsonb_agg(jsonb_build_object(
-        'stem', d.stem, 'example', d.example, 'test_id', d.test_id, 'classroom_id', d.classroom_id,
+        'stem', case when wording then d.stem end, 'example', case when wording then d.example end,
+        'test_id', d.test_id, 'classroom_id', d.classroom_id,
         'copies', d.copies, 'tests', d.tests, 'rooms', d.rooms
       ) order by d.copies desc, d.stem), '[]'::jsonb)
       from (
