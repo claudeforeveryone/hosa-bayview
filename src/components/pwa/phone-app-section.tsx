@@ -255,10 +255,17 @@ function NotificationSettings({
         await sub.unsubscribe();
         sub = null;
       }
-      sub ??= await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      });
+      sub ??= await registration.pushManager
+        .subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        })
+        .catch(() => {
+          // The browser's own reasons ("Registration failed - ...") mean nothing to a member.
+          throw new Error(
+            "This browser wouldn't set up notifications. Check it allows them for HOSA, then try again.",
+          );
+        });
       try {
         await saveDevice(sub, sound === "on");
       } catch (err) {
@@ -412,6 +419,7 @@ function NotificationSettings({
           </div>
         ) : null}
         <p
+          id="push-note"
           role="status"
           aria-live="polite"
           className={`text-[16px] ${note?.tone === "error" ? "text-danger" : "text-ok"}`}
