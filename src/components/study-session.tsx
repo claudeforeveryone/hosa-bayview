@@ -22,8 +22,20 @@ function shuffled<T>(items: T[]): T[] {
 
 // Flip a card, then mark it known or still learning. Each mark writes one private review row.
 // The first order comes from a seed the server sent, so the server render and the first client render match.
-export function StudySession({ deckId, cards, label, seed }: { deckId: string; cards: StudyCard[]; label: string; seed: string }) {
-  const [order, setOrder] = useState<StudyCard[]>(() => permutation(cards.length, seed).map((i) => cards[i]));
+export function StudySession({
+  deckId,
+  cards,
+  label,
+  seed,
+}: {
+  deckId: string;
+  cards: StudyCard[];
+  label: string;
+  seed: string;
+}) {
+  const [order, setOrder] = useState<StudyCard[]>(() =>
+    permutation(cards.length, seed).map((i) => cards[i]),
+  );
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [tally, setTally] = useState({ known: 0, learning: 0 });
@@ -55,12 +67,16 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
     else feedback(verdict);
     moved.current = true;
     setError(null);
-    setTally((t) => ({ known: t.known + (known ? 1 : 0), learning: t.learning + (known ? 0 : 1) }));
+    setTally((t) => ({
+      known: t.known + (known ? 1 : 0),
+      learning: t.learning + (known ? 0 : 1),
+    }));
     setFlipped(false);
     setIndex((i) => i + 1);
     start(async () => {
       const result = await recordReview(id, known);
-      if (result.error) setError("That mark didn't save. Check your connection.");
+      if (result.error)
+        setError("That mark didn't save. Check your connection.");
       // A finished round is a flashcards roll, once the last review is saved (the server checks for it).
       else if (last) void rollLuckyBonus("flashcards");
     });
@@ -77,7 +93,11 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
   if (done) {
     return (
       <div className="grid max-w-xl gap-6">
-        <p ref={doneRef} tabIndex={-1} className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-semibold uppercase outline-none">
+        <p
+          ref={doneRef}
+          tabIndex={-1}
+          className="font-display text-[clamp(2rem,7vw,3rem)] leading-none font-semibold uppercase outline-none"
+        >
           Round done
         </p>
         <p className="num text-[18px]">
@@ -85,7 +105,10 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
         </p>
         <div className="flex flex-wrap gap-3">
           <Button onClick={() => restart(cards)}>Go again</Button>
-          <Link href={`/flashcards/${deckId}`} className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band">
+          <Link
+            href={`/flashcards/${deckId}`}
+            className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band"
+          >
             Back to deck
           </Link>
         </div>
@@ -102,7 +125,7 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
         <button
           type="button"
           onClick={() => restart(cards)}
-          className="caps step h-10 border border-rule-strong px-4 text-[15px] text-ink-2 hover:border-ink hover:text-ink"
+          className="caps step h-11 border border-rule-strong px-4 text-[15px] text-ink-2 hover:border-ink hover:text-ink"
         >
           Shuffle
         </button>
@@ -115,12 +138,28 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
           setFlipped((f) => !f);
           feedback("flip");
         }}
-        aria-label={flipped ? `Definition: ${card.definition}. Tap to show the term.` : `Term: ${card.term}. Tap to show the definition.`}
-        className="step grid min-h-64 w-full place-items-center gap-3 border border-rule-strong bg-band px-6 py-10 text-center hover:border-ink"
+        aria-label={
+          flipped
+            ? `Definition: ${card.definition}. Tap to show the term.`
+            : `Term: ${card.term}. Tap to show the definition.`
+        }
+        className={`step grid min-h-64 w-full place-items-center gap-3 border-[3px] px-6 py-10 text-center ${
+          // The term is the navy field; turned over, the definition sits on the ice with an ink frame.
+          flipped
+            ? "border-ink bg-ground text-ink hover:bg-band"
+            : "border-field bg-field text-on-field hover:bg-field-2 hover:border-field-2"
+        }`}
       >
         {/* Keyed by face, so each tap turns the card over again. */}
-        <span key={`${card.id}-${flipped}`} className="card-face grid place-items-center gap-3">
-          <span className="caps text-[14px] text-ink-2">{flipped ? "Definition" : "Term"}</span>
+        <span
+          key={`${card.id}-${flipped}`}
+          className="card-face grid place-items-center gap-3"
+        >
+          <span
+            className={`caps text-[14px] ${flipped ? "text-ink-2" : "text-on-field-2"}`}
+          >
+            {flipped ? "Definition" : "Term"}
+          </span>
           <span className="max-w-[40ch] break-words font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-tight font-semibold">
             {flipped ? card.definition : card.term}
           </span>
@@ -136,10 +175,16 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
         </div>
       ) : (
         // Same height as the buttons that replace it, so nothing under the card jumps on a flip.
-        <p className="flex min-h-12 items-center text-[15px] text-ink-2">Tap the card to see the definition.</p>
+        <p className="flex min-h-12 items-center text-[15px] text-ink-2">
+          Tap the card to see the definition.
+        </p>
       )}
 
-      {error ? <p role="alert" className="text-[15px] text-danger">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-[15px] text-danger">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

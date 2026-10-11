@@ -62,7 +62,6 @@ function Header({
     <header className="grid min-w-0 border-[3px] border-ink">
       <HeroBanner />
       <div className="grid min-w-0 gap-1 border-t-[3px] border-ink bg-ground px-3 py-4 sm:px-5">
-        <p className="caps text-[14px] text-ink-2">Welcome back</p>
         <h1 className="font-display text-[clamp(2.5rem,10vw,4.5rem)] leading-[0.9] font-bold [overflow-wrap:anywhere] uppercase">
           {name}
         </h1>
@@ -89,7 +88,10 @@ function ClubBoard({
     <HomeBox
       id="board-h"
       title="Leaderboard"
-      link={{ href: `/leaderboard?metric=${metric}&period=${period}`, text: "Full board" }}
+      link={{
+        href: `/leaderboard?metric=${metric}&period=${period}`,
+        text: "Full board",
+      }}
     >
       <div className="grid gap-2 py-3">
         {place ? (
@@ -208,7 +210,11 @@ function Join() {
 // The next three things on the calendar.
 function ComingUp({ events }: { events: EventRow[] }) {
   return (
-    <HomeBox id="soon-h" title="Coming up" link={{ href: "/calendar", text: "Calendar" }}>
+    <HomeBox
+      id="soon-h"
+      title="Coming up"
+      link={{ href: "/calendar", text: "Calendar" }}
+    >
       {events.length ? (
         <ul>
           {events.map((e, i) => (
@@ -224,7 +230,9 @@ function ComingUp({ events }: { events: EventRow[] }) {
           ))}
         </ul>
       ) : (
-        <p className="px-3 py-5 text-[16px] text-ink-2 sm:px-4">Nothing on the calendar yet.</p>
+        <p className="px-3 py-5 text-[16px] text-ink-2 sm:px-4">
+          Nothing on the calendar yet.
+        </p>
       )}
     </HomeBox>
   );
@@ -233,7 +241,11 @@ function ComingUp({ events }: { events: EventRow[] }) {
 // Your events, with joining another as the last row: once you're in one, it's a side errand.
 function Classrooms({ rooms }: { rooms: ClassroomSummary[] }) {
   return (
-    <HomeBox id="rooms-h" title="Your events" link={{ href: "/events", text: "All" }}>
+    <HomeBox
+      id="rooms-h"
+      title="Your events"
+      link={{ href: "/events", text: "All" }}
+    >
       <ul>
         {rooms.map((room) => (
           <ClassroomRow key={room.id} room={room} />

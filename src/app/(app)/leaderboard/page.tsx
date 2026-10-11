@@ -30,6 +30,7 @@ export default async function LeaderboardPage(
         meId={me.id}
         empty="Nothing ranked yet"
         elo
+        rise
       />
       <HonorRoll rows={honor} />
     </div>

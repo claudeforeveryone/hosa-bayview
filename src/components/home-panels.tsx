@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import type { AnnouncementRow } from "@/lib/announcements";
 import type { MemberStats } from "@/lib/activity-data";
-import { formatCount, formatPercent } from "@/lib/activity";
+import { formatCount } from "@/lib/activity";
+import { CountUp } from "@/components/count-up";
 import { timeAgo } from "@/lib/when";
 
 // A boxed section on Home: a thick ink frame with a solid ink title bar, so each part of the page reads as
@@ -44,7 +45,7 @@ export function HomeBox({
         {link ? (
           <Link
             href={link.href}
-            className="caps step inline-flex h-10 shrink-0 items-center gap-1.5 text-[15px] underline-offset-4 hover:underline"
+            className="caps step inline-flex h-11 shrink-0 items-center gap-1.5 text-[15px] underline-offset-4 hover:underline"
           >
             {link.text}
             <ArrowRight size={18} strokeWidth={2} aria-hidden />
@@ -59,27 +60,54 @@ export function HomeBox({
 type Tile = { href: string; label: string; hint: string; icon: LucideIcon };
 
 const TILES: Tile[] = [
-  { href: "/tests", label: "Continue practising", hint: "Tests and practice", icon: BookOpenCheck },
-  { href: "/flashcards", label: "Flashcards", hint: "Study and match", icon: Layers },
-  { href: "/calendar", label: "Calendar", hint: "What's on", icon: CalendarDays },
-  { href: "/leaderboard", label: "Leaderboard", hint: "Where you stand", icon: Trophy },
+  {
+    href: "/tests",
+    label: "Continue practising",
+    hint: "Tests and practice",
+    icon: BookOpenCheck,
+  },
+  {
+    href: "/flashcards",
+    label: "Flashcards",
+    hint: "Study and match",
+    icon: Layers,
+  },
+  {
+    href: "/calendar",
+    label: "Calendar",
+    hint: "What's on",
+    icon: CalendarDays,
+  },
+  {
+    href: "/leaderboard",
+    label: "Leaderboard",
+    hint: "Where you stand",
+    icon: Trophy,
+  },
 ];
 
-// Four big tap targets, two by two on a phone so each sits under a thumb. The first one is filled, the
-// rest are framed, so the most common next step stands out.
+// Four big tap targets. The first is the navy field and runs the full width of a phone row, so the most common
+// next step is the loudest thing on Home; the last is wide too, so the phone grid closes without a gap. Desktop
+// is a plain row of four.
 export function QuickActions() {
   return (
-    <nav aria-label="Quick actions" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <nav
+      aria-label="Quick actions"
+      className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+    >
       {TILES.map((t, i) => {
         const Icon = t.icon;
         const lead = i === 0;
+        const wide = lead || i === TILES.length - 1;
         return (
           <Link
             key={t.href}
             href={t.href}
-            className={`step group grid min-h-32 content-between gap-4 border-[3px] p-3 sm:p-4 ${
+            className={`press step group grid min-h-32 content-between gap-4 border-[3px] p-3 sm:p-4 ${
+              wide ? "col-span-2 lg:col-span-1" : ""
+            } ${
               lead
-                ? "border-you bg-you text-on-you hover:bg-ink hover:border-ink hover:text-ground"
+                ? "border-field bg-field text-on-field hover:bg-field-2 hover:border-field-2"
                 : "border-ink bg-ground hover:bg-band"
             }`}
           >
@@ -96,7 +124,11 @@ export function QuickActions() {
               <span className="font-display text-[clamp(1.2rem,4.6vw,1.6rem)] leading-[1.05] font-bold uppercase">
                 {t.label}
               </span>
-              <span className={`text-[14px] ${lead ? "opacity-85" : "text-ink-2"}`}>{t.hint}</span>
+              <span
+                className={`text-[14px] ${lead ? "text-on-field-2" : "text-ink-2"}`}
+              >
+                {t.hint}
+              </span>
             </span>
           </Link>
         );
@@ -108,35 +140,61 @@ export function QuickActions() {
 // Your numbers, big and tabular. Hidden when the stats lookup failed: Home still works without them.
 export function StatTiles({ stats }: { stats: MemberStats | null }) {
   if (!stats) return null;
-  const tiles: { label: string; value: string; note?: string }[] = [
-    { label: "Elo", value: formatCount(stats.elo), note: stats.rank > 0 ? `#${formatCount(stats.rank)} in the chapter` : undefined },
+  // `to` is the number the count-up lands on; `kind` says how it reads (accuracy is a fraction, shown as a percent).
+  const tiles: {
+    label: string;
+    to: number | null;
+    kind?: "count" | "percent";
+    note?: string;
+  }[] = [
+    {
+      label: "Elo",
+      to: stats.elo,
+      note:
+        stats.rank > 0
+          ? `#${formatCount(stats.rank)} in the chapter`
+          : undefined,
+    },
     {
       label: "Streak",
-      value: formatCount(stats.streak),
+      to: stats.streak,
       note: stats.streak === 1 ? "day" : "days",
     },
     {
       label: "Questions",
-      value: formatCount(stats.answered),
+      to: stats.answered,
       note: `${formatCount(stats.correct)} right`,
     },
-    { label: "Accuracy", value: formatPercent(stats.accuracy), note: `${formatCount(stats.reviews)} cards studied` },
+    {
+      label: "Accuracy",
+      to: stats.accuracy,
+      kind: "percent",
+      note: `${formatCount(stats.reviews)} cards studied`,
+    },
   ];
+  // A navy band: the numbers are the loudest thing under the banner, in ice on the field.
   return (
-    <section aria-label="Your stats" className="grid grid-cols-2 border-[3px] border-ink lg:grid-cols-4">
+    <section
+      aria-label="Your stats"
+      className="grid grid-cols-2 border-[3px] border-ink bg-field text-on-field lg:grid-cols-4"
+    >
       {tiles.map((t, i) => (
         <div
           key={t.label}
-          className={`grid min-w-0 content-start gap-1 bg-band px-3 py-4 sm:px-4 ${
-            // Solid ink rules between tiles: a cross on a phone (2 by 2), dividers in a row on desktop.
-            i % 2 === 1 ? "border-l-2 border-ink" : ""
-          } ${i >= 2 ? "border-t-2 border-ink lg:border-t-0" : ""} ${i === 2 ? "lg:border-l-2" : ""}`}
+          className={`grid min-w-0 content-start gap-1 px-3 py-4 sm:px-4 ${
+            // Solid rules between tiles: a cross on a phone (2 by 2), dividers in a row on desktop.
+            i % 2 === 1 ? "border-l-2 border-on-field-2/40" : ""
+          } ${i >= 2 ? "border-t-2 border-on-field-2/40 lg:border-t-0" : ""} ${i === 2 ? "lg:border-l-2" : ""}`}
         >
-          <span className="caps text-[14px] text-ink-2">{t.label}</span>
+          <span className="caps text-[14px] text-on-field-2">{t.label}</span>
           <span className="num truncate font-display text-[clamp(2.25rem,10vw,3.5rem)] leading-none font-bold">
-            {t.value}
+            <CountUp to={t.to} kind={t.kind} />
           </span>
-          {t.note ? <span className="num truncate text-[14px] text-ink-2">{t.note}</span> : null}
+          {t.note ? (
+            <span className="num truncate text-[14px] text-on-field-2">
+              {t.note}
+            </span>
+          ) : null}
         </div>
       ))}
     </section>
@@ -146,7 +204,11 @@ export function StatTiles({ stats }: { stats: MemberStats | null }) {
 // The latest chapter announcements: pinned first, a two-line taste of each.
 export function AnnouncementList({ items }: { items: AnnouncementRow[] }) {
   if (!items.length) {
-    return <p className="px-3 py-5 text-[16px] text-ink-2 sm:px-4">No announcements yet.</p>;
+    return (
+      <p className="px-3 py-5 text-[16px] text-ink-2 sm:px-4">
+        No announcements yet.
+      </p>
+    );
   }
   return (
     <ul>
@@ -168,10 +230,14 @@ export function AnnouncementList({ items }: { items: AnnouncementRow[] }) {
               </span>
             </span>
             {a.body ? (
-              <span className="line-clamp-2 text-[15px] text-ink-2">{a.body}</span>
+              <span className="line-clamp-2 text-[15px] text-ink-2">
+                {a.body}
+              </span>
             ) : null}
             <span className="caps text-[13px] text-ink-2">
-              {[a.author?.full_name, timeAgo(a.created_at)].filter(Boolean).join(" · ")}
+              {[a.author?.full_name, timeAgo(a.created_at)]
+                .filter(Boolean)
+                .join(" · ")}
             </span>
           </Link>
         </li>

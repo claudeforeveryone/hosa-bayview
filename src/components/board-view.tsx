@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
 import { BoardMenu } from "@/components/board-menu";
@@ -30,6 +31,7 @@ type Props = {
   elo?: boolean; // show the Elo footnote
   metrics?: readonly Metric[]; // measures to offer; a single one hides the measure switch
   scope?: BoardScope; // a room board calls its score Points, the chapter board Elo
+  rise?: boolean; // the full board's rows rise in once; Home's short board stays still
 };
 
 const toggleHref = (base: string, metric: Metric, period: Period) =>
@@ -41,12 +43,16 @@ function BoardLine({
   period,
   you,
   scope,
+  index,
+  rise,
 }: {
   row: RankedRow;
   metric: Metric;
   period: Period;
   you: boolean;
   scope: BoardScope;
+  index: number;
+  rise: boolean;
 }) {
   const count = (n: number, word: string) =>
     `${formatCount(n)} ${word}${n === 1 ? "" : "s"}`;
@@ -59,8 +65,21 @@ function BoardLine({
     .filter(Boolean)
     .join(" · ");
   return (
-    <li className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-rule px-1 py-2 sm:px-3">
-      <span className="num font-display text-[20px] font-semibold text-ink-2">
+    <li
+      className={`grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-2 border-b border-rule px-1 py-2 sm:px-3 ${
+        // Your row is banded, so it's easy to find in a long board.
+        you ? "bg-band" : ""
+      } ${rise ? "rise" : ""}`}
+      style={rise ? ({ "--i": index } as CSSProperties) : undefined}
+    >
+      <span
+        className={`num font-display font-bold ${
+          // The top three get poster-scale numerals; everyone else stays quiet.
+          row.place !== null && row.place <= 3
+            ? "text-[30px] leading-none text-ink"
+            : "text-[20px] font-semibold text-ink-2"
+        }`}
+      >
         {row.place ?? "—"}
       </span>
       <span className="min-w-0">
@@ -104,6 +123,7 @@ export function BoardView({
   elo,
   metrics = METRICS,
   scope = "chapter",
+  rise = false,
 }: Props) {
   const shown = limit ? rows.slice(0, limit) : rows;
   const since = periodSince(period, new Date());
@@ -140,7 +160,7 @@ export function BoardView({
       ) : null}
       {shown.length ? (
         <ol className="border-t border-rule">
-          {shown.map((row) => (
+          {shown.map((row, index) => (
             <BoardLine
               key={row.user_id}
               row={row}
@@ -148,6 +168,8 @@ export function BoardView({
               period={period}
               you={row.user_id === meId}
               scope={scope}
+              index={index}
+              rise={rise}
             />
           ))}
         </ol>

@@ -23,7 +23,7 @@ function Days({ rows, canEdit }: { rows: EventRow[]; canEdit: (e: EventRow) => b
                 {canEdit(e) ? (
                   <div className="flex flex-wrap items-start gap-3">
                     <details className="max-w-2xl open:order-last open:basis-full">
-                      <summary className="caps step inline-flex h-10 cursor-pointer items-center border border-ink px-4 text-[15px] text-ink hover:bg-band">
+                      <summary className="caps step inline-flex h-11 cursor-pointer items-center border border-ink px-4 text-[15px] text-ink hover:bg-band">
                         Edit
                       </summary>
                       <div className="pt-5">

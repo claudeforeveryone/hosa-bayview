@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -28,14 +29,18 @@ export default async function TestsPage() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("tests")
-    .select("id, num, title, time_limit_minutes, is_published, classroom_id, classrooms(name)")
+    .select(
+      "id, num, title, time_limit_minutes, is_published, classroom_id, classrooms(name)",
+    )
     .order("created_at", { ascending: false });
   if (error) throw new Error(`Tests lookup failed: ${error.message}`);
   const tests = (data ?? []) as unknown as Row[];
 
   // Your best finished run per test, so the list shows what's left to do. attempt_list masks scores a test
   // with hidden answers withholds; those runs don't count as a best.
-  const { data: mine } = await supabase.rpc("attempt_list", { p_user: profile.id });
+  const { data: mine } = await supabase.rpc("attempt_list", {
+    p_user: profile.id,
+  });
   const best = new Map<string, { score: number; total: number }>();
   for (const a of (mine ?? []) as {
     test_id: string;
@@ -47,19 +52,29 @@ export default async function TestsPage() {
     if (!a.submitted_at || a.score_hidden) continue;
     const prev = best.get(a.test_id);
     const score = a.score ?? 0;
-    if (!prev || score / Math.max(a.total, 1) > prev.score / Math.max(prev.total, 1))
+    if (
+      !prev ||
+      score / Math.max(a.total, 1) > prev.score / Math.max(prev.total, 1)
+    )
       best.set(a.test_id, { score, total: a.total });
   }
 
   // Teachers can only add tests to classrooms they manage.
   const teacher = canTeach(profile);
   const managed = teacher
-    ? (await getMyClassrooms()).filter((r) => r.can_manage).map((r) => ({ id: r.id, name: r.name }))
+    ? (await getMyClassrooms())
+        .filter((r) => r.can_manage)
+        .map((r) => ({ id: r.id, name: r.name }))
     : [];
 
   const header = !teacher ? null : managed.length ? (
     tests.length ? (
-      <NewBlank action={createBlankTest} variant="button" label="New test" classrooms={managed} />
+      <NewBlank
+        action={createBlankTest}
+        variant="button"
+        label="New test"
+        classrooms={managed}
+      />
     ) : null
   ) : (
     <Link
@@ -78,8 +93,12 @@ export default async function TestsPage() {
       </div>
       {tests.length ? (
         <ul className="border-t border-rule">
-          {tests.map((t) => (
-            <li key={t.id} className="border-b border-rule">
+          {tests.map((t, i) => (
+            <li
+              key={t.id}
+              className="rise border-b border-rule"
+              style={{ "--i": i } as CSSProperties}
+            >
               <Link
                 href={`/c/${t.classroom_id}/tests/${t.id}`}
                 className="step grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-1 py-4 hover:bg-band sm:px-3"
@@ -91,7 +110,9 @@ export default async function TestsPage() {
                   <span className="block truncate text-[16px] text-ink-2">
                     {[
                       t.classrooms?.name,
-                      t.time_limit_minutes ? `${t.time_limit_minutes} min` : "Untimed",
+                      t.time_limit_minutes
+                        ? `${t.time_limit_minutes} min`
+                        : "Untimed",
                       t.is_published ? null : "Draft",
                       best.has(t.id) ? "Done" : null,
                     ]
@@ -105,7 +126,9 @@ export default async function TestsPage() {
                       {best.get(t.id)!.score}/{best.get(t.id)!.total}
                     </span>
                   ) : (
-                    <span className="num caps text-[15px]">{formNumber("T", t.num)}</span>
+                    <span className="num caps text-[15px]">
+                      {formNumber("T", t.num)}
+                    </span>
                   )}
                   <ChevronRight size={22} strokeWidth={1.75} aria-hidden />
                 </span>
@@ -114,12 +137,20 @@ export default async function TestsPage() {
           ))}
         </ul>
       ) : teacher && managed.length ? (
-        <NewBlank action={createBlankTest} variant="tile" label="New test" classrooms={managed} />
+        <NewBlank
+          action={createBlankTest}
+          variant="tile"
+          label="New test"
+          classrooms={managed}
+        />
       ) : (
         <EmptyState
           title="No tests yet"
           action={
-            <Link href="/join" className="caps step text-[17px] underline underline-offset-4">
+            <Link
+              href="/join"
+              className="caps step inline-flex min-h-11 items-center text-[17px] underline underline-offset-4"
+            >
               Join an event
             </Link>
           }
