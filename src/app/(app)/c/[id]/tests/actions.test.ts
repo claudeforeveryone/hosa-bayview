@@ -19,8 +19,13 @@ vi.mock("@/lib/auth", () => ({
   canTeach: (p: { role: string }) => p.role !== "trainee",
 }));
 
-const { createBlankTest, importQuestions, saveQuestion } =
-  await import("./actions");
+const {
+  askTeacher,
+  createBlankTest,
+  importQuestions,
+  reportQuestion,
+  saveQuestion,
+} = await import("./actions");
 
 const ROOM = "22222222-2222-4222-8222-222222222222";
 const TEST = "44444444-4444-4444-8444-444444444444";
@@ -278,5 +283,97 @@ describe("saveQuestion", () => {
       choices: "Two choices are the same.",
     });
     expect(c.rpc).not.toHaveBeenCalled();
+  });
+});
+
+// Ask teacher and Report this question (0231) against a stand-in database: what reaches report_question /
+// flag_question, and what the member reads for each answer they can give.
+describe("reportQuestion and askTeacher", () => {
+  const Q = "55555555-5555-4555-8555-555555555555";
+  const FLAG = "66666666-6666-4666-8666-666666666666";
+  const refusal = (code: string, message: string) => {
+    client = makeClient({ data: null, error: { code, message } });
+  };
+
+  it("sends a report with its reason and trimmed note, and returns the thread", async () => {
+    client = makeClient({ data: FLAG, error: null });
+    expect(
+      await reportQuestion(TEST, Q, "wrong_answer", "  Key says B\r\n"),
+    ).toEqual({ id: FLAG });
+    expect(client.rpc).toHaveBeenCalledWith("report_question", {
+      qid: Q,
+      reason: "wrong_answer",
+      note: "Key says B",
+    });
+  });
+
+  it("checks the ids, the reason and the note before the database", async () => {
+    expect((await reportQuestion("nope", Q, "typo", "")).error).toMatch(
+      /doesn't exist/,
+    );
+    expect((await reportQuestion(TEST, Q, "ask", "")).error).toBe(
+      "Pick what is wrong with the question.",
+    );
+    expect((await reportQuestion(TEST, Q, "typo", "a".repeat(501))).error).toBe(
+      "Keep the note under 500 characters.",
+    );
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+
+  // report_question's own words: "Report a question once you have answered it ...", the daily cap.
+  it("shows the database's own reason for bad input and the daily cap", async () => {
+    refusal(
+      "22023",
+      "Report a question once you have answered it in practice or after you submit",
+    );
+    expect((await reportQuestion(TEST, Q, "typo", "")).error).toBe(
+      "Report a question once you have answered it in practice or after you submit.",
+    );
+    refusal("53400", "That's a lot of reports for one day. Try again tomorrow");
+    expect((await reportQuestion(TEST, Q, "typo", "")).error).toBe(
+      "That's a lot of reports for one day. Try again tomorrow.",
+    );
+  });
+
+  it("explains a refusal in its own words", async () => {
+    refusal("42501", "You can't take this test");
+    expect((await reportQuestion(TEST, Q, "typo", "")).error).toBe(
+      "You can't report questions on this test.",
+    );
+    refusal("42501", "You can't take this test");
+    expect((await askTeacher(TEST, Q, "")).error).toBe(
+      "You can't ask about this test.",
+    );
+  });
+
+  for (const code of ["PGRST202", "42883"])
+    it(`points to Ask teacher when reports aren't on the database (${code})`, async () => {
+      refusal(code, "Could not find the function");
+      expect((await reportQuestion(TEST, Q, "typo", "")).error).toBe(
+        "Reports aren't switched on yet. Use Ask teacher for now.",
+      );
+    });
+
+  it("logs anything else and asks to try again, without the database's words", async () => {
+    refusal("XX000", "connection reset by peer");
+    expect((await reportQuestion(TEST, Q, "typo", "")).error).toBe(
+      "That didn't save. Try again.",
+    );
+  });
+
+  it("sends Ask teacher through flag_question and passes its cap through", async () => {
+    client = makeClient({ data: FLAG, error: null });
+    expect(await askTeacher(TEST, Q, " Why C? ")).toEqual({ id: FLAG });
+    expect(client.rpc).toHaveBeenCalledWith("flag_question", {
+      qid: Q,
+      note: "Why C?",
+    });
+    refusal(
+      "53400",
+      "That's a lot of questions for one day. Try again tomorrow",
+    );
+    expect((await askTeacher(TEST, Q, "")).error).toBe(
+      "That's a lot of questions for one day. Try again tomorrow.",
+    );
   });
 });

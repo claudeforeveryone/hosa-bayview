@@ -8,17 +8,11 @@ import {
   REPORT_REASONS,
   checkReport,
   reasonLabel,
-  type FlagReason,
   type ReportReason,
 } from "@/lib/flag-reasons";
+import { afterSend, threadButtons, type FlagState } from "@/lib/flag-thread";
 
-export type FlagState = {
-  id: string;
-  note: string;
-  status: "open" | "answered";
-  reply: string;
-  reason: FlagReason;
-};
+export type { FlagState };
 
 type Mode = "idle" | "ask" | "report";
 
@@ -27,12 +21,8 @@ const ACTION =
 
 // Ask teacher, or Report this question, on one answered question. Both are the same thread (one per member per
 // question): a report is an ask with what is wrong (wrong key, unclear, typo, something else). The trainer's reply
-// shows here once it's in.
-// While a report is open there is no Ask button: Change report holds the note, so adding words never quietly turns
-// the report back into a plain question (the database keeps the report either way, 0231).
-// After the trainer replies, asking again stays closed, but a report can still reopen the thread: a member who later
-// spots a wrong key can say so. The reply isn't lost: the database keeps it on the reopened thread (0231), and it
-// shows here as the earlier reply until the trainer answers again.
+// shows here once it's in. Which buttons show, and what the thread looks like after a send, follow 0231's rules
+// through threadButtons and afterSend (src/lib/flag-thread.ts, tested there).
 // `canReport`: reports are on the database (0231). Before that only Ask teacher shows.
 // Focus moves into the form when it opens and back to the button that opened it when it closes, so a keyboard or
 // screen-reader user keeps their place in a long review.
@@ -61,8 +51,7 @@ export function AskTeacher({
   const reportButton = useRef<HTMLButtonElement>(null);
   const firstField = useRef<HTMLInputElement>(null);
   const reported = current && current.reason !== "ask" ? current.reason : null;
-  // A report on the thread proves reports are on, whatever the probe said.
-  const showReport = canReport || reported !== null;
+  const buttons = threadButtons(current, canReport);
 
   useEffect(() => {
     const to = focusNext.current;
@@ -108,15 +97,14 @@ export function AskTeacher({
         setError(r.error ?? "That didn't send. Try again.");
         return;
       }
-      setCurrent({
-        id: r.id,
-        note: note.trim(),
-        status: "open",
-        // The database keeps the trainer's last reply on a reopened thread (0231).
-        reply: current?.reply ?? "",
-        // An ask on an open report keeps the report (0231).
-        reason: from === "report" && reason ? reason : (reported ?? "ask"),
-      });
+      setCurrent(
+        afterSend(current, {
+          id: r.id,
+          mode: from === "report" ? "report" : "ask",
+          reason,
+          note,
+        }),
+      );
       close(from);
     });
   };
@@ -258,31 +246,26 @@ export function AskTeacher({
           )}
         </div>
       ) : null}
-      {/* After a reply only a report reopens the thread (see the top of this file). */}
-      {!answered || showReport ? (
+      {buttons.ask || buttons.report ? (
         <div className="flex flex-wrap gap-2">
-          {reported || answered ? null : (
+          {buttons.ask ? (
             <button
               ref={askButton}
               type="button"
               onClick={() => open("ask")}
               className={`${ACTION} border-ink hover:bg-band`}
             >
-              {current ? "Ask again" : "Ask teacher"}
+              {buttons.ask}
             </button>
-          )}
-          {showReport ? (
+          ) : null}
+          {buttons.report ? (
             <button
               ref={reportButton}
               type="button"
               onClick={() => open("report")}
               className={`${ACTION} border-rule-strong text-ink-2 hover:border-ink hover:text-ink`}
             >
-              {reported
-                ? answered
-                  ? "Report again"
-                  : "Change report"
-                : "Report this question"}
+              {buttons.report}
             </button>
           ) : null}
         </div>
