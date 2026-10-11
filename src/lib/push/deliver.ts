@@ -109,8 +109,10 @@ export async function drainOutbox(
       (r): r is ClaimRow & { endpoint: string; p256dh: string; auth: string } =>
         r.endpoint !== null && r.p256dh !== null && r.auth !== null,
     );
-    const outcomes: { job: ClaimRow & { endpoint: string }; outcome: SendOutcome }[] =
-      [];
+    const outcomes: {
+      job: ClaimRow & { endpoint: string };
+      outcome: SendOutcome;
+    }[] = [];
     let sentUpTo = 0;
     while (sentUpTo < jobs.length && inBudget()) {
       const slice = jobs.slice(sentUpTo, sentUpTo + PARALLEL);

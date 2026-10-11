@@ -86,6 +86,60 @@ def sign_in(browser, credentials):
     return state
 
 
+def wait_for_styles(page):
+    """Waits until the stylesheet has applied (the body takes the ground colour from it), so nothing is measured on an
+    unstyled page. A busy machine once served a page whose CSS hadn't applied by networkidle; one reload covers that."""
+    styled = "() => getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)'"
+    try:
+        page.wait_for_function(styled, timeout=10000)
+    except Exception:
+        page.reload()
+        page.wait_for_load_state("networkidle")
+        page.wait_for_function(styled, timeout=10000)
+
+
+def _luminance(rgb):
+    def channel(c):
+        c = c / 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (channel(c) for c in rgb)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(a, b):
+    """WCAG contrast ratio of two [r, g, b] colours."""
+    la, lb = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+# The focused element's ring as drawn: outline style, width, colour, and the colour behind it (the nearest solid
+# background under the ring). `ring` names the element that draws it: the focused
+# element itself, or for a visually hidden radio, the segment next to it.
+FOCUS_RING = """() => {
+  const rgb = (c) => (c.match(/[\\d.]+/g) || []).slice(0, 4).map(Number);
+  const a = document.activeElement;
+  if (!a || a === document.body) return null;
+  const ring = a.matches('input.sr-only') ? a.nextElementSibling : a;
+  const cs = getComputedStyle(ring);
+  // A ring drawn outside the element (outline-offset 0 or more) sits on the parent's background; an inset one on
+  // the element's own.
+  let behind = null;
+  for (let e = parseFloat(cs.outlineOffset) < 0 ? ring : ring.parentElement; e && !behind; e = e.parentElement) {
+    const c = rgb(getComputedStyle(e).backgroundColor);
+    if (c.length === 3 || (c.length === 4 && c[3] > 0)) behind = c.slice(0, 3);
+  }
+  return { tag: a.tagName, id: a.id, value: a.value || null, checked: !!a.checked,
+           text: (a.innerText || '').trim().slice(0, 80), style: cs.outlineStyle,
+           width: parseFloat(cs.outlineWidth), colour: rgb(cs.outlineColor).slice(0, 3),
+           behind: behind || rgb(getComputedStyle(document.body).backgroundColor).slice(0, 3) };
+}"""
+
+
+def ring_visible(ring):
+    """A ring that shows: drawn, at least 2 px, at least 3:1 against what is behind it (WCAG 1.4.11)."""
+    return bool(ring) and ring["style"] != "none" and ring["width"] >= 2 and contrast(ring["colour"], ring["behind"]) >= 3
+
+
 def wait_for_worker(page):
     page.evaluate(
         """() => Promise.race([

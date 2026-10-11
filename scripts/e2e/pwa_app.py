@@ -10,9 +10,9 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
-from pwa_common import (ANDROID_CHROME, ANDROID_FIREFOX, BASE, CARD, DESKTOP, IPHONE_INSTAGRAM, IPHONE_SAFARI, PHONE,
-                        check, finish, qa_credentials, record_push_routes, shot, sign_in, stand_in_push, visible_text,
-                        wait_for_worker)
+from pwa_common import (ANDROID_CHROME, ANDROID_FIREFOX, BASE, CARD, DESKTOP, FOCUS_RING, IPHONE_INSTAGRAM, IPHONE_SAFARI,
+                        PHONE, check, finish, qa_credentials, record_push_routes, ring_visible, shot, sign_in,
+                        stand_in_push, visible_text, wait_for_styles, wait_for_worker)
 
 INSTALL_PROMPT = """() => {
   const e = new Event('beforeinstallprompt', { cancelable: true });
@@ -45,7 +45,18 @@ def open_page(ctx, path):
     calls = record_push_routes(page)
     page.goto(BASE + path)
     page.wait_for_load_state("networkidle")
+    wait_for_styles(page)
     return page, calls
+
+
+def focused(page):
+    return page.evaluate(FOCUS_RING)
+
+
+def keyboard_on(page):
+    """Picks On in the OFF | ON segments from the keyboard: focus Off, then the arrow key, as a keyboard user would."""
+    page.locator('input[name=push-device][value=off]').focus()
+    page.keyboard.press("ArrowRight")
 
 
 def new_phone(browser, state, ua, push=None, scheme="light", cookies=()):
@@ -184,10 +195,15 @@ with sync_playwright() as p:
           hint.count() == 1 and hint.get_attribute("href") == "/settings?tab=app")
     check("/notifications: no notifications card on top of the line (one ask)", page.locator(CARD).count() == 0)
     shot(page, "notifications-hint-390")
-    page.get_by_role("button", name="Not now").click()
+    page.get_by_role("button", name="Not now").focus()
+    page.keyboard.press("Enter")
     check("/notifications: the line's Not now hides it and is remembered",
           hint.count() == 0
           and page.evaluate("() => localStorage.getItem('hosa-push-card-dismissed-at')") is not None)
+    page.wait_for_timeout(200)
+    f = focused(page)
+    check("/notifications: Not now from the keyboard moves focus to the page's main content, not the top",
+          f is not None and f["id"] == "main", json.dumps(f))
     page.reload()
     page.wait_for_load_state("networkidle")
     page.wait_for_timeout(1000)
@@ -235,6 +251,31 @@ with sync_playwright() as p:
             check("status bar: follows a colour theme picked in Settings", tc["active"] == tc["ground"] == "#f1f1ef",
                   json.dumps(tc))
         ctx.close()
+
+    # The sign-in page opens on a navy band on a phone: the status bar takes that colour, then the ground once signed in.
+    ctx = browser.new_context(**PHONE, user_agent=IPHONE_SAFARI)
+    ctx.add_init_script(stand_in_push(ios_standalone=True))
+    page, _ = open_page(ctx, "/login")
+    field = page.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--field').trim()")
+    tc = theme_colour(page)
+    check("status bar on /login (phone): the navy band's colour, not the page's ground",
+          tc["active"] == field == "#1e3d62", json.dumps({**tc, "field": field}))
+    shot(page, "login-390")
+    page.fill('input[name="email"]', credentials[0])
+    page.fill('input[name="password"]', credentials[1])
+    page.click('button[type="submit"]')
+    page.wait_for_url(lambda u: "/login" not in u, timeout=30000)
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(300)
+    tc = theme_colour(page)
+    check("status bar after signing in: back on the page's ground", tc["active"] == tc["ground"] == "#e8f2fa",
+          json.dumps(tc))
+    ctx.close()
+    ctx = browser.new_context(**DESKTOP)
+    page, _ = open_page(ctx, "/login")
+    tc = theme_colour(page)
+    check("status bar on /login (desktop, field on the left): the ground", tc["active"] == tc["ground"], json.dumps(tc))
+    ctx.close()
 
     # Settings tab row on small phones: five tabs, each at least 44 px wide, no sideways scroll -----------------------
     for width in (360, 375, 390):
@@ -287,15 +328,34 @@ with sync_playwright() as p:
         check("once on, the card doesn't come back", page.locator(CARD).count() == 0)
         ctx.close()
 
-    # The installed app, and the member says no in the browser's question.
-    ctx = new_phone(browser, state, IPHONE_SAFARI, stand_in_push(ios_standalone=True, answer="denied"))
-    page, calls = open_page(ctx, "/")
-    page.locator(CARD).wait_for(state="visible", timeout=10000)
-    page.locator(CARD).get_by_role("button", name="Turn on").click()
-    page.wait_for_timeout(1500)
-    check("refused in the browser's question: the card goes and nothing is saved",
-          page.locator(CARD).count() == 0 and not [c for c in calls if c[0] == "POST"])
-    ctx.close()
+    # The card's Turn on from the keyboard, for each answer the browser's question can give. Focus must never fall
+    # back to the top of the page: it stays on Turn on, moves to Done, or moves to the main content as the card goes.
+    for answer in ("default", "denied", "granted"):
+        ctx = new_phone(browser, state, IPHONE_SAFARI, stand_in_push(ios_standalone=True, answer=answer))
+        page, calls = open_page(ctx, "/")
+        page.locator(CARD).wait_for(state="visible", timeout=10000)
+        page.locator(CARD).get_by_role("button", name="Turn on").focus()
+        page.keyboard.press("Enter")
+        if answer == "default":
+            page.locator(CARD).get_by_text("No answer from the browser").wait_for(timeout=10000)
+            page.wait_for_timeout(250)
+            f = focused(page)
+            check("card, no answer from the browser: focus stays on Turn on, with a ring, and the card says why",
+                  f is not None and f["text"].lower() == "turn on" and ring_visible(f), json.dumps(f))
+            shot(page, "card-keyboard-no-answer-390")
+        elif answer == "denied":
+            page.locator(CARD).wait_for(state="detached", timeout=10000)
+            page.wait_for_timeout(250)
+            f = focused(page)
+            check("refused in the browser's question: the card goes, nothing is saved, focus moves to the main content",
+                  not [c for c in calls if c[0] == "POST"] and f is not None and f["id"] == "main", json.dumps(f))
+        else:
+            page.locator(CARD).get_by_text("Notifications on").wait_for(timeout=15000)
+            page.wait_for_timeout(250)
+            f = focused(page)
+            check("card, allowed: focus moves from Turn on to Done", f is not None and f["id"] == "install-card-done",
+                  json.dumps(f))
+        ctx.close()
 
     # The installed Android app asks too.
     ctx = new_phone(browser, state, ANDROID_CHROME, stand_in_push(display_standalone=True))
@@ -380,6 +440,40 @@ with sync_playwright() as p:
           page.get_by_role("link", name="Turn them on in Settings").count() == 0)
     ctx.close()
 
+    # Settings segments from the keyboard: On with no answer from the browser, then On refused. ---------------------
+    ctx = new_phone(browser, state, ANDROID_CHROME, stand_in_push(answer="default"))
+    page, calls = open_page(ctx, "/settings?tab=app")
+    wait_for_worker(page)
+    page.wait_for_timeout(600)
+    keyboard_on(page)
+    page.wait_for_function("() => document.getElementById('push-note')?.textContent.includes('No answer')", timeout=10000)
+    settled(page, "off")
+    f = focused(page)
+    check("segments, no answer from the browser: focus stays on On (not checked) with a ring that shows",
+          f is not None and f["value"] == "on" and not f["checked"] and ring_visible(f), json.dumps(f))
+    check("segments, no answer: the status line says why", "No answer" in page.inner_text("#push-note"))
+    shot(page, "segments-keyboard-no-answer-390")
+    # With focus on the open On segment, Shift+Tab goes to the checked one (Off), as Chrome orders a radio group.
+    page.keyboard.press("Shift+Tab")
+    f = focused(page)
+    check("segments: the checked segment (Off) gets a ring that shows too",
+          f is not None and f["value"] == "off" and f["checked"] and ring_visible(f), json.dumps(f))
+    ctx.close()
+
+    ctx = new_phone(browser, state, ANDROID_CHROME, stand_in_push(answer="denied"))
+    page, calls = open_page(ctx, "/settings?tab=app")
+    wait_for_worker(page)
+    page.wait_for_timeout(600)
+    keyboard_on(page)
+    page.get_by_text("Notifications are blocked for HOSA").wait_for(timeout=10000)
+    page.wait_for_timeout(250)
+    f = focused(page)
+    check("segments, refused: focus moves to the line that says notifications are blocked, with a ring",
+          f is not None and f["id"] == "push-state" and "blocked" in f["text"] and ring_visible(f), json.dumps(f))
+    check("segments, refused: nothing was saved", not [c for c in calls if c[0] == "POST"], json.dumps(calls))
+    shot(page, "segments-keyboard-refused-390")
+    ctx.close()
+
     # Desktop: Settings at 1440 with notifications on.
     ctx = browser.new_context(**DESKTOP, storage_state=state)
     ctx.add_init_script(stand_in_push(permission="granted"))
@@ -389,6 +483,9 @@ with sync_playwright() as p:
     page.get_by_role("group", name="Notifications on this device").locator("label", has_text="On").click()
     settled(page, "on")
     check("desktop: On works the same", any(c[0] == "POST" for c in calls))
+    rail = page.locator('nav[aria-label="Settings sections"] a[href="/settings?tab=app"]')
+    check("desktop rail: the Phone app tab says it holds notifications too",
+          " ".join(rail.inner_text().split()).lower() == "phone app and notifications", rail.inner_text())
     shot(page, "settings-app-1440-on")
     ctx.close()
 

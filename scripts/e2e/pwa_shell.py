@@ -108,7 +108,18 @@ with sync_playwright() as p:
     shot(page, "offline-1440")
     page.set_viewport_size(PHONE["viewport"])
     shot(page, "offline-390")
-    ctx.set_offline(False)
+    # Back online, the offline page reloads itself. Waiting for that reload also keeps it from cutting off the next
+    # navigation (it once aborted the goto below with net::ERR_ABORTED).
+    try:
+        with page.expect_navigation(timeout=10000):
+            ctx.set_offline(False)
+        page.wait_for_load_state("networkidle")
+        # Signed out here, so the real /calendar sends the browser on to /login?next=/calendar...
+        reloaded = "calendar" in page.url and page.get_by_text("This page needs a connection").count() == 0
+    except Exception:
+        reloaded = False
+    check("back online: the offline page reloads itself into the real page (here, sign-in for /calendar)", reloaded,
+          page.url)
 
     # Signed-out pages never land in the cache -------------------------------------------------------------------
     for path in ("/login", "/signup", "/forgot-password"):
