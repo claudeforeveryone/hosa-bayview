@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("push_subscriptions")
-    .select("endpoint")
+    .select("endpoint, sound")
     .eq("endpoint", parsed.data.endpoint)
     .maybeSingle();
   if (error) {
@@ -44,7 +44,8 @@ export async function POST(request: Request) {
       url: "/settings?tab=app",
       tag: "hosa-test",
       kind: "test",
-      silent: false,
+      // The same rule as real pushes (deliver.ts): only an explicit "off" on the Sound tab mutes it.
+      silent: (data as { sound?: unknown }).sound === false,
     },
   );
   if (outcome.ok) return new NextResponse(null, { status: 204, headers: NO_STORE });
