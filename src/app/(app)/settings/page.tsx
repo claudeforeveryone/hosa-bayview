@@ -49,7 +49,7 @@ export default async function SettingsPage({
                   <Link
                     href={`/settings?tab=${t.id}`}
                     aria-current={on ? "page" : undefined}
-                    className={`caps step flex min-h-12 min-w-11 items-center justify-center px-1 text-[15px] sm:px-5 lg:justify-start sm:text-[18px] lg:min-h-14 ${
+                    className={`caps step flex min-h-12 min-w-11 items-center justify-center px-1 text-[15px] sm:px-5 lg:min-h-14 lg:flex-col lg:items-start lg:justify-center sm:text-[18px] ${
                       on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                     }`}
                   >
@@ -65,6 +65,12 @@ export default async function SettingsPage({
                     ) : (
                       t.label
                     )}
+                    {t.more ? (
+                      <span className="sr-only lg:not-sr-only lg:font-sans lg:text-[15px] lg:leading-snug lg:font-normal lg:tracking-normal lg:normal-case">
+                        {" "}
+                        {t.more}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               );

@@ -18,6 +18,21 @@ describe("resolveSettingsTab", () => {
     expect(resolveSettingsTab(["sound", "events"])).toBe("appearance");
   });
 
+  // A phone shows `short`, the desktop rail `label` plus `more`; screen readers get `label` plus `more` everywhere,
+  // so what a member sees is always part of the name they can say (WCAG 2.5.3, Label in Name).
+  it("keeps every visible label inside the tab's spoken name", () => {
+    for (const t of SETTINGS_TABS) {
+      const name = [t.label, t.more].filter(Boolean).join(" ").toLowerCase();
+      if (t.short) expect(name).toContain(t.short.toLowerCase());
+      expect(name.startsWith(t.label.toLowerCase())).toBe(true);
+    }
+  });
+
+  it("says on the desktop rail that Phone app is also where notifications are", () => {
+    const app = SETTINGS_TABS.find((t) => t.id === "app");
+    expect(`${app?.label} ${app?.more}`).toBe("Phone app and notifications");
+  });
+
   it("names the tabs in plain words", () => {
     expect(SETTINGS_TABS.map((t) => t.label)).toEqual([
       "Appearance",

@@ -135,7 +135,7 @@ export function usePushControl(vapidPublicKey: string | null): PushControl {
       if (permission === "default") {
         setNote({
           tone: "error",
-          text: "No answer from the browser. Tap again when you're ready.",
+          text: "No answer from the browser. Try again when you're ready.",
         });
         return false;
       }
