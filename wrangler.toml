@@ -7,6 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 directory = ".open-next/assets"
 binding = "ASSETS"
 
+[observability.logs]
+enabled = false
+invocation_logs = true
+
 [[services]]
 binding = "WORKER_SELF_REFERENCE"
 service = "hosa-bayview"
