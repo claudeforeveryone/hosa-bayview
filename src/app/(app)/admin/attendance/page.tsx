@@ -161,12 +161,12 @@ async function Reports() {
             Rolls this week
           </h2>
           <p className="caps text-[16px] text-ink-2">
-            {weekLabel(week)} · {submitted} of {weekStatus.length} classrooms
+            {weekLabel(week)} · {submitted} of {weekStatus.length} events
             submitted
           </p>
         </div>
         {weekStatus.length === 0 ? (
-          <EmptyState title="No classrooms yet" />
+          <EmptyState title="No events yet" />
         ) : (
           <ul className="border-t border-rule">
             {weekStatus.map((r) => (
@@ -198,7 +198,7 @@ async function Reports() {
             Most absences
           </h2>
           <p className="text-[16px] text-ink-2">
-            Meetings that have passed and were taken, across every classroom.
+            Meetings that have passed and were taken, across every event.
             Excused doesn&apos;t count. Warn sends a note to their screen.
           </p>
         </div>
@@ -214,8 +214,8 @@ async function Reports() {
           Members
         </h2>
         <p className="text-[16px] text-ink-2">
-          Present or late, out of every week marked except excused. Each
-          classroom counts separately.
+          Present or late, out of every week marked except excused. Each event
+          counts separately.
         </p>
         {members.length === 0 ? (
           <EmptyState title="No marks yet" />
@@ -314,7 +314,9 @@ async function AllEvents({
         )}
       </div>
       {rostered.length === 0 ? (
-        <EmptyState title="No one has joined an event yet">Names show up here as members join events with a code.</EmptyState>
+        <EmptyState title="No one has joined an event yet">
+          Names show up here as members join events with a code.
+        </EmptyState>
       ) : (
         <WeekBoard
           key={week.id}
@@ -380,7 +382,8 @@ async function Season({
         <NoWeeks isExec={isExec} />
       ) : room.members.length === 0 ? (
         <EmptyState title="No one has joined this event yet">
-          Share the event&apos;s join code. Members show up here as soon as they join.
+          Share the event&apos;s join code. Members show up here as soon as they
+          join.
         </EmptyState>
       ) : (
         <SeasonGrid

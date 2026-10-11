@@ -155,7 +155,7 @@ function PanelBody({ isExec, canSeeStats, canTeach, rooms }: Props) {
                   className={`${row} ${rowState(path === "/c/new")}`}
                 >
                   <Plus size={20} strokeWidth={1.75} aria-hidden />
-                  <span className="text-[17px] font-medium">New classroom</span>
+                  <span className="text-[17px] font-medium">New event</span>
                 </Link>
               </li>
             ) : null}

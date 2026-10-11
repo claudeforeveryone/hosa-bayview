@@ -69,7 +69,9 @@ export async function AdminLog({ now }: { now: number }) {
                     <span className="font-semibold">{r.target_name}</span>
                   </>
                 ) : null}
-                {r.detail && r.action !== "passcode" && r.action !== "passcode_used" ? (
+                {r.detail &&
+                r.action !== "passcode" &&
+                r.action !== "passcode_used" ? (
                   <span className="block truncate text-[15px] text-ink-2">
                     {r.detail}
                   </span>
@@ -247,7 +249,7 @@ export async function ContentLists() {
         Content
       </h2>
       <div className="border-t border-rule">
-        <Group title="Classrooms" count={R.length}>
+        <Group title="Events" count={R.length}>
           {R.map((r) => (
             <Row
               key={r.id}
@@ -304,7 +306,10 @@ export async function ContentLists() {
               href={materialHref(m)}
               external
               title={m.title}
-              meta={[m.room?.name ?? "Resources", m.file_name ?? m.url ?? (m.note || "Placeholder")]
+              meta={[
+                m.room?.name ?? "Resources",
+                m.file_name ?? m.url ?? (m.note || "Placeholder"),
+              ]
                 .filter(Boolean)
                 .join(" · ")}
               del={del(deleteMaterial.bind(null, m.id), m.title)}
