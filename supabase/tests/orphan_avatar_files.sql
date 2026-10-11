@@ -16,6 +16,9 @@ exception when others then
   if sqlstate <> state then raise exception 'FAIL %: expected %, got % (%)', label, state, sqlstate, sqlerrm; end if;
 end $$;
 
+-- The bucket's size before this test adds anything.
+create temp table before as select (public.orphan_avatar_files() ->> 'files')::bigint as files;
+
 -- A member who stays, and one who will be deleted.
 insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, aud, role) values
   ('00000000-0000-4000-8000-0000000025b1', 'sweep.stays@example.com', '{"full_name":"Sweep Stays"}', now(),
@@ -34,8 +37,13 @@ insert into storage.objects (bucket_id, name) values
   -- Another bucket: never swept.
   ('materials', '00000000-0000-4000-8000-0000000025b9/sweep-test.pdf');
 
+-- The function answers {"orphans": [...], "files": n}; these read it as rows.
+create function pg_temp.orphans() returns setof text language sql as $$
+  select jsonb_array_elements_text(public.orphan_avatar_files() -> 'orphans')
+$$;
+
 create temp table swept as
-  select f as name from public.orphan_avatar_files() f where f like '%-0000000025%' or f like 'sweep-test/%';
+  select f as name from pg_temp.orphans() f where f like '%-0000000025%' or f like 'sweep-test/%';
 
 select pg_temp.check('only the folder with no account is listed while both members exist',
   (select array_agg(name order by name) from swept)
@@ -47,17 +55,24 @@ select pg_temp.check('the deleted account''s picture is still in storage',
   exists (select 1 from storage.objects
           where bucket_id = 'avatars' and name like '00000000-0000-4000-8000-0000000025b2/%'));
 select pg_temp.check('and now it is listed, next to the folder with no account',
-  (select array_agg(f order by f) from public.orphan_avatar_files() f where f like '%-0000000025%')
+  (select array_agg(f order by f) from pg_temp.orphans() f where f like '%-0000000025%')
   = array['00000000-0000-4000-8000-0000000025b2/22222222-2222-4222-8222-222222222222.gif',
           '00000000-0000-4000-8000-0000000025b9/33333333-3333-4333-8333-333333333333.jpg']);
 
 -- On the real data: everything listed sits in a user-id folder with no account, and nothing a member still has.
 select pg_temp.check('nothing listed belongs to an existing account',
-  not exists (select 1 from public.orphan_avatar_files() f
+  not exists (select 1 from pg_temp.orphans() f
               join auth.users u on u.id::text = split_part(f, '/', 1)));
 select pg_temp.check('every listed name is in the avatars bucket',
-  not exists (select 1 from public.orphan_avatar_files() f
+  not exists (select 1 from pg_temp.orphans() f
               where not exists (select 1 from storage.objects o where o.bucket_id = 'avatars' and o.name = f)));
+
+-- "files" counts every file in the avatars bucket, orphaned or not (the route weighs the orphans against it): the
+-- five test pictures above, and not the file in the other bucket.
+select pg_temp.check('files counts the whole avatars bucket and nothing else',
+  (public.orphan_avatar_files() ->> 'files')::bigint = (select files from before) + 5
+  and (public.orphan_avatar_files() ->> 'files')::bigint
+      = (select count(*) from storage.objects where bucket_id = 'avatars'));
 
 -- Only the secret key may ask: the names are other people's file paths.
 select pg_temp.check('service_role may call it',
