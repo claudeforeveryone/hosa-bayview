@@ -257,23 +257,20 @@ export function EngagementSection({
             rows={data.events.map((e, i) => ({ ...e, rank: i + 1 }))}
             columns={[
               {
-                key: "rank",
-                header: "Rank",
-                numeric: true,
-                cell: (e) => e.rank,
-              },
-              {
                 key: "name",
-                header: "Event",
+                header: "Event, busiest first",
                 cell: (e) => (
-                  <>
-                    {e.name}
-                    {e.event && e.event !== e.name ? (
-                      <span className="block text-[13px] font-normal text-ink-2">
-                        {e.event}
-                      </span>
-                    ) : null}
-                  </>
+                  <span className="grid grid-cols-[2ch_minmax(0,1fr)] gap-x-3">
+                    <span className="num text-ink-2">{e.rank}</span>
+                    <span>
+                      {e.name}
+                      {e.event && e.event !== e.name ? (
+                        <span className="block text-[13px] font-normal text-ink-2">
+                          {e.event}
+                        </span>
+                      ) : null}
+                    </span>
+                  </span>
                 ),
               },
               {
