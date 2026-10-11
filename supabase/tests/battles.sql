@@ -1,4 +1,4 @@
--- Battles (Task 18, migrations 0095-0098): RLS, key secrecy before a round closes (in battles and in the test
+-- Battles (Task 18, migrations 0095-0098, 0207): RLS, key secrecy before a round closes (in battles and in the test
 -- RPCs), one answer per round, late answers refused after the grace, the advance race, away players, stale
 -- battles, non-members and banned members kept out, no Elo, wins and the farm rule, realtime wiring.
 -- Runs in one transaction and rolls back. Every check runs; the last statement raises with the failures (or
@@ -368,6 +368,10 @@ select pg_temp.ok('the state marks u2 away', $q$
 select pg_temp.step('u3 answers A at once (20 s left)', $q$select public.answer_battle(pg_temp.get('b1'), 4, 0)$q$);
 select pg_temp.ok('away u2 did not block: round 4 closed, a fast right answer pays 150 (team 2 now 375)', $q$
   select (s -> 'current' ->> 'closed_at') is not null and (s -> 'teams') = '[0, 375]'::jsonb from pg_temp.st() s$q$);
+select pg_temp.as_user(pg_temp.u(4));
+select pg_temp.step('before round 5, u4 starts a timed run of t1', $q$select pg_temp.save('t1run', public.start_attempt(pg_temp.t(1), 'timed'))$q$);
+select pg_temp.step('u4 answers round 5''s question in it while that round has not started', $q$
+  select public.answer_question(pg_temp.get('t1run'), pg_temp.get('q5'), 0)$q$);
 select pg_temp.as_user(pg_temp.u(2));
 select pg_temp.step('u2 pings again', $q$select public.battle_ping(pg_temp.get('b1'))$q$);
 select pg_temp.step('host presses Next', $q$select public.advance_battle(pg_temp.get('b1'), 4, 'reveal')$q$);
@@ -388,9 +392,13 @@ select pg_temp.ok('review sheet: the live question''s key is hidden, the rest sh
 select pg_temp.ok('taking list: the live question''s key is hidden', $q$
   select bool_and((question_id = pg_temp.get('q5')) = (correct_index is null))
   from public.attempt_questions(pg_temp.get('p1'))$q$);
-select pg_temp.step('u4 starts a timed run of t1', $q$select pg_temp.save('t1run', public.start_attempt(pg_temp.t(1), 'timed'))$q$);
-select pg_temp.step('u4 answers the live question in the timed run (stored, no verdict)', $q$
-  select public.answer_question(pg_temp.get('t1run'), pg_temp.get('q5'), 0)$q$);
+-- A timed answer has no verdict, but submitting grades it, and Elo pays a right one at once (0207).
+select pg_temp.expect('timed answer on the live question is refused too (submitting would grade it and pay Elo)', $q$
+  select public.answer_question(pg_temp.get('t1run'), pg_temp.get('q5'), 1)$q$, '22023');
+select pg_temp.ok('the refused answer left the pick made before the round alone', $q$
+  select selected_index = 0 from public.attempt_questions(pg_temp.get('t1run')) where question_id = pg_temp.get('q5')$q$);
+select pg_temp.ok('timed answer on a question not in play still saves', $q$
+  select selected_index = 0 from public.answer_question(pg_temp.get('t1run'), pg_temp.get('free'), 0)$q$);
 select pg_temp.ok('submitting it hides the score while the question is live', $q$
   select score is null from public.submit_attempt(pg_temp.get('t1run'))$q$);
 select pg_temp.ok('attempt list hides that score too', $q$

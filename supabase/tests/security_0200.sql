@@ -1,10 +1,12 @@
 -- Omega security checks: audit H1 (attempt scores, and the Elo side channel), H2, M1, M4, M7, the chapter-code gate
--- (0090) and battles (0095-0098), for migrations 0200-0206. Impersonates anon, a trainee and an executive, and plays
+-- (0090) and battles (0095-0098), for migrations 0200-0207. Impersonates anon, a trainee and an executive, and plays
 -- the auth server for sign-ups while a chapter code is on. One transaction that rolls back; raises if any check fails.
 -- Writes only rows the rollback removes: two questions in a test the trainee can practise (and that test's
--- show_answers, flipped off and on), practice runs, a chapter code, two throwaway sign-ups, and every executive made a
--- trainee for the M1 check. It makes no classrooms, tests, decks or admin_log rows (the profile log trigger is off for
--- the M1 part), whose number sequences would move on a live project even after a rollback.
+-- show_answers, flipped off and on), practice runs, two questions and a timed run in a test the trainee can take (its
+-- room made an MC room, the test made timed and uncapped) with a battle playing one of them, a chapter code, two
+-- throwaway sign-ups, and every executive made a trainee for the M1 check. It makes no classrooms, tests, decks or
+-- admin_log rows (the profile log trigger is off for the M1 part), whose number sequences would move on a live project
+-- even after a rollback.
 -- Accounts: set omega.trainee_id and omega.exec_id first to pick them (ids are never committed); otherwise the
 -- newest trainee and the oldest executive are used. Set omega.report_only = 'on' to list results without raising
 -- (shows which checks fail before the migrations are applied).
@@ -289,6 +291,60 @@ select set_config('request.jwt.claims', '', true);
 -- checks the lock is still in the code, and elo_reveal_lock.sql checks the lock an answer actually takes.
 select pg_temp.ok('H1 Elo: elo_on_answer reads show_answers under a share lock (elo_reveal_lock.sql)',
   $q$select p.prosrc ~* 'for\s+share' from pg_proc p where p.oid = 'private.elo_on_answer()'::regprocedure$q$);
+
+-- ---- Battles: a timed run can't answer a live round's question (0207) --------------------------------------------
+-- 0098 holds back practice answers on a question that is live in a battle. A timed answer shows no verdict, but
+-- submitting grades it and Elo pays a right one at once, which member_stats shows inside the round. A test the trainee
+-- can take in an event room becomes a battle source for this transaction (its room an MC room; the test timed, uncapped
+-- and showing answers), gets two new questions, and the first goes live in a battle round.
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
+select pg_temp.keep('battle_test', $q$
+  select t.id::text from public.tests t join public.classrooms c on c.id = t.classroom_id
+  where c.kind = 'class' and t.is_published and private.can_take_test(t.id) and not private.can_manage_test(t.id)
+    and private.can_view_classroom(c.id) and not private.keys_locked(t.id)
+  order by t.created_at, t.id limit 1$q$);
+select set_config('request.jwt.claims', '', true);
+select pg_temp.ok('battles setup: the trainee can take a test in an event room', $q$select v is not null from _t where k = 'battle_test'$q$);
+update public.classrooms set category = 'mc'
+where id = (select t.classroom_id from public.tests t where t.id = (select v::uuid from _t where k = 'battle_test'))
+  and category is distinct from 'mc' and category is distinct from 'practical';
+update public.tests set time_limit_minutes = 10, attempts_allowed = null, show_answers = true
+where id = (select v::uuid from _t where k = 'battle_test');
+insert into public.questions (id, test_id, position, prompt, options)
+select x.id, t.v::uuid,
+  coalesce((select max(q.position) from public.questions q where q.test_id = t.v::uuid), 0) + x.n,
+  'Omega battle check ' || x.n, array['first', 'second']
+from _t t
+cross join (values (1, '00000000-0000-4000-8000-0000000000a3'::uuid), (2, '00000000-0000-4000-8000-0000000000a4'::uuid)) x(n, id)
+where t.k = 'battle_test' and t.v is not null;
+insert into public.question_keys (question_id, correct_index)
+select q.id, 0 from public.questions q where q.id in ('00000000-0000-4000-8000-0000000000a3', '00000000-0000-4000-8000-0000000000a4');
+-- Wrapped, so a run before 0095 lists the failure instead of aborting.
+select pg_temp.expect('battles setup: a battle is playing round 1 on the first new question', $q$
+  with b as (
+    insert into public.battles (id, classroom_id, code, host_id, format, source_test_id, question_count, status,
+                                current_round, started_at)
+    select '00000000-0000-4000-8000-0000000000b1', t.classroom_id, 'ZZZZ', (select exec_id from _who), '1v1', t.id, 5,
+      'playing', 1, now()
+    from public.tests t where t.id = (select v::uuid from _t where k = 'battle_test')
+    returning id
+  )
+  insert into public.battle_rounds (battle_id, round_no, question_id, started_at, ends_at)
+  select b.id, 1, '00000000-0000-4000-8000-0000000000a3', now(), now() + interval '20 seconds' from b$q$, '');
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select pg_temp.keep('timed_run', $q$select public.start_attempt((select v::uuid from _t where k = 'battle_test'), 'timed')::text$q$);
+select pg_temp.expect('battles trainee: a timed answer on the question live in the battle is refused',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'timed_run'), '00000000-0000-4000-8000-0000000000a3', 0)$q$,
+  '22023');
+select pg_temp.expect('battles trainee: a timed answer on a question not in play still saves',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'timed_run'), '00000000-0000-4000-8000-0000000000a4', 0)$q$,
+  '');
+reset role;
+select set_config('request.jwt.claims', '', true);
 
 -- ---- The chapter code gate, end to end ----------------------------------------------------------------------------
 -- An executive sets a code (here by hand, to keep admin_log's id sequence where it is).
