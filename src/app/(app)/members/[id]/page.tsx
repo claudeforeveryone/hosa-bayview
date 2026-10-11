@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Member" };
 // Any signed-in member can see another member's numbers. Emails never leave the database for this page.
 export default async function MemberPage(props: PageProps<"/members/[id]">) {
   const { id } = await props.params;
-  await requireProfile();
+  const me = await requireProfile();
   const [stats, details] = await Promise.all([
     getMemberStats(id),
     getMemberDetails(),
@@ -50,11 +50,12 @@ export default async function MemberPage(props: PageProps<"/members/[id]">) {
       </header>
       <MemberStatRows stats={stats} />
       <RecentBonuses rows={bonuses} />
+      {/* The full list is for executives (0204); everyone else goes back to the board they came from. */}
       <Link
-        href="/members"
+        href={me.role === "executive" ? "/members" : "/leaderboard"}
         className="caps step justify-self-start text-[17px] underline underline-offset-4"
       >
-        All members
+        {me.role === "executive" ? "All members" : "Leaderboard"}
       </Link>
     </div>
   );
