@@ -1,8 +1,10 @@
 // Everything else needs a session. /reset-password and /banned are deliberately not here: both only make sense
 // with a session (the recovery link signs the browser in first; a banned member is signed in).
-export const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth"];
-// Matched exactly, never as a prefix. The handler checks its own CRON_SECRET bearer token.
-export const EXACT_PUBLIC_PATHS = ["/api/keepalive"];
+// The terms and privacy pages are for everyone: sign-up links to them, and a signed-in member can reread them.
+export const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth", "/terms", "/privacy"];
+// Matched exactly, never as a prefix. The keepalive handler checks its own CRON_SECRET bearer token. Search engines
+// fetch the sitemap signed out (robots.txt and the .png social cards never reach the proxy; see its matcher).
+export const EXACT_PUBLIC_PATHS = ["/api/keepalive", "/sitemap.xml"];
 const GUEST_ONLY = ["/login", "/signup"];
 
 export type Gate = { redirect: string } | null;

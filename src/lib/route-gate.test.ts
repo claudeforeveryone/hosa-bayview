@@ -19,6 +19,21 @@ describe("routeGate", () => {
     expect(routeGate("/api/keepalive2", "", false)).not.toBeNull();
   });
 
+  it("lets anyone read the terms and privacy pages, signed in or not", () => {
+    for (const p of ["/terms", "/privacy"]) {
+      expect(routeGate(p, "", false), p).toBeNull();
+      expect(routeGate(p, "", true), p).toBeNull();
+    }
+    expect(routeGate("/termsx", "", false)).not.toBeNull();
+    expect(routeGate("/privacy-admin", "", false)).not.toBeNull();
+  });
+
+  it("lets crawlers fetch exactly /sitemap.xml signed out", () => {
+    expect(routeGate("/sitemap.xml", "", false)).toBeNull();
+    expect(routeGate("/sitemap.xml/x", "", false)).not.toBeNull();
+    expect(routeGate("/sitemap.xmlx", "", false)).not.toBeNull();
+  });
+
   it("does not treat lookalike paths as public", () => {
     expect(routeGate("/login-admin", "", false)).not.toBeNull();
     expect(routeGate("/authx", "", false)).not.toBeNull();

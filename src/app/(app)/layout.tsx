@@ -1,7 +1,7 @@
 import { BottomNav, MobileBar, Sidebar } from "@/components/nav";
-import { Credit } from "@/components/credit";
 import { LuckyBonus } from "@/components/lucky-bonus";
 import { OnlineHeartbeat } from "@/components/online-heartbeat";
+import { SiteFooter } from "@/components/site-footer";
 import { WarningBanner } from "@/components/warning-banner";
 import { canTeach, getUserId, requireProfile } from "@/lib/auth";
 import { getMyClassrooms } from "@/lib/classrooms";
@@ -75,9 +75,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         >
           {children}
         </main>
-        <footer className="px-4 pb-4 sm:px-8 lg:hidden">
-          <Credit className="text-ink-2/80" />
-        </footer>
+        {/* Terms, Privacy and the credit at the foot of every page, at every width. */}
+        <div className="mx-auto w-full max-w-[80rem] px-4 sm:px-8 lg:px-12">
+          <SiteFooter className="border-t border-rule pt-1 pb-4 text-ink-2 lg:pb-6" />
+        </div>
       </div>
       <BottomNav isExec={nav.isExec} />
       <OnlineHeartbeat />

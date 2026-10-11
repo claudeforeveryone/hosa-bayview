@@ -192,8 +192,7 @@ export function Sidebar(props: Props) {
         />
       </div>
       <PanelBody {...props} />
-      <div className="mt-auto flex items-end justify-between gap-3 border-t border-on-field-2/40 px-6 pt-4 pb-5">
-        <Credit className="text-on-field-2" />
+      <div className="mt-auto flex items-end justify-end gap-3 border-t border-on-field-2/40 px-6 pt-4 pb-5">
         <ThemeToggle className="-mr-3 -mb-2 text-on-field-2 hover:text-on-field" />
       </div>
     </aside>

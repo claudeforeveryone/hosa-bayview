@@ -11,7 +11,8 @@ const securityHeaders = [
     value:
       "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()",
   },
-  // Nothing on this site is for search engines. Set here (not in the proxy) so static files and robots.txt get it too.
+  // The app is not for search engines. Set here (not in the proxy) so static files get it too. The public pages
+  // override it below (INDEXED_PATHS in src/lib/seo.ts).
   { key: "X-Robots-Tag", value: "noindex, nofollow" },
   // Two years, subdomains too. No preload: that list is hard to leave.
   {
@@ -37,7 +38,17 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "2mb" },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Log in, sign up, terms and privacy may be indexed. A later rule with the same key wins.
+      { source: "/:page(login|signup|terms|privacy)", headers: [{ key: "X-Robots-Tag", value: "index, follow" }] },
+      // So may the images those pages point to: the logo in the JSON-LD (Google ignores a noindex logo), the app icons
+      // and the social card. The dots are escaped so only these exact file names match.
+      {
+        source: "/:file(icon\\.png|apple-icon\\.png|opengraph-image\\.png|twitter-image\\.png)",
+        headers: [{ key: "X-Robots-Tag", value: "index, follow" }],
+      },
+    ];
   },
 };
 

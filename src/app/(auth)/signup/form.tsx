@@ -76,6 +76,18 @@ export function SignupForm({ chapterGate }: { chapterGate: boolean }) {
         hint="At least 8 characters."
       />
       <p className="text-[15px] text-ink-2">Everyone joins as a member. The chapter leads give out executive access.</p>
+      {/* Plain notice next to the button, no pre-ticked box. The links open a new tab so nothing typed is lost. */}
+      <p className="text-[15px] text-ink-2">
+        By creating an account you agree to the{" "}
+        <Link href="/terms" target="_blank" className="text-ink underline underline-offset-4">
+          Terms<span className="sr-only"> (opens in a new tab)</span>
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" target="_blank" className="text-ink underline underline-offset-4">
+          Privacy Policy<span className="sr-only"> (opens in a new tab)</span>
+        </Link>
+        .
+      </p>
       <Button type="submit" disabled={pending} className="mt-1 w-full">
         {pending ? "Making account" : "Make account"}
       </Button>
