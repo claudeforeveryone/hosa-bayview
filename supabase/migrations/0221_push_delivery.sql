@@ -9,8 +9,12 @@
 --      saved, so it never blocks or slows the insert.
 --   2. The route claims queued rows with push_claim (a 3 minute lease), sends to each device, and reports back with
 --      push_report: delivered rows leave the queue, dead devices (404/410, or 10 failures in a row) are dropped.
+--      When a push service has a passing problem (429, 5xx, a timeout), the row stays queued with the devices that
+--      already have it noted, and is tried again for the rest after a short wait (1, 2, 3, then 4 minutes). A
+--      route that crashes before reporting is covered the same way: the lease runs out and the row is claimed again.
 --   3. A pg_cron job every minute pokes the route again if anything is still queued and unleased, so a cold start,
---      a deploy or a network blip only delays a push. After 5 tries, or 2 days, a row is dropped.
+--      a deploy or a network blip only delays a push. A row gets 5 tries; anything still queued after 2 days is
+--      dropped.
 --
 -- Both RPCs are refused without the shared secret, so the route needs no service key. The secret is NOT in this
 -- file. Set it once, by hand, after applying (same value as PUSH_INTERNAL_SECRET in Vercel):
@@ -25,7 +29,9 @@ create table private.push_outbox (
   notification_id uuid primary key references public.notifications (id) on delete cascade,
   queued_at timestamptz not null default now(),
   attempts smallint not null default 0 check (attempts >= 0),
-  locked_until timestamptz
+  locked_until timestamptz,
+  -- Devices (endpoints) that already have this notification, or will never take it. A retry skips them.
+  delivered text[] not null default '{}'
 );
 create index push_outbox_queued_idx on private.push_outbox (queued_at);
 alter table private.push_outbox enable row level security;
@@ -140,7 +146,8 @@ returns table (
   p256dh text,
   auth text,
   sound boolean,
-  failure_count integer
+  failure_count integer,
+  attempts integer
 )
 language plpgsql
 volatile
@@ -165,27 +172,32 @@ begin
     set attempts = o.attempts + 1, locked_until = now() + interval '3 minutes'
     from picked p
     where o.notification_id = p.notification_id
-    returning o.notification_id
+    returning o.notification_id, o.attempts, o.delivered
   )
-  select n.id, n.user_id, n.kind, n.title, n.body, n.link, s.endpoint, s.p256dh, s.auth, s.sound, s.failure_count
+  select n.id, n.user_id, n.kind, n.title, n.body, n.link, s.endpoint, s.p256dh, s.auth, s.sound, s.failure_count,
+         c.attempts::integer
   from claimed c
   join public.notifications n on n.id = c.notification_id
   left join public.push_subscriptions s
     on s.user_id = n.user_id
    and n.read_at is null
    and n.created_at > now() - interval '1 day'
+   and s.endpoint <> all (c.delivered)
   order by n.created_at, s.endpoint;
 end;
 $$;
 
--- What happened. p_done leaves the queue; p_ok resets a device's failure count; p_failed counts one more failure and
--- drops a device at 10 in a row; p_gone (404/410 from the push service) drops the device at once.
+-- What happened. p_done leaves the queue; p_retry ([{"id": <notification>, "delivered": [<endpoint>, ...]}]) stays
+-- queued, notes the devices that already have it, and waits a minute per try so far before the next one; p_ok
+-- resets a device's failure count; p_failed counts one more failure and drops a device at 10 in a row; p_gone
+-- (404/410 from the push service) drops the device at once.
 create or replace function public.push_report(
   p_secret text,
   p_done uuid[],
   p_ok text[] default '{}',
   p_failed text[] default '{}',
-  p_gone text[] default '{}'
+  p_gone text[] default '{}',
+  p_retry jsonb default '[]'
 )
 returns void
 language plpgsql
@@ -208,6 +220,17 @@ begin
      or (s.endpoint = any (coalesce(p_failed, '{}')) and s.failure_count >= 10);
   delete from private.push_outbox o
   where o.notification_id = any (coalesce(p_done, '{}'));
+  update private.push_outbox o
+  set delivered = array(
+        select distinct e
+        from unnest(o.delivered || array(
+          select jsonb_array_elements_text(
+            case when jsonb_typeof(r.value -> 'delivered') = 'array' then r.value -> 'delivered' else '[]'::jsonb end))) e
+      ),
+      locked_until = now() + make_interval(mins => o.attempts)
+  from jsonb_array_elements(
+    case when jsonb_typeof(p_retry) = 'array' then p_retry else '[]'::jsonb end) r
+  where o.notification_id::text = r.value ->> 'id';
 end;
 $$;
 
@@ -238,9 +261,9 @@ revoke all on function private.push_enqueue() from public, anon, authenticated;
 revoke all on function private.push_sweep() from public, anon, authenticated;
 -- The route calls these with the publishable key and no session (role anon); the secret is the gate.
 revoke all on function public.push_claim(text, integer) from public, anon, authenticated;
-revoke all on function public.push_report(text, uuid[], text[], text[], text[]) from public, anon, authenticated;
+revoke all on function public.push_report(text, uuid[], text[], text[], text[], jsonb) from public, anon, authenticated;
 grant execute on function public.push_claim(text, integer) to anon, service_role;
-grant execute on function public.push_report(text, uuid[], text[], text[], text[]) to anon, service_role;
+grant execute on function public.push_report(text, uuid[], text[], text[], text[], jsonb) to anon, service_role;
 
 -- Scheduling by name replaces an existing job of the same name, so re-running this is safe.
 select cron.schedule('hosa-push-sweep', '* * * * *', 'select private.push_sweep()');

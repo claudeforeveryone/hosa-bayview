@@ -40,10 +40,11 @@ describe("supabaseOutbox", () => {
     expect(rows).toEqual([{ notification_id: "n1" }]);
   });
 
-  it("reports outcomes with the secret", async () => {
+  it("reports outcomes with the secret, including what to try again", async () => {
     db.rpc.mockResolvedValueOnce({ data: null, error: null });
     await supabaseOutbox(SECRET).report({
       done: ["n1"],
+      retry: [{ id: "n2", delivered: ["a"] }],
       ok: ["a"],
       failed: ["b"],
       gone: ["c"],
@@ -51,6 +52,7 @@ describe("supabaseOutbox", () => {
     expect(db.rpc).toHaveBeenCalledWith("push_report", {
       p_secret: SECRET,
       p_done: ["n1"],
+      p_retry: [{ id: "n2", delivered: ["a"] }],
       p_ok: ["a"],
       p_failed: ["b"],
       p_gone: ["c"],
@@ -64,7 +66,13 @@ describe("supabaseOutbox", () => {
     });
     await expect(supabaseOutbox(SECRET).claim(50)).rejects.toThrow("42501");
     await expect(
-      supabaseOutbox(SECRET).report({ done: [], ok: [], failed: [], gone: [] }),
+      supabaseOutbox(SECRET).report({
+        done: [],
+        retry: [],
+        ok: [],
+        failed: [],
+        gone: [],
+      }),
     ).rejects.toThrow("42501");
   });
 });

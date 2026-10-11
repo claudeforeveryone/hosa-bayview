@@ -107,8 +107,15 @@ select pg_temp.check('A13 other members cannot change sound',
 -- A shared phone signed in as someone else: the endpoint moves to the new member.
 select public.push_subscribe(current_setting('push.e1'), current_setting('push.k'), current_setting('push.a'));
 select pg_temp.as_admin();
-select pg_temp.check('A14 endpoint moved to the new member',
-  (select user_id = pg_temp.u(2) and sound from public.push_subscriptions where endpoint = current_setting('push.e1')));
+-- The sound setting belongs to the device (Settings > Sound on that phone), so it stays when nothing new is sent.
+select pg_temp.check('A14 endpoint moved to the new member, keeping the device''s sound setting',
+  (select user_id = pg_temp.u(2) and not sound from public.push_subscriptions where endpoint = current_setting('push.e1')));
+select pg_temp.as_user(pg_temp.u(2));
+select set_config('push.id1',
+  public.push_subscribe(current_setting('push.e1'), current_setting('push.k'), current_setting('push.a'), true)::text, true);
+select pg_temp.as_admin();
+select pg_temp.check('A14b a sent sound setting is saved, and the row id comes back',
+  (select sound and id::text = current_setting('push.id1') from public.push_subscriptions where endpoint = current_setting('push.e1')));
 
 select pg_temp.as_user(pg_temp.u(3));
 do $$
@@ -158,7 +165,7 @@ select pg_temp.check('B6 every kind is queued',
 select pg_temp.as_admin();
 create temp table claimed (
   notification_id uuid, user_id uuid, kind text, title text, body text, link text,
-  endpoint text, p256dh text, auth text, sound boolean, failure_count integer
+  endpoint text, p256dh text, auth text, sound boolean, failure_count integer, attempts integer
 );
 grant all on claimed to anon;
 
@@ -176,8 +183,9 @@ select pg_temp.expect('C6 report without the secret refused',
 select pg_temp.expect('C7 anon cannot poke', 'select private.push_poke()', '42501');
 
 insert into claimed select * from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50);
-select pg_temp.check('C8 claim returns each queued notification with its device',
-  (select count(*) = 7 and bool_and(endpoint = current_setting('push.e1')) and bool_and(user_id = pg_temp.u(2)) from claimed));
+select pg_temp.check('C8 claim returns each queued notification with its device, on its first try',
+  (select count(*) = 7 and bool_and(endpoint = current_setting('push.e1')) and bool_and(user_id = pg_temp.u(2))
+     and bool_and(attempts = 1) from claimed));
 select pg_temp.check('C9 claimed rows are leased',
   (select count(*) = 0 from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50)));
 
@@ -245,6 +253,58 @@ select private.push_sweep();
 select pg_temp.check('D4 stale rows are dropped', (select count(*) = 0 from private.push_outbox));
 select pg_temp.check('D5 the sweep is scheduled every minute',
   (select count(*) = 1 from cron.job where jobname = 'hosa-push-sweep' and schedule = '* * * * *'));
+
+-- E. Retrying after a passing push-service failure ----------------------------------------------------------------
+
+select pg_temp.as_admin();
+delete from private.push_outbox;
+select set_config('push.e3', 'https://fcm.googleapis.com/fcm/send/test-endpoint-three', true);
+select pg_temp.as_user(pg_temp.u(1));
+select public.push_subscribe(current_setting('push.e3'), current_setting('push.k'), current_setting('push.a'));
+select pg_temp.as_admin();
+select private.notify(array[pg_temp.u(1)], 'announcement', 'Retry me', '', '/announcements');
+delete from claimed;
+
+select pg_temp.as_anon();
+insert into claimed select * from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50);
+select pg_temp.check('E1 both of the member''s devices are claimed',
+  (select count(*) = 2 and count(distinct notification_id) = 1 from claimed));
+-- e2 took it; e3's push service answered 503, so the route asks for another try for e3 only.
+select public.push_report('test-secret-0123456789abcdefghijklmnopqrstuv', array[]::uuid[],
+  array[current_setting('push.e2')], '{}', '{}',
+  jsonb_build_array(jsonb_build_object('id', (select notification_id from claimed limit 1),
+                                       'delivered', jsonb_build_array(current_setting('push.e2')))));
+select pg_temp.as_admin();
+select pg_temp.check('E2 the notification stays queued, noting the device that has it, and waits a minute',
+  (select count(*) = 1 and bool_and(delivered = array[current_setting('push.e2')])
+     and bool_and(locked_until = now() + interval '1 minute') from private.push_outbox));
+select pg_temp.check('E3 the device that missed out takes no strike',
+  (select failure_count = 0 from public.push_subscriptions where endpoint = current_setting('push.e3')));
+select pg_temp.as_anon();
+select pg_temp.check('E4 not handed out again before the wait is over',
+  (select count(*) = 0 from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50)));
+select pg_temp.as_admin();
+update private.push_outbox set locked_until = now() - interval '1 second';
+delete from claimed;
+select pg_temp.as_anon();
+insert into claimed select * from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50);
+select pg_temp.check('E5 the second try goes only to the device that missed it',
+  (select count(*) = 1 and bool_and(endpoint = current_setting('push.e3')) and bool_and(attempts = 2) from claimed));
+select public.push_report('test-secret-0123456789abcdefghijklmnopqrstuv',
+  (select array_agg(distinct notification_id) from claimed), array[current_setting('push.e3')], '{}', '{}', '[]');
+select pg_temp.as_admin();
+select pg_temp.check('E6 delivered on the retry, it leaves the queue', (select count(*) = 0 from private.push_outbox));
+
+select private.notify(array[pg_temp.u(1)], 'event', 'Everyone has it', '', '/calendar');
+update private.push_outbox set delivered = array[current_setting('push.e2'), current_setting('push.e3')];
+select pg_temp.as_anon();
+select pg_temp.check('E7 a notification every device already has comes back once with no device',
+  (select count(*) = 1 and bool_and(endpoint is null)
+   from public.push_claim('test-secret-0123456789abcdefghijklmnopqrstuv', 50)));
+select public.push_report('test-secret-0123456789abcdefghijklmnopqrstuv', array[]::uuid[], '{}', '{}', '{}', '{"id": 1}');
+select public.push_report('test-secret-0123456789abcdefghijklmnopqrstuv', array[]::uuid[], '{}', '{}', '{}',
+  '[{"id": 1, "delivered": "x"}, 5, {"id": "not-a-uuid", "delivered": [1]}]');
+select pg_temp.check('E8 a malformed retry list is ignored, not an error', true);
 
 select 'push: all checks passed' as result;
 rollback;

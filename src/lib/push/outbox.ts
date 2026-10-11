@@ -24,6 +24,7 @@ export function supabaseOutbox(secret: string): Outbox {
       const { error } = await db.rpc("push_report", {
         p_secret: secret,
         p_done: r.done,
+        p_retry: r.retry,
         p_ok: r.ok,
         p_failed: r.failed,
         p_gone: r.gone,

@@ -23,6 +23,7 @@ function row(over: Partial<ClaimRow>): ClaimRow {
     auth: "secret",
     sound: true,
     failure_count: 0,
+    attempts: 1,
     ...over,
   };
 }
@@ -51,13 +52,14 @@ describe("drainOutbox", () => {
     const result = await drainOutbox(outbox, send);
     expect(send).toHaveBeenCalledTimes(2);
     expect(reports).toEqual([
-      { done: ["n1"], ok: [A, B], failed: [], gone: [] },
+      { done: ["n1"], retry: [], ok: [A, B], failed: [], gone: [] },
     ]);
     expect(result).toEqual({
       notifications: 1,
       sent: 2,
       failed: 0,
       removed: 0,
+      retried: 0,
     });
   });
 
@@ -112,20 +114,23 @@ describe("drainOutbox", () => {
     const send = vi.fn(okSender);
     await drainOutbox(outbox, send);
     expect(send).not.toHaveBeenCalled();
-    expect(reports).toEqual([{ done: ["n1"], ok: [], failed: [], gone: [] }]);
+    expect(reports).toEqual([
+      { done: ["n1"], retry: [], ok: [], failed: [], gone: [] },
+    ]);
   });
 
-  it("reports a 404/410 device as gone and any other failure as failed", async () => {
+  it("drops a 404/410 device and counts a refusal that won't change (400, 403, 413) as a failure", async () => {
     const { outbox, reports } = fakeOutbox([
       [row({ endpoint: A }), row({ endpoint: B })],
     ]);
     const send: Sender = async (target) =>
       target.endpoint === A
         ? { ok: false, statusCode: 410, gone: true }
-        : { ok: false, statusCode: 500, gone: false };
+        : { ok: false, statusCode: 403, gone: false };
     const result = await drainOutbox(outbox, send);
     expect(reports[0]).toEqual({
       done: ["n1"],
+      retry: [],
       ok: [],
       failed: [B],
       gone: [A],
@@ -135,16 +140,103 @@ describe("drainOutbox", () => {
       sent: 0,
       failed: 1,
       removed: 1,
+      retried: 0,
     });
   });
 
-  it("treats a sender that throws as a failed send, not a crash", async () => {
+  it("keeps a notification queued when the push service has a bad moment (5xx, 429, timeout, socket error)", async () => {
+    for (const outcome of [
+      { ok: false as const, statusCode: 500, gone: false },
+      { ok: false as const, statusCode: 503, gone: false },
+      { ok: false as const, statusCode: 429, gone: false },
+      { ok: false as const, statusCode: null, gone: false },
+    ]) {
+      const { outbox, reports } = fakeOutbox([[row({})]]);
+      const result = await drainOutbox(outbox, async () => outcome);
+      // Not a strike against the device: the service, not the phone, had the problem.
+      expect(reports[0]).toEqual({
+        done: [],
+        retry: [{ id: "n1", delivered: [] }],
+        ok: [],
+        failed: [],
+        gone: [],
+      });
+      expect(result.retried).toBe(1);
+      expect(result.notifications).toBe(0);
+    }
+  });
+
+  it("treats a sender that throws as a passing failure to retry, not a crash", async () => {
     const { outbox, reports } = fakeOutbox([[row({})]]);
     const send: Sender = async () => {
       throw new Error("socket reset");
     };
     await drainOutbox(outbox, send);
-    expect(reports[0]).toEqual({ done: ["n1"], ok: [], failed: [A], gone: [] });
+    expect(reports[0]).toEqual({
+      done: [],
+      retry: [{ id: "n1", delivered: [] }],
+      ok: [],
+      failed: [],
+      gone: [],
+    });
+  });
+
+  it("only retries the devices that missed out: the ones that took it are listed as delivered", async () => {
+    const C = "https://updates.push.services.mozilla.com/wpush/v2/phone-c";
+    const { outbox, reports } = fakeOutbox([
+      [row({ endpoint: A }), row({ endpoint: B }), row({ endpoint: C })],
+    ]);
+    const send: Sender = async (target) =>
+      target.endpoint === A
+        ? { ok: true }
+        : target.endpoint === B
+          ? { ok: false, statusCode: 502, gone: false }
+          : { ok: false, statusCode: 400, gone: false };
+    await drainOutbox(outbox, send);
+    expect(reports[0]).toEqual({
+      done: [],
+      // A got it and C will never take it, so only B is tried again.
+      retry: [{ id: "n1", delivered: [A, C] }],
+      ok: [A],
+      failed: [C],
+      gone: [],
+    });
+  });
+
+  it("gives up on the last try: the notification leaves the queue and the device takes one strike", async () => {
+    const { outbox, reports } = fakeOutbox([[row({ attempts: 5 })]]);
+    const result = await drainOutbox(outbox, async () => ({
+      ok: false,
+      statusCode: 503,
+      gone: false,
+    }));
+    expect(reports[0]).toEqual({
+      done: ["n1"],
+      retry: [],
+      ok: [],
+      failed: [A],
+      gone: [],
+    });
+    expect(result).toMatchObject({ notifications: 1, failed: 1, retried: 0 });
+  });
+
+  it("delivers on the retry once the push service is back", async () => {
+    // The first claim fails on a 503; the database hands the same notification back after its lease.
+    const { outbox, reports } = fakeOutbox([
+      [row({ attempts: 1 })],
+      [row({ attempts: 2 })],
+    ]);
+    let calls = 0;
+    const result = await drainOutbox(outbox, async () =>
+      ++calls === 1
+        ? { ok: false, statusCode: 503, gone: false }
+        : { ok: true },
+    );
+    expect(reports.map((r) => [r.done, r.retry])).toEqual([
+      [[], [{ id: "n1", delivered: [] }]],
+      [["n1"], []],
+    ]);
+    expect(result).toMatchObject({ notifications: 1, sent: 1, retried: 1 });
   });
 
   it("keeps claiming batches until the queue is empty", async () => {
