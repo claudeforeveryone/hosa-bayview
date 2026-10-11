@@ -11,6 +11,9 @@ import {
   type Common,
 } from "@/components/battle-parts";
 import { ROUND_MS } from "@/lib/battle";
+import { answerKeysLabel, keysLine } from "@/lib/answer-keys";
+import { KeyHint, KeyLine } from "@/components/key-hint";
+import { useAnswerKeys } from "@/hooks/use-answer-keys";
 
 // A round in play: 20 s, the prompt, big options, and who has answered.
 
@@ -44,6 +47,11 @@ export function Question({
       : timeUp
         ? "Time"
         : "Pick one";
+  // 1-4 (or A-D) answer like a tap. Same gate as the buttons: nothing once locked in, timed out or busy.
+  useAnswerKeys({
+    options: locked || busy ? 0 : cur.options.length,
+    onPick: (i) => act.answer(i),
+  });
   return (
     <div key={`q-${cur.no}`} className="reveal grid gap-5">
       <Scoreboard s={s} mine={mine} />
@@ -56,6 +64,7 @@ export function Question({
         label={(n) => <span aria-hidden>{n}</span>}
       />
       <Prompt s={s} heading={heading} />
+      <KeyLine text={keysLine(answerKeysLabel(cur.options.length))} />
       <ul className="grid max-w-2xl gap-2">
         {cur.options.map((text, i) => {
           const chosen = choice === i;
@@ -66,6 +75,7 @@ export function Question({
                 onClick={() => act.answer(i)}
                 disabled={locked || busy}
                 aria-pressed={chosen}
+                aria-keyshortcuts={`${i + 1} ${LETTERS[i]}`}
                 className={`step flex min-h-16 w-full items-center gap-4 border px-4 py-3 text-left text-[18px] disabled:cursor-default ${
                   chosen
                     ? "border-ink bg-ink text-ground"
@@ -80,6 +90,7 @@ export function Question({
                 <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
                   {text}
                 </span>
+                <KeyHint n={i + 1} />
               </button>
             </li>
           );
