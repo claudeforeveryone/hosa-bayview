@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { PageTitle } from "@/components/page-title";
+import { SETTINGS_TABS } from "@/lib/settings-tabs";
 import { requireProfile } from "@/lib/auth";
 import { bottomItemsFor, navItemsFor } from "@/lib/nav-items";
 
@@ -36,9 +37,7 @@ function Row({
         <Icon size={24} strokeWidth={1.75} aria-hidden className="shrink-0" />
         <span className="grid min-w-0 flex-1">
           <span className="caps text-[19px] leading-tight">{label}</span>
-          {hint ? (
-            <span className="text-[15px] text-ink-2">{hint}</span>
-          ) : null}
+          {hint ? <span className="text-[15px] text-ink-2">{hint}</span> : null}
         </span>
         <ChevronRight
           size={20}
@@ -50,13 +49,6 @@ function Row({
     </li>
   );
 }
-
-const SETTINGS_TABS = [
-  { tab: "appearance", label: "Appearance" },
-  { tab: "sound", label: "Sound" },
-  { tab: "account", label: "Account" },
-  { tab: "events", label: "Join an event" },
-];
 
 export default async function MorePage() {
   const profile = await requireProfile();
@@ -77,18 +69,13 @@ export default async function MorePage() {
           You
         </h2>
         <ul className="border-2 border-ink">
-          <Row
-            href="/settings"
-            Icon={Settings}
-            label="Settings"
-            hint="Appearance, sound, your account, joining events"
-          />
+          <Row href="/settings" Icon={Settings} label="Settings" />
           <li className="border-t border-rule px-4 pt-1 pb-4 sm:px-5">
             <ul className="flex flex-wrap gap-2" aria-label="Settings tabs">
               {SETTINGS_TABS.map((t) => (
-                <li key={t.tab}>
+                <li key={t.id}>
                   <Link
-                    href={`/settings?tab=${t.tab}`}
+                    href={`/settings?tab=${t.id}`}
                     className="caps step inline-flex h-11 items-center border border-ink px-4 text-[15px] hover:bg-band"
                   >
                     {t.label}
