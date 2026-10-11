@@ -16,12 +16,15 @@ export function ReviewItem({
   testId,
   decks,
   flag,
+  canReport = false,
 }: {
   q: AttemptQuestion;
   mine: boolean;
   testId: string;
   decks: DeckOption[];
   flag: FlagState | null;
+  // Report this question needs migration 0231 (src/lib/feedback-enabled.ts); Ask teacher always shows.
+  canReport?: boolean;
 }) {
   // Null verdict: the trainer has answers off, so the taker only sees that they answered.
   const verdict =
@@ -99,7 +102,12 @@ export function ReviewItem({
       ) : null}
       {mine && q.selected_index !== null ? (
         <div className="pl-11">
-          <AskTeacher testId={testId} questionId={q.question_id} flag={flag} />
+          <AskTeacher
+            testId={testId}
+            questionId={q.question_id}
+            flag={flag}
+            canReport={canReport}
+          />
         </div>
       ) : null}
     </li>

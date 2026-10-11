@@ -44,6 +44,7 @@ export function TakeTest({
   rows,
   decks,
   flags,
+  canReport = false,
 }: {
   testId: string;
   attemptId: string;
@@ -54,6 +55,8 @@ export function TakeTest({
   rows: AttemptQuestion[];
   decks: DeckOption[];
   flags: Record<string, FlagState>;
+  // Report this question needs migration 0231 (src/lib/feedback-enabled.ts); Ask teacher always shows.
+  canReport?: boolean;
 }) {
   const router = useRouter();
   const practice = mode === "practice";
@@ -362,6 +365,7 @@ export function TakeTest({
             testId={testId}
             questionId={q.question_id}
             flag={flags[q.question_id] ?? null}
+            canReport={canReport}
           />
         ) : null}
         {error ? <FormMessage tone="error">{error}</FormMessage> : null}

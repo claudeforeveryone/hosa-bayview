@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { askTeacher, reportQuestion } from "@/app/(app)/c/[id]/tests/actions";
 import { Button, FormMessage } from "@/components/form";
 import {
@@ -28,14 +28,21 @@ const ACTION =
 // Ask teacher, or Report this question, on one answered question. Both are the same thread (one per member per
 // question): a report is an ask with what is wrong (wrong key, unclear, typo, something else). The trainer's reply
 // shows here once it's in.
+// While a report is open there is no Ask button: Change report holds the note, so adding words never quietly turns
+// the report back into a plain question (the database keeps the report either way, 0231).
+// `canReport`: reports are on the database (0231). Before that only Ask teacher shows.
+// Focus moves into the form when it opens and back to the button that opened it when it closes, so a keyboard or
+// screen-reader user keeps their place in a long review.
 export function AskTeacher({
   testId,
   questionId,
   flag,
+  canReport = false,
 }: {
   testId: string;
   questionId: string;
   flag: FlagState | null;
+  canReport?: boolean;
 }) {
   const [current, setCurrent] = useState<FlagState | null>(flag);
   const [mode, setMode] = useState<Mode>("idle");
@@ -43,14 +50,40 @@ export function AskTeacher({
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // Where focus goes after the next render: into the opened form, or back to a trigger after it closes.
+  const focusNext = useRef<"form" | Mode | null>(null);
   const uid = useId();
+  const errorId = `${uid}-error`;
+  const askButton = useRef<HTMLButtonElement>(null);
+  const reportButton = useRef<HTMLButtonElement>(null);
+  const firstField = useRef<HTMLInputElement>(null);
   const reported = current && current.reason !== "ask" ? current.reason : null;
+  // A report on the thread proves reports are on, whatever the probe said.
+  const showReport = canReport || reported !== null;
+
+  useEffect(() => {
+    const to = focusNext.current;
+    if (!to) return;
+    focusNext.current = null;
+    if (to === "form") firstField.current?.focus();
+    else
+      (to === "report"
+        ? (reportButton.current ?? askButton.current)
+        : (askButton.current ?? reportButton.current)
+      )?.focus();
+  });
 
   const open = (next: Mode) => {
     setError(null);
     setNote(current?.note ?? "");
     setReason(reported);
+    focusNext.current = "form";
     setMode(next);
+  };
+
+  const close = (from: Mode) => {
+    focusNext.current = from;
+    setMode("idle");
   };
 
   const send = () => {
@@ -59,9 +92,10 @@ export function AskTeacher({
       const problem = checkReport(reason ?? "", note);
       if (problem) return setError(problem);
     }
+    const from = mode;
     start(async () => {
       const r =
-        mode === "report" && reason
+        from === "report" && reason
           ? await reportQuestion(testId, questionId, reason, note)
           : await askTeacher(testId, questionId, note);
       if (r.error || !r.id) {
@@ -73,27 +107,12 @@ export function AskTeacher({
         note: note.trim(),
         status: "open",
         reply: "",
-        reason: mode === "report" && reason ? reason : "ask",
+        // An ask on an open report keeps the report (0231).
+        reason: from === "report" && reason ? reason : (reported ?? "ask"),
       });
-      setMode("idle");
+      close(from);
     });
   };
-
-  const actions = (
-    <div className="flex flex-wrap gap-2">
-      <Button type="submit" disabled={pending}>
-        {pending ? "Sending" : mode === "report" ? "Send report" : "Send"}
-      </Button>
-      <Button
-        type="button"
-        variant="line"
-        onClick={() => setMode("idle")}
-        disabled={pending}
-      >
-        Cancel
-      </Button>
-    </div>
-  );
 
   if (mode !== "idle") {
     return (
@@ -106,12 +125,15 @@ export function AskTeacher({
         noValidate
       >
         {mode === "report" ? (
-          <fieldset className="grid gap-2">
+          <fieldset
+            className="grid gap-2"
+            aria-describedby={error ? errorId : undefined}
+          >
             <legend className="mb-2 text-[15px] font-medium">
               What&rsquo;s wrong with this question?
             </legend>
             <div className="flex flex-wrap gap-2">
-              {REPORT_REASONS.map((r) => (
+              {REPORT_REASONS.map((r, i) => (
                 <label
                   key={r}
                   className={`${ACTION} cursor-pointer has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink ${
@@ -121,6 +143,10 @@ export function AskTeacher({
                   }`}
                 >
                   <input
+                    // The checked reason, or the first, takes focus when the form opens.
+                    ref={
+                      (reason ? reason === r : i === 0) ? firstField : undefined
+                    }
                     type="radio"
                     name={`${uid}-reason`}
                     value={r}
@@ -145,9 +171,11 @@ export function AskTeacher({
         </label>
         <input
           id={`${uid}-note`}
+          ref={mode === "ask" ? firstField : undefined}
           value={note}
           onChange={(e) => setNote(e.target.value)}
           maxLength={REPORT_NOTE_MAX}
+          aria-describedby={error ? errorId : undefined}
           placeholder={
             mode === "ask"
               ? "Optional: what's unclear?"
@@ -162,8 +190,24 @@ export function AskTeacher({
             Your trainer gets it with your name, like Ask teacher.
           </p>
         ) : null}
-        {error ? <FormMessage tone="error">{error}</FormMessage> : null}
-        {actions}
+        {error ? (
+          <div id={errorId}>
+            <FormMessage tone="error">{error}</FormMessage>
+          </div>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          <Button type="submit" disabled={pending}>
+            {pending ? "Sending" : mode === "report" ? "Send report" : "Send"}
+          </Button>
+          <Button
+            type="button"
+            variant="line"
+            onClick={() => close(mode)}
+            disabled={pending}
+          >
+            Cancel
+          </Button>
+        </div>
       </form>
     );
   }
@@ -200,20 +244,26 @@ export function AskTeacher({
       {/* Once the trainer has replied, the thread is closed: asking or reporting again would drop their reply. */}
       {current?.status !== "answered" ? (
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => open("ask")}
-            className={`${ACTION} border-ink hover:bg-band`}
-          >
-            {current && !reported ? "Ask again" : "Ask teacher"}
-          </button>
-          <button
-            type="button"
-            onClick={() => open("report")}
-            className={`${ACTION} border-rule-strong text-ink-2 hover:border-ink hover:text-ink`}
-          >
-            {reported ? "Change report" : "Report this question"}
-          </button>
+          {reported ? null : (
+            <button
+              ref={askButton}
+              type="button"
+              onClick={() => open("ask")}
+              className={`${ACTION} border-ink hover:bg-band`}
+            >
+              {current ? "Ask again" : "Ask teacher"}
+            </button>
+          )}
+          {showReport ? (
+            <button
+              ref={reportButton}
+              type="button"
+              onClick={() => open("report")}
+              className={`${ACTION} border-rule-strong text-ink-2 hover:border-ink hover:text-ink`}
+            >
+              {reported ? "Change report" : "Report this question"}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

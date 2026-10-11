@@ -11,6 +11,7 @@ import {
   LibraryBig,
   Medal,
   Megaphone,
+  MessageSquareText,
   ChartNoAxesColumn,
   ShieldCheck,
   Trophy,
@@ -32,6 +33,8 @@ export type NavItem = {
   exec?: boolean;
   // Only the site owner (private.stats_viewers, 0105) sees this.
   stats?: boolean;
+  // Only once the database has Send feedback (0231).
+  feedback?: boolean;
   chapter?: boolean;
   bottom?: boolean;
 };
@@ -200,17 +203,36 @@ const MORE_ITEMS: NavItem[] = [
     Icon: LifeBuoy,
     match: (p) => p.startsWith("/help"),
   },
+  {
+    // A section of Settings > Account, so it never shows as the current page (Settings does).
+    href: "/settings?tab=account#feedback-h",
+    label: "Send feedback",
+    short: "Feedback",
+    Icon: MessageSquareText,
+    match: () => false,
+    feedback: true,
+  },
 ];
 
-export function moreItemsFor(isExec: boolean): NavItem[] {
-  return MORE_ITEMS.filter((i) => !i.exec || isExec);
+// `canSendFeedback`: Send feedback is on the database (src/lib/feedback-enabled.ts).
+export function moreItemsFor(
+  isExec: boolean,
+  canSendFeedback = false,
+): NavItem[] {
+  return MORE_ITEMS.filter(
+    (i) => (!i.exec || isExec) && (!i.feedback || canSendFeedback),
+  );
 }
 
 // The phone bar's More sheet: every place the bar has no room for, then the More items.
-export function sheetItemsFor(isExec: boolean, canSeeStats = false): NavItem[] {
+export function sheetItemsFor(
+  isExec: boolean,
+  canSeeStats = false,
+  canSendFeedback = false,
+): NavItem[] {
   const onBar = new Set(bottomItemsFor(isExec).map((i) => i.href));
   return [
     ...navItemsFor(isExec, canSeeStats).filter((i) => !onBar.has(i.href) && i.href !== "/more"),
-    ...moreItemsFor(isExec),
+    ...moreItemsFor(isExec, canSendFeedback),
   ];
 }

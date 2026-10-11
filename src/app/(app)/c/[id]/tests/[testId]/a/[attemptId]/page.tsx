@@ -9,6 +9,7 @@ import type { DeckOption } from "@/components/selection-cards";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { listDecks } from "@/lib/decks";
+import { feedbackEnabled } from "@/lib/feedback-enabled";
 import { attemptsLeft, HIDDEN_SCORE_NOTE, scoredMode } from "@/lib/test-settings";
 import {
   countAttempts,
@@ -56,6 +57,8 @@ export default async function AttemptPage({
   const flags = mine
     ? (await getTestFlags(test.id)).filter((f) => f.user_id === profile.id)
     : [];
+  // Report this question shows once its migration (0231) is on the database.
+  const canReport = mine && (await feedbackEnabled().catch(() => false));
   const flagByQuestion = Object.fromEntries(
     flags.map((f) => [
       f.question_id,
@@ -93,6 +96,7 @@ export default async function AttemptPage({
           rows={sheet}
           decks={decks}
           flags={flagByQuestion}
+          canReport={canReport}
         />
       </div>
     );
@@ -168,6 +172,7 @@ export default async function AttemptPage({
               testId={test.id}
               decks={decks}
               flag={flagByQuestion[q.question_id] ?? null}
+              canReport={canReport}
             />
           ))}
         </ol>

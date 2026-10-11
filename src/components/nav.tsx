@@ -22,12 +22,18 @@ export type NavRoom = { id: string; num: number; name: string };
 type Props = {
   isExec: boolean;
   canSeeStats: boolean;
+  // Send feedback is on the database (0231): the More group lists it.
+  canSendFeedback: boolean;
   canTeach: boolean;
   rooms: NavRoom[];
   unread: number;
 };
 
-function useItems(isExec: boolean, canSeeStats: boolean) {
+function useItems(
+  isExec: boolean,
+  canSeeStats: boolean,
+  canSendFeedback: boolean,
+) {
   const path = usePathname();
   const withActive = (list: ReturnType<typeof navItemsFor>) =>
     list.map((i) => ({ ...i, active: i.match(path) }));
@@ -35,8 +41,8 @@ function useItems(isExec: boolean, canSeeStats: boolean) {
     path,
     items: withActive(navItemsFor(isExec, canSeeStats)),
     bottom: withActive(bottomItemsFor(isExec)),
-    more: withActive(moreItemsFor(isExec)),
-    sheet: withActive(sheetItemsFor(isExec, canSeeStats)),
+    more: withActive(moreItemsFor(isExec, canSendFeedback)),
+    sheet: withActive(sheetItemsFor(isExec, canSeeStats, canSendFeedback)),
   };
 }
 
@@ -73,8 +79,18 @@ function Group({
 }
 
 // The whole app in one column: where to go and the classrooms you are in.
-function PanelBody({ isExec, canSeeStats, canTeach, rooms }: Props) {
-  const { path, items, more } = useItems(isExec, canSeeStats);
+function PanelBody({
+  isExec,
+  canSeeStats,
+  canSendFeedback,
+  canTeach,
+  rooms,
+}: Props) {
+  const { path, items, more } = useItems(
+    isExec,
+    canSeeStats,
+    canSendFeedback,
+  );
   const link = ({ href, label, Icon, active }: (typeof items)[number]) => (
     <li key={href}>
       <Link
@@ -277,11 +293,17 @@ export function MobileBar(props: Props) {
 export function BottomNav({
   isExec,
   canSeeStats,
+  canSendFeedback,
 }: {
   isExec: boolean;
   canSeeStats: boolean;
+  canSendFeedback: boolean;
 }) {
-  const { path, bottom, sheet } = useItems(isExec, canSeeStats);
+  const { path, bottom, sheet } = useItems(
+    isExec,
+    canSeeStats,
+    canSendFeedback,
+  );
   const sheetRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {

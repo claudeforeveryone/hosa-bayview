@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sheetItemsFor } from "./nav-items";
+import { moreItemsFor, sheetItemsFor } from "./nav-items";
 
 const hrefs = (items: { href: string }[]) => items.map((i) => i.href);
 
@@ -15,5 +15,28 @@ describe("phone More sheet and the owner console", () => {
     expect(hrefs(sheetItemsFor(false))).not.toContain("/developer");
     expect(hrefs(sheetItemsFor(true))).not.toContain("/developer");
     expect(hrefs(sheetItemsFor(true, false))).not.toContain("/developer");
+  });
+});
+
+// Send feedback (0231) sits in the More group, the phone More sheet and /more, but only once the database has it:
+// before that it would be a link to a form that can't send.
+describe("Send feedback in More", () => {
+  const FEEDBACK = "/settings?tab=account#feedback-h";
+
+  it("is listed for every member once feedback is on", () => {
+    expect(hrefs(moreItemsFor(false, true))).toContain(FEEDBACK);
+    expect(hrefs(moreItemsFor(true, true))).toContain(FEEDBACK);
+    expect(hrefs(sheetItemsFor(false, false, true))).toContain(FEEDBACK);
+  });
+
+  it("is hidden while feedback is off", () => {
+    expect(hrefs(moreItemsFor(false))).not.toContain(FEEDBACK);
+    expect(hrefs(moreItemsFor(true, false))).not.toContain(FEEDBACK);
+    expect(hrefs(sheetItemsFor(false, true))).not.toContain(FEEDBACK);
+  });
+
+  it("never lights up as the current page next to Settings", () => {
+    const item = moreItemsFor(false, true).find((i) => i.href === FEEDBACK);
+    expect(item?.match("/settings")).toBe(false);
   });
 });

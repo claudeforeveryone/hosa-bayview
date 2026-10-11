@@ -6,6 +6,7 @@ import { WarningBanner } from "@/components/warning-banner";
 import { canTeach, getUserId, requireProfile } from "@/lib/auth";
 import { getMyClassrooms } from "@/lib/classrooms";
 import { canSeeDevStats } from "@/lib/dev-stats-data";
+import { feedbackEnabled } from "@/lib/feedback-enabled";
 import { createClient } from "@/lib/supabase/server";
 
 // The oldest warning the member hasn't cleared. A failed lookup just means no banner this time.
@@ -33,19 +34,23 @@ async function unreadCount() {
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   // The sidebar list is a convenience; a failed lookup shouldn't take every page down with it.
   // All three start together; the warning only needs the id, not the whole profile.
-  const [profile, rooms, warning, unread, canSeeStats] = await Promise.all([
-    requireProfile(),
-    getMyClassrooms().catch(() => []),
-    getUserId()
-      .then(unseenWarning)
-      .catch(() => null),
-    unreadCount().catch(() => 0),
-    // Only the site owner gets the Developer link; the stats page and RPC check the same thing in the database.
-    canSeeDevStats().catch(() => false),
-  ]);
+  const [profile, rooms, warning, unread, canSeeStats, canSendFeedback] =
+    await Promise.all([
+      requireProfile(),
+      getMyClassrooms().catch(() => []),
+      getUserId()
+        .then(unseenWarning)
+        .catch(() => null),
+      unreadCount().catch(() => 0),
+      // Only the site owner gets the Developer link; the stats page and RPC check the same thing in the database.
+      canSeeDevStats().catch(() => false),
+      // Send feedback is listed under More once its migration (0231) is on the database.
+      feedbackEnabled().catch(() => false),
+    ]);
   const nav = {
     isExec: profile.role === "executive",
     canSeeStats,
+    canSendFeedback,
     canTeach: canTeach(profile),
     rooms: rooms.map(({ id, num, name }) => ({ id, num, name })),
     unread,
@@ -79,7 +84,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Credit className="text-ink-2/80" />
         </footer>
       </div>
-      <BottomNav isExec={nav.isExec} canSeeStats={nav.canSeeStats} />
+      <BottomNav
+        isExec={nav.isExec}
+        canSeeStats={nav.canSeeStats}
+        canSendFeedback={nav.canSendFeedback}
+      />
       <OnlineHeartbeat />
       <LuckyBonus />
     </div>

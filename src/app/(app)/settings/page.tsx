@@ -9,6 +9,7 @@ import { PageTitle } from "@/components/page-title";
 import { SendFeedback } from "@/components/send-feedback";
 import { SettingsSection } from "@/components/settings-section";
 import { requireProfile } from "@/lib/auth";
+import { feedbackEnabled } from "@/lib/feedback-enabled";
 import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
 import { SETTINGS_TABS, resolveSettingsTab } from "@/lib/settings-tabs";
@@ -80,9 +81,11 @@ async function AccountTab() {
   );
   // GIF pictures are for a few named accounts (0101), not every executive.
   const supabase = await createClient();
-  const [powers, exempt] = await Promise.all([
+  const [powers, exempt, canSendFeedback] = await Promise.all([
     supabase.rpc("my_powers"),
     supabase.rpc("gif_exempt_ids"),
+    // Shown once its migration (0231) is on the database; before that the form couldn't send.
+    feedbackEnabled().catch(() => false),
   ]);
   if (exempt.error)
     throw new Error(`GIF limits lookup failed: ${exempt.error.message}`);
@@ -104,13 +107,15 @@ async function AccountTab() {
         gifLimit={gifLimit}
       />
       <PasswordSection />
-      <SettingsSection
-        id="feedback-h"
-        title="Send feedback"
-        description="A bug, an idea, or something that could be clearer. Only the site owner reads it."
-      >
-        <SendFeedback />
-      </SettingsSection>
+      {canSendFeedback ? (
+        <SettingsSection
+          id="feedback-h"
+          title="Send feedback"
+          description="A bug, an idea, or something that could be clearer. Only the site owner reads it."
+        >
+          <SendFeedback />
+        </SettingsSection>
+      ) : null}
       <SettingsSection
         id="logout-h"
         title="Log out"
