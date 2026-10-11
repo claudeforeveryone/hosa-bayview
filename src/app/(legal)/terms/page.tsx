@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalDoc, LegalSection, List, Mail } from "@/components/legal-doc";
-import { INDEPENDENCE_NOTE } from "@/lib/legal";
+import {
+  IndependenceNote,
+  LegalDoc,
+  LegalSection,
+  List,
+  Mail,
+} from "@/components/legal-doc";
 import { publicPage } from "@/lib/seo";
 
 export const metadata: Metadata = publicPage({
@@ -26,7 +31,7 @@ export default function TermsPage() {
         <p>
           HOSA Bayview is a free study site for members of the HOSA Bayview
           chapter at Bayview Secondary School, built and run by two student
-          members, Joseph &amp; Kaden. {INDEPENDENCE_NOTE} By making an account
+          members, Joseph &amp; Kaden. <IndependenceNote /> By making an account
           or using the site, you agree to these terms and to our{" "}
           <Link href="/privacy" className="underline underline-offset-4">
             Privacy Policy

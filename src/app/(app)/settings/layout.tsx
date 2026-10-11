@@ -1,5 +1,4 @@
-import { Mail } from "@/components/legal-doc";
-import { INDEPENDENCE_NOTE } from "@/lib/legal";
+import { IndependenceNote, Mail } from "@/components/legal-doc";
 
 // The credits spot: a short About block under every Settings tab. A layout, so the Settings page itself is
 // untouched. Terms, Privacy and the heart credit are in the footer right below, so they aren't repeated here.
@@ -15,7 +14,9 @@ export default function SettingsLayout({ children }: LayoutProps<"/settings">) {
           About HOSA Bayview
         </h2>
         <p>Made for the chapter by two of its members, Joseph &amp; Kaden.</p>
-        <p>{INDEPENDENCE_NOTE}</p>
+        <p>
+          <IndependenceNote />
+        </p>
         <p>
           Ideas, problems or a request about your data: <Mail />
         </p>
