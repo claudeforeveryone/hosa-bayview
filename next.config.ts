@@ -42,6 +42,12 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Log in, sign up, terms and privacy may be indexed. A later rule with the same key wins.
       { source: "/:page(login|signup|terms|privacy)", headers: [{ key: "X-Robots-Tag", value: "index, follow" }] },
+      // So may the images those pages point to: the logo in the JSON-LD (Google ignores a noindex logo), the app icons
+      // and the social card. The dots are escaped so only these exact file names match.
+      {
+        source: "/:file(icon\\.png|apple-icon\\.png|opengraph-image\\.png|twitter-image\\.png)",
+        headers: [{ key: "X-Robots-Tag", value: "index, follow" }],
+      },
     ];
   },
 };
