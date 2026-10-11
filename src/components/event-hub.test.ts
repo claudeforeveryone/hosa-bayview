@@ -64,13 +64,12 @@ describe("PracticeStrip", () => {
         cells: [
           { slug: "tests", label: "Tests", count: 0, extra: "3 drafts" },
           { slug: "flashcards", label: "Decks", count: 4 },
-          { slug: "skills", label: "Skills", count: 7 },
         ],
       }),
     );
-    expect(text(out)).toBe("Practice 0 Tests 3 drafts 4 Decks 7 Skills");
-    expect(out).toContain('href="/c/room/skills"');
-    expect(out).toContain("grid-cols-3");
+    expect(text(out)).toBe("Practice 0 Tests 3 drafts 4 Decks");
+    expect(out).toContain('href="/c/room/flashcards"');
+    expect(out).toContain("grid-cols-2");
   });
 
   it("a single cell (showcase events) fills one column", () => {

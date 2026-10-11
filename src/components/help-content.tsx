@@ -56,21 +56,6 @@ const TOPICS: Topic[] = [
     ),
   },
   {
-    id: "skills",
-    q: "Skills and badges",
-    a: (
-      <>
-        Skills are badges you earn by studying: answer questions, get them
-        right, keep a streak, win battles. Each has four tiers, and every tier
-        moves you up a title from Volunteer to Chief. See them all on{" "}
-        <Link href="/skills" className="underline underline-offset-4">
-          Skills
-        </Link>
-        ; each event&apos;s Questions, Skills shows the ones you earned there.
-      </>
-    ),
-  },
-  {
     id: "battles",
     q: "Battles",
     a: (

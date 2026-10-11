@@ -5,7 +5,7 @@ import type { EventRow } from "@/lib/events";
 import { dayKey } from "@/lib/when";
 import { groupBySection, sectionAnchors } from "@/lib/materials";
 
-// The event page's middle: what to read (resources by section) and what to practise (tests, decks, skills).
+// The event page's middle: what to read (resources by section) and what to practise (tests and decks).
 
 export const hubHeading =
   "border-t-[3px] border-ink px-1 pt-3 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase sm:px-3";
@@ -94,7 +94,7 @@ export function PracticeStrip({
         Practice
       </h2>
       <ul
-        className={`grid border-[3px] border-ink ${cells.length === 3 ? "grid-cols-3" : cells.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+        className={`grid border-[3px] border-ink ${cells.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
       >
         {cells.map((c) => (
           <li key={c.slug} className="border-r-2 border-ink last:border-r-0">

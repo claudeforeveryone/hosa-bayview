@@ -10,7 +10,6 @@ describe("navItemsFor", () => {
       "/",
       "/events",
       "/career",
-      "/skills",
       "/announcements",
       "/calendar",
       "/leaderboard",

@@ -17,27 +17,25 @@ describe("tabsFor", () => {
   it("showcase rooms have no Tests", () => {
     const tabs = slugs(tabsFor("showcase", false));
     expect(tabs).not.toContain("tests");
-    expect(tabs).toContain("skills");
     expect(tabs).toContain("resources");
   });
 
-  it("every other room has Tests, Cards and Skills", () => {
-    for (const category of ["mc", "practical", null] as const) {
+  it("every other room has Tests and Cards, and no room has Skills", () => {
+    for (const category of ["mc", "practical", "showcase", null] as const) {
       const tabs = slugs(tabsFor(category, false));
-      expect(tabs).toEqual(expect.arrayContaining(["tests", "flashcards", "skills"]));
+      if (category !== "showcase") expect(tabs).toEqual(expect.arrayContaining(["tests", "flashcards"]));
+      expect(tabs).not.toContain("skills");
     }
   });
 
-  it("Tests, Cards and Skills sit only in the Questions dropdown", () => {
+  it("Tests and Cards sit only in the Questions dropdown", () => {
     const top = tabsFor("practical", false).map((t) => t.slug);
     expect(top).not.toContain("tests");
     expect(top).not.toContain("flashcards");
-    expect(top).not.toContain("skills");
     const questions = tabsFor("practical", false).find((t) => t.slug === "questions");
-    expect(questions?.sub?.map((t) => t.label)).toEqual(["Tests", "Cards", "Skills"]);
+    expect(questions?.sub?.map((t) => t.label)).toEqual(["Tests", "Cards"]);
     expect(tabsFor("showcase", false).find((t) => t.slug === "questions")?.sub?.map((t) => t.slug)).toEqual([
       "flashcards",
-      "skills",
     ]);
   });
 

@@ -191,7 +191,7 @@ export function ClassroomTabs({
   );
 }
 
-// Tests, Cards and Skills under one tab. The menu is a popover, so it sits in the top layer and the strip's
+// Tests and Cards under one tab. The menu is a popover, so it sits in the top layer and the strip's
 // sideways scroll can't clip it; it opens under the tab and closes on a pick, a tap outside, Escape or a scroll.
 // While you're on one of its pages the tab carries the rule (aria-current) and names the page after Questions.
 function QuestionsTab({

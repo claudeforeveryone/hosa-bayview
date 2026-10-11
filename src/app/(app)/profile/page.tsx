@@ -2,17 +2,14 @@ import type { Metadata } from "next";
 import { LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { MemberStatRows } from "@/components/member-stats";
-import { SkillStrip } from "@/components/skill-badges";
 import { Button } from "@/components/form";
 import { getMemberStats } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
 import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
 import { getBattleWins } from "@/lib/battles";
 import { avatarSources } from "@/lib/avatar-urls";
-import { getCareerItems } from "@/lib/career-data";
 import { gradeLabel } from "@/lib/profile";
 import { roleLabel } from "@/lib/role-label";
-import { chapterSkills } from "@/lib/skills-data";
 import { createClient } from "@/lib/supabase/server";
 import { AvatarButton } from "./avatar-button";
 import { NameEdit } from "./name-edit";
@@ -37,9 +34,8 @@ async function gifAccess(userId: string): Promise<{ canGif: boolean; gifLimit: n
 
 export default async function ProfilePage() {
   const profile = await requireProfile();
-  const [stats, career, sources, wins, { canGif, gifLimit }] = await Promise.all([
+  const [stats, sources, wins, { canGif, gifLimit }] = await Promise.all([
     getMemberStats(profile.id),
-    getCareerItems(profile.id),
     avatarSources([profile.avatar_path]),
     // Null until the battle migrations are applied; the row stays hidden then.
     getBattleWins(profile.id),
@@ -48,8 +44,6 @@ export default async function ProfilePage() {
   const picture = profile.avatar_path
     ? (sources.get(profile.avatar_path) ?? null)
     : null;
-  // The same skills as /skills, from the reads this page already made.
-  const skills = chapterSkills(stats, career, wins);
   return (
     <div className="grid max-w-2xl gap-10">
       <div className="flex items-center gap-5">
@@ -88,12 +82,6 @@ export default async function ProfilePage() {
           </>
         ) : null}
       </dl>
-      <section aria-labelledby="skills-h" className="grid gap-4">
-        <h2 id="skills-h" className={H2}>
-          Skills
-        </h2>
-        <SkillStrip list={skills} />
-      </section>
       {stats ? (
         <section aria-labelledby="numbers-h" className="grid gap-4">
           <h2 id="numbers-h" className={H2}>

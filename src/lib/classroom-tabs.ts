@@ -7,16 +7,15 @@ export function parseCategory(value: unknown): Category | null {
   return value === "mc" || value === "practical" || value === "showcase" ? value : null;
 }
 
-// What the Questions dropdown holds. Showcase rooms have no tests. Skills (your badges in the event, plus the
-// rating sheets in practical rooms) is in every room.
+// What the Questions dropdown holds. Showcase rooms have no tests.
 export function questionTabsFor(category: Category | null): Tab[] {
   const sub: Tab[] = [];
   if (category !== "showcase") sub.push({ slug: "tests", label: "Tests" });
-  sub.push({ slug: "flashcards", label: "Cards" }, { slug: "skills", label: "Skills" });
+  sub.push({ slug: "flashcards", label: "Cards" });
   return sub;
 }
 
-// Hub first, then Questions (Tests, Cards and Skills in one dropdown, so the strip stays short), then the rest.
+// Hub first, then Questions (Tests and Cards in one dropdown, so the strip stays short), then the rest.
 // Grades (the whole-class grid) and Settings are for managers.
 export function tabsFor(category: Category | null, isManager: boolean): Tab[] {
   const tabs: Tab[] = [

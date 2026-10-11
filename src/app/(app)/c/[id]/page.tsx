@@ -22,7 +22,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getClassroomFlags, getClassroomTests } from "@/lib/tests";
 import { ClassroomFlagsPanel } from "@/components/flag-list";
 import { saveAnnouncement } from "@/app/(app)/announcements/actions";
-import { getSkills } from "./skills/queries";
 
 const plural = (n: number, word: string) => (n === 1 ? word : `${word}s`);
 
@@ -63,7 +62,6 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
       getUpcomingForRoom(id),
     ]);
   const category = info?.category ?? null;
-  const skills = category === "practical" ? await getSkills(id) : [];
   const canPost = Boolean(room?.can_manage);
   const flags = canPost ? await getClassroomFlags(id) : [];
   const base = `/c/${id}`;
@@ -90,12 +88,6 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
     label: plural(decks.length, "Deck"),
     count: decks.length,
   });
-  if (category === "practical")
-    cells.push({
-      slug: "skills",
-      label: plural(skills.length, "Skill"),
-      count: skills.length,
-    });
 
   return (
     <div className="grid grid-cols-1 gap-12">

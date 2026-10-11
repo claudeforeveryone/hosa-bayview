@@ -1,6 +1,5 @@
 // The app's navigation, as data. Pure, so which links each role sees is testable apart from the nav component.
 import {
-  Award,
   CalendarDays,
   ClipboardCheck,
   Settings,
@@ -66,13 +65,6 @@ const ITEMS: NavItem[] = [
     short: "Career",
     Icon: ChartLine,
     match: (p) => p.startsWith("/career"),
-  },
-  {
-    href: "/skills",
-    label: "Skills",
-    short: "Skills",
-    Icon: Award,
-    match: (p) => p.startsWith("/skills"),
   },
   {
     href: "/announcements",

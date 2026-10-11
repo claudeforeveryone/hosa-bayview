@@ -72,7 +72,7 @@ export function ClassroomForm({
           </p>
         ) : (
           <p id="f-category-hint" className="text-15 text-ink-2">
-            Practical adds Skills. Showcase has no tests.
+            Showcase has no tests.
           </p>
         )}
       </fieldset>
