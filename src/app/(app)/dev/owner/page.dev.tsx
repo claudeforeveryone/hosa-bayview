@@ -23,16 +23,26 @@ import {
   contentFixture,
   engagementFixture,
   feedbackFixture,
+  growth7Fixture,
+  growth90Fixture,
+  growthAllFixture,
   growthFixture,
   membersFixture,
   overviewFixture,
   smallEngagementFixture,
   smallFeedbackFixture,
+  smallGrowth90Fixture,
   smallGrowthFixture,
   smallOverviewFixture,
   systemFixture,
 } from "@/lib/owner-fixtures";
-import { parseFeedbackFilter, parseRange, parseTab } from "@/lib/owner-metrics";
+import {
+  parseFeedbackFilter,
+  parseRange,
+  parseTab,
+  type Range,
+} from "@/lib/owner-metrics";
+import type { ContentData, GrowthData } from "@/lib/owner-types";
 
 // Dev server only: the owner console and the two student entry points, filled with made-up data, for screenshots
 // and design review. ?scale=small swaps in a chapter the size of today's (13 members, a few quiet days), so the
@@ -76,12 +86,7 @@ export default async function OwnerGallery({
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       {banner}
-      <OwnerConsole
-        base={BASE}
-        tab={tab}
-        extra={extra}
-        wide={tab === "members"}
-      >
+      <OwnerConsole base={BASE} tab={tab} extra={extra}>
         {section(tab, sp, extra)}
       </OwnerConsole>
     </div>
@@ -101,15 +106,17 @@ function section(
           data={small ? smallOverviewFixture : overviewFixture}
         />
       );
-    case "growth":
+    case "growth": {
+      const range = parseRange(sp.range);
       return (
         <GrowthSection
           base={BASE}
-          range={parseRange(sp.range)}
-          data={small ? smallGrowthFixture : growthFixture}
+          range={range}
+          data={growthFor(range, small)}
           extra={extra}
         />
       );
+    }
     case "engagement":
       return (
         <EngagementSection
@@ -120,7 +127,16 @@ function section(
         />
       );
     case "content":
-      return <ContentSection data={contentFixture} />;
+      // ?wording=none: what a stats viewer who isn't an executive gets (0232 sends no question wording).
+      return (
+        <ContentSection
+          data={
+            sp.wording === "none"
+              ? withoutWording(contentFixture)
+              : contentFixture
+          }
+        />
+      );
     case "feedback":
       return (
         <FeedbackSection
@@ -169,6 +185,26 @@ function section(
         />
       );
   }
+}
+
+// The range picker works here too: days for 7 and 30, Monday-to-Sunday weeks for 90 days and all time.
+function growthFor(range: Range, small: boolean): GrowthData {
+  if (range === "7d") return growth7Fixture;
+  if (range === "30d") return small ? smallGrowthFixture : growthFixture;
+  if (range === "90d") return small ? smallGrowth90Fixture : growth90Fixture;
+  return growthAllFixture;
+}
+
+function withoutWording(data: ContentData): ContentData {
+  return {
+    ...data,
+    reported: data.reported.map((r) => ({ ...r, prompt: null })),
+    duplicates: data.duplicates.map((d) => ({
+      ...d,
+      stem: null,
+      example: null,
+    })),
+  };
 }
 
 const Q = "00000000-0000-4000-8000-00000000e00";
@@ -233,6 +269,37 @@ function EntryPoints({ banner }: { banner: ReactNode }) {
               status: "answered",
               reply: "Sample reply: fixed, thanks. The answer is 1 teaspoon.",
               reason: "typo",
+            }}
+          />
+        </ReviewSample>
+        {/* A plain question the trainer answered: asking again stays closed, a report can still reopen it. */}
+        <ReviewSample n={17} prompt="Sample question: the suffix -ectomy means">
+          <AskTeacher
+            canReport
+            testId={T}
+            questionId={`${Q}4`}
+            flag={{
+              id: "00000000-0000-4000-8000-00000000a003",
+              note: "Sample note: why not C?",
+              status: "answered",
+              reply:
+                "Sample reply: C is -otomy, cutting into. -ectomy is removal.",
+              reason: "ask",
+            }}
+          />
+        </ReviewSample>
+        {/* Reported after that reply: the reply stays on the thread until the trainer answers again. */}
+        <ReviewSample n={18} prompt="Sample question: tachy- means">
+          <AskTeacher
+            canReport
+            testId={T}
+            questionId={`${Q}5`}
+            flag={{
+              id: "00000000-0000-4000-8000-00000000a004",
+              note: "Sample note: the key says slow.",
+              status: "open",
+              reply: "Sample reply: tachy- is fast, as in tachycardia.",
+              reason: "wrong_answer",
             }}
           />
         </ReviewSample>

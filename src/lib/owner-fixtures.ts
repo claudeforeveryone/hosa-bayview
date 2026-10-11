@@ -86,6 +86,70 @@ export const growthFixture: GrowthData = {
   })),
 };
 
+// Monday-to-Sunday weeks from `from` to today, as owner_growth sends them for 90 days and all time: the first week
+// starts on the range's first day (part of a week when that isn't a Monday) and the last one ends today.
+function weeks(from: string): { start: string; end: string }[] {
+  const out: { start: string; end: string }[] = [];
+  let start = from;
+  while (start <= TODAY) {
+    const d = new Date(`${start}T12:00:00Z`);
+    const sunday = new Date(d);
+    sunday.setUTCDate(d.getUTCDate() + (6 - ((d.getUTCDay() + 6) % 7)));
+    const end = sunday.toISOString().slice(0, 10);
+    out.push({ start, end: end > TODAY ? TODAY : end });
+    sunday.setUTCDate(sunday.getUTCDate() + 1);
+    start = sunday.toISOString().slice(0, 10);
+  }
+  return out;
+}
+
+// 90 days: 13 weeks from Tuesday Jul 14. Every week had 0 or 5+ new members, so the per-week series is shown and
+// adds up to the total.
+const NEW_90 = [0, 6, 5, 0, 7, 9, 5, 0, 12, 18, 9, 6, 8];
+const ACTIVE_90 = [38, 61, 64, 22, 70, 88, 91, 47, 112, 131, 126, 120, 118];
+export const growth90Fixture: GrowthData = {
+  step: "week",
+  from: day(-89),
+  to: TODAY,
+  new_total: NEW_90.reduce((a, b) => a + b, 0),
+  active_total: 168,
+  new_by_bucket: true,
+  buckets: weeks(day(-89)).map((w, i) => ({
+    ...w,
+    new: NEW_90[i],
+    active: ACTIVE_90[i],
+  })),
+};
+
+// All time: from the first sign-up (Wednesday Feb 18), weekly. A quiet week had 1 to 4 new members, so the series
+// is withheld; summer weeks fall under 5 active.
+export const growthAllFixture: GrowthData = (() => {
+  const all = weeks("2026-02-18");
+  return {
+    step: "week",
+    from: "2026-02-18",
+    to: TODAY,
+    new_total: 184,
+    active_total: 179,
+    new_by_bucket: false,
+    buckets: all.map((w, i) => ({
+      ...w,
+      new: null,
+      active:
+        i >= 17 && i <= 20 ? null : Math.round(20 + i * 3.4 + ((i * 37) % 11)),
+    })),
+  };
+})();
+
+// The 7-day view of the daily fixture.
+export const growth7Fixture: GrowthData = {
+  ...growthFixture,
+  from: day(-6),
+  new_total: 9,
+  active_total: 96,
+  buckets: growthFixture.buckets.slice(-7),
+};
+
 export const engagementFixture: EngagementData = {
   from: day(-29),
   practice: { started: 1240, completed: 912, people: 118 },
@@ -175,10 +239,10 @@ export const engagementFixture: EngagementData = {
     {
       id: "question_reported",
       event: "feedback_submitted",
-      source: "table",
+      source: "tracked",
       count: 7,
       people: null,
-      tracked_since: null,
+      tracked_since: `${day(-12)}T14:00:00Z`,
     },
     {
       id: "install_prompt_shown",
@@ -459,6 +523,15 @@ export const auditFixture: AuditRow[] = [
     target_name: "",
     detail: "",
   },
+  // A passcode claim names the claimer as its target; the log leaves it off.
+  {
+    id: 900,
+    created_at: `${day(-20)}T15:10:00Z`,
+    actor_name: "Sample Executive",
+    action: "passcode_used",
+    target_name: "Sample Executive",
+    detail: "",
+  },
 ];
 
 export const systemFixture: SystemData = {
@@ -555,6 +628,21 @@ export const smallGrowthFixture: GrowthData = {
     end: day(i - 29),
     active,
     new: null,
+  })),
+};
+
+// The small chapter by week (90 days): almost every week under 5 active, and the new series withheld.
+export const smallGrowth90Fixture: GrowthData = {
+  step: "week",
+  from: day(-89),
+  to: TODAY,
+  new_total: 13,
+  active_total: 11,
+  new_by_bucket: false,
+  buckets: weeks(day(-89)).map((w, i) => ({
+    ...w,
+    new: null,
+    active: i === 10 ? 6 : i === 12 ? 9 : i < 8 ? 0 : null,
   })),
 };
 
