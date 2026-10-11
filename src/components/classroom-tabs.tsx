@@ -36,6 +36,8 @@ export function ClassroomTabs({
           scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4,
       });
     check();
+    // Tab widths settle once the display face has loaded.
+    void document.fonts?.ready.then(check);
     scroller.addEventListener("scroll", check, { passive: true });
     window.addEventListener("resize", check);
     return () => {
