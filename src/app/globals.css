@@ -1007,3 +1007,40 @@ html[data-intro] .intro-right {
   from { transform: scale(0.6); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* A list enters once per page: each row rises 6 px and fades, 30 ms after the one before (first 8 only).
+   Reduce Motion: a plain fade. Calm motion zeroes the delay and duration through the rules below. */
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 220ms var(--ease-out) both;
+    animation-delay: calc(min(var(--i, 0), 8) * 30ms);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise { animation: fade-in 150ms ease-out both; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+/* Progress: the fill scales from the left. Reduce Motion and calm zero the transition, so it just lands. */
+.progress-fill {
+  transform-origin: 0 50%;
+  transition: transform 300ms var(--ease-out);
+}
+
+/* The tab underline (classroom tabs) glides to the active tab. Its size and place are set inline. */
+.tab-slide {
+  transition: transform 250ms var(--ease-out), width 250ms var(--ease-out);
+}
+
+/* A verdict mark (right or wrong) pops in as the answer lands. Fade only under Reduce Motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .verdict-pop { animation: verdict-pop 200ms var(--ease-out) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .verdict-pop { animation: fade-in 150ms ease-out both; }
+}
+@keyframes verdict-pop {
+  from { opacity: 0; transform: scale(0.4); }
+}
