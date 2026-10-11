@@ -152,8 +152,8 @@ export function WeekBoard({
           const here = columnTotal(present, ids, week.id);
           const all = here === ids.length;
           return (
-            // One fixed column (grid-cols-1): an auto column grew to the widest name's unwrapped width, pushing
-            // the card 4px past a phone's edge instead of truncating the name.
+            // One fixed column (grid-cols-1), here and on the name list: an auto column grew to the widest name's
+            // unwrapped width and pushed the card's contents past a phone's edge instead of truncating the name.
             <li
               key={c.id}
               className="grid grid-cols-1 content-start border-[3px] border-ink"
