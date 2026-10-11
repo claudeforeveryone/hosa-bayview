@@ -180,25 +180,30 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(openOrFocus(target));
 });
 
-// Reuse an open HOSA window (taking it to the notification's page) before opening a new one.
+// Reuse an open HOSA window (taking it to the notification's page) before opening a new one. A tap allows one
+// window interaction, focus or open, so a window is navigated first and focused only once it has moved: focusing
+// one that then can't be navigated (opened before this worker took over) would spend the tap, and the
+// openWindow fallback would be refused. Frames inside other pages are skipped.
 async function openOrFocus(target) {
   const windows = await self.clients.matchAll({
     type: "window",
     includeUncontrolled: true,
   });
   const ours = windows.filter(
-    (client) => new URL(client.url).origin === self.location.origin,
+    (client) =>
+      client.frameType !== "nested" &&
+      new URL(client.url).origin === self.location.origin,
   );
   const exact = ours.find((client) => client.url === target);
   if (exact) return exact.focus();
   for (const client of ours) {
+    let moved = null;
     try {
-      const focused = await client.focus();
-      const moved = await focused.navigate(target);
-      if (moved) return moved;
+      moved = await client.navigate(target);
     } catch {
-      // An uncontrolled window can't be navigated from here; try the next, then open a new one.
+      // Not navigable from here (uncontrolled, or a browser without navigate()): try the next, then open one.
     }
+    if (moved) return moved.focus();
   }
   return self.clients.openWindow(target);
 }
