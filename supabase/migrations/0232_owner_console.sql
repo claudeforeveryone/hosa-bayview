@@ -209,7 +209,7 @@ revoke all on function private.owner_duels(timestamptz) from public, anon, authe
 
 -- One row per taxonomy event (0230), counted from its source, plus flashcard reviews. 'tracked_since' is set only for
 -- rows that come from analytics_events: null there means the site has never recorded one, so the page says "not
--- tracked yet" instead of a zero. Then practice and exam funnels, and the busiest events by runs started (5 or more).
+-- tracked yet" instead of a zero. Then practice and exam funnels, and a ranking of the busiest events (5 runs or more).
 create or replace function public.owner_engagement(p_range text)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -321,10 +321,10 @@ begin
         'count', private.small_cell(r.n), 'people', private.small_cell(r.people),
         'tracked_since', r.since
       ) order by r.ord), '[]'::jsonb) from feat r),
-    -- Only rooms with 5 or more runs: a hidden run count would still show through where its row sorts.
+    -- Rooms with 5 or more runs, busiest first, as a ranking only. Run counts per room would add up, with the
+    -- funnel totals above, to the rooms left off the list.
     'events', (select coalesce(jsonb_agg(jsonb_build_object(
-        'name', e.name, 'event', e.event,
-        'runs', e.runs, 'people', private.small_cell(e.people)
+        'name', e.name, 'event', e.event, 'people', private.small_cell(e.people)
       ) order by e.runs desc, e.name), '[]'::jsonb)
       from (
         select c.name, c.event, count(a.id) as runs, count(distinct a.user_id) as people
@@ -586,7 +586,8 @@ begin
       'feedback', to_regclass('public.feedback') is not null
     ),
     'migrations', ledger,
-    'analytics', (select jsonb_build_object('rows', count(*), 'oldest', min(e.occurred_at)) from public.analytics_events e)
+    -- Whether anything is stored and since when; no row count, which would add up against Engagement's hidden counts.
+    'analytics', (select jsonb_build_object('stored', count(*) > 0, 'oldest', min(e.occurred_at)) from public.analytics_events e)
   );
 end
 $$;

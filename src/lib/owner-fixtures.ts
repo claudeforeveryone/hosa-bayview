@@ -208,23 +208,20 @@ export const engagementFixture: EngagementData = {
     {
       name: "Sample Event Alpha",
       event: "Medical Terminology",
-      runs: 322,
       people: 41,
     },
     {
       name: "Sample Event Bravo",
       event: "Pathophysiology",
-      runs: 207,
       people: 28,
     },
     {
       name: "Sample Event Charlie",
       event: "Pharmacology",
-      runs: 164,
       people: 22,
     },
-    { name: "Sample Event Delta", event: "Medical Math", runs: 98, people: 15 },
-    { name: "Sample Event Echo", event: "Nutrition", runs: 41, people: null },
+    { name: "Sample Event Delta", event: "Medical Math", people: 15 },
+    { name: "Sample Event Echo", event: "Nutrition", people: null },
   ],
 };
 
@@ -456,7 +453,7 @@ export const systemFixture: SystemData = {
     count: 141,
     latest: ["0232_owner_console", "0231_feedback", "0230_analytics_events"],
   },
-  analytics: { rows: 347, oldest: `${day(-12)}T08:00:00Z` },
+  analytics: { stored: true, oldest: `${day(-12)}T08:00:00Z` },
 };
 
 const MEMBER = "00000000-0000-4000-8000-00000000b0";

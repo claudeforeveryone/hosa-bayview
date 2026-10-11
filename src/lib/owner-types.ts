@@ -73,11 +73,10 @@ export type DuelFigures =
   | { available: false }
   | { available: true; started: Count; completed: Count; people: Count };
 
-// Only rooms with 5 or more runs are listed, so runs is always a number.
+// Rooms with 5 or more runs, busiest first. A ranking only: no run counts (they'd add up against the funnels).
 export type BusyEvent = {
   name: string;
   event: string;
-  runs: number;
   people: Count;
 };
 
@@ -175,7 +174,8 @@ export type SystemData = {
     feedback: boolean;
   };
   migrations: { count: number; latest: string[] } | null;
-  analytics: { rows: number; oldest: string | null };
+  // Whether any usage event is stored, and the oldest. No row count (it would add up against hidden counts).
+  analytics: { stored: boolean; oldest: string | null };
 };
 
 // What the page knows about the deployment, from Vercel's own variables. No secrets.

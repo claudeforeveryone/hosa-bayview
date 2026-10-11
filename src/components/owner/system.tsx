@@ -103,7 +103,7 @@ export function SystemSection({ info }: { info: SystemInfo }) {
                 },
                 {
                   label: "Usage events stored",
-                  value: data.analytics.rows.toLocaleString("en-CA"),
+                  value: data.analytics.stored ? "Yes" : "None yet",
                   note: data.analytics.oldest
                     ? `Oldest from ${dateText(data.analytics.oldest)}. Kept 13 months, then deleted by the daily job.`
                     : "Kept 13 months, then deleted by the daily job.",

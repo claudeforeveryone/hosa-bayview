@@ -246,16 +246,22 @@ export function EngagementSection({
       <Sheet
         id="busy-h"
         title="Busiest events"
-        note="Event rooms with 5 or more practice and timed runs started in this range."
+        note="Event rooms ranked by practice and timed runs started in this range. Rooms with fewer than 5 runs aren't listed."
       >
         {data.events.length === 0 ? (
           <Notice>No event room had 5 or more runs in this range.</Notice>
         ) : (
-          <DataTable<BusyEvent>
-            caption="Event rooms ranked by runs started."
+          <DataTable<BusyEvent & { rank: number }>
+            caption="Event rooms ranked by runs started, busiest first."
             rowKey={(e) => `${e.name}|${e.event}`}
-            rows={data.events}
+            rows={data.events.map((e, i) => ({ ...e, rank: i + 1 }))}
             columns={[
+              {
+                key: "rank",
+                header: "Rank",
+                numeric: true,
+                cell: (e) => e.rank,
+              },
               {
                 key: "name",
                 header: "Event",
@@ -269,12 +275,6 @@ export function EngagementSection({
                     ) : null}
                   </>
                 ),
-              },
-              {
-                key: "runs",
-                header: "Runs",
-                numeric: true,
-                cell: (e) => countText(e.runs),
               },
               {
                 key: "people",

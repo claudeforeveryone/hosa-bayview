@@ -312,9 +312,8 @@ begin
     (select jsonb_typeof(x -> 'people') from jsonb_array_elements(e -> 'features') x where x ->> 'id' = 'resource_opened') = 'null'
     or (select (x ->> 'people')::bigint from jsonb_array_elements(e -> 'features') x where x ->> 'id' = 'resource_opened') >= 5);
   perform pg_temp.check('duels say whether they exist', e -> 'duels' ? 'available');
-  perform pg_temp.check('busiest events list only rooms with 5 or more runs',
-    not exists (select 1 from jsonb_array_elements(e -> 'events') x
-                where jsonb_typeof(x -> 'runs') <> 'number' or (x ->> 'runs')::int < 5));
+  perform pg_temp.check('busiest events are a ranking without run counts',
+    not exists (select 1 from jsonb_array_elements(e -> 'events') x where x ? 'runs'));
   perform pg_temp.check('busiest events people suppressed',
     (select coalesce(bool_and(pg_temp.small_ok(x -> 'people')), true) from jsonb_array_elements(e -> 'events') x));
   perform pg_temp.check('practice funnel suppressed',
@@ -404,7 +403,8 @@ declare
 begin
   perform pg_temp.check('system clock', s ->> 'db_time' is not null);
   perform pg_temp.check('system features', (s -> 'features' ->> 'analytics')::boolean and (s -> 'features' ->> 'feedback')::boolean);
-  perform pg_temp.check('analytics retention figures', (s -> 'analytics' ->> 'rows')::int >= 120);
+  perform pg_temp.check('analytics stored, without a row count',
+    (s -> 'analytics' ->> 'stored')::boolean and s -> 'analytics' ->> 'oldest' is not null and not (s -> 'analytics' ? 'rows'));
 end $$;
 
 -- 8. Retention: the daily keep-alive (anon) purges events older than 13 months and nothing newer --------------------
