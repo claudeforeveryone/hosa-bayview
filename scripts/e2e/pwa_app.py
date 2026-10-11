@@ -21,6 +21,34 @@ INSTALL_PROMPT = """() => {
   window.dispatchEvent(e);
 }"""
 
+# Layout shifts since the page started loading (CLS entries without recent input), summed. Installed per context.
+LAYOUT_SHIFTS = """(() => {
+  window.__cls = 0;
+  try {
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value;
+    }).observe({ type: 'layout-shift', buffered: true });
+  } catch {}
+})()"""
+
+# The member leaves the app (to the phone's Settings, say) and comes back: hidden, then visible, no reload.
+LEAVE_AND_COME_BACK = """() => {
+  const set = (v) => Object.defineProperty(document, 'visibilityState', { value: v, configurable: true });
+  set('hidden'); document.dispatchEvent(new Event('visibilitychange'));
+  set('visible'); document.dispatchEvent(new Event('visibilitychange'));
+  delete document.visibilityState;
+}"""
+
+# The page comes back from the back/forward cache.
+BFCACHE_RESTORE = "() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))"
+
+
+def set_permission(page, value):
+    """What the member changes in the phone's or browser's settings: the stand-in's Notification.permission."""
+    page.evaluate("""(v) => { const k = 'e2e-push-stand-in'; const s = JSON.parse(localStorage.getItem(k));
+                              s.permission = v; localStorage.setItem(k, JSON.stringify(s)); }""", value)
+
+
 credentials = qa_credentials()
 if credentials is None:
     print("These checks need a member test account: set QA_EMAIL and QA_PASSWORD, or QA_ENV_FILE.")
@@ -40,9 +68,13 @@ def settled(page, value):
     page.wait_for_timeout(250)  # the segments' 150 ms colour transition
 
 
-def open_page(ctx, path):
+def open_page(ctx, path, slow_cpu=None):
+    """slow_cpu: a CPU slowdown factor (Chromium only), so the server's HTML paints before the page hydrates, as on a
+    mid-range phone. Without it a fast machine can finish hydrating before the first paint and hide a layout shift."""
     page = ctx.new_page()
     calls = record_push_routes(page)
+    if slow_cpu:
+        ctx.new_cdp_session(page).send("Emulation.setCPUThrottlingRate", {"rate": slow_cpu})
     page.goto(BASE + path)
     page.wait_for_load_state("networkidle")
     wait_for_styles(page)
@@ -93,11 +125,15 @@ with sync_playwright() as p:
 
     # /notifications on iPhone Safari: the line says Home Screen first, and it is the only ask there.
     ctx = new_phone(browser, state, IPHONE_SAFARI, stand_in_push())
-    page, _ = open_page(ctx, "/notifications")
+    ctx.add_init_script(LAYOUT_SHIFTS)
+    page, _ = open_page(ctx, "/notifications", slow_cpu=6)
     page.wait_for_timeout(4200)
     check("iPhone Safari /notifications: points to the Home Screen first",
-          page.get_by_text("once HOSA is on your Home Screen").is_visible())
+          page.get_by_text("once HOSA is on your Home Screen").count() == 1)
     check("iPhone Safari /notifications: no install card on top of the line (one ask)", page.locator(CARD).count() == 0)
+    cls = page.evaluate("() => window.__cls")
+    check("iPhone Safari /notifications: the line appearing moves nothing (layout shift under 0.01)", cls < 0.01,
+          f"CLS {cls:.4f}")
     ctx.close()
 
     # Keyboard focus never lands under the card: Tab through /events with the card up (iPhone Safari) ---------------
@@ -188,12 +224,23 @@ with sync_playwright() as p:
 
     # /notifications on Android with push off: one line pointing to Settings, the only ask there, with its own Not now.
     ctx = new_phone(browser, state, ANDROID_CHROME, stand_in_push())
-    page, _ = open_page(ctx, "/notifications")
+    ctx.add_init_script(LAYOUT_SHIFTS)
+    page, _ = open_page(ctx, "/notifications", slow_cpu=6)
     page.wait_for_timeout(4200)
     hint = page.get_by_role("link", name="Turn them on in Settings")
     check("/notifications: one line links to Settings > Phone app while push is off",
           hint.count() == 1 and hint.get_attribute("href") == "/settings?tab=app")
     check("/notifications: no notifications card on top of the line (one ask)", page.locator(CARD).count() == 0)
+    place = page.evaluate("""() => { const p = [...document.querySelectorAll('#main p')]
+        .find((x) => x.textContent.includes('Get these as notifications')); const row = p.parentElement;
+      const list = [...document.querySelectorAll('#main section, #main ul')].pop();
+      return { lineTop: row.getBoundingClientRect().top, listBottom: list ? list.getBoundingClientRect().bottom : 0,
+               last: row.parentElement.lastElementChild === row }; }""")
+    cls = page.evaluate("() => window.__cls")
+    check("/notifications: the line comes after the list, so appearing moves nothing (layout shift under 0.01)",
+          place["last"] and place["lineTop"] >= place["listBottom"] and cls < 0.01,
+          json.dumps({**place, "cls": round(cls, 4)}))
+    hint.scroll_into_view_if_needed()
     shot(page, "notifications-hint-390")
     page.get_by_role("button", name="Not now").focus()
     page.keyboard.press("Enter")
@@ -472,6 +519,48 @@ with sync_playwright() as p:
           f is not None and f["id"] == "push-state" and "blocked" in f["text"] and ring_visible(f), json.dumps(f))
     check("segments, refused: nothing was saved", not [c for c in calls if c[0] == "POST"], json.dumps(calls))
     shot(page, "segments-keyboard-refused-390")
+    ctx.close()
+
+    # Blocked, then allowed in the phone's Settings as the blocked line says: back in the installed app (no reload),
+    # the page reads the browser again. Same for a page restored from the back/forward cache, and the /notifications line.
+    ctx = new_phone(browser, state, ANDROID_CHROME, stand_in_push(permission="denied", display_standalone=True))
+    page, calls = open_page(ctx, "/settings?tab=app")
+    page.get_by_text("Notifications are blocked for HOSA").wait_for(timeout=10000)
+    check("blocked: Settings says so, with no OFF | ON control", page.locator("input[name=push-device]").count() == 0)
+    shot(page, "settings-app-android-390-blocked")
+    set_permission(page, "granted")
+    page.evaluate(LEAVE_AND_COME_BACK)
+    try:
+        settled(page, "off")
+        came_back = True
+    except Exception:
+        came_back = False
+    check("blocked, then allowed and back in the app: the OFF | ON segments appear without a reload",
+          came_back and page.get_by_text("Notifications are blocked for HOSA").count() == 0)
+    if came_back:
+        page.get_by_role("group", name="Notifications on this device").scroll_into_view_if_needed()
+        shot(page, "settings-app-android-390-allowed-after-blocked")
+    set_permission(page, "denied")
+    page.evaluate(BFCACHE_RESTORE)
+    try:
+        page.get_by_text("Notifications are blocked for HOSA").wait_for(timeout=5000)
+        restored = True
+    except Exception:
+        restored = False
+    check("blocked again, page restored from the back/forward cache: Settings reads the browser again", restored)
+    page.goto(f"{BASE}/notifications")
+    page.wait_for_load_state("networkidle")
+    page.wait_for_timeout(1500)
+    hint = page.get_by_role("link", name="Turn them on in Settings")
+    check("blocked: no line on /notifications (a tap can't fix it)", hint.count() == 0)
+    set_permission(page, "granted")
+    page.evaluate(LEAVE_AND_COME_BACK)
+    try:
+        hint.wait_for(timeout=5000)
+        shown = True
+    except Exception:
+        shown = False
+    check("allowed and back in the app: the /notifications line appears without a reload", shown)
     ctx.close()
 
     # Desktop: Settings at 1440 with notifications on.

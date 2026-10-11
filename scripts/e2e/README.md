@@ -6,9 +6,10 @@ build, because the service worker only registers there:
 ```sh
 npm run build && npx next start -p 3102
 python scripts/e2e/pwa_shell.py   # manifest, icons, service worker, precache, offline page, what gets cached
-python scripts/e2e/pwa_app.py     # install card, notifications ask, /notifications line, focus under the card,
-                                  # keyboard focus when turning on (each answer), status bar colour (app pages and
-                                  # sign-in), Settings tabs and Phone app, short sessions
+python scripts/e2e/pwa_app.py     # install card, notifications ask, /notifications line (and that it moves
+                                  # nothing), focus under the card, keyboard focus when turning on (each answer),
+                                  # status bar colour (app pages and sign-in), Settings tabs and Phone app, blocked
+                                  # then allowed (read again on return), short sessions
 ```
 
 - `BASE_URL` (default `http://localhost:3102`) points them elsewhere. `SHOTS_DIR` saves screenshots there.
