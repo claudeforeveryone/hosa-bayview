@@ -106,9 +106,10 @@ function weeks(from: string): { start: string; end: string }[] {
 }
 
 // 90 days: 13 weeks from Tuesday Jul 14. Every week had 0 or 5+ new members, so the per-week series is shown and
-// adds up to the total.
-const NEW_90 = [0, 6, 5, 0, 7, 9, 5, 0, 12, 18, 9, 6, 8];
-const ACTIVE_90 = [38, 61, 64, 22, 70, 88, 91, 47, 112, 131, 126, 120, 118];
+// adds up to the total. TODAY is a Sunday, so the last week is the overview's 7 days (9 new, 96 active) and the one
+// before it is its "7 days before" (88 active); the four weeks from Sep 14 hold the 30 days' 31 new members.
+const NEW_90 = [0, 6, 5, 0, 7, 9, 5, 0, 12, 7, 9, 6, 9];
+const ACTIVE_90 = [38, 61, 64, 22, 70, 88, 91, 47, 112, 131, 126, 88, 96];
 export const growth90Fixture: GrowthData = {
   step: "week",
   from: day(-89),
@@ -124,21 +125,26 @@ export const growth90Fixture: GrowthData = {
 };
 
 // All time: from the first sign-up (Wednesday Feb 18), weekly. A quiet week had 1 to 4 new members, so the series
-// is withheld; summer weeks fall under 5 active.
+// is withheld; summer weeks fall under 5 active. Weeks the 90-day view also shows whole carry the same figures, and
+// every member was active at least on the day they joined, so all 184 count as active.
 export const growthAllFixture: GrowthData = (() => {
   const all = weeks("2026-02-18");
+  const ninety = growth90Fixture.buckets;
   return {
     step: "week",
     from: "2026-02-18",
     to: TODAY,
     new_total: 184,
-    active_total: 179,
+    active_total: 184,
     new_by_bucket: false,
     buckets: all.map((w, i) => ({
       ...w,
       new: null,
       active:
-        i >= 17 && i <= 20 ? null : Math.round(20 + i * 3.4 + ((i * 37) % 11)),
+        ninety.find((b) => b.start === w.start && b.end === w.end)?.active ??
+        (i >= 17 && i <= 20
+          ? null
+          : Math.round(20 + i * 3.4 + ((i * 37) % 11))),
     })),
   };
 })();
@@ -708,8 +714,11 @@ export const membersFixture: DevStatsRow[] = [
   member(6, "Sample Executive", "executive", 380, 210, 199, 0),
 ];
 
-// A small chapter, the size HOSA Bayview is today: 13 members who all joined this month, activity on a handful of
-// days, most of them under 5 people. This is what the owner sees on day one: mostly Under 5, outlined columns.
+// A small chapter, the size HOSA Bayview is today: 13 members, all new this month. Nine joined at the first meeting
+// (Monday Sep 21, day -20), two on Sep 29 (day -12) and two on Oct 9 (day -2), and each was active the day they
+// joined. Activity falls on a handful of days, most of them under 5 people. This is what the owner sees on day one:
+// mostly Under 5, outlined columns. The 7 active this week are the 6 from the week before plus a newcomer; the two
+// newcomers are under 5, so returning and first-week hide together.
 export const smallOverviewFixture: OwnerOverview = {
   today: TODAY,
   members: 13,
@@ -717,14 +726,27 @@ export const smallOverviewFixture: OwnerOverview = {
   new_30d: 13,
   dau: null,
   wau: 7,
-  wau_prev: 0,
-  mau: 9,
+  wau_prev: 6,
+  mau: 13,
   returning_7d: null,
   first_week_7d: null,
 };
 
-const SMALL_ACTIVE: (number | null)[] = Array.from({ length: 30 }, (_, i) =>
-  i === 27 ? 7 : i === 21 || i === 25 || i === 29 ? null : 0,
+// Active members per day, oldest first (index 29 is today): 9 at the first meeting, 6 on day -12, 7 on day -2, and
+// 1 to 4 on days -19, -8, -4 and today.
+const SMALL_DAY: Record<number, number | null> = {
+  [-20]: 9,
+  [-19]: null,
+  [-12]: 6,
+  [-8]: null,
+  [-4]: null,
+  [-2]: 7,
+  [0]: null,
+};
+const SMALL_ACTIVE: (number | null)[] = Array.from(
+  { length: 30 },
+  // A hidden day is null, so look the day up rather than defaulting with ??.
+  (_, i) => (Object.hasOwn(SMALL_DAY, i - 29) ? SMALL_DAY[i - 29] : 0),
 );
 
 export const smallGrowthFixture: GrowthData = {
@@ -732,7 +754,7 @@ export const smallGrowthFixture: GrowthData = {
   from: day(-29),
   to: TODAY,
   new_total: 13,
-  active_total: 9,
+  active_total: 13,
   new_by_bucket: false,
   buckets: SMALL_ACTIVE.map((active, i) => ({
     start: day(i - 29),
@@ -742,18 +764,43 @@ export const smallGrowthFixture: GrowthData = {
   })),
 };
 
-// The small chapter by week (90 days): almost every week under 5 active, and the new series withheld.
+// The small chapter's last 7 days: 2 new members (Under 5), 7 active.
+export const smallGrowth7Fixture: GrowthData = {
+  ...smallGrowthFixture,
+  from: day(-6),
+  new_total: null,
+  active_total: 7,
+  buckets: smallGrowthFixture.buckets.slice(-7),
+};
+
+// The small chapter by week (90 days): nothing before the first meeting's week, then 9, 6 and 7 active. Two weeks had
+// 2 new members, so the new series is withheld.
 export const smallGrowth90Fixture: GrowthData = {
   step: "week",
   from: day(-89),
   to: TODAY,
   new_total: 13,
-  active_total: 11,
+  active_total: 13,
   new_by_bucket: false,
   buckets: weeks(day(-89)).map((w, i) => ({
     ...w,
     new: null,
-    active: i === 10 ? 6 : i === 12 ? 9 : i < 8 ? 0 : null,
+    active: i === 10 ? 9 : i === 11 ? 6 : i === 12 ? 7 : 0,
+  })),
+};
+
+// All time starts on the first sign-up, so the small chapter's is those same three weeks.
+export const smallGrowthAllFixture: GrowthData = {
+  step: "week",
+  from: day(-20),
+  to: TODAY,
+  new_total: 13,
+  active_total: 13,
+  new_by_bucket: false,
+  buckets: weeks(day(-20)).map((w, i) => ({
+    ...w,
+    new: null,
+    active: [9, 6, 7][i] ?? 0,
   })),
 };
 

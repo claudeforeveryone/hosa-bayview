@@ -30,7 +30,9 @@ import {
   membersFixture,
   overviewFixture,
   smallEngagementFixture,
+  smallGrowth7Fixture,
   smallGrowth90Fixture,
+  smallGrowthAllFixture,
   smallGrowthFixture,
   smallOverviewFixture,
   systemFixture,
@@ -45,8 +47,8 @@ import {
 import type { ContentData, GrowthData } from "@/lib/owner-types";
 
 // Dev server only: the owner console and the two student entry points, filled with made-up data, for screenshots
-// and design review. ?scale=small swaps in a chapter the size of today's (13 members, a few quiet days), so the
-// mostly-Under-5 first look gets reviewed too. The .dev.tsx extension is a page only under `next dev` (next.config.ts), so production builds
+// and design review. ?scale=small swaps in a chapter the size of today's (13 members, all new this month, a few
+// quiet days), so the mostly-Under-5 first look gets reviewed too. The .dev.tsx extension is a page only under `next dev` (next.config.ts), so production builds
 // have no /dev/owner route at all; the NODE_ENV check is a second lock. Signed-in pages, like the rest of (app).
 export const metadata: Metadata = { title: "Owner console fixtures" };
 
@@ -194,12 +196,13 @@ function section(
   }
 }
 
-// The range picker works here too: days for 7 and 30, Monday-to-Sunday weeks for 90 days and all time.
+// The range picker works here too: days for 7 and 30, Monday-to-Sunday weeks for 90 days and all time, for the
+// chapter on screen (owner-fixtures.test.ts keeps each chapter's ranges and overview in agreement).
 function growthFor(range: Range, small: boolean): GrowthData {
-  if (range === "7d") return growth7Fixture;
+  if (range === "7d") return small ? smallGrowth7Fixture : growth7Fixture;
   if (range === "30d") return small ? smallGrowthFixture : growthFixture;
   if (range === "90d") return small ? smallGrowth90Fixture : growth90Fixture;
-  return growthAllFixture;
+  return small ? smallGrowthAllFixture : growthAllFixture;
 }
 
 function withoutWording(data: ContentData): ContentData {
