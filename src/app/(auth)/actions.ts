@@ -332,7 +332,10 @@ export async function updatePassword(
   if (error) return { error: friendly(error.message) };
   // A new password should end any session someone else may be holding, and the phone notifications going to
   // those devices with it.
-  const { data: claims } = await supabase.auth.getClaims();
+  // The password is already changed, so a failed lookup here only skips the push cleanup.
+  const { data: claims } = await supabase.auth
+    .getClaims()
+    .catch(() => ({ data: null }));
   const uid = claims?.claims?.sub;
   if (typeof uid === "string") await forgetOtherDevices(supabase, uid);
   await supabase.auth.signOut({ scope: "others" });
