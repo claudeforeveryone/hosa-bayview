@@ -55,7 +55,14 @@ export function AvatarForm({
     setLocalError(null);
     setBusy("upload");
     try {
-      const prepared = await prepareAvatar(file, animated);
+      let prepared;
+      try {
+        prepared = await prepareAvatar(file, animated);
+      } catch (err) {
+        console.error("[picture] decode:", file.type || file.name, err);
+        setLocalError("Couldn't read that picture. Try a different one.");
+        return;
+      }
       const objectPath = newAvatarPath(
         userId,
         crypto.randomUUID(),
@@ -73,8 +80,10 @@ export function AvatarForm({
         return;
       }
       setResult(await savePicture(userId, objectPath));
-    } catch {
-      setLocalError("Couldn't read that picture. Try a different one.");
+    } catch (err) {
+      // The upload or the save failed (no connection, server error); the picture itself was fine.
+      console.error("[picture] upload:", err);
+      setLocalError("Couldn't upload that. Check your connection and try again.");
     } finally {
       setBusy(null);
     }
@@ -104,7 +113,7 @@ export function AvatarForm({
           <input
             id={inputId}
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             disabled={busy !== null}
             onChange={onPick}
             aria-describedby={`${inputId}-hint`}
