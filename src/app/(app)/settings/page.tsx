@@ -127,7 +127,8 @@ function EventsTab({ isExec }: { isExec: boolean }) {
       description="Join an event with its code, or find the events you are already in."
     >
       {/* The join form is drawn for the navy field, so it sits in a field panel here too. */}
-      <div className="grid gap-4 bg-field p-5 text-on-field sm:p-6">
+      {/* Everything stacks in one left-aligned column: join box, then the two links. */}
+      <div className="grid w-full max-w-[32rem] gap-4 bg-field p-5 text-on-field sm:p-6">
         <p className="font-display text-[26px] leading-none font-bold uppercase">
           Join another event
         </p>
@@ -136,7 +137,7 @@ function EventsTab({ isExec }: { isExec: boolean }) {
         </p>
         <JoinForm />
       </div>
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+      <div className="flex flex-col items-start gap-3">
         <Link
           href="/events"
           className="caps step inline-flex h-12 items-center text-[16px] text-ink-2 underline decoration-rule-strong underline-offset-4 hover:text-ink"
