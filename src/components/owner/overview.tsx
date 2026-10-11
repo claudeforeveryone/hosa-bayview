@@ -1,4 +1,9 @@
-import { countText, deltaText, percentText } from "@/lib/owner-metrics";
+import {
+  countText,
+  deltaText,
+  mostlyHidden,
+  percentText,
+} from "@/lib/owner-metrics";
 import type { OwnerOverview } from "@/lib/owner-types";
 import { Figure, Figures, Ledger, Sheet } from "./primitives";
 
@@ -9,12 +14,26 @@ export function OverviewSection({ data }: { data: OwnerOverview }) {
     data.returning_7d === null || data.first_week_7d === null
       ? null
       : data.returning_7d + data.first_week_7d;
+  const small = mostlyHidden([
+    data.members,
+    data.dau,
+    data.wau,
+    data.mau,
+    data.returning_7d,
+    data.first_week_7d,
+    data.new_7d,
+    data.new_30d,
+  ]);
   return (
     <>
       <Sheet
         id="overview-h"
-        title="This week"
-        note="Counts from 1 to 4 show as Under 5, so no one can be picked out."
+        title="At a glance"
+        note={
+          small
+            ? "Counts from 1 to 4 show as Under 5. With a small chapter that's most of them for now; they fill in as more members are active."
+            : "Counts from 1 to 4 show as Under 5."
+        }
       >
         <Figures label="Headline figures">
           <Figure label="Members" value={countText(data.members)} />

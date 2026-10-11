@@ -24,41 +24,22 @@ export function isTracked(name: string, code: string | null): boolean {
   );
 }
 
-export type TaxonomyEntry = {
-  event: string;
-  // Where the owner console's count comes from.
-  source: string;
-};
-
-export const TAXONOMY: TaxonomyEntry[] = [
-  { event: "account_created", source: "New profiles" },
-  {
-    event: "onboarding_completed",
-    source:
-      "Not counted: there is no onboarding step, every page is open from day one",
-  },
-  { event: "event_selected", source: "Joining an event room" },
-  {
-    event: "practice_started",
-    source: "Practice runs started, career quizzes included",
-  },
-  { event: "practice_completed", source: "Practice runs submitted" },
-  { event: "exam_completed", source: "Timed tests submitted" },
-  {
-    event: "vocab_session_completed",
-    source: "Match games finished, plus flip rounds finished (recorded)",
-  },
-  { event: "resource_opened", source: "Files and links opened (recorded)" },
-  {
-    event: "duel_started",
-    source: "Battles created, once battles are on the database",
-  },
-  { event: "duel_completed", source: "Battles finished" },
-  {
-    event: "feedback_submitted",
-    source: "Feedback sent, plus questions reported",
-  },
-  { event: "install_prompt_shown", source: "Install prompt shown (recorded)" },
-  { event: "app_installed", source: "App installed (recorded)" },
-  { event: "push_enabled", source: "Notifications turned on (recorded)" },
-];
+// Every event in the shared taxonomy, in the plan's order. The owner console's Engagement table counts each one in a
+// row or names it in the note under the table (src/lib/owner-engagement.ts), and its test holds it to that.
+export const TAXONOMY_EVENTS = [
+  "account_created",
+  "onboarding_completed",
+  "event_selected",
+  "practice_started",
+  "practice_completed",
+  "exam_completed",
+  "vocab_session_completed",
+  "resource_opened",
+  "duel_started",
+  "duel_completed",
+  "feedback_submitted",
+  "install_prompt_shown",
+  "app_installed",
+  "push_enabled",
+] as const;
+export type TaxonomyEvent = (typeof TAXONOMY_EVENTS)[number];

@@ -55,7 +55,10 @@ export function FeedbackTriage({
   };
 
   return (
-    <li className="grid gap-4 border-b border-rule py-5">
+    <li
+      id={`feedback-${row.id.slice(0, 8)}`}
+      className="grid scroll-mt-6 gap-4 border-b border-rule py-5"
+    >
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="caps border border-ink px-2 py-0.5 text-[13px]">
           {CATEGORY_LABEL[row.category]}

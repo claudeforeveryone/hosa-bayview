@@ -15,6 +15,7 @@ import type {
 export const FIXTURE_MARKER = "OWNER-FIXTURE";
 
 const TODAY = "2026-10-11";
+const ROOM = "00000000-0000-4000-8000-00000000f0";
 
 function day(offset: number): string {
   const d = new Date(`${TODAY}T12:00:00Z`);
@@ -206,26 +207,37 @@ export const engagementFixture: EngagementData = {
   ],
   events: [
     {
+      id: `${ROOM}01`,
       name: "Sample Event Alpha",
       event: "Medical Terminology",
       people: 41,
     },
     {
+      id: `${ROOM}02`,
       name: "Sample Event Bravo",
       event: "Pathophysiology",
       people: 28,
     },
     {
+      id: `${ROOM}03`,
       name: "Sample Event Charlie",
       event: "Pharmacology",
       people: 22,
     },
-    { name: "Sample Event Delta", event: "Medical Math", people: 15 },
-    { name: "Sample Event Echo", event: "Nutrition", people: null },
+    {
+      id: `${ROOM}04`,
+      name: "Sample Event Delta",
+      event: "Medical Math",
+      people: 15,
+    },
+    {
+      id: `${ROOM}07`,
+      name: "Sample Event Echo",
+      event: "Nutrition",
+      people: null,
+    },
   ],
 };
-
-const ROOM = "00000000-0000-4000-8000-00000000f0";
 
 export const contentFixture: ContentData = {
   questions: 6420,
@@ -333,18 +345,27 @@ export const contentFixture: ContentData = {
   duplicates: [
     {
       stem: "sample question: which suffix means inflammation",
+      example: "Sample question: Which suffix means inflammation?",
+      test_id: "00000000-0000-4000-8000-00000000d001",
+      classroom_id: `${ROOM}01`,
       copies: 4,
       tests: 3,
       rooms: ["Sample Event Alpha"],
     },
     {
       stem: "sample question: the prefix brady- means",
+      example: "Sample question: The prefix brady- means:",
+      test_id: "00000000-0000-4000-8000-00000000d003",
+      classroom_id: `${ROOM}01`,
       copies: 3,
       tests: 2,
       rooms: ["Sample Event Alpha", "Sample Mock Round"],
     },
     {
       stem: "sample question: convert 5 ml to teaspoons",
+      example: "Sample question: Convert 5 mL to teaspoons.",
+      test_id: "00000000-0000-4000-8000-00000000d004",
+      classroom_id: `${ROOM}04`,
       copies: 2,
       tests: 2,
       rooms: ["Sample Event Delta"],
@@ -356,7 +377,7 @@ export const feedbackFixture: FeedbackQueue = {
   counts: { new: 3, planned: 2, done: 6, wont_fix: 1 },
   rows: [
     {
-      id: "00000000-0000-4000-8000-00000000c001",
+      id: "c0000001-0000-4000-8000-00000000c001",
       category: "bug",
       body: "Sample feedback: the timer kept running after I submitted a timed test on my phone.",
       build: "a1b2c3d",
@@ -369,7 +390,7 @@ export const feedbackFixture: FeedbackQueue = {
       sent_by: "Sample Trainee A",
     },
     {
-      id: "00000000-0000-4000-8000-00000000c002",
+      id: "c0000002-0000-4000-8000-00000000c002",
       category: "idea",
       body: "Sample feedback: a dark calendar view would be easier to read at night.",
       build: null,
@@ -382,7 +403,7 @@ export const feedbackFixture: FeedbackQueue = {
       sent_by: "Sample Trainee B",
     },
     {
-      id: "00000000-0000-4000-8000-00000000c003",
+      id: "c0000003-0000-4000-8000-00000000c003",
       category: "other",
       body: "Sample feedback: thanks for the flashcards.",
       build: "a1b2c3d",
@@ -403,7 +424,7 @@ export const auditFixture: AuditRow[] = [
     created_at: `${TODAY}T14:02:00Z`,
     actor_name: "Sample Owner",
     action: "feedback",
-    target_name: "feedback #00000000",
+    target_name: "feedback #c0000001",
     detail: "status new to planned, priority normal to high",
   },
   {
@@ -502,3 +523,74 @@ export const membersFixture: DevStatsRow[] = [
   member(5, "Sample Trainee E", "trainee", 120, 96, 51, 9),
   member(6, "Sample Executive", "executive", 380, 210, 199, 0),
 ];
+
+// A small chapter, the size HOSA Bayview is today: 13 members who all joined this month, activity on a handful of
+// days, most of them under 5 people. This is what the owner sees on day one: mostly Under 5, outlined columns.
+export const smallOverviewFixture: OwnerOverview = {
+  today: TODAY,
+  members: 13,
+  new_7d: null,
+  new_30d: 13,
+  dau: null,
+  wau: 7,
+  wau_prev: 0,
+  mau: 9,
+  returning_7d: null,
+  first_week_7d: null,
+};
+
+const SMALL_ACTIVE: (number | null)[] = Array.from({ length: 30 }, (_, i) =>
+  i === 27 ? 7 : i === 21 || i === 25 || i === 29 ? null : 0,
+);
+
+export const smallGrowthFixture: GrowthData = {
+  step: "day",
+  from: day(-29),
+  to: TODAY,
+  new_total: 13,
+  active_total: 9,
+  new_by_bucket: false,
+  buckets: SMALL_ACTIVE.map((active, i) => ({
+    start: day(i - 29),
+    end: day(i - 29),
+    active,
+    new: null,
+  })),
+};
+
+export const smallEngagementFixture: EngagementData = {
+  ...engagementFixture,
+  practice: { started: 23, completed: 15, people: 7 },
+  exams: { started: 0, completed: 0, people: 0 },
+  features: engagementFixture.features.map((f) => {
+    const small: Partial<Record<typeof f.id, [number | null, number | null]>> =
+      {
+        account_created: [13, 13],
+        event_selected: [19, 11],
+        practice_started: [23, 7],
+        practice_completed: [15, 6],
+        exam_completed: [0, 0],
+        vocab_round: [null, null],
+        vocab_match: [0, 0],
+        card_reviews: [212, 6],
+        resource_opened: [null, null],
+        feedback_submitted: [0, 0],
+        question_reported: [0, 0],
+      };
+    const pick = small[f.id];
+    return pick ? { ...f, count: pick[0], people: pick[1] } : f;
+  }),
+  events: [
+    {
+      id: `${ROOM}01`,
+      name: "Sample Event Alpha",
+      event: "Medical Terminology",
+      people: null,
+    },
+  ],
+};
+
+export const smallFeedbackFixture: FeedbackQueue = {
+  counts: { new: 0, planned: 0, done: 0, wont_fix: 0 },
+  rows: [],
+};

@@ -34,6 +34,12 @@ export function deltaText(
   return `${number.format(Math.abs(gap))} ${gap > 0 ? "more" : "fewer"} than ${than}`;
 }
 
+// A small chapter: half or more of a section's figures came back hidden, so the page says why it reads Under 5.
+export function mostlyHidden(values: (number | null)[]): boolean {
+  if (!values.length) return false;
+  return values.filter((v) => v === null).length * 2 >= values.length;
+}
+
 export const RANGES = ["7d", "30d", "90d", "all"] as const;
 export type Range = (typeof RANGES)[number];
 export const RANGE_LABEL: Record<Range, string> = {

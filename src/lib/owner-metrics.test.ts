@@ -7,6 +7,7 @@ import {
   deltaText,
   featureState,
   isStatsViewer,
+  mostlyHidden,
   pageNumber,
   parseFeedbackFilter,
   parseRange,
@@ -142,5 +143,17 @@ describe("checkFeedback", () => {
     expect(checkFeedback("idea", "a".repeat(1001))).toBe(
       "Keep it under 1,000 characters.",
     );
+  });
+});
+
+describe("mostlyHidden", () => {
+  it("is true when half or more of the figures came back as Under 5", () => {
+    expect(mostlyHidden([13, null, 9, null])).toBe(true);
+    expect(mostlyHidden([null, null, null])).toBe(true);
+  });
+  it("is false when most figures are shown, zeros included", () => {
+    expect(mostlyHidden([184, 27, null, 96])).toBe(false);
+    expect(mostlyHidden([0, 0, 0, null])).toBe(false);
+    expect(mostlyHidden([])).toBe(false);
   });
 });

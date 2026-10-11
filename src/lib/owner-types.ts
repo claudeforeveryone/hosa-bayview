@@ -75,6 +75,8 @@ export type DuelFigures =
 
 // Rooms with 5 or more runs, busiest first. A ranking only: no run counts (they'd add up against the funnels).
 export type BusyEvent = {
+  // The room's id: two rooms can share a name and an event.
+  id: string;
   name: string;
   event: string;
   people: Count;
@@ -116,7 +118,12 @@ export type ReportedQuestion = {
 };
 
 export type DuplicateStem = {
+  // Lower case, spacing and end punctuation stripped: the key the copies share, not something to show.
   stem: string;
+  // One copy's wording as written, and where that copy lives.
+  example: string;
+  test_id: string;
+  classroom_id: string;
   copies: number;
   tests: number;
   rooms: string[];
@@ -188,8 +195,9 @@ export type Deployment = {
 
 export type SystemInfo = {
   deployment: Deployment;
-  // "missing": the database answered, but the owner functions (0232) aren't on it yet.
-  db: "up" | "missing" | "down";
+  // "missing": the database answered, but the owner functions (0232) aren't on it yet. "error": it answered with an
+  // error. There is no "down": if the database can't be reached, the page's own gate fails first and nothing renders.
+  db: "up" | "missing" | "error";
   latencyMs: number | null;
   data: SystemData | null;
 };

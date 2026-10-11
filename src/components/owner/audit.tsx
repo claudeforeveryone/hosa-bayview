@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/form";
 import { PAGE_SIZE, stampText } from "@/lib/owner-metrics";
 import type { AuditRow } from "@/lib/owner-types";
@@ -17,6 +18,29 @@ const VERB: Record<string, string> = {
   gif: "changed GIF pictures for",
   feedback: "triaged",
 };
+
+// Passcode rows never show their detail.
+function detailText(r: AuditRow): string {
+  return r.action === "passcode" || r.action === "passcode_used"
+    ? ""
+    : (r.detail ?? "");
+}
+
+// A triage row names "feedback #1a2b3c4d" (the id's first 8 characters). It opens the full feedback list, at that
+// item when it is on the first page.
+function feedbackHref(
+  base: string,
+  extra: Record<string, string> | undefined,
+  target: string,
+): string {
+  const search = new URLSearchParams({
+    ...extra,
+    tab: "feedback",
+    status: "all",
+  });
+  const short = /#([0-9a-f]{8})$/.exec(target)?.[1];
+  return `${base}?${search.toString()}${short ? `#feedback-${short}` : ""}`;
+}
 
 // The admin log (0052), searchable: role changes, bans, titles, warnings, removals, code changes, feedback triage.
 // Filled by the database itself, so nothing here can be edited.
@@ -39,7 +63,7 @@ export function AuditSection({
     <Sheet
       id="audit-h"
       title="Audit log"
-      note="Every privileged change, newest first. Search by name, action or detail."
+      note="Role, ban, title, warning, removal, code, GIF and feedback changes, newest first. Search by name, action or detail."
     >
       <form
         action={base}
@@ -88,7 +112,17 @@ export function AuditSection({
                   <span className="font-normal">
                     {VERB[r.action] ?? r.action}
                   </span>
-                  {r.target_name ? (
+                  {r.target_name && r.action === "feedback" ? (
+                    <>
+                      {" "}
+                      <Link
+                        href={feedbackHref(base, extra, r.target_name)}
+                        className="font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                      >
+                        {r.target_name}
+                      </Link>
+                    </>
+                  ) : r.target_name ? (
                     <span className="font-semibold"> {r.target_name}</span>
                   ) : null}
                 </>
@@ -97,11 +131,10 @@ export function AuditSection({
             {
               key: "detail",
               header: "Detail",
+              when: (r) => detailText(r) !== "",
               cell: (r) => (
                 <span className="text-[15px] text-ink-2 [overflow-wrap:anywhere]">
-                  {r.action === "passcode" || r.action === "passcode_used"
-                    ? ""
-                    : r.detail}
+                  {detailText(r)}
                 </span>
               ),
             },

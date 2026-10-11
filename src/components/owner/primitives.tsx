@@ -210,6 +210,9 @@ export type Column<T> = {
   header: string;
   numeric?: boolean;
   cell: (row: T) => ReactNode;
+  // Phones only: leave this pair out of the row's block (always, or for rows where `when` says no).
+  hideOnPhone?: boolean;
+  when?: (row: T) => boolean;
 };
 
 // A table on wide screens; on phones each row becomes a short block (first column as its title, the rest as
@@ -229,28 +232,35 @@ export function DataTable<T>({
   return (
     <>
       <ul aria-label={caption} className="border-t-[3px] border-ink sm:hidden">
-        {rows.map((row) => (
-          <li
-            key={rowKey(row)}
-            className="grid gap-2 border-b border-rule py-3"
-          >
-            <div className="text-[16px] font-medium">{first.cell(row)}</div>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-              {rest.map((c) => (
-                <div key={c.key} className="min-w-0">
-                  <dt className="caps text-[12px] leading-tight text-ink-2">
-                    {c.header}
-                  </dt>
-                  <dd
-                    className={`text-[16px] ${c.numeric ? "num font-semibold" : ""}`}
-                  >
-                    {c.cell(row)}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </li>
-        ))}
+        {rows.map((row) => {
+          const pairs = rest.filter(
+            (c) => !c.hideOnPhone && (c.when?.(row) ?? true),
+          );
+          return (
+            <li
+              key={rowKey(row)}
+              className="grid gap-2 border-b border-rule py-3"
+            >
+              <div className="text-[16px] font-medium">{first.cell(row)}</div>
+              {pairs.length ? (
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  {pairs.map((c) => (
+                    <div key={c.key} className="min-w-0">
+                      <dt className="caps text-[12px] leading-tight text-ink-2">
+                        {c.header}
+                      </dt>
+                      <dd
+                        className={`text-[16px] ${c.numeric ? "num font-semibold" : ""}`}
+                      >
+                        {c.cell(row)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full border-collapse">

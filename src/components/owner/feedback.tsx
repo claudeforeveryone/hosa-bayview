@@ -44,7 +44,7 @@ export function FeedbackSection({
     <Sheet
       id="feedback-h"
       title="Feedback"
-      note="Sent from Settings. Set a status and priority as you go; your notes stay with you."
+      note="Sent from Settings. Set a status and priority as you go. Members never see your notes."
     >
       <Choices
         label="Status"

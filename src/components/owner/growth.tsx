@@ -1,6 +1,7 @@
 import {
   bucketLabel,
   countText,
+  mostlyHidden,
   RANGE_LABEL,
   RANGES,
   type Range,
@@ -113,8 +114,9 @@ export function GrowthSection({
   );
 }
 
-// Active members per bucket as columns from one baseline. A hidden count (1 to 4) is a pale column up to 4 on the
-// same scale: "somewhere under 5", never a made-up height. Hover a column for its figure; the table below holds
+// Active members per bucket as columns from one baseline. A hidden count (1 to 4) is an outlined, unfilled column up
+// to 4 on the same scale: "somewhere under 5", never a made-up height. The outline is the secondary ink, well over
+// 3:1 against the ground in every theme, so it reads on a phone in daylight. Hover a column for its figure; the table below holds
 // every value for keyboard and screen-reader use, so the chart itself is hidden from assistive tech.
 function ActiveChart({
   buckets,
@@ -125,6 +127,7 @@ function ActiveChart({
 }) {
   const top = Math.max(5, ...buckets.map((b) => b.active ?? 0));
   const hasHidden = buckets.some((b) => b.active === null);
+  const small = mostlyHidden(buckets.map((b) => b.active));
   const edge = Math.max(1, Math.floor(buckets.length / 4));
   return (
     <figure className="grid gap-2">
@@ -153,7 +156,11 @@ function ActiveChart({
                 className="group relative flex h-full min-w-0 flex-1 items-end justify-center"
               >
                 <span
-                  className={`w-full max-w-6 ${hidden ? "bg-ink/20" : "bg-ink"} group-hover:bg-ink-2`}
+                  className={`w-full max-w-6 ${
+                    hidden
+                      ? "border-[1.5px] border-b-0 border-ink-2 group-hover:bg-ink-2/30"
+                      : "bg-ink group-hover:bg-ink-2"
+                  }`}
                   style={{ height: `${(value / top) * 100}%` }}
                 />
                 <span
@@ -177,9 +184,17 @@ function ActiveChart({
         </div>
       </div>
       {hasHidden ? (
-        <p className="flex items-center gap-2 text-[14px] text-ink-2">
-          <span aria-hidden className="inline-block size-3 bg-ink/20" />
-          Pale columns are under 5 (the exact count is hidden).
+        <p className="flex items-start gap-2 text-[14px] text-ink-2">
+          <span
+            aria-hidden
+            className="mt-1 inline-block size-3 shrink-0 border-[1.5px] border-ink-2"
+          />
+          <span>
+            Outlined columns are under 5 (the exact count is hidden).
+            {small
+              ? ` Most ${unit}s are, for now: with a small chapter that's expected, and it fills in as more members are active.`
+              : null}
+          </span>
         </p>
       ) : null}
     </figure>

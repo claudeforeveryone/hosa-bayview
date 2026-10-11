@@ -26,12 +26,17 @@ import {
   growthFixture,
   membersFixture,
   overviewFixture,
+  smallEngagementFixture,
+  smallFeedbackFixture,
+  smallGrowthFixture,
+  smallOverviewFixture,
   systemFixture,
 } from "@/lib/owner-fixtures";
 import { parseFeedbackFilter, parseRange, parseTab } from "@/lib/owner-metrics";
 
 // Dev server only: the owner console and the two student entry points, filled with made-up data, for screenshots
-// and design review. The .dev.tsx extension is a page only under `next dev` (next.config.ts), so production builds
+// and design review. ?scale=small swaps in a chapter the size of today's (13 members, a few quiet days), so the
+// mostly-Under-5 first look gets reviewed too. The .dev.tsx extension is a page only under `next dev` (next.config.ts), so production builds
 // have no /dev/owner route at all; the NODE_ENV check is a second lock. Signed-in pages, like the rest of (app).
 export const metadata: Metadata = { title: "Owner console fixtures" };
 
@@ -66,26 +71,43 @@ export default async function OwnerGallery({
   if (sp.view === "entry") return <EntryPoints banner={banner} />;
 
   const tab = parseTab(sp.tab);
+  const extra: Record<string, string> | undefined =
+    sp.scale === "small" ? { scale: "small" } : undefined;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
       {banner}
-      <OwnerConsole base={BASE} tab={tab}>
-        {section(tab, sp)}
+      <OwnerConsole
+        base={BASE}
+        tab={tab}
+        extra={extra}
+        wide={tab === "members"}
+      >
+        {section(tab, sp, extra)}
       </OwnerConsole>
     </div>
   );
 }
 
-function section(tab: ReturnType<typeof parseTab>, sp: Search) {
+function section(
+  tab: ReturnType<typeof parseTab>,
+  sp: Search,
+  extra: Record<string, string> | undefined,
+) {
+  const small = extra?.scale === "small";
   switch (tab) {
     case "overview":
-      return <OverviewSection data={overviewFixture} />;
+      return (
+        <OverviewSection
+          data={small ? smallOverviewFixture : overviewFixture}
+        />
+      );
     case "growth":
       return (
         <GrowthSection
           base={BASE}
           range={parseRange(sp.range)}
-          data={growthFixture}
+          data={small ? smallGrowthFixture : growthFixture}
+          extra={extra}
         />
       );
     case "engagement":
@@ -93,7 +115,8 @@ function section(tab: ReturnType<typeof parseTab>, sp: Search) {
         <EngagementSection
           base={BASE}
           range={parseRange(sp.range)}
-          data={engagementFixture}
+          data={small ? smallEngagementFixture : engagementFixture}
+          extra={extra}
         />
       );
     case "content":
@@ -104,7 +127,8 @@ function section(tab: ReturnType<typeof parseTab>, sp: Search) {
           base={BASE}
           filter={parseFeedbackFilter(sp.status)}
           page={0}
-          queue={feedbackFixture}
+          queue={small ? smallFeedbackFixture : feedbackFixture}
+          extra={extra}
           readOnly
         />
       );
@@ -115,10 +139,19 @@ function section(tab: ReturnType<typeof parseTab>, sp: Search) {
           period={parsePeriod(sp.period)}
           rows={membersFixture}
           battles={false}
+          extra={extra}
         />
       );
     case "audit":
-      return <AuditSection base={BASE} q="" page={0} rows={auditFixture} />;
+      return (
+        <AuditSection
+          base={BASE}
+          q=""
+          page={0}
+          rows={auditFixture}
+          extra={extra}
+        />
+      );
     case "system":
       return (
         <SystemSection
@@ -170,10 +203,11 @@ function EntryPoints({ banner }: { banner: ReactNode }) {
           n={14}
           prompt="Sample question: which suffix means inflammation?"
         >
-          <AskTeacher testId={T} questionId={`${Q}1`} flag={null} />
+          <AskTeacher testId={T} questionId={`${Q}1`} flag={null} canReport />
         </ReviewSample>
         <ReviewSample n={15} prompt="Sample question: the prefix brady- means">
           <AskTeacher
+            canReport
             testId={T}
             questionId={`${Q}2`}
             flag={{
@@ -190,6 +224,7 @@ function EntryPoints({ banner }: { banner: ReactNode }) {
           prompt="Sample question: convert 5 ml to teaspoons"
         >
           <AskTeacher
+            canReport
             testId={T}
             questionId={`${Q}3`}
             flag={{

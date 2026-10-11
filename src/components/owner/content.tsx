@@ -157,7 +157,7 @@ export function ContentSection({ data }: { data: ContentData }) {
       <Sheet
         id="dupes-h"
         title="Most repeated"
-        note={`${countText(data.duplicate_groups)} question stems appear more than once (capitals, spacing and end punctuation ignored). The 20 with the most copies:`}
+        note={`${countText(data.duplicate_groups)} questions appear more than once (capitals, spacing and end punctuation ignored). The 20 with the most copies, each shown as one copy is written:`}
       >
         {data.duplicates.length === 0 ? (
           <Notice>No repeated questions.</Notice>
@@ -166,13 +166,21 @@ export function ContentSection({ data }: { data: ContentData }) {
             {data.duplicates.map((d) => (
               <li key={d.stem} className="grid gap-1 border-b border-rule py-3">
                 <p className="line-clamp-2 text-[16px] [overflow-wrap:anywhere]">
-                  {d.stem}
+                  {d.example}
                 </p>
-                <p className="num text-[14px] text-ink-2">
-                  {d.copies} copies in {d.tests}{" "}
-                  {d.tests === 1 ? "test" : "tests"}
-                  {d.rooms.length ? ` · ${d.rooms.join(", ")}` : ""}
-                </p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <p className="num text-[14px] text-ink-2">
+                    {d.copies} copies in {d.tests}{" "}
+                    {d.tests === 1 ? "test" : "tests"}
+                    {d.rooms.length ? ` · ${d.rooms.join(", ")}` : ""}
+                  </p>
+                  <Link
+                    href={`/c/${d.classroom_id}/tests/${d.test_id}`}
+                    className="caps text-[14px] underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                  >
+                    Open one copy
+                  </Link>
+                </div>
               </li>
             ))}
           </ol>

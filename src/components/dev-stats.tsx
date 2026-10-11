@@ -403,74 +403,80 @@ export function DevStatsView({
             ))}
           </ul>
 
-          {/* Desktop: a sortable table. The name column stays put while the rest scrolls sideways. */}
-          <div className="hidden overflow-x-auto border-t-[3px] border-ink lg:block">
-            <table className="w-full min-w-[78rem] border-collapse text-[16px]">
-              <caption className="sr-only">
-                Every member&rsquo;s activity for the chosen period. Click a
-                column heading to sort.
-              </caption>
-              <thead>
-                <tr>
-                  {groups.map((g) => (
-                    <th
-                      key={g.label}
-                      scope="colgroup"
-                      colSpan={g.span}
-                      className="caps border-b border-rule px-2 pt-2 pb-1 text-left text-[13px] font-semibold text-ink-2"
-                    >
-                      {g.label}
-                    </th>
-                  ))}
-                </tr>
-                <tr>
-                  {columns.map((c, i) => (
-                    <th
-                      key={c.key}
-                      scope="col"
-                      aria-sort={ariaSort(c.key)}
-                      className={`border-b-[3px] border-ink px-2 pb-2 align-bottom ${
-                        i === 0 ? "sticky left-0 z-10 bg-ground" : ""
-                      } ${c.numeric ? "text-right" : "text-left"}`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => pick(c.key)}
-                        className={`caps step inline-flex items-center gap-1 text-[15px] font-semibold text-ink hover:text-ink-2 ${
-                          c.numeric ? "flex-row-reverse" : ""
-                        }`}
+          {/* Desktop: a sortable table. The name column stays put while the rest scrolls sideways. The scroller is
+              flipped (and the table flipped back) so its scrollbar sits at the top, in view, not under the last row. */}
+          <div className="hidden gap-2 lg:grid">
+            <p className="text-[14px] text-ink-2">
+              Wider than the page: scroll the table sideways. Names stay put.
+            </p>
+            <div className="overflow-x-auto border-b-[3px] border-ink [scrollbar-color:var(--ink-2)_var(--band)] [transform:rotateX(180deg)]">
+              <table className="w-full min-w-[78rem] border-collapse text-[16px] [transform:rotateX(180deg)]">
+                <caption className="sr-only">
+                  Every member&rsquo;s activity for the chosen period. Click a
+                  column heading to sort.
+                </caption>
+                <thead>
+                  <tr>
+                    {groups.map((g) => (
+                      <th
+                        key={g.label}
+                        scope="colgroup"
+                        colSpan={g.span}
+                        className="caps border-b border-rule px-2 pt-2 pb-1 text-left text-[13px] font-semibold text-ink-2"
                       >
-                        {c.label}
-                        {sortIcon(c.key)}
-                      </button>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((r) => (
-                  <tr
-                    key={r.user_id}
-                    className="border-b border-rule hover:bg-band"
-                  >
-                    {columns.map((c, i) => (
-                      <td
-                        key={c.key}
-                        className={`px-2 py-2.5 ${c.numeric ? "num text-right" : "text-left"} ${
-                          i === 0 ? "sticky left-0 z-10 bg-ground" : ""
-                        } ${c.key === "name" ? "min-w-[12rem]" : ""} ${
-                          c.key === "last_seen" || c.key === "joined"
-                            ? "whitespace-nowrap"
-                            : ""
-                        }`}
-                      >
-                        {c.cell(r)}
-                      </td>
+                        {g.label}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                  <tr>
+                    {columns.map((c, i) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        aria-sort={ariaSort(c.key)}
+                        className={`border-b-[3px] border-ink px-2 pb-2 align-bottom ${
+                          i === 0 ? "sticky left-0 z-10 bg-ground" : ""
+                        } ${c.numeric ? "text-right" : "text-left"}`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => pick(c.key)}
+                          className={`caps step inline-flex items-center gap-1 text-[15px] font-semibold text-ink hover:text-ink-2 ${
+                            c.numeric ? "flex-row-reverse" : ""
+                          }`}
+                        >
+                          {c.label}
+                          {sortIcon(c.key)}
+                        </button>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((r) => (
+                    <tr
+                      key={r.user_id}
+                      className="border-b border-rule hover:bg-band"
+                    >
+                      {columns.map((c, i) => (
+                        <td
+                          key={c.key}
+                          className={`px-2 py-2.5 ${c.numeric ? "num text-right" : "text-left"} ${
+                            i === 0 ? "sticky left-0 z-10 bg-ground" : ""
+                          } ${c.key === "name" ? "min-w-[12rem]" : ""} ${
+                            c.key === "last_seen" || c.key === "joined"
+                              ? "whitespace-nowrap"
+                              : ""
+                          }`}
+                        >
+                          {c.cell(r)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

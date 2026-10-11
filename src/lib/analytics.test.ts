@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { TAXONOMY, TRACKED_EVENTS, isTracked } from "./analytics";
+import { TAXONOMY_EVENTS, TRACKED_EVENTS, isTracked } from "./analytics";
 
 describe("isTracked", () => {
   it("accepts a stored event with a code from its list", () => {
@@ -24,7 +24,7 @@ describe("isTracked", () => {
 
 describe("the taxonomy", () => {
   it("names all fourteen shared events once", () => {
-    expect(TAXONOMY.map((t) => t.event)).toEqual([
+    expect([...TAXONOMY_EVENTS]).toEqual([
       "account_created",
       "onboarding_completed",
       "event_selected",
