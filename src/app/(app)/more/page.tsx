@@ -37,7 +37,9 @@ function Row({
         <Icon size={24} strokeWidth={1.75} aria-hidden className="shrink-0" />
         <span className="grid min-w-0 flex-1">
           <span className="caps text-[19px] leading-tight">{label}</span>
-          {hint ? <span className="text-[15px] text-ink-2">{hint}</span> : null}
+          {hint ? (
+            <span className="text-[15px] text-ink-2">{hint}</span>
+          ) : null}
         </span>
         <ChevronRight
           size={20}
@@ -75,7 +77,12 @@ export default async function MorePage() {
           You
         </h2>
         <ul className="border-2 border-ink">
-          <Row href="/settings" Icon={Settings} label="Settings" />
+          <Row
+            href="/settings"
+            Icon={Settings}
+            label="Settings"
+            hint="Appearance, sound, your account, joining events"
+          />
           <li className="border-t border-rule px-4 pt-1 pb-4 sm:px-5">
             <ul className="flex flex-wrap gap-2" aria-label="Settings tabs">
               {SHORTCUTS.map((t) => (
