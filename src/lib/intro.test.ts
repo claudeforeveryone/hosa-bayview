@@ -45,11 +45,13 @@ function runScript({
   reduced = false,
   webdriver = false,
   now = 1_800_000_000_000,
+  pathname = "/login",
 }: {
   stored: string | null;
   reduced?: boolean;
   webdriver?: boolean;
   now?: number;
+  pathname?: string;
 }) {
   const attrs = new Set<string>();
   const store = new Map<string, string>();
@@ -70,6 +72,7 @@ function runScript({
     },
     matchMedia: () => ({ matches: reduced }),
     navigator: { webdriver },
+    location: { pathname },
     Date: { now: () => now },
     addEventListener: (t: string, f: (e: FakeEvent) => void) => {
       listeners[t] = f;
@@ -116,6 +119,20 @@ describe("introScript", () => {
   it("stays off for reduced motion and automated browsers", () => {
     expect(runScript({ stored: null, reduced: true }).attrs.size).toBe(0);
     expect(runScript({ stored: null, webdriver: true }).attrs.size).toBe(0);
+  });
+
+  it("stays off on the terms and privacy pages, and doesn't use up the first visit", () => {
+    for (const pathname of ["/terms", "/privacy", "/privacy/", "/terms/x"]) {
+      const page = runScript({ stored: null, pathname });
+      expect(page.attrs.size, pathname).toBe(0);
+      expect(page.store.has(INTRO_KEY), pathname).toBe(false);
+    }
+  });
+
+  it("still plays on lookalike paths and the sign-in pages", () => {
+    for (const pathname of ["/", "/login", "/signup", "/termsx", "/privacy-old", "/c/terms"]) {
+      expect(runScript({ stored: null, pathname }).attrs.has("data-intro"), pathname).toBe(true);
+    }
   });
 
   it("a tap skips it, keeps the banner still and swallows its click", () => {
