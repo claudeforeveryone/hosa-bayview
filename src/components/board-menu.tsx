@@ -2,8 +2,10 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useDisclosureClose } from "@/hooks/use-disclosure-close";
+
+const SCROLL_KEY = "hosa-board-scroll";
 
 // A board choice ("Ranked by Elo", "All time") with the alternatives one tap away. A native disclosure of
 // plain links, so it opens and navigates before any script loads; the script closes it on a pick, an outside
@@ -24,6 +26,17 @@ export function BoardMenu({
   const ref = useRef<HTMLDetailsElement>(null);
 
   useDisclosureClose(ref);
+
+  // A pick reloads the board below the menu; if a loading screen swaps the page out meanwhile, the browser
+  // drops back to the top. Put the reader back where they were once the new board is in.
+  useEffect(() => {
+    let saved: { y: number; at: number } | null = null;
+    try {
+      saved = JSON.parse(sessionStorage.getItem(SCROLL_KEY) ?? "null");
+      sessionStorage.removeItem(SCROLL_KEY);
+    } catch {}
+    if (saved && Date.now() - saved.at < 10_000) window.scrollTo({ top: saved.y });
+  }, [current]);
 
   const on = items.find((i) => i.value === current) ?? items[0];
   return (
@@ -54,12 +67,16 @@ export function BoardMenu({
               <li key={item.value}>
                 <Link
                   href={item.href}
+                  scroll={false}
                   aria-current={active ? "true" : undefined}
                   onClick={(e) => {
                     // Close and hand focus back to the toggle, so keyboard users aren't dropped to the page top.
                     // Leave it open for a new-tab click.
                     const el = ref.current;
                     if (!el || e.metaKey || e.ctrlKey || e.shiftKey) return;
+                    try {
+                      sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ y: window.scrollY, at: Date.now() }));
+                    } catch {}
                     el.open = false;
                     el.querySelector("summary")?.focus();
                   }}

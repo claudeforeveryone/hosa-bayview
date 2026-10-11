@@ -90,6 +90,10 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               what you clicked.
             </>,
             <>
+              <Term>Your announcements.</Term> Which announcements you marked
+              read, and which you deleted from your list. Only you see these.
+            </>,
+            <>
               <Term>What you make or post.</Term>{" "}
               {series([
                 "Flashcard decks, tests and questions",
@@ -278,7 +282,7 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
             <>
               When an account is deleted, its{" "}
               {series([
-                "profile, results, battle picks, study time, notifications, your own calendar events",
+                "profile, results, battle picks, study time, notifications, announcement read marks, your own calendar events",
                 phoneApp && "push addresses",
                 usageCounts && "usage counts",
                 feedback && "feedback",

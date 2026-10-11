@@ -1,32 +1,39 @@
 import type { Metadata } from "next";
 import { Plus } from "lucide-react";
 import { AnnouncementForm } from "@/components/announcement-form";
-import { AnnouncementList } from "@/components/announcement-list";
+import { AnnouncementInbox } from "@/components/announcement-inbox";
 import { EmptyState } from "@/components/empty-state";
 import { PageTitle } from "@/components/page-title";
-import { getAnnouncements } from "@/lib/announcements";
+import { getAnnouncementStates, getAnnouncements } from "@/lib/announcements";
 import { requireProfile } from "@/lib/auth";
 import { saveAnnouncement } from "./actions";
 
 export const metadata: Metadata = { title: "Announcements" };
 
-// The chapter feed. Executives post, edit and pin; everyone reads. Class news lives on each class's Board.
+// The chapter's announcements as an inbox: subject lines, unread ones highlighted. Open one to read it, mark it
+// read or delete it from your list (0280). Executives post here and pin, edit or delete for everyone from the
+// announcement's page. Class news lives on each class's Board.
 export default async function AnnouncementsPage() {
-  const [me, rows] = await Promise.all([
+  const [me, all] = await Promise.all([
     requireProfile(),
     getAnnouncements(null),
   ]);
+  const states = await getAnnouncementStates(all.map((a) => a.id));
+  const rows = all.filter((a) => !states.get(a.id)?.deleted);
+  const unread = rows.filter((a) => !states.get(a.id)?.read).length;
   const exec = me.role === "executive";
   // eslint-disable-next-line react-hooks/purity -- server render time, once per request
   const now = Date.now();
 
   return (
     <div className="grid grid-cols-1 gap-10">
-      <PageTitle meta="Chapter news from the execs">Announcements</PageTitle>
+      <PageTitle meta={rows.length ? (unread ? `${unread} unread` : "All read") : "Chapter news from the execs"}>
+        Announcements
+      </PageTitle>
       {exec ? (
         <details
           className="group border-y border-rule"
-          open={rows.length === 0}
+          open={all.length === 0}
         >
           <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-18 hover:bg-band sm:px-3">
             Post to the chapter
@@ -48,17 +55,14 @@ export default async function AnnouncementsPage() {
         </details>
       ) : null}
       {rows.length ? (
-        <AnnouncementList
-          rows={rows}
-          classroomId={null}
-          canPost={exec}
-          now={now}
-        />
+        <AnnouncementInbox rows={rows} states={states} now={now} />
       ) : (
         <EmptyState title="Quiet for now">
-          {exec
-            ? "Post the first one above. Everyone gets a notification."
-            : "When the execs post news, it shows up here."}
+          {all.length
+            ? "You've deleted every announcement from your list. New ones land here."
+            : exec
+              ? "Post the first one above. Everyone gets a notification."
+              : "When the execs post news, it shows up here."}
         </EmptyState>
       )}
     </div>

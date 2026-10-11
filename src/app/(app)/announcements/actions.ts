@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormState } from "@/app/(app)/c/actions";
 import { requireProfile } from "@/lib/auth";
@@ -120,4 +121,57 @@ export async function deleteAnnouncement(
   if (!data?.length) return { error: "You can't delete this one." };
   refresh();
   return { ok: "Deleted." };
+}
+
+// Your own inbox marks (0280): read or unread, and deleted from your list. One row per announcement; RLS only
+// lets you write your own, for announcements you can read.
+async function mark(
+  announcementId: string,
+  change: { read_at?: string | null; deleted_at?: string | null },
+): Promise<FormState> {
+  await requireProfile();
+  if (!id.safeParse(announcementId).success)
+    return { error: "That announcement doesn't exist." };
+  const supabase = await createClient();
+  // Change your row if there is one, otherwise add it. (An upsert would also write announcement_id on
+  // conflict, which members can't update.)
+  const updated = await supabase
+    .from("announcement_states")
+    .update(change)
+    .eq("announcement_id", announcementId)
+    .select("announcement_id");
+  if (updated.error) return failed("mark", updated.error.message);
+  if (!updated.data?.length) {
+    const { error } = await supabase
+      .from("announcement_states")
+      .insert({ announcement_id: announcementId, ...change });
+    // 23505: a second tap raced the first; the row is there now, so update it.
+    if (error?.code === "23505") {
+      const again = await supabase.from("announcement_states").update(change).eq("announcement_id", announcementId);
+      if (again.error) return failed("mark", again.error.message);
+    } else if (error) return failed("mark", error.message);
+  }
+  refresh();
+  return { ok: "Saved." };
+}
+
+export async function markAnnouncementRead(announcementId: string, read: boolean): Promise<FormState> {
+  return mark(announcementId, { read_at: read ? new Date().toISOString() : null });
+}
+
+export async function deleteFromInbox(announcementId: string): Promise<FormState> {
+  return mark(announcementId, { deleted_at: new Date().toISOString() });
+}
+
+// From an announcement's own page: after it's gone from your list (or for everyone), go back to the inbox.
+export async function deleteFromInboxAndLeave(announcementId: string): Promise<FormState> {
+  const result = await deleteFromInbox(announcementId);
+  if (result.error) return result;
+  redirect("/announcements");
+}
+
+export async function deleteAnnouncementAndLeave(announcementId: string): Promise<FormState> {
+  const result = await deleteAnnouncement(announcementId);
+  if (result.error) return result;
+  redirect("/announcements");
 }

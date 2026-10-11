@@ -18,7 +18,7 @@ import {
   getOnline,
   type MemberStats,
 } from "@/lib/activity-data";
-import { getAnnouncements, type AnnouncementRow } from "@/lib/announcements";
+import { getAnnouncementStates, getAnnouncements, type AnnouncementRow } from "@/lib/announcements";
 import {
   formatCount,
   parsePeriod,
@@ -272,7 +272,13 @@ export default async function HomePage(props: PageProps<"/">) {
     // The calendar, announcements and stat tiles are nice-to-haves on Home; an outage in one of them
     // shouldn't take Home down.
     getEvents({ limit: 3 }).catch(() => [] as EventRow[]),
-    getAnnouncements(null, 3).catch(() => [] as AnnouncementRow[]),
+    // A few extra, so the three shown are still three after the ones you deleted from your list drop out.
+    getAnnouncements(null, 10)
+      .then(async (rows) => {
+        const states = await getAnnouncementStates(rows.map((a) => a.id));
+        return rows.filter((a) => !states.get(a.id)?.deleted).slice(0, 3);
+      })
+      .catch(() => [] as AnnouncementRow[]),
     who
       .then((p) => getMemberStats(p.id))
       .catch(() => null as MemberStats | null),

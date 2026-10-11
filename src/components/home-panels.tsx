@@ -215,7 +215,7 @@ export function AnnouncementList({ items }: { items: AnnouncementRow[] }) {
       {items.map((a, i) => (
         <li key={a.id} className={i ? "border-t border-rule" : ""}>
           <Link
-            href="/announcements"
+            href={`/announcements/${a.id}`}
             className="step grid gap-1 px-3 py-3 hover:bg-band sm:px-4"
           >
             <span className="flex min-w-0 items-center gap-2">

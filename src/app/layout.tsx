@@ -85,6 +85,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: appearanceScript }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: introScript }} />
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: heroRestScript }} />
+        {/* The browser's Supabase address and publishable key (both public), read at request time. A host that
+            sets them only at run time (the Cloudflare build's vars) never bakes them into the browser bundle,
+            and without these every browser-side call (picture uploads, the bell) failed. */}
+        <meta name="hosa-supabase-url" content={process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""} />
+        <meta name="hosa-supabase-key" content={process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? ""} />
       </head>
       <body className="min-h-full">
         <SiteIntro />

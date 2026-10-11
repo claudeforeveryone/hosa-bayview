@@ -18,6 +18,29 @@ function encode(
   );
 }
 
+// Something drawImage can take, with its size and a way to let it go. createImageBitmap first; some photo
+// formats (HEIC on some browsers) only decode through an <img>, so that is the fallback.
+type Decoded = { source: CanvasImageSource; width: number; height: number; release: () => void };
+
+async function decode(file: File): Promise<Decoded> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    return { source: bitmap, width: bitmap.width, height: bitmap.height, release: () => bitmap.close() };
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = url;
+      await img.decode();
+      return { source: img, width: img.naturalWidth, height: img.naturalHeight, release: () => URL.revokeObjectURL(url) };
+    } catch (error) {
+      URL.revokeObjectURL(url);
+      throw error;
+    }
+  }
+}
+
 export async function prepareAvatar(
   file: File,
   animated = true,
@@ -25,16 +48,17 @@ export async function prepareAvatar(
   if (file.type === "image/gif" && animated) {
     return { blob: file, mime: "image/gif", ext: "gif" };
   }
-  const bitmap = await createImageBitmap(file);
+  const image = await decode(file);
   try {
-    const { sx, sy, side } = squareCrop(bitmap.width, bitmap.height);
+    if (!image.width || !image.height) throw new Error("The picture has no size");
+    const { sx, sy, side } = squareCrop(image.width, image.height);
     const canvas = document.createElement("canvas");
     canvas.width = AVATAR_SIZE;
     canvas.height = AVATAR_SIZE;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas is not available");
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(bitmap, sx, sy, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+    ctx.drawImage(image.source, sx, sy, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
 
     // Browsers that can't encode WebP hand back PNG; ask for JPEG instead.
     const webp = await encode(canvas, "image/webp", 0.85);
@@ -44,6 +68,6 @@ export async function prepareAvatar(
     if (!jpeg) throw new Error("Could not encode the picture");
     return { blob: jpeg, mime: "image/jpeg", ext: "jpg" };
   } finally {
-    bitmap.close();
+    image.release();
   }
 }

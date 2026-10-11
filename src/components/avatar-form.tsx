@@ -54,8 +54,17 @@ export function AvatarForm({
     }
     setLocalError(null);
     setBusy("upload");
+    // Each step says what went wrong in its own words; they used to share "Couldn't read that picture".
+    let prepared: Awaited<ReturnType<typeof prepareAvatar>>;
     try {
-      const prepared = await prepareAvatar(file, animated);
+      prepared = await prepareAvatar(file, animated);
+    } catch (error) {
+      console.error("[picture] read:", error);
+      setLocalError("Couldn't read that picture. Try a JPEG or PNG, or a screenshot of it.");
+      setBusy(null);
+      return;
+    }
+    try {
       const objectPath = newAvatarPath(
         userId,
         crypto.randomUUID(),
@@ -69,12 +78,14 @@ export function AvatarForm({
           cacheControl: "3600",
         });
       if (error) {
+        console.error("[picture] upload:", error.message);
         setLocalError("Couldn't upload that. Try again.");
         return;
       }
       setResult(await savePicture(userId, objectPath));
-    } catch {
-      setLocalError("Couldn't read that picture. Try a different one.");
+    } catch (error) {
+      console.error("[picture] upload:", error);
+      setLocalError("Couldn't upload that. Check your connection and try again.");
     } finally {
       setBusy(null);
     }
