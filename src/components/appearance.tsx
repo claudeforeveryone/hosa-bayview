@@ -118,7 +118,7 @@ function Choice({
 }: {
   name: string;
   label: string;
-  hint?: string;
+  hint?: ReactNode;
   children: ReactNode;
 }) {
   const hintId = hint ? `${name}-hint` : undefined;
@@ -135,14 +135,16 @@ function Choice({
   );
 }
 
-// A row of square segments backed by native radios.
-function Segments<T extends string>({
+// A row of square segments backed by native radios. Also the on/off for notifications in Settings > Phone app.
+// busy: dimmed and ignoring picks while a change is in flight; the radios stay focusable, so focus isn't lost.
+export function Segments<T extends string>({
   name,
   label,
   options,
   value,
   onPick,
   hint,
+  busy = false,
 }: {
   name: string;
   label: string;
@@ -154,7 +156,8 @@ function Segments<T extends string>({
   }[];
   value: T;
   onPick: (v: T) => void;
-  hint?: string;
+  hint?: ReactNode;
+  busy?: boolean;
 }) {
   return (
     <Choice name={name} label={label} hint={hint}>
@@ -169,11 +172,14 @@ function Segments<T extends string>({
               name={name}
               value={o.id}
               checked={o.id === value}
-              onChange={() => onPick(o.id)}
+              onChange={() => {
+                if (!busy) onPick(o.id);
+              }}
+              aria-disabled={busy || undefined}
               className="peer sr-only"
             />
             <span
-              className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink ${o.className ?? ""}`}
+              className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink peer-aria-disabled:cursor-wait peer-aria-disabled:opacity-60 ${o.className ?? ""}`}
               style={o.style}
             >
               {o.label}

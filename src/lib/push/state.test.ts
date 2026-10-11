@@ -7,6 +7,7 @@ const base: PushFacts = {
   supported: true,
   permission: "default",
   subscribed: false,
+  shortSession: false,
 };
 
 describe("pushUiState", () => {
@@ -50,6 +51,35 @@ describe("pushUiState", () => {
   it("is unsupported where the browser has no push", () => {
     expect(
       pushUiState({ ...base, supported: false, permission: "unsupported" }),
+    ).toBe("unsupported");
+  });
+
+  it("needs Stay signed in when the session ends with the browser, even if this device was on", () => {
+    expect(pushUiState({ ...base, shortSession: true })).toBe(
+      "needs-stay-signed-in",
+    );
+    expect(
+      pushUiState({
+        ...base,
+        shortSession: true,
+        permission: "granted",
+        subscribed: true,
+      }),
+    ).toBe("needs-stay-signed-in");
+    // What can't be fixed by signing in again still comes first.
+    expect(pushUiState({ ...base, shortSession: true, configured: false })).toBe(
+      "unavailable",
+    );
+    expect(
+      pushUiState({ ...base, shortSession: true, iosNeedsHomeScreen: true }),
+    ).toBe("needs-home-screen");
+    expect(
+      pushUiState({
+        ...base,
+        shortSession: true,
+        supported: false,
+        permission: "unsupported",
+      }),
     ).toBe("unsupported");
   });
 });

@@ -9,6 +9,7 @@ function facts(over: Partial<DeviceFacts> = {}): DeviceFacts {
     permission: "granted",
     subscription: { endpoint: EP, sameKey: true },
     sound: true,
+    shortSession: false,
     lastSaved: null,
     ...over,
   };
@@ -58,6 +59,18 @@ describe("deviceSyncStep", () => {
     expect(deviceSyncStep(facts({ permission: "denied" }))).toEqual({
       kind: "drop",
     });
+  });
+
+  it("drops the device during a session without Stay signed in, which ends when the browser closes", () => {
+    expect(deviceSyncStep(facts({ shortSession: true }))).toEqual({
+      kind: "drop",
+    });
+    expect(
+      deviceSyncStep(facts({ shortSession: true, lastSaved: `u1|${EP}|on` })),
+    ).toEqual({ kind: "drop" });
+    expect(
+      deviceSyncStep(facts({ shortSession: true, subscription: null })),
+    ).toEqual({ kind: "none" });
   });
 
   it("leaves an undecided permission alone rather than guess", () => {

@@ -11,6 +11,7 @@ import {
   refuse,
   requireMember,
 } from "@/lib/push/route-guards";
+import { isShortSession, NEEDS_STAY_SIGNED_IN } from "@/lib/push/short-session";
 import { subscribeSchema, unsubscribeSchema } from "@/lib/push/subscription";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,10 +24,14 @@ const isHttps = (request: Request) =>
 // Save this browser's push subscription for the signed-in member. The RPC repeats the checks and does the write
 // as the database owner, so a device that belonged to someone else on this phone moves over. The saved row's id
 // goes into an HttpOnly cookie, which is how signing out finds this device again (src/lib/push/forget.ts).
+// A session without Stay signed in is refused: it ends when the browser closes, with no sign-out to remove the row.
 export async function POST(request: Request) {
   if (!fromThisSite(request)) return refuse("Not allowed", 403);
   const gate = await requireMember();
   if (gate) return gate;
+  if (isShortSession(request.headers.get("cookie"))) {
+    return refuse(NEEDS_STAY_SIGNED_IN, 409);
+  }
   const parsed = subscribeSchema.safeParse(
     await request.json().catch(() => null),
   );

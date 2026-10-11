@@ -11,6 +11,7 @@ import {
 } from "@/lib/push/browser";
 import { sameServerKey } from "@/lib/push/client";
 import { deviceSyncStep } from "@/lib/push/device-sync";
+import { isShortSession } from "@/lib/push/short-session";
 
 // The last save this page load (member, device, sound). Module state, so client navigations between layouts
 // don't save twice; a full load starts again.
@@ -53,6 +54,7 @@ export function usePushDeviceSync(
                 }
               : null,
             sound,
+            shortSession: isShortSession(document.cookie),
             lastSaved,
           });
           if (!alive || !sub) return;

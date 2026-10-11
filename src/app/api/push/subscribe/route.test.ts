@@ -132,6 +132,29 @@ describe("POST /api/push/subscribe", () => {
     expect(state.from).not.toHaveBeenCalled();
   });
 
+  it("refuses a session without Stay signed in: the device would keep getting pushes after the browser closes", async () => {
+    state.rpc.mockResolvedValue({ data: ROW, error: null });
+    const res = await POST(
+      call("POST", { ...SUB, sound: true }, {
+        origin: SITE,
+        cookie: "a=1; hosa-short-session=1",
+      }),
+    );
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toMatch(/Stay signed in/);
+    expect(res.headers.get("set-cookie")).toBeNull();
+    expect(state.rpc).not.toHaveBeenCalled();
+    expect(state.from).not.toHaveBeenCalled();
+  });
+
+  it("saves as usual when the short-session marker is absent or not set to 1", async () => {
+    state.rpc.mockResolvedValue({ data: ROW, error: null });
+    for (const cookie of ["hosa-short-session=0", "not-hosa-short-session=1"]) {
+      const res = await POST(call("POST", SUB, { origin: SITE, cookie }));
+      expect(res.status).toBe(204);
+    }
+  });
+
   it("answers 401 to a signed-out browser without touching the database", async () => {
     state.userId = null;
     const res = await POST(call("POST", SUB));
@@ -209,6 +232,16 @@ describe("DELETE /api/push/subscribe", () => {
     expect(res.headers.get("set-cookie") ?? "").toMatch(
       /hosa-push-device=;.*Max-Age=0/i,
     );
+  });
+
+  it("still turns a device off during a short session", async () => {
+    const eq = vi.fn(async () => ({ error: null }));
+    state.from.mockReturnValue({ delete: () => ({ eq }) });
+    const res = await DELETE(
+      call("DELETE", { endpoint: FCM }, { origin: SITE, cookie: "hosa-short-session=1" }),
+    );
+    expect(res.status).toBe(204);
+    expect(eq).toHaveBeenCalledWith("endpoint", FCM);
   });
 
   it("answers 401 to a signed-out browser", async () => {
