@@ -89,7 +89,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 ## Legal and SEO
 
 - `/terms` and `/privacy` (route group `(legal)`) describe what the site really collects and who can read it (the privacy page's "Who can see it" follows the RLS and definer functions, role by role). When a feature starts storing something new about members, or lets a role read more, update the privacy page and bump `LEGAL_EFFECTIVE` in `src/lib/legal.ts`. Contact and independence wording live there too; pages render the independence line with `<IndependenceNote />` (keeps "HOSA-Future" whole). Sections get an "On this page" list automatically from `<LegalSection>` children. The full-screen intro never plays on these two pages (`NO_INTRO_PATHS`, `src/lib/intro.ts`).
-- Retention the privacy page promises: wrong join/sign-up code logs are purged daily by `private.purge_attempt_logs()`, which `public.keepalive()` (the daily cron) calls (0250). Any later redefinition of `keepalive()` must keep that call.
+- Retention the privacy page promises runs in the daily cron route (`src/app/api/keepalive/route.ts`), after `keepalive()`: `purge_attempt_logs()` (0250, publishable key) drops wrong join/sign-up code logs older than a day, and deleted accounts' picture files (listed by `orphan_avatar_files()`, 0251, secret key only) are erased through the Storage API (SQL can't delete storage files). Any failure answers 500 and logs `[keepalive] housekeeping failed`. Deleting an account: `docs/DELETE_ACCOUNT.md`.
 - Private by default: the root metadata and the `X-Robots-Tag` header in `next.config.ts` are noindex. A page is indexable only if it is in all four places: public in `src/lib/route-gate.ts`, `INDEXED_PATHS` in `src/lib/seo.ts` (robots.txt allow list, sitemap), the `X-Robots-Tag` override in `next.config.ts`, and `publicPage()` metadata (canonical, card). Tests check they agree. The logo, app icons and social card files (`/icon.png`, `/apple-icon.png`, `/opengraph-image.png`, `/twitter-image.png`) have their own index rule in `next.config.ts`, because the JSON-LD logo must be indexable (`src/lib/robots-header.test.ts`).
 - The link-preview card is `src/app/opengraph-image.png` / `twitter-image.png`, made by `scripts/make-og-image.py`.
 
@@ -119,7 +119,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 ## Security notes
 
 - First executive: `private.settings.first_executive_email` promotes that address once, during its own sign-up (the auth server inserts the user, then confirms it in the same transaction while "Confirm email" is off), and only if no executive exists; the setting is then deleted. Confirming an older account later never promotes. With confirmation off, nothing proves who owns the inbox, so the owner must sign up with that address before anyone else. If "Confirm email" is on, promote the first executive by hand in the SQL editor.
-- Profiles are deleted only by deleting the auth user (admin API); the last executive can't be demoted or deleted.
+- Profiles are deleted only by deleting the auth user (admin API); the last executive can't be demoted or deleted. The picture file outlives the profile until the daily sweep (`docs/DELETE_ACCOUNT.md`).
 - DB checks in `supabase/tests/` (roles, classrooms, admin_passcode, test_teaching, activity, chapter_tools and the rest; each runs in a rolled-back transaction and raises on failure). Run them with the Supabase MCP `execute_sql`. `chapter_tools.sql` covers 0050-0056.
 - The Supabase MCP refuses DROP, DELETE and writes to `auth.*` in `apply_migration` (and DELETE in `execute_sql`); write migrations with CREATE OR REPLACE / ALTER POLICY.
 - Banned members can still read rooms they belong to at the DB level (`can_view_classroom` has no ban check); the app sends them to /banned and the ban triggers block writes. Deleting a classroom (owner or /admin) removes its stored files first, while its managers still have storage access. Unit tests: `npm test`.
@@ -129,7 +129,7 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 ## Deploy
 
 - Vercel project `hosa-bayview` on the chapter account (josephislockedin@gmail.com, Hobby), linked to GitHub `claudemaxforeveryone-hue/hosa-bayview` (Vercel GitHub app installed on claudemaxforeveryone-hue and the project reconnected on 2026-10-10; pushes deploy again). `CRON_SECRET` is set in Vercel (Production); without it `/api/keepalive` returns 503. Push to `main` deploys to https://hosa-bayview.vercel.app.
-- Env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (all envs), NEXT_PUBLIC_SITE_URL (production).
+- Env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (all envs), NEXT_PUBLIC_SITE_URL (production), SUPABASE_SECRET_KEY (production; the daily picture sweep and chapter-code sign-up need it).
 - The old personal Vercel team (idontreallyknow-20's projects) is fair-use blocked; don't deploy there.
 - Supabase: project `vxlaswushshckxoblkyb`, org "claudemaxforeveryone-hue's Org" (Free; moved from org "chess" by project transfer on 2026-10-10, same ref, URL and keys), ca-central-1, Postgres 17.
 
