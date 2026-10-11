@@ -1,10 +1,12 @@
 import { z } from "zod";
 import { isAllowedPushEndpoint, MAX_ENDPOINT_LENGTH } from "./endpoints";
 
-// What a browser's PushSubscription.toJSON() gives. Same shapes as the table checks in 0220: a P-256 public key is
-// 65 bytes (87 base64url characters), the auth secret 16 bytes (22); some browsers add base64 padding.
-const P256DH = /^[A-Za-z0-9_-]{80,100}={0,2}$/;
-const AUTH = /^[A-Za-z0-9_-]{16,32}={0,2}$/;
+// What a browser's PushSubscription.toJSON() gives. Same shapes as the table checks in 0220. Exact sizes, because
+// web-push refuses any other and a near miss would fail at every send: a P-256 public key is an uncompressed point,
+// 65 bytes starting 0x04, so 87 base64url characters starting with B; the auth secret is 16 bytes, 22 characters.
+// Some browsers add base64 padding (one = and two, respectively).
+const P256DH = /^B[A-Za-z0-9_-]{86}=?$/;
+const AUTH = /^[A-Za-z0-9_-]{22}(==)?$/;
 
 const endpoint = z
   .string()

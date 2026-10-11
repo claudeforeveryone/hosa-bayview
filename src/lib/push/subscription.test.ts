@@ -50,6 +50,22 @@ describe("subscribeSchema", () => {
     ).toBe(false);
   });
 
+  // web-push refuses any key that doesn't decode to exactly 65 bytes, so a near miss saved here would only fail at
+  // send time, over and over.
+  it("refuses keys that are close to the right size but not exactly it", () => {
+    const keys = (p256dh: string, auth: string) =>
+      subscribeSchema.safeParse({ ...valid, keys: { p256dh, auth } }).success;
+    expect(keys(`B${"a".repeat(85)}`, AUTH)).toBe(false); // 86 characters: 64 bytes
+    expect(keys(`B${"a".repeat(87)}`, AUTH)).toBe(false); // 88 characters: 66 bytes
+    expect(keys(`B${"a".repeat(79)}`, AUTH)).toBe(false); // 80, the old floor
+    expect(keys(`A${"a".repeat(86)}`, AUTH)).toBe(false); // not an uncompressed point (first byte 0x04)
+    expect(keys(P256DH, "a".repeat(21))).toBe(false);
+    expect(keys(P256DH, "a".repeat(23))).toBe(false);
+    expect(keys(P256DH, "a".repeat(32))).toBe(false); // the old ceiling
+    expect(keys(`${P256DH}==`, AUTH)).toBe(false); // 65 bytes take one pad character, not two
+    expect(keys(P256DH, `${AUTH}=`)).toBe(false); // 16 bytes take two, not one
+  });
+
   it("accepts keys with base64 padding, as some browsers send them", () => {
     expect(
       subscribeSchema.safeParse({

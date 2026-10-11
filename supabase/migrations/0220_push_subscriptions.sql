@@ -10,9 +10,11 @@ create table public.push_subscriptions (
   user_id uuid not null references public.profiles (id) on delete cascade,
   endpoint text not null unique
     check (char_length(endpoint) between 20 and 2048 and endpoint like 'https://%'),
-  -- The browser's P-256 public key (65 bytes) and auth secret (16 bytes), base64url as PushSubscription.toJSON() gives them.
-  p256dh text not null check (p256dh ~ '^[A-Za-z0-9_-]{80,100}={0,2}$'),
-  auth text not null check (auth ~ '^[A-Za-z0-9_-]{16,32}={0,2}$'),
+  -- The browser's P-256 public key (an uncompressed point: 65 bytes starting 0x04, so 87 characters starting with B)
+  -- and auth secret (16 bytes, 22 characters), base64url as PushSubscription.toJSON() gives them, with the padding
+  -- some browsers add. Exact sizes: web-push refuses any other, so a near miss would fail at every send.
+  p256dh text not null check (p256dh ~ '^B[A-Za-z0-9_-]{86}=?$'),
+  auth text not null check (auth ~ '^[A-Za-z0-9_-]{22}(==)?$'),
   -- Mirrors the device's "Notification sound" setting (Settings > Sound). Off sends the push silent.
   sound boolean not null default true,
   created_at timestamptz not null default now(),

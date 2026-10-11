@@ -84,6 +84,30 @@ select pg_temp.expect('A4 plain http refused',
 select pg_temp.expect('A5 malformed key refused',
   format('select public.push_subscribe(%L, %L, %L)', current_setting('push.e1'), 'not a key!', current_setting('push.a')),
   '23514');
+-- Near misses web-push would refuse at every send: 80 and 88 characters, two pad characters, a key not starting
+-- with B, and auth secrets of 21 and 32 characters.
+select pg_temp.expect('A5b public key of 80 characters refused',
+  format('select public.push_subscribe(%L, %L, %L)', current_setting('push.e1'), repeat('B', 80), current_setting('push.a')),
+  '23514');
+select pg_temp.expect('A5c public key of 88 characters refused',
+  format('select public.push_subscribe(%L, %L, %L)', current_setting('push.e1'), repeat('B', 88), current_setting('push.a')),
+  '23514');
+select pg_temp.expect('A5d public key with two pad characters refused',
+  format('select public.push_subscribe(%L, %L, %L)', current_setting('push.e1'), repeat('B', 87) || '==', current_setting('push.a')),
+  '23514');
+select pg_temp.expect('A5e public key not starting with B refused',
+  format('select public.push_subscribe(%L, %L, %L)', current_setting('push.e1'), 'A' || repeat('B', 86), current_setting('push.a')),
+  '23514');
+select pg_temp.expect('A5f auth secret of 21 characters refused',
+  format('select public.push_subscribe(%L, %L, %L)', current_setting('push.e1'), current_setting('push.k'), repeat('A', 21)),
+  '23514');
+select pg_temp.expect('A5g auth secret of 32 characters refused',
+  format('select public.push_subscribe(%L, %L, %L)', current_setting('push.e1'), current_setting('push.k'), repeat('A', 32)),
+  '23514');
+-- The next statement saves the same endpoint again with unpadded keys, so the fixtures below are unchanged.
+select pg_temp.check('A5h padded keys accepted (one = on the public key, two on the auth secret)',
+  public.push_subscribe(current_setting('push.e1'), current_setting('push.k') || '=',
+    current_setting('push.a') || '==') is not null);
 select public.push_subscribe(current_setting('push.e1'), current_setting('push.k'), current_setting('push.a'));
 select pg_temp.check('A6 own row saved',
   (select count(*) = 1 from public.push_subscriptions where endpoint = current_setting('push.e1') and user_id = pg_temp.u(1)));
