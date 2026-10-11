@@ -350,12 +350,12 @@ export function AppearanceSection() {
     PALETTES.find((p) => p.id === palette)?.accent ?? DEFAULT_ACCENT_HEX;
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start lg:gap-12">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-10 min-[1400px]:grid-cols-[minmax(0,1fr)_18rem] min-[1400px]:items-start min-[1400px]:gap-12">
       {/* First in the source so it sits on top on a phone; on desktop it stays in view beside the settings. */}
-      <div className="min-w-0 lg:sticky lg:top-6 lg:col-start-2 lg:row-start-1">
+      <div className="min-w-0 min-[1400px]:sticky min-[1400px]:top-6 min-[1400px]:col-start-2 min-[1400px]:row-start-1">
         <Preview />
       </div>
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-12 lg:col-start-1 lg:row-start-1">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-12 min-[1400px]:col-start-1 min-[1400px]:row-start-1">
         <SettingsSection
           id="colour-h"
           title="Colour"

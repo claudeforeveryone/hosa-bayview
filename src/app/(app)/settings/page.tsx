@@ -47,7 +47,7 @@ export default async function SettingsPage({
                   <Link
                     href={`/settings?tab=${t.id}`}
                     aria-current={on ? "page" : undefined}
-                    className={`caps step flex min-h-12 items-center px-5 text-[16px] sm:text-[18px] lg:min-h-14 ${
+                    className={`caps step flex min-h-12 items-center px-3 text-[15px] sm:px-5 sm:text-[18px] lg:min-h-14 ${
                       on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                     }`}
                   >

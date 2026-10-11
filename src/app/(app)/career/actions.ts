@@ -81,18 +81,22 @@ export type CareerAnswer = {
 const answerInput = z.object({
   questionId: z.string().uuid(),
   selected: z.number().int().min(0).max(4),
+  since: z.string().datetime(),
 });
 
 // One answer in a career quiz. It runs as a practice answer on the question's own test (the same rules as
 // practice: the key comes back only once you've answered, and the answer counts toward your stats). The
 // database checks everything, so this never reads a key first.
+// `since` is when the quiz started: a practice run you opened before then (on the test page) is yours to
+// finish there, so the quiz skips that test instead of writing into it.
 export async function answerCareerQuestion(
   questionId: string,
   selected: number,
+  since: string,
 ): Promise<CareerAnswer> {
-  const parsed = answerInput.safeParse({ questionId, selected });
+  const parsed = answerInput.safeParse({ questionId, selected, since });
   if (!parsed.success) return { error: "That answer didn't save." };
-  await requireProfile();
+  const profile = await requireProfile();
   const supabase = await createClient();
   const { data: question, error: qError } = await supabase
     .from("questions")
@@ -102,6 +106,22 @@ export async function answerCareerQuestion(
   if (qError || !question)
     return { error: "That question isn't available to practise." };
   const testId = question.test_id as string;
+  const { data: openRun, error: openError } = await supabase
+    .from("attempts")
+    .select("id")
+    .eq("user_id", profile.id)
+    .eq("test_id", testId)
+    .eq("mode", "practice")
+    .is("submitted_at", null)
+    .lt("started_at", parsed.data.since)
+    .limit(1)
+    .maybeSingle();
+  if (openError) return { error: careerError(openError) };
+  if (openRun)
+    return {
+      error:
+        "You have a practice run open on this question's test. Finish it on the test page, or skip this one.",
+    };
   const { data: attemptId, error: startError } = await supabase.rpc(
     "start_attempt",
     {
@@ -122,12 +142,14 @@ export async function answerCareerQuestion(
 }
 
 // Closes the practice runs a quiz used, so the next quiz starts fresh and every answer is final. Only your
-// own open practice runs on those tests are touched.
+// own open practice runs on those tests that started during this quiz are touched.
 export async function finishCareerQuiz(
   testIds: string[],
+  since: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const parsed = z.array(z.string().uuid()).max(200).safeParse(testIds);
-  if (!parsed.success) return { error: "Couldn't finish the quiz." };
+  const sinceOk = z.string().datetime().safeParse(since);
+  if (!parsed.success || !sinceOk.success) return { error: "Couldn't finish the quiz." };
   if (parsed.data.length === 0) return { ok: true };
   const profile = await requireProfile();
   const supabase = await createClient();
@@ -137,6 +159,7 @@ export async function finishCareerQuiz(
     .eq("user_id", profile.id)
     .eq("mode", "practice")
     .is("submitted_at", null)
+    .gte("started_at", sinceOk.data)
     .in("test_id", parsed.data);
   if (error) return { error: "Couldn't finish the quiz." };
   for (const row of data ?? []) {

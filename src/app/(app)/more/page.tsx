@@ -52,7 +52,7 @@ function Row({
 }
 
 const SETTINGS_TABS = [
-  { tab: "look", label: "Look" },
+  { tab: "appearance", label: "Appearance" },
   { tab: "sound", label: "Sound" },
   { tab: "account", label: "Account" },
   { tab: "events", label: "Join an event" },
@@ -81,7 +81,7 @@ export default async function MorePage() {
             href="/settings"
             Icon={Settings}
             label="Settings"
-            hint="Look, sound, your account, joining events"
+            hint="Appearance, sound, your account, joining events"
           />
           <li className="border-t border-rule px-4 pt-1 pb-4 sm:px-5">
             <ul className="flex flex-wrap gap-2" aria-label="Settings tabs">

@@ -32,10 +32,13 @@ const LETTERS = "ABCDE";
 // the practice runs it used are closed so the next quiz starts clean.
 export function CareerQuiz({
   items,
+  since,
   againHref,
   backHref,
 }: {
   items: QuizItem[];
+  // When this quiz began, by the server's clock: practice runs opened before it are left alone.
+  since: string;
   againHref: string;
   backHref: string;
 }) {
@@ -67,6 +70,7 @@ export function CareerQuiz({
     const r: CareerAnswer = await answerCareerQuestion(
       item.question_id,
       shown,
+      since,
     ).catch((): CareerAnswer => ({
       error: "That answer didn't save. Check your connection and try again.",
     }));
@@ -102,7 +106,7 @@ export function CareerQuiz({
     }
     setFinished(true);
     // Closing the runs is tidy-up: the answers are already saved, so a failure here doesn't matter to the member.
-    void finishCareerQuiz([...testIds.current]).catch(() => undefined);
+    void finishCareerQuiz([...testIds.current], since).catch(() => undefined);
   }
 
   if (finished) {

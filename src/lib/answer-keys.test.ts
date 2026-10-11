@@ -340,3 +340,11 @@ describe("answer hint labels", () => {
     );
   });
 });
+
+describe("digits only", () => {
+  it("ignores letters when letters are off", () => {
+    expect(pickIndex("a", 2, false)).toBeNull();
+    expect(pickIndex("1", 2, false)).toBe(0);
+    expect(pickIndex("2", 2, false)).toBe(1);
+  });
+});

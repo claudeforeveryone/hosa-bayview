@@ -106,6 +106,7 @@ export function StudySession({
   useAnswerKeys({
     enabled: cards.length > 0 && !done,
     options: flipped ? 2 : 0,
+    digitsOnly: true,
     onPick: (i) => mark(i === 1),
     onEnter: flip,
     onSpace: flip,

@@ -6,6 +6,8 @@ import { answerAction, type AnswerKeyContext } from "@/lib/answer-keys";
 export type AnswerKeyHandlers = {
   // Choices on screen the number and letter keys can pick (0 when none are open to answer).
   options?: number;
+  // Only number keys pick, not letters.
+  digitsOnly?: boolean;
   onPick?: (index: number) => void;
   // Present only when that move exists; its presence also tells the keys the move is available.
   onPrev?: () => void;
@@ -40,6 +42,7 @@ export function useAnswerKeys(handlers: AnswerKeyHandlers) {
           : null,
         {
           options: h.options ?? 0,
+          digitsOnly: h.digitsOnly,
           prev: Boolean(h.onPrev),
           next: Boolean(h.onNext),
           enter: Boolean(h.onEnter),

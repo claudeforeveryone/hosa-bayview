@@ -49,6 +49,8 @@ export type KeyTarget = {
 export type AnswerKeyContext = {
   // Choices the number and letter keys can pick. 0 when nothing is answerable right now (locked, or no options).
   options: number;
+  // Only the number keys pick (flashcard marks, where A and B would be easy to hit by accident).
+  digitsOnly?: boolean;
   // Whether a previous or next question exists to move to.
   prev: boolean;
   next: boolean;
@@ -85,13 +87,13 @@ export function isControlTarget(target: KeyTarget): boolean {
 }
 
 // Which choice (0-based) a key picks among `options` choices, or null. Digits 1-5 and letters A-E, any case.
-export function pickIndex(key: string, options: number): number | null {
+export function pickIndex(key: string, options: number, letters = true): number | null {
   const count = Math.min(Math.max(options, 0), KEYED_OPTIONS);
   if (/^[1-5]$/.test(key)) {
     const i = Number(key) - 1;
     return i < count ? i : null;
   }
-  if (key.length === 1) {
+  if (letters && key.length === 1) {
     const i = LETTER_KEYS.indexOf(key.toLowerCase());
     if (i >= 0 && i < count) return i;
   }
@@ -115,7 +117,7 @@ export function answerAction(
     return ctx.next ? { kind: "next" } : null;
   }
 
-  const index = pickIndex(e.key, ctx.options);
+  const index = pickIndex(e.key, ctx.options, !ctx.digitsOnly);
   if (index !== null) return { kind: "pick", index };
 
   if (isControlTarget(target)) return null;

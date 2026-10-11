@@ -55,6 +55,7 @@ export default async function CareerQuizPage(props: PageProps<"/career/quiz">) {
       {pool.length ? (
         <CareerQuiz
           key={typeof sp.run === "string" ? sp.run : "first"}
+          since={new Date().toISOString()}
           items={items.map((r) => ({
             question_id: r.question_id as string,
             prompt: r.prompt,
