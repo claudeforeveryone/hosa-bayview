@@ -26,3 +26,7 @@ class_name = "DOShardedTagCache"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["BucketCachePurge", "DOQueueHandler", "DOShardedTagCache"]
+
+[vars]
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_6lYr44sW5FRs96E6aAtHag_X92tSPty"
+NEXT_PUBLIC_SUPABASE_URL = "https://vxlaswushshckxoblkyb.supabase.co/"
