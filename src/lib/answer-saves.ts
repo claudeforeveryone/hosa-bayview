@@ -12,6 +12,9 @@ export type SaveReply = {
   explanation?: string | null;
 };
 
+// The reply when a pick never reached the database (no connection, or the server couldn't store it). The
+// server action sends this same text, so picking again is worth it. Any other error is the database refusing
+// the pick for good ("Time is up", "This attempt is already submitted"), and picking again gets the same answer.
 export const SAVE_FAILED =
   "That answer didn't save. Check your connection and tap it again.";
 
@@ -32,7 +35,8 @@ export function createAnswerSaves(
   const wanted = new Map<string, number>();
   // One running drain per question, so saves for a question never overlap.
   const running = new Map<string, Promise<void>>();
-  // Questions whose newest pick failed to save. A new pick for the question clears it until that one settles.
+  // Questions whose newest pick didn't reach the database. A new pick for the question clears it until that one
+  // settles. A refusal isn't kept here: the screen has already put back what the server holds.
   const unsaved = new Set<string>();
 
   async function drain(qid: string) {
@@ -47,7 +51,7 @@ export function createAnswerSaves(
         reply = { error: SAVE_FAILED };
       }
       const latest = !wanted.has(qid);
-      if (latest && reply.error) unsaved.add(qid);
+      if (latest && reply.error === SAVE_FAILED) unsaved.add(qid);
       onSettled({ qid, sent, reply, latest });
     }
   }
@@ -65,9 +69,22 @@ export function createAnswerSaves(
     },
     // Resolves once every save in flight has settled, with the questions whose newest pick didn't save, so a
     // submit can wait for the last tap and stop instead of closing the attempt on an answer that was lost.
-    async idle(): Promise<string[]> {
-      while (running.size) await Promise.all([...running.values()]);
-      return [...unsaved];
+    // With `within` (ms) it stops waiting after that long and also names the saves still on their way, so a
+    // request that hangs can't hold up a submit when time runs out.
+    async idle(within?: number): Promise<string[]> {
+      const settledAll = (async () => {
+        while (running.size) await Promise.all([...running.values()]);
+      })();
+      if (within === undefined) await settledAll;
+      else {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        await Promise.race([
+          settledAll,
+          new Promise<void>((r) => (timer = setTimeout(r, within))),
+        ]);
+        clearTimeout(timer);
+      }
+      return [...new Set([...unsaved, ...running.keys()])];
     },
   };
 }

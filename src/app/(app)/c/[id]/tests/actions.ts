@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormState } from "@/app/(app)/c/actions";
 import { canTeach, requireProfile } from "@/lib/auth";
+import { SAVE_FAILED } from "@/lib/answer-saves";
 import { UNTITLED_TEST } from "@/lib/untitled";
 import { createClient } from "@/lib/supabase/server";
 import { IMPORT_MAX, checkQuestion } from "@/lib/question-rules";
@@ -412,9 +413,8 @@ export async function answerQuestion(
   if (error) {
     if (error.code === "22023") return { error: `${error.message}.` };
     console.error("[tests:answer]", error.message);
-    return {
-      error: "That answer didn't save. Check your connection and tap it again.",
-    };
+    // Worth picking again: the screen and a submit treat this reply as a pick that never got stored.
+    return { error: SAVE_FAILED };
   }
   return data;
 }

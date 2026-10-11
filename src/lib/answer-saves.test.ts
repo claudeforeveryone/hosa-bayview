@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   createAnswerSaves,
   SAVE_FAILED,
@@ -147,6 +147,56 @@ describe("createAnswerSaves", () => {
     await h.tick();
     h.waiting[1].resolve({ selected_index: 3 });
     expect(await h.saves.idle()).toEqual([]);
+  });
+
+  it("doesn't count a pick the server refused for good as unsaved, so it can't hold a submit", async () => {
+    // "Time is up", "This attempt is already submitted", "Practice is off for this test": picking again gets the
+    // same answer, so blocking a submit on them would loop.
+    const h = harness();
+    h.saves.save("q1", 0);
+    h.saves.save("q2", 1);
+    h.waiting[0].resolve({ error: "Time is up." });
+    h.waiting[1].resolve({ error: "This attempt is already submitted." });
+    expect(await h.saves.idle()).toEqual([]);
+  });
+
+  it("counts a pick that never reached the database as unsaved", async () => {
+    const h = harness();
+    h.saves.save("q1", 0);
+    h.saves.save("q2", 1);
+    h.saves.save("q3", 2);
+    h.waiting[0].reject(new TypeError("Failed to fetch"));
+    h.waiting[1].resolve(undefined as unknown as SaveReply);
+    h.waiting[2].resolve({ error: SAVE_FAILED });
+    expect((await h.saves.idle()).sort()).toEqual(["q1", "q2", "q3"]);
+  });
+
+  it("idle can give up waiting after a while and names the saves still on their way", async () => {
+    vi.useFakeTimers();
+    try {
+      const h = harness();
+      h.saves.save("q1", 0);
+      h.saves.save("q2", 1);
+      h.waiting[1].resolve({ selected_index: 1 });
+      const waiting = h.saves.idle(4000);
+      await vi.advanceTimersByTimeAsync(3999);
+      let out: string[] | null = null;
+      void waiting.then((x) => (out = x));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(out).toBeNull();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await waiting).toEqual(["q1"]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("idle with a time limit still resolves as soon as everything settles", async () => {
+    const h = harness();
+    h.saves.save("q1", 0);
+    const waiting = h.saves.idle(60_000);
+    h.waiting[0].resolve({ selected_index: 0 });
+    expect(await waiting).toEqual([]);
   });
 
   it("idle waits for everything in flight, then resolves", async () => {

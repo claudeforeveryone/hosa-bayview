@@ -16,23 +16,23 @@ import {
   type AnswerSaves,
   type Settled,
 } from "@/lib/answer-saves";
+import {
+  settleAnswer,
+  showAnswer,
+  submitBlock,
+  type Answer,
+} from "@/lib/attempt-answers";
 import { feedback, primeFeedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import type { AttemptQuestion } from "@/lib/tests";
 import { KeyHint, KeyLine } from "@/components/key-hint";
 import { useAnswerKeys } from "@/hooks/use-answer-keys";
 
-type Answer = {
-  selected: number;
-  // Null while the answer is saving, and when the trainer has answers off (no verdict to show).
-  is_correct: boolean | null;
-  correct_index: number | null;
-  explanation: string | null;
-  // True once the server has stored the pick (rows from the page always are).
-  saved: boolean;
-};
-
 const LETTERS = "ABCDE";
+// How long a submit waits for picks still on their way: a tap waits a while, the timer (or a tap after time
+// is up) only briefly, so a request that hangs can't hold an attempt open past its deadline.
+const TAP_WAIT = 10_000;
+const CLOSE_WAIT = 4_000;
 
 function clock(ms: number) {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -91,6 +91,8 @@ export function TakeTest({
   const [fresh, setFresh] = useState<string | null>(null);
   const submitted = useRef(false);
   const autoTried = useRef(false);
+  // The questions the last "didn't save" warning named: tapping again for the same ones submits anyway.
+  const warned = useRef<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   // The question on screen, read when a verdict comes back after a server round trip.
   const onScreen = useRef(current);
@@ -105,41 +107,20 @@ export function TakeTest({
   const mine = answers[q.question_id];
   const locked = practice && mine !== undefined;
 
-  // A save's reply. Only the newest pick for a question changes the screen; an older reply just records what the
-  // server stored, so a slow reply never puts back an answer the taker has already changed.
-  const settle = ({ qid, sent, reply, latest }: Settled) => {
-    if (reply.error) {
-      if (!latest) return;
-      const prior = confirmed.current[qid];
-      setAnswers((a) => {
-        const next = { ...a };
-        if (prior) next[qid] = prior;
-        else delete next[qid];
-        return next;
-      });
-      setError(reply.error);
-      return;
-    }
-    const got: Answer = {
-      // The server's stored pick wins (a stale second tab can't change a locked practice answer).
-      selected: reply.selected_index ?? sent,
-      is_correct: reply.is_correct ?? null,
-      correct_index: reply.correct_index ?? null,
-      explanation: reply.explanation ?? null,
-      saved: true,
-    };
-    confirmed.current = { ...confirmed.current, [qid]: got };
-    if (!latest) return;
-    setAnswers((a) => ({ ...a, [qid]: got }));
-    // Only for the question still on screen: a verdict that lands after you moved on is just stored, and
-    // shows quietly, without the reveal, when you go back.
-    if (
-      practice &&
-      typeof reply.is_correct === "boolean" &&
-      rows[onScreen.current]?.question_id === qid
-    ) {
-      setFresh(qid);
-      feedback(reply.is_correct ? "correct" : "wrong");
+  // A save's reply (rules in lib/attempt-answers): only the newest pick for a question changes the screen, and a
+  // failed one goes back to what the server last confirmed.
+  const settle = (s: Settled) => {
+    const out = settleAnswer(confirmed.current, s, {
+      practice,
+      onScreen: rows[onScreen.current]?.question_id,
+    });
+    confirmed.current = out.confirmed;
+    const { show } = out;
+    if (show !== undefined) setAnswers((a) => showAnswer(a, s.qid, show));
+    if (out.error) setError(out.error);
+    if (out.verdict !== undefined) {
+      setFresh(s.qid);
+      feedback(out.verdict ? "correct" : "wrong");
     }
   };
   const savesNow = () =>
@@ -148,23 +129,38 @@ export function TakeTest({
       (s) => settle(s),
     ));
 
+  // The server's clock, so the countdown and "time is up" don't depend on the device's clock.
+  const [offset] = useState(() => serverNow - Date.now());
+
   // byTap is false when the timer submits: no tap, so no tone (the browser would refuse it anyway).
+  // Returns false when a submit is already running, so the timer knows its own try didn't start.
   const submit = useCallback(
     (byTap = true) => {
-      if (submitted.current) return;
+      if (submitted.current) return false;
       submitted.current = true;
       setError(null);
       if (byTap) primeFeedback();
       startSubmit(async () => {
-        // A pick still on its way counts, so wait for it. If one didn't save, a tapped submit stops so the taker
-        // can tap it again; when time runs out the attempt closes with what the server has.
-        const unsaved = (await saves.current?.idle()) ?? [];
-        if (byTap && unsaved.length) {
+        const timeUp = () =>
+          deadline !== null && Date.now() + offset >= Date.parse(deadline);
+        // A pick still on its way counts, so wait for it (briefly once time is up). If one never reached the
+        // server, a tapped submit stops once so the taker can pick it again (lib/attempt-answers).
+        const unsaved =
+          (await saves.current?.idle(
+            byTap && !timeUp() ? TAP_WAIT : CLOSE_WAIT,
+          )) ?? [];
+        const block = submitBlock({
+          unsaved,
+          byTap,
+          deadlinePassed: timeUp(),
+          warned: warned.current,
+          rows,
+          practice,
+        });
+        if (block) {
+          warned.current = block.key;
           submitted.current = false;
-          const n = rows.findIndex((r) => r.question_id === unsaved[0]) + 1;
-          setError(
-            `Question ${n} didn't save. Pick it again, then tap ${practice ? "Finish" : "Submit"}.`,
-          );
+          setError(block.message);
           return;
         }
         const r = await submitAttempt(attemptId).catch(() => ({
@@ -179,12 +175,12 @@ export function TakeTest({
           router.refresh();
         }
       });
+      return true;
     },
-    [attemptId, practice, router, rows],
+    [attemptId, deadline, offset, practice, router, rows],
   );
 
   // Countdown against the server's clock; submits itself at zero.
-  const [offset] = useState(() => serverNow - Date.now());
   const [remaining, setRemaining] = useState(() =>
     deadline ? Date.parse(deadline) - serverNow : 0,
   );
@@ -194,11 +190,9 @@ export function TakeTest({
     const tick = () => {
       const ms = end - (Date.now() + offset);
       setRemaining(ms);
-      // Auto-submit once; if that fails the Submit button stays for a manual retry.
-      if (ms <= 0 && !autoTried.current) {
-        autoTried.current = true;
-        submit(false);
-      }
+      // Auto-submit once; if that fails the Submit button stays for a manual retry. A tapped submit already
+      // running counts as the try only once it ends, so the timer tries again if that one stopped short.
+      if (ms <= 0 && !autoTried.current) autoTried.current = submit(false);
     };
     tick();
     const t = setInterval(tick, 500);
@@ -219,6 +213,7 @@ export function TakeTest({
     if (locked || submitting) return;
     const qid = q.question_id;
     setError(null);
+    warned.current = null;
     // Practice: the verdict sound comes after the server answers, so wake audio now, inside the tap.
     // Timed: no verdict until the end, so the tap itself gets a soft tick.
     if (practice) primeFeedback();
