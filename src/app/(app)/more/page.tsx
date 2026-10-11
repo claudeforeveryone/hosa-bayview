@@ -10,9 +10,9 @@ import {
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { PageTitle } from "@/components/page-title";
-import { SETTINGS_TABS } from "@/lib/settings-tabs";
 import { requireProfile } from "@/lib/auth";
 import { bottomItemsFor, navItemsFor } from "@/lib/nav-items";
+import { SETTINGS_TABS } from "@/lib/settings-tabs";
 
 export const metadata: Metadata = { title: "More" };
 
@@ -50,6 +50,12 @@ function Row({
   );
 }
 
+// Settings' own tab list (src/lib/settings-tabs.ts), so a new tab shows up here too. Events reads as the task here.
+const SHORTCUTS = SETTINGS_TABS.map((t) => ({
+  tab: t.id,
+  label: t.id === "events" ? "Join an event" : t.label,
+}));
+
 export default async function MorePage() {
   const profile = await requireProfile();
   const isExec = profile.role === "executive";
@@ -72,10 +78,10 @@ export default async function MorePage() {
           <Row href="/settings" Icon={Settings} label="Settings" />
           <li className="border-t border-rule px-4 pt-1 pb-4 sm:px-5">
             <ul className="flex flex-wrap gap-2" aria-label="Settings tabs">
-              {SETTINGS_TABS.map((t) => (
-                <li key={t.id}>
+              {SHORTCUTS.map((t) => (
+                <li key={t.tab}>
                   <Link
-                    href={`/settings?tab=${t.id}`}
+                    href={`/settings?tab=${t.tab}`}
                     className="caps step inline-flex h-11 items-center border border-ink px-4 text-[15px] hover:bg-band"
                   >
                     {t.label}
