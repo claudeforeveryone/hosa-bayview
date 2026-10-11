@@ -284,7 +284,7 @@ export default async function CompetitionPage({
               </div>
             ))
           ) : (
-            <EmptyState title="No timed runs yet" />
+            <EmptyState title="No timed runs yet" mark={false} />
           )}
         </section>
       ) : null}

@@ -72,7 +72,7 @@ export default async function ResourcesTab({
         ) : topics.length ? (
           <TopicList rows={topics} />
         ) : (
-          <EmptyState title="No breakdown yet" />
+          <EmptyState title="No breakdown yet" mark={false} />
         )}
       </section>
     </div>

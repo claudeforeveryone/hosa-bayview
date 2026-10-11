@@ -37,18 +37,22 @@ function Molecule() {
 
 // Nothing here yet: a band with an ink frame, the title in display caps, and one line of what to do next, with
 // the way forward (a link or button) below it. Solid rules only.
+// The molecule is one quiet moment per screen: an empty state in a later section of a page that has an earlier
+// one (Resources' breakdown under its files) passes mark={false}, so two in a row don't repeat it.
 export function EmptyState({
   title,
   children,
   action,
+  mark = true,
 }: {
   title: string;
   children?: ReactNode;
   action?: ReactNode;
+  mark?: boolean;
 }) {
   return (
     <div className="relative grid justify-items-start gap-3 overflow-hidden border-[3px] border-ink bg-band px-4 py-8 sm:px-6">
-      <Molecule />
+      {mark ? <Molecule /> : null}
       <p className="relative font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
         {title}
       </p>

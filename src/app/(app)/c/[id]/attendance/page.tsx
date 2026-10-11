@@ -297,7 +297,7 @@ export default async function AttendanceTab({
             </p>
           </div>
           {sheet.weeks.length === 0 ? (
-            <EmptyState title="No meeting dates yet">
+            <EmptyState title="No meeting dates yet" mark={false}>
               Executives add them from Admin, Attendance.
             </EmptyState>
           ) : sheetRoom.members.length > 0 ? (
@@ -310,7 +310,7 @@ export default async function AttendanceTab({
               initialPresent={sheet.present}
             />
           ) : (
-            <EmptyState title="No names on this roster yet">
+            <EmptyState title="No names on this roster yet" mark={false}>
               Add them under Manage roster.
             </EmptyState>
           )}
@@ -345,7 +345,7 @@ export default async function AttendanceTab({
           Meetings
         </h2>
         {items.length === 0 ? (
-          <EmptyState title="No meetings on the schedule yet" />
+          <EmptyState title="No meetings on the schedule yet" mark={false} />
         ) : (
           <MeetingList items={items} classroomId={room.id} manage />
         )}

@@ -218,7 +218,7 @@ async function Reports() {
           counts separately.
         </p>
         {members.length === 0 ? (
-          <EmptyState title="No marks yet" />
+          <EmptyState title="No marks yet" mark={false} />
         ) : (
           <MemberSearch members={members} />
         )}
