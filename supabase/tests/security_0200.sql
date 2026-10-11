@@ -2,8 +2,9 @@
 -- (0090) and battles (0095-0098), for migrations 0200-0207. Impersonates anon, a trainee and an executive, and plays
 -- the auth server for sign-ups while a chapter code is on. One transaction that rolls back; raises if any check fails.
 -- Writes only rows the rollback removes: two questions in a test the trainee can practise (and that test's
--- show_answers, flipped off and on), practice runs, two questions and a timed run in a test the trainee can take (its
--- room made an MC room, the test made timed and uncapped) with a battle playing one of them, a chapter code, two
+-- show_answers, flipped off and on), practice runs, two questions, a timed run and a practice run in a test the trainee
+-- can take (its room made an MC room, the test made timed, uncapped and open to practice) with a battle playing one of
+-- them (the trainee first watching, then a player, then a player who left), a chapter code, two
 -- throwaway sign-ups, and every executive made a trainee for the M1 check. It makes no classrooms, tests, decks or
 -- admin_log rows (the profile log trigger is off for the M1 part), whose number sequences would move on a live project
 -- even after a rollback.
@@ -110,8 +111,12 @@ select pg_temp.ok('every security definer function pins an empty search_path',
   $q$select count(*) = 0 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname in ('public', 'private') and p.prosecdef
        and not coalesce(p.proconfig @> array['search_path=""'], false)$q$);
-select pg_temp.ok('anon can run only keepalive and chapter_gate_active among definer functions',
-  $q$select coalesce(array_agg(p.proname::text order by p.proname), '{}') <@ array['chapter_gate_active', 'keepalive']
+-- purge_attempt_logs is the omega/hosa-trust branch's 0250: the daily cron runs it with the publishable key, it takes
+-- nothing and only deletes wrong-code log rows past retention and expired tickets. Listed here so the check holds
+-- whichever branch merges first.
+select pg_temp.ok('anon can run only keepalive, chapter_gate_active and purge_attempt_logs among definer functions',
+  $q$select coalesce(array_agg(p.proname::text order by p.proname), '{}')
+            <@ array['chapter_gate_active', 'keepalive', 'purge_attempt_logs']
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.prosecdef and has_function_privilege('anon', p.oid, 'EXECUTE')$q$);
 
@@ -292,11 +297,14 @@ select set_config('request.jwt.claims', '', true);
 select pg_temp.ok('H1 Elo: elo_on_answer reads show_answers under a share lock (elo_reveal_lock.sql)',
   $q$select p.prosrc ~* 'for\s+share' from pg_proc p where p.oid = 'private.elo_on_answer()'::regprocedure$q$);
 
--- ---- Battles: a timed run can't answer a live round's question (0207) --------------------------------------------
+-- ---- Battles: a player's timed run can't answer their live round's question (0207) ----------------------------
 -- 0098 holds back practice answers on a question that is live in a battle. A timed answer shows no verdict, but
--- submitting grades it and Elo pays a right one at once, which member_stats shows inside the round. A test the trainee
--- can take in an event room becomes a battle source for this transaction (its room an MC room; the test timed, uncapped
--- and showing answers), gets two new questions, and the first goes live in a battle round.
+-- submitting grades it and Elo pays a right one at once, which member_stats shows inside the round. So a player's
+-- timed answer on their own live round is refused. A watcher (can see the battle, isn't playing) gains nothing in it,
+-- so their timed answer saves, while 0098 still refuses their practice answer. A test the trainee can take in an event
+-- room becomes a battle source for this transaction (its room an MC room; the test timed, uncapped, practice on and
+-- showing answers), gets two new questions, and the first goes live in a battle the executive hosts. Each refusal is
+-- paired with an answer on the question not in play, so the 22023 can only be the battle guard.
 select set_config('request.jwt.claims',
   json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
 select pg_temp.keep('battle_test', $q$
@@ -309,7 +317,7 @@ select pg_temp.ok('battles setup: the trainee can take a test in an event room',
 update public.classrooms set category = 'mc'
 where id = (select t.classroom_id from public.tests t where t.id = (select v::uuid from _t where k = 'battle_test'))
   and category is distinct from 'mc' and category is distinct from 'practical';
-update public.tests set time_limit_minutes = 10, attempts_allowed = null, show_answers = true
+update public.tests set time_limit_minutes = 10, attempts_allowed = null, show_answers = true, allow_practice = true
 where id = (select v::uuid from _t where k = 'battle_test');
 insert into public.questions (id, test_id, position, prompt, options)
 select x.id, t.v::uuid,
@@ -320,7 +328,7 @@ cross join (values (1, '00000000-0000-4000-8000-0000000000a3'::uuid), (2, '00000
 where t.k = 'battle_test' and t.v is not null;
 insert into public.question_keys (question_id, correct_index)
 select q.id, 0 from public.questions q where q.id in ('00000000-0000-4000-8000-0000000000a3', '00000000-0000-4000-8000-0000000000a4');
--- Wrapped, so a run before 0095 lists the failure instead of aborting.
+-- Wrapped, so a run before 0095 lists the failure instead of aborting. The host plays on team 1, as create_battle does.
 select pg_temp.expect('battles setup: a battle is playing round 1 on the first new question', $q$
   with b as (
     insert into public.battles (id, classroom_id, code, host_id, format, source_test_id, question_count, status,
@@ -329,6 +337,8 @@ select pg_temp.expect('battles setup: a battle is playing round 1 on the first n
       'playing', 1, now()
     from public.tests t where t.id = (select v::uuid from _t where k = 'battle_test')
     returning id
+  ), host as (
+    insert into public.battle_players (battle_id, user_id, team) select b.id, (select exec_id from _who), 1 from b
   )
   insert into public.battle_rounds (battle_id, round_no, question_id, started_at, ends_at)
   select b.id, 1, '00000000-0000-4000-8000-0000000000a3', now(), now() + interval '20 seconds' from b$q$, '');
@@ -336,13 +346,52 @@ select pg_temp.expect('battles setup: a battle is playing round 1 on the first n
 select set_config('request.jwt.claims',
   json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
 set local role authenticated;
+select pg_temp.ok('battles watcher: the trainee can see the battle but is not playing',
+  $q$select exists (select 1 from public.battles where id = '00000000-0000-4000-8000-0000000000b1')
+       and not exists (select 1 from public.battle_players where battle_id = '00000000-0000-4000-8000-0000000000b1'
+                       and user_id = (select trainee_id from _who))$q$);
 select pg_temp.keep('timed_run', $q$select public.start_attempt((select v::uuid from _t where k = 'battle_test'), 'timed')::text$q$);
-select pg_temp.expect('battles trainee: a timed answer on the question live in the battle is refused',
+select pg_temp.expect('battles watcher: a timed answer on the question live in a battle they are not playing saves',
   $q$select * from public.answer_question((select v::uuid from _t where k = 'timed_run'), '00000000-0000-4000-8000-0000000000a3', 0)$q$,
-  '22023');
-select pg_temp.expect('battles trainee: a timed answer on a question not in play still saves',
+  '');
+select pg_temp.expect('battles watcher: a timed answer on a question not in play saves',
   $q$select * from public.answer_question((select v::uuid from _t where k = 'timed_run'), '00000000-0000-4000-8000-0000000000a4', 0)$q$,
   '');
+select pg_temp.keep('practice_run', $q$select public.start_attempt((select v::uuid from _t where k = 'battle_test'), 'practice')::text$q$);
+select pg_temp.ok('battles watcher: a practice answer on a question not in play shows its key',
+  $q$select correct_index = 0 from public.answer_question((select v::uuid from _t where k = 'practice_run'), '00000000-0000-4000-8000-0000000000a4', 0)$q$);
+select pg_temp.expect('battles watcher: a practice answer on the live question is still refused (0098)',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'practice_run'), '00000000-0000-4000-8000-0000000000a3', 0)$q$,
+  '22023');
+reset role;
+select set_config('request.jwt.claims', '', true);
+-- Now the trainee is a player (added by hand: join_battle refuses new players once a battle has started).
+insert into public.battle_players (battle_id, user_id, team)
+select '00000000-0000-4000-8000-0000000000b1', trainee_id, 2 from _who
+where exists (select 1 from public.battles where id = '00000000-0000-4000-8000-0000000000b1');
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select pg_temp.expect('battles player: a timed answer on their live round''s question is refused',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'timed_run'), '00000000-0000-4000-8000-0000000000a3', 1)$q$,
+  '22023');
+select pg_temp.ok('battles player: the refused answer left the earlier pick alone',
+  $q$select selected_index = 0 from public.attempt_questions((select v::uuid from _t where k = 'timed_run'))
+     where question_id = '00000000-0000-4000-8000-0000000000a3'$q$);
+select pg_temp.expect('battles player: a timed answer on a question not in play still saves',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'timed_run'), '00000000-0000-4000-8000-0000000000a4', 1)$q$,
+  '');
+reset role;
+select set_config('request.jwt.claims', '', true);
+-- A player who leaves mid-game can rejoin (join_battle), so leaving doesn't lift the guard.
+update public.battle_players set left_at = now()
+where battle_id = '00000000-0000-4000-8000-0000000000b1' and user_id = (select trainee_id from _who);
+select set_config('request.jwt.claims',
+  json_build_object('sub', (select trainee_id from _who), 'role', 'authenticated')::text, true);
+set local role authenticated;
+select pg_temp.expect('battles player: having left the battle, still refused (players can rejoin mid-game)',
+  $q$select * from public.answer_question((select v::uuid from _t where k = 'timed_run'), '00000000-0000-4000-8000-0000000000a3', 1)$q$,
+  '22023');
 reset role;
 select set_config('request.jwt.claims', '', true);
 

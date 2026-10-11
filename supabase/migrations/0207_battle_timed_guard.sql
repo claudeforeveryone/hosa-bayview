@@ -4,11 +4,30 @@
 -- member_stats(self).correct shows that inside the 20 second round. Battle tests always show their answers and may be
 -- timed with no cap (0095 battle_test_ok), so a player could start a timed run mid-round, answer the live question,
 -- submit and read their own stats. score_visible hid the score, not the Elo.
--- Now a timed answer on a live battle question is refused with the practice branch's 22023 (the taking screen shows
--- the message and keeps the earlier pick). Managers are not affected, and once the round closes it saves as before.
+-- Now a player's timed answer on their own battle's live question is refused with the practice branch's 22023 (the
+-- taking screen shows the message and keeps the earlier pick). Once the round closes it saves as before.
+-- Only the battle's players are held back, not everyone who can see the battle: a member doing an unrelated timed run
+-- of the same test would otherwise lose that answer if they submitted or ran out of time before retrying, and gains
+-- nothing in the battle. "Player" is any battle_players row, left or not, because a player who leaves mid-game may
+-- rejoin (0096 join_battle). Managers are not affected. What stays open: a watcher could answer the live question in
+-- a timed run, submit, read their own correct count and tell a player. That is slower than the round and worth no
+-- more than the keys themselves, which anyone can learn before the battle (battle tests show their answers).
 -- An answer saved before the round started can still be submitted during it: that pick was made without seeing the
 -- question in play, and battle tests show their keys anyway, so it tells a player nothing practice couldn't.
 -- This is 0098's answer_question with only that guard added; apply after 0098.
+
+-- The question is in a started, unclosed round of a playing battle the caller is (or was) a player in.
+create function private.question_live_in_my_battle(qid uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.battle_rounds r
+    join public.battles b on b.id = r.battle_id
+    join public.battle_players p on p.battle_id = b.id and p.user_id = (select auth.uid())
+    where r.question_id = qid and r.started_at is not null and r.closed_at is null
+      and b.status = 'playing' and not private.battle_stale(b)
+  )
+$$;
+revoke all on function private.question_live_in_my_battle(uuid) from public, anon, authenticated;
 
 create or replace function public.answer_question(aid uuid, qid uuid, selected integer)
  returns table(selected_index smallint, is_correct boolean, correct_index smallint, explanation text)
@@ -59,9 +78,9 @@ begin
                     where t.id = a_test) + interval '30 seconds' then
       raise exception 'This competition has closed' using errcode = '22023';
     end if;
-    -- Not stored while the question is live in a battle the caller can see: submitting grades it, and Elo would
-    -- pay a right answer at once (0207). Same rule and message as practice below.
-    if not private.can_manage_test(a_test) and private.question_in_live_battle(qid) then
+    -- Not stored while the question is live in a battle the caller plays in: submitting grades it, and Elo would
+    -- pay a right answer at once (0207). Same message as practice below.
+    if not private.can_manage_test(a_test) and private.question_live_in_my_battle(qid) then
       raise exception 'This question is in a live battle. Try it again in a few seconds' using errcode = '22023';
     end if;
     insert into public.attempt_answers as aa (attempt_id, question_id, selected_index)
