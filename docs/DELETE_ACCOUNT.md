@@ -16,13 +16,16 @@ under 13. Reply within 30 days.
      demote them first.
    - Or in Supabase: Authentication > Users > the user > Delete user. This leaves the picture file (step 4).
 4. **The picture.** Deleting the auth user anywhere but the app leaves the file in the `avatars` bucket (folder = the
-   user id). The daily cron (`/api/keepalive`, scheduled 09:00 UTC; Vercel's Hobby plan runs it at some minute in that
-   hour) erases every file whose folder has no account (`orphan_avatar_files()`, 0251). That's within about 25 hours,
-   inside the policy's "within two days". To do it now: Supabase > Storage > avatars > the folder named after the user
-   id > delete. Next day, check the folder is gone.
+   user id). The policy says the picture is erased, so delete it: Supabase > Storage > avatars > the folder named after
+   the user id > delete. Once the daily sweep is on (`HOUSEKEEPING=on` in Vercel Production, with 0250 and 0251
+   applied), the cron (`/api/keepalive`, scheduled 09:00 UTC; Vercel's Hobby plan runs it at some minute in that hour)
+   also erases every file whose folder has no account (`orphan_avatar_files()`, 0251), within about 25 hours, so a
+   folder you missed still goes. Next day, check the folder is gone.
 5. **Tell them it's done.**
 
 ## When the daily sweep stops
+
+Only while `HOUSEKEEPING=on` is set. Without it the cron keeps the database awake and does nothing else (204).
 
 The cron answers 500 and logs a line starting `[keepalive] housekeeping failed` (Vercel > the project > Logs) when:
 

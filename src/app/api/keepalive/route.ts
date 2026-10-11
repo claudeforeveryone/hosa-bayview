@@ -3,8 +3,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { AVATAR_BUCKET } from "@/lib/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Supabase free projects pause after 7 days idle. A daily Vercel Cron hits this to reach Postgres once, then runs the
-// housekeeping the privacy policy promises (wrong-code logs and deleted accounts' pictures go within two days).
+// Supabase free projects pause after 7 days idle. A daily Vercel Cron hits this to reach Postgres once. With
+// HOUSEKEEPING=on it then clears out wrong-code logs and deleted accounts' pictures (see housekeeping below).
 export const dynamic = "force-dynamic";
 
 function authorized(header: string | null, secret: string): boolean {
@@ -44,7 +44,14 @@ function sweepRefusal({ orphans, files }: Sweep): string | null {
   return null;
 }
 
-// Housekeeping the privacy policy relies on, run after the keep-alive. Each step runs even when another fails, and
+// Housekeeping deletes live rows and storage files, so it stays off until the owner has said yes, migrations 0250 and
+// 0251 are applied and SUPABASE_SECRET_KEY is set. Then set HOUSEKEEPING=on in Vercel Production and redeploy. Until
+// then the route only keeps the project awake, so a missing function or key can't fail the daily run.
+function housekeepingOn(): boolean {
+  return process.env.HOUSEKEEPING?.trim().toLowerCase() === "on";
+}
+
+// Housekeeping, run after the keep-alive. Each step runs even when another fails, and
 // returns what went wrong, so a broken promise shows up as a failed cron run with a log line, never silently.
 async function housekeeping(supabase: SupabaseClient): Promise<string[]> {
   const problems: string[] = [];
@@ -97,6 +104,7 @@ export async function GET(request: Request) {
     return new Response(null, { status: 502 });
   }
 
+  if (!housekeepingOn()) return new Response(null, { status: 204 });
   const problems = await housekeeping(supabase);
   if (problems.length) {
     console.error(`[keepalive] housekeeping failed: ${problems.join("; ")}`);

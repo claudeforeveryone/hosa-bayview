@@ -26,6 +26,7 @@ const call = (auth?: string) =>
 
 beforeEach(() => {
   vi.stubEnv("CRON_SECRET", "s3cret");
+  vi.stubEnv("HOUSEKEEPING", "on");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://x.supabase.co");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "pub-key");
   rpc.mockReset().mockResolvedValue({ error: null });
@@ -33,7 +34,8 @@ beforeEach(() => {
   adminRpc.mockReset().mockResolvedValue(sweep([]));
   remove.mockReset().mockResolvedValue({ data: [], error: null });
   storageFrom.mockClear();
-  createAdminClient.mockClear();
+  // mockReset puts back the vi.fn's own implementation, so a test that makes it throw can't leak into the next.
+  createAdminClient.mockReset();
 });
 
 describe("GET /api/keepalive", () => {
@@ -194,5 +196,52 @@ describe("GET /api/keepalive", () => {
   it("answers 502 when the request throws", async () => {
     rpc.mockRejectedValueOnce(new Error("boom"));
     expect((await call("Bearer s3cret")).status).toBe(502);
+  });
+});
+
+// Housekeeping deletes live rows and files, so it waits for 0250 and 0251, the secret key and the owner's yes. Until
+// HOUSEKEEPING=on is set, the route does what main did: keep the project awake and nothing else.
+describe("GET /api/keepalive with housekeeping off", () => {
+  it("runs keepalive only and answers 204 when HOUSEKEEPING is unset, empty or anything but on", async () => {
+    for (const value of [undefined, "", "off", "0", "true", "yes", "onn"]) {
+      vi.stubEnv("HOUSEKEEPING", value);
+      rpc.mockClear();
+      const res = await call("Bearer s3cret");
+      expect(res.status).toBe(204);
+      expect(rpc.mock.calls).toEqual([["keepalive"]]);
+    }
+    expect(createAdminClient).not.toHaveBeenCalled();
+    expect(adminRpc).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("doesn't fail when 0250 and 0251 aren't applied and the secret key isn't set", async () => {
+    vi.stubEnv("HOUSEKEEPING", undefined);
+    vi.stubEnv("SUPABASE_SECRET_KEY", undefined);
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    rpc.mockImplementation(async (fn: string) =>
+      fn === "keepalive" ? { error: null } : { error: { code: "PGRST202", message: "not found" } },
+    );
+    createAdminClient.mockImplementation(() => { throw new Error("SUPABASE_SECRET_KEY is not set"); });
+    expect((await call("Bearer s3cret")).status).toBe(204);
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it("still answers 502 when keepalive itself fails", async () => {
+    vi.stubEnv("HOUSEKEEPING", undefined);
+    rpc.mockResolvedValueOnce({ error: { code: "", message: "fetch failed" } });
+    expect((await call("Bearer s3cret")).status).toBe(502);
+  });
+
+  it("runs housekeeping for on, whatever the case or stray whitespace from a pasted value", async () => {
+    for (const value of ["on", "ON", " on\n"]) {
+      vi.stubEnv("HOUSEKEEPING", value);
+      rpc.mockClear();
+      adminRpc.mockClear();
+      expect((await call("Bearer s3cret")).status).toBe(204);
+      expect(rpc.mock.calls).toEqual([["keepalive"], ["purge_attempt_logs"]]);
+      expect(adminRpc).toHaveBeenCalledWith("orphan_avatar_files");
+    }
   });
 });

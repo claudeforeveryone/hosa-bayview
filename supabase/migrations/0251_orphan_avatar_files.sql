@@ -1,8 +1,9 @@
 -- Deleted accounts' pictures get erased. The privacy policy says a deleted account's picture goes with it, but
 -- deleting the auth user only cascades to the profiles row (and its avatar_path): the file stays in the private
 -- avatars bucket. Files can't be deleted with SQL (storage.protect_delete refuses; it would also leave the bytes
--- behind), only through the Storage API. So the daily cron route (/api/keepalive) asks this function which files
--- belong to accounts that no longer exist and removes them with the server's secret key.
+-- behind), only through the Storage API. So the daily cron route (/api/keepalive), once HOUSEKEEPING=on is set in
+-- production, asks this function which files belong to accounts that no longer exist and removes them with the
+-- server's secret key.
 --
 -- Every picture lives in its member's folder, "<user id>/<file>" (storage policies from 0033: members upload to their
 -- own folder, executives to anyone's). A file is orphaned when its folder is a user id with no auth.users row. Folders

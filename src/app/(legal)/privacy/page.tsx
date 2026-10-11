@@ -21,10 +21,15 @@ export const metadata: Metadata = publicPage({
 // Checked against the migrations, the live database (tables, foreign keys, row-level security and the functions that
 // decide who reads what, region) and the app code. If a feature starts collecting something new, or lets a role
 // see more, add it here and change LEGAL_EFFECTIVE in src/lib/legal.ts.
-// Two retention lines depend on the daily cron (/api/keepalive): wrong codes (0250) and deleted accounts' pictures
-// (0251). Both say "two days" because the Hobby cron fires anywhere within its hour, so runs can be 25 hours apart. Production runs on Vercel (vercel.json: Montreal, the cron). main also carries an OpenNext/Cloudflare setup
+// Retention, wrong codes and deleted accounts' pictures: these lines promise no deadline, because the daily cron's
+// housekeeping (/api/keepalive with 0250 and 0251) stays off until the owner approves it and HOUSEKEEPING=on is set in
+// production. True today: join_classroom drops day-old wrong tries on the next wrong try, and every account removal
+// erases the picture (in the app straight away; from the Supabase dashboard by hand, docs/DELETE_ACCOUNT.md). Once
+// housekeeping runs in production, these may say "up to two days" and "within two days" (the Hobby cron fires anywhere
+// in its hour, so runs can be 25 hours apart); change LEGAL_EFFECTIVE in src/lib/legal.ts with them.
+// Production runs on Vercel (vercel.json: Montreal, the cron). main also carries an OpenNext/Cloudflare setup
 // (wrangler.toml): if production moves there, rewrite "Our service providers" and "Where it's stored", and give the
-// cron a Cloudflare Cron Trigger, or those two promises stop being kept.
+// cron a Cloudflare Cron Trigger.
 export default function PrivacyPage() {
   return (
     <LegalDoc
@@ -35,7 +40,10 @@ export default function PrivacyPage() {
           activity and what you post.
         </>,
         <>No ads, no selling your information, no third-party trackers.</>,
-        <>Your information is stored in Canada, in Montreal.</>,
+        <>
+          Your information is stored in Canada (Montreal). Our US-based
+          providers may handle some of it, like server logs.
+        </>,
         <>
           Other members can see your name, picture, grade and leaderboard
           numbers.
@@ -240,16 +248,19 @@ export default function PrivacyPage() {
               deleted.
             </>,
             <>Usage counts: 13 months.</>,
-            <>Wrong join codes and sign-up codes: up to two days.</>,
+            <>
+              Wrong join codes and sign-up codes: we use them only to slow down
+              guessing, and clear out old ones.
+            </>,
             <>Server logs: on our providers&apos; own schedules.</>,
             <>
               When an account is deleted, its profile, results, battle picks,
               study time, notifications and warnings go with it, and its picture
-              is erased within two days. Things you made, like announcements,
-              tests, flashcard decks, files and calendar events, stay without
-              your name on them unless you ask us to remove them too. Attendance
-              lists keep the name as it was typed, and the moderation log keeps
-              the names it recorded.
+              is erased. Things you made, like announcements, tests, flashcard
+              decks, files and calendar events, stay without your name on them
+              unless you ask us to remove them too. Attendance lists keep the
+              name as it was typed, and the moderation log keeps the names it
+              recorded.
             </>,
           ]}
         </List>
