@@ -68,38 +68,6 @@ const ACTIVE = [
   47,
   27,
 ];
-const NEW = [
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  5,
-  null,
-  null,
-  null,
-  null,
-  6,
-  null,
-  null,
-  null,
-  null,
-  null,
-  null,
-  7,
-  null,
-  null,
-  null,
-  5,
-  null,
-  null,
-  null,
-  null,
-  6,
-  null,
-];
 
 export const growthFixture: GrowthData = {
   step: "day",
@@ -107,11 +75,13 @@ export const growthFixture: GrowthData = {
   to: TODAY,
   new_total: 31,
   active_total: 151,
+  // Some quiet days had 1 to 4 new members, so the database withholds the whole new series for this range.
+  new_by_bucket: false,
   buckets: ACTIVE.map((active, i) => ({
     start: day(i - 29),
     end: day(i - 29),
     active,
-    new: NEW[i],
+    new: null,
   })),
 };
 

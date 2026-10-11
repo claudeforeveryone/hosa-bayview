@@ -35,6 +35,8 @@ export type GrowthData = {
   to: string;
   new_total: Count;
   active_total: Count;
+  // False when any bucket had 1 to 4 new members: then every bucket's `new` is null (they'd add up to new_total).
+  new_by_bucket: boolean;
   buckets: GrowthBucket[];
 };
 

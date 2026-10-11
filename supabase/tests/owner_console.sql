@@ -203,6 +203,12 @@ select pg_temp.check('flag_question makes it an ask',
 select pg_temp.check('room owner told it is a question',
   exists (select 1 from public.notifications n where n.user_id = pg_temp.u(2)
           and n.title = 'Console Member asked about Console test' and n.body = 'Still think it is wrong'));
+-- And a report again, which the content checks below look for.
+select pg_temp.as_user(pg_temp.u(3));
+select public.report_question('00000000-0000-4000-8000-0000000002f1', 'typo', 'Key says Ulna');
+select pg_temp.as_admin();
+select pg_temp.check('back to a report',
+  exists (select 1 from public.question_flags f where f.user_id = pg_temp.u(3) and f.reason = 'typo' and f.status = 'open'));
 select pg_temp.as_user(pg_temp.u(4));
 select pg_temp.expect('banned report',
   $q$select public.report_question('00000000-0000-4000-8000-0000000002f1', 'typo', '')$q$, '42501');
@@ -242,6 +248,26 @@ begin
   perform pg_temp.check('90d is weekly', g ->> 'step' = 'week' and jsonb_array_length(g -> 'buckets') between 13 and 14);
   g := public.owner_growth('all');
   perform pg_temp.check('all is weekly', g ->> 'step' = 'week' and jsonb_array_length(g -> 'buckets') >= 1);
+end $$;
+-- New members per bucket add up to new_total: either every bucket is 0 or 5 and up and they sum to the total, or the
+-- whole series is withheld. Never one hidden bucket next to shown ones.
+do $$
+declare
+  r text;
+  g jsonb;
+begin
+  foreach r in array array['7d', '30d', '90d', 'all'] loop
+    g := public.owner_growth(r);
+    if (g ->> 'new_by_bucket')::boolean then
+      perform pg_temp.check('growth ' || r || ' shown buckets are 0 or 5 and up',
+        (select bool_and((x ->> 'new')::int = 0 or (x ->> 'new')::int >= 5) from jsonb_array_elements(g -> 'buckets') x));
+      perform pg_temp.check('growth ' || r || ' buckets add up to the total',
+        (select sum((x ->> 'new')::int) from jsonb_array_elements(g -> 'buckets') x) = (g ->> 'new_total')::int);
+    else
+      perform pg_temp.check('growth ' || r || ' withholds the whole new series',
+        (select bool_and(jsonb_typeof(x -> 'new') = 'null') from jsonb_array_elements(g -> 'buckets') x));
+    end if;
+  end loop;
 end $$;
 select pg_temp.expect('bad range', $q$select public.owner_growth('1y')$q$, '22023');
 

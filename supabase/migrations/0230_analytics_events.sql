@@ -50,6 +50,8 @@ create table if not exists public.analytics_events (
 );
 create index if not exists analytics_events_name_at_idx on public.analytics_events (name, occurred_at);
 create index if not exists analytics_events_user_at_idx on public.analytics_events (user_id, occurred_at);
+-- The 13-month purge (keepalive, below) deletes by age alone; without this it would scan the whole table each call.
+create index if not exists analytics_events_at_idx on public.analytics_events (occurred_at);
 alter table public.analytics_events enable row level security;
 -- No policies and no grants: only the definer functions below and in 0232 touch it.
 revoke all on public.analytics_events from public, anon, authenticated;

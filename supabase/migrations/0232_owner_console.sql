@@ -117,6 +117,10 @@ grant execute on function public.owner_overview() to authenticated;
 -- Growth ----------------------------------------------------------------------------------------------------------
 -- One bucket per day (7d, 30d) or per Monday-to-Sunday week (90d, all; the last one stops today): new members and
 -- active members. No running total per bucket: two running totals side by side would give away a hidden new count.
+-- New members per bucket add up to new_total (and to the overview's 7 and 30 day figures), so hiding one small
+-- bucket alone would leave it as a subtraction. If any bucket has 1 to 4, the whole new series is withheld for that
+-- range (new_by_bucket false, every 'new' null); the totals stay. Active members per bucket don't add up to anything
+-- shown (people are active on many days), so those are hidden one by one.
 create or replace function public.owner_growth(p_range text)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -146,14 +150,17 @@ begin
       where private.local_day(p.created_at) between first_day and today),
     'active_total', (select private.small_cell(count(distinct s.user_id)) from public.sign_in_days s
       where s.day between first_day and today),
+    'new_by_bucket', not coalesce(bool_or(b.signups between 1 and 4), false),
     'buckets', coalesce(jsonb_agg(jsonb_build_object(
         'start', b.b_start,
         'end', b.b_end,
-        'new', private.small_cell(b.signups),
+        'new', case when b.any_small then null else b.signups end,
         'active', private.small_cell(b.active)
       ) order by b.b_start), '[]'::jsonb)
   ) into out
   from (
+    select s.*, bool_or(s.signups between 1 and 4) over () as any_small
+    from (
     select g.b_start, g.b_end,
       (select count(*) from public.profiles p
         where private.local_day(p.created_at) between greatest(g.b_start, first_day) and g.b_end) as signups,
@@ -163,6 +170,7 @@ begin
       select d::date as b_start, least(d::date + (step - 1), today) as b_end
       from generate_series(start_day::timestamp, today::timestamp, make_interval(days => step)) d
     ) g
+    ) s
   ) b;
   return out;
 end

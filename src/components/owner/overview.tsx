@@ -51,7 +51,7 @@ export function OverviewSection({ data }: { data: OwnerOverview }) {
         <Sheet
           id="new-h"
           title="New members"
-          note={`Accounts created, Toronto days up to today (${data.today}).`}
+          note="Accounts created, counted in Toronto days up to today."
         >
           <Ledger
             label="New members"

@@ -69,8 +69,16 @@ export function GrowthSection({
               <span className="hidden group-open:inline">Hide the table</span>
             </summary>
             <div className="pt-4">
+              {/* Withheld as a whole when any bucket had 1 to 4 new members: they add up to the total above. */}
+              {data.new_by_bucket ? null : (
+                <p className="pb-4 text-[15px] text-ink-2">
+                  New members per {unit} aren&rsquo;t shown for this range: at
+                  least one {unit} had 1 to 4, and the total above would give it
+                  away.
+                </p>
+              )}
               <DataTable
-                caption={`New and active members per ${unit}, newest first.`}
+                caption={`${data.new_by_bucket ? "New and active" : "Active"} members per ${unit}, newest first.`}
                 rowKey={(b) => b.start}
                 rows={[...data.buckets].reverse()}
                 columns={[
@@ -79,12 +87,16 @@ export function GrowthSection({
                     header: unit === "day" ? "Day" : "Week",
                     cell: (b) => bucketLabel(b.start, b.end),
                   },
-                  {
-                    key: "new",
-                    header: "New",
-                    numeric: true,
-                    cell: (b) => countText(b.new),
-                  },
+                  ...(data.new_by_bucket
+                    ? [
+                        {
+                          key: "new",
+                          header: "New",
+                          numeric: true,
+                          cell: (b: GrowthBucket) => countText(b.new),
+                        },
+                      ]
+                    : []),
                   {
                     key: "active",
                     header: "Active",
