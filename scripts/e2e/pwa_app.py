@@ -31,6 +31,15 @@ def card_text(page):
     return visible_text(page, CARD)
 
 
+def settled(page, value):
+    """Waits until the OFF | ON segments show `value` and are no longer busy. A click checks the radio natively for a
+    moment before React puts back the controlled value, so a bare `checked` wait can pass mid-flow."""
+    page.wait_for_function(
+        """(v) => { const i = document.querySelector(`input[name=push-device][value=${v}]`);
+                     return !!i && i.checked && !i.hasAttribute('aria-disabled'); }""", arg=value, timeout=15000)
+    page.wait_for_timeout(250)  # the segments' 150 ms colour transition
+
+
 def open_page(ctx, path):
     page = ctx.new_page()
     calls = record_push_routes(page)
@@ -307,7 +316,7 @@ with sync_playwright() as p:
     group.get_by_role("radio", name="Off").scroll_into_view_if_needed()
     shot(page, "settings-app-android-390-off")
     group.locator("label", has_text="On").click()
-    page.wait_for_function("() => document.querySelector('input[name=push-device][value=on]')?.checked", timeout=15000)
+    settled(page, "on")
     check("Settings: picking On subscribes and saves the device", any(c[0] == "POST" for c in calls))
     check("Settings: the hint says sound follows the Sound tab",
           page.get_by_role("link", name="Sound tab").count() == 1)
@@ -337,12 +346,12 @@ with sync_playwright() as p:
           group.get_by_role("radio", name="On").is_checked())
     calls.clear()
     group.locator("label", has_text="Off").click()
-    page.wait_for_function("() => document.querySelector('input[name=push-device][value=off]')?.checked", timeout=15000)
+    settled(page, "off")
     check("Settings: picking Off deletes the server row", any(c[0] == "DELETE" for c in calls))
 
     # Short session: same browser, now signed in without Stay signed in.
     group.locator("label", has_text="On").click()
-    page.wait_for_function("() => document.querySelector('input[name=push-device][value=on]')?.checked", timeout=15000)
+    settled(page, "on")
     ctx.add_cookies([{"name": "hosa-short-session", "value": "1", "url": BASE}])
     calls.clear()
     page.reload()
@@ -378,7 +387,7 @@ with sync_playwright() as p:
     wait_for_worker(page)
     page.wait_for_timeout(600)
     page.get_by_role("group", name="Notifications on this device").locator("label", has_text="On").click()
-    page.wait_for_function("() => document.querySelector('input[name=push-device][value=on]')?.checked", timeout=15000)
+    settled(page, "on")
     check("desktop: On works the same", any(c[0] == "POST" for c in calls))
     shot(page, "settings-app-1440-on")
     ctx.close()
