@@ -184,6 +184,18 @@ describe("submitBlock", () => {
   it("lets everything through when every pick saved", () => {
     expect(submitBlock({ ...base, unsaved: [] })).toBeNull();
   });
+
+  // Q3's pick failed and went back to blank; the taker then tapped "Submit now" on "1 question still blank".
+  it("lets a lost pick through when the taker just confirmed handing it in blank", () => {
+    expect(submitBlock({ ...base, confirmedBlank: ["c"] })).toBeNull();
+  });
+
+  it("still names a lost pick the screen showed as answered when the taker confirmed the blanks", () => {
+    // Q1 showed an older saved answer (or a pick still on its way) and wasn't in the "still blank" count.
+    expect(
+      submitBlock({ ...base, unsaved: ["a", "c"], confirmedBlank: ["c"] }),
+    ).toEqual({ key: "a", numbers: [1] });
+  });
 });
 
 // The text is built when it shows, from the button on screen then: Finish, Submit, or Submit now once the
@@ -223,7 +235,11 @@ describe("submitProblemText", () => {
 
 // A save fails for the question it was sent for, which may not be the one on screen by the time it settles.
 describe("pickErrorText", () => {
-  const rows = [{ question_id: "a" }, { question_id: "b" }, { question_id: "c" }];
+  const rows = [
+    { question_id: "a" },
+    { question_id: "b" },
+    { question_id: "c" },
+  ];
 
   it("keeps the plain text on the question it is about", () => {
     expect(pickErrorText({ qid: "b", message: SAVE_FAILED }, "b", rows)).toBe(

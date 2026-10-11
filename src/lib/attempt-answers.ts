@@ -71,13 +71,16 @@ export function showAnswer(
 // It never waits when time is up or when the timer submits (the attempt closes with what the server has),
 // and a second tap for the same questions goes through, so a connection that keeps failing can't trap anyone.
 // Picks the server refused ("Time is up") aren't in `unsaved`: the screen already shows what it holds.
-// Returns the questions (paper numbers) to name, and a key for them.
+// A lost pick that went back to blank, tapped through "N questions still blank. Submit anyway?", was just
+// confirmed blank, so it isn't warned about a second time. Returns the questions (paper numbers) to name,
+// and a key for them.
 export function submitBlock({
   unsaved,
   byTap,
   deadlinePassed,
   warned,
   rows,
+  confirmedBlank = [],
 }: {
   unsaved: string[];
   byTap: boolean;
@@ -85,11 +88,15 @@ export function submitBlock({
   // The key of the last warning shown, or null.
   warned: string | null;
   rows: { question_id: string }[];
+  // The questions blank on screen when the taker tapped "Submit now" on the "still blank" step.
+  confirmedBlank?: string[];
 }): { key: string; numbers: number[] } | null {
   if (!byTap || deadlinePassed || !unsaved.length) return null;
   // In paper order, so the same questions always make the same key.
   const hit = rows.flatMap((r, i) =>
-    unsaved.includes(r.question_id) ? [{ id: r.question_id, n: i + 1 }] : [],
+    unsaved.includes(r.question_id) && !confirmedBlank.includes(r.question_id)
+      ? [{ id: r.question_id, n: i + 1 }]
+      : [],
   );
   const key = hit.map((h) => h.id).join(",");
   if (!hit.length || key === warned) return null;
@@ -104,7 +111,10 @@ export type SubmitProblem =
 
 // The text sits beside the submit buttons and names the one on screen as it shows (`button`: Finish, Submit,
 // or Submit now while the "still blank" step is open), so it never points at a button that isn't there.
-export function submitProblemText(problem: SubmitProblem, button: string): string {
+export function submitProblemText(
+  problem: SubmitProblem,
+  button: string,
+): string {
   if (problem.kind === "refused") return problem.message;
   if (problem.kind === "offline")
     return `That didn't go through. Check your connection, then tap ${button}.`;
