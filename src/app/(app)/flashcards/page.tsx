@@ -18,18 +18,36 @@ export default async function FlashcardsPage() {
     <div className="grid grid-cols-1 gap-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageTitle>Flashcards</PageTitle>
-        {decks.length ? <NewBlank action={createBlankDeck} variant="button" label="New deck" /> : null}
+        {decks.length ? (
+          <NewBlank
+            action={createBlankDeck}
+            variant="button"
+            label="New deck"
+          />
+        ) : null}
       </div>
-      {!decks.length ? <NewBlank action={createBlankDeck} variant="tile" label="New deck" /> : null}
+      {!decks.length ? (
+        <NewBlank action={createBlankDeck} variant="tile" label="New deck" />
+      ) : null}
       {mine.length ? (
         <section className="grid gap-4" aria-labelledby="mine-heading">
-          <h2 id="mine-heading" className="caps text-[17px] text-ink-2">Yours</h2>
+          <h2
+            id="mine-heading"
+            className="border-t-[3px] border-ink pt-3 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
+          >
+            Yours
+          </h2>
           <DeckList decks={mine} viewerId={profile.id} />
         </section>
       ) : null}
       {others.length ? (
         <section className="grid gap-4" aria-labelledby="shared-heading">
-          <h2 id="shared-heading" className="caps text-[17px] text-ink-2">Shared with you</h2>
+          <h2
+            id="shared-heading"
+            className="border-t-[3px] border-ink pt-3 font-display text-[clamp(2rem,7vw,3rem)] leading-none font-bold uppercase"
+          >
+            Shared with you
+          </h2>
           <DeckList decks={others} viewerId={profile.id} />
         </section>
       ) : null}
