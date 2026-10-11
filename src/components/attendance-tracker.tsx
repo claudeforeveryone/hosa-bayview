@@ -110,10 +110,12 @@ function useMarks(initial: readonly string[]) {
 }
 
 // Takes its colour from the row (ink-2 on the sheet, the button's own text on the board). No opacity on top:
-// faded ink-2 fell under AA (3.98:1 light).
+// faded ink-2 fell under AA (3.98:1 light). One line, so a long name truncates instead of "Gr" over "11".
 function Grade({ grade }: { grade: number | null }) {
   return grade ? (
-    <span className="num shrink-0 text-[14px]">Gr {grade}</span>
+    <span className="num shrink-0 text-[14px] whitespace-nowrap">
+      Gr {grade}
+    </span>
   ) : null;
 }
 
