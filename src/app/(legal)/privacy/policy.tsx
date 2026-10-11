@@ -94,7 +94,7 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               {series([
                 "Flashcard decks, tests and questions",
                 "announcements",
-                "calendar events",
+                "calendar events (including ones on your own calendar)",
                 "files and links",
                 "questions you send with Ask teacher",
                 feedback && "feedback you send us",
@@ -207,7 +207,8 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
                   <>When you&apos;re online in an event room you share</>,
                 ]}
               </SubList>
-              Flashcard decks you keep private are hidden from other members.
+              Flashcard decks you keep private are hidden from other members, and
+              events on your own calendar are seen only by you.
             </>,
             <>
               <Term>In a battle</Term>, anyone who can open that event room sees
@@ -277,7 +278,7 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
             <>
               When an account is deleted, its{" "}
               {series([
-                "profile, results, battle picks, study time, notifications",
+                "profile, results, battle picks, study time, notifications, your own calendar events",
                 phoneApp && "push addresses",
                 usageCounts && "usage counts",
                 feedback && "feedback",

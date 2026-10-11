@@ -46,10 +46,16 @@ export default async function CalendarPage(props: PageProps<"/calendar">) {
   const exec = me.role === "executive";
   const managed = rooms.filter((r) => r.can_manage);
   const managedIds = new Set(managed.map((r) => r.id));
+  // Your own events are always yours to edit; nobody else ever sees them.
   const editable = [...rows, ...upcoming, ...past]
-    .filter((e) => exec || (e.classroom_id !== null && managedIds.has(e.classroom_id)))
+    .filter(
+      (e) =>
+        e.owner_id === me.id ||
+        (e.owner_id === null && (exec || (e.classroom_id !== null && managedIds.has(e.classroom_id)))),
+    )
     .map((e) => e.id);
   const places = [
+    { id: "me", label: "Just me (only you see it)" },
     ...(exec ? [{ id: "chapter", label: "Whole chapter" }] : []),
     ...managed.map((r) => ({ id: r.id, label: r.name })),
   ];
@@ -142,10 +148,16 @@ export default async function CalendarPage(props: PageProps<"/calendar">) {
               <span aria-hidden className="inline-block h-3.5 w-[3px] bg-ink-2" />
               Event rooms
             </span>
+            <span className="flex items-center gap-2">
+              <span aria-hidden className="inline-block h-3.5 w-[3px] bg-rule-strong" />
+              Just you
+            </span>
             {!inMonth ? (
               <span>
                 Nothing on the calendar this month.
-                {places.length ? " Add a meeting or deadline above; everyone it's for gets a notification." : ""}
+                {places.length > 1
+                  ? " Add a meeting or deadline above; everyone it's for gets a notification."
+                  : " Add your own study plans or deadlines above."}
               </span>
             ) : null}
           </div>

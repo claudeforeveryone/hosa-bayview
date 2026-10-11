@@ -24,8 +24,9 @@ const dayTitle = (key: string) =>
     day: "numeric",
   });
 
-// Chapter-wide events carry the highlight colour; event-room ones stay ink.
-const tone = (e: EventRow) => (e.classroom_id ? "border-ink-2" : "border-you");
+// Chapter-wide events carry the highlight colour; event-room ones stay ink; your own are a light rule.
+const tone = (e: EventRow) =>
+  e.owner_id ? "border-rule-strong" : e.classroom_id ? "border-ink-2" : "border-you";
 
 function Chip({ e, onOpen }: { e: EventRow; onOpen: () => void }) {
   return (

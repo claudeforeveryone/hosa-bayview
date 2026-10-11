@@ -92,7 +92,7 @@ export function AgendaList({
             </p>
             <p className="max-w-[60ch] text-17 text-ink-2">
             {canAdd
-              ? "Add the next meeting or deadline above. Everyone it's for gets a notification."
+              ? "Add the next meeting, deadline or study plan above. Shared events notify everyone they're for; your own stay private."
               : "When your trainers or the execs add events, they land here."}
             </p>
           </div>

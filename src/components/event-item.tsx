@@ -61,13 +61,13 @@ export function EventSummary({
   e: EventRow;
   compact?: boolean;
 }) {
-  const scope = e.classroom_id ? (e.room?.name ?? "Event") : "Chapter";
+  const scope = e.owner_id ? "Just you" : e.classroom_id ? (e.room?.name ?? "Event") : "Chapter";
   return (
     <span className="grid min-w-0 gap-1">
       <span className="caps num flex flex-wrap items-center gap-x-2 text-14 text-ink-2">
         <span>{timeRange(e)}</span>
         <span aria-hidden>·</span>
-        <span className={e.classroom_id ? "" : "text-you-line"}>{scope}</span>
+        <span className={e.classroom_id || e.owner_id ? "" : "text-you-line"}>{scope}</span>
       </span>
       <span className="font-display text-[clamp(1.45rem,5vw,1.9rem)] leading-[1.05] font-semibold [overflow-wrap:anywhere] uppercase">
         {e.title}

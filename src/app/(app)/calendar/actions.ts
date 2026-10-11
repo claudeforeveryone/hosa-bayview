@@ -9,7 +9,7 @@ import { torontoToIso } from "@/lib/when";
 
 const id = z.string().uuid();
 const NOT_ALLOWED =
-  "You can only add to the calendar for the chapter (executives) or events you run.";
+  "You can add to your own calendar, and to the chapter's (executives) or an event's you run.";
 
 function failed(where: string, message: string): FormState {
   console.error(`[calendar:${where}]`, message);
@@ -67,7 +67,7 @@ export async function saveEvent(
   _: FormState,
   form: FormData,
 ): Promise<FormState> {
-  await requireProfile();
+  const me = await requireProfile();
   const { values, fieldErrors, row } = read(form);
   if (eventId !== null && !id.safeParse(eventId).success)
     return { error: "That event doesn't exist.", values };
@@ -75,18 +75,26 @@ export async function saveEvent(
 
   const supabase = await createClient();
   if (eventId === null) {
-    const where = values.where === "chapter" ? null : values.where;
+    // "me": a personal event (0270), on your calendar only.
+    const personal = values.where === "me";
+    const where = values.where === "chapter" || personal ? null : values.where;
     if (where !== null && !id.safeParse(where).success)
       return { fieldErrors: { where: "Pick where it's for." }, values };
     const { error } = await supabase
       .from("events")
-      .insert({ ...row, classroom_id: where });
+      .insert(personal ? { ...row, classroom_id: null, owner_id: me.id } : { ...row, classroom_id: where });
     if (error) {
       if (error.code === "42501") return { error: NOT_ALLOWED, values };
+      // 42703: the database doesn't have personal events yet.
+      if (personal && error.code === "42703")
+        return { error: "Your own calendar isn't switched on yet. Ask an executive.", values };
       return { ...failed("add", error.message), values };
     }
     refresh();
-    return { ok: "Added to the calendar.", values: { where: values.where } };
+    return {
+      ok: personal ? "Added to your calendar." : "Added to the calendar.",
+      values: { where: values.where },
+    };
   }
 
   const { data, error } = await supabase
