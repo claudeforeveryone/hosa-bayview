@@ -1,30 +1,9 @@
 import Link from "next/link";
 import { Button } from "@/components/form";
+import { auditLine } from "@/lib/owner-audit";
 import { PAGE_SIZE, stampText } from "@/lib/owner-metrics";
 import type { AuditRow } from "@/lib/owner-types";
 import { DataTable, Notice, Pager, Sheet } from "./primitives";
-
-// The same verbs /admin uses for the admin log, plus feedback triage.
-const VERB: Record<string, string> = {
-  role: "changed the role of",
-  banned: "banned",
-  unbanned: "unbanned",
-  title: "set the title of",
-  warned: "warned",
-  removed: "removed",
-  passcode: "changed the admin passcode",
-  passcode_used: "used the admin passcode",
-  chapter_code: "updated the chapter code",
-  gif: "changed GIF pictures for",
-  feedback: "triaged",
-};
-
-// Passcode rows never show their detail.
-function detailText(r: AuditRow): string {
-  return r.action === "passcode" || r.action === "passcode_used"
-    ? ""
-    : (r.detail ?? "");
-}
 
 // A triage row names "feedback #1a2b3c4d" (the id's first 8 characters). It opens the full feedback list, at that
 // item when it is on the first page.
@@ -104,37 +83,38 @@ export function AuditSection({
             {
               key: "what",
               header: "What",
-              cell: (r) => (
-                <>
-                  <span className="font-semibold">
-                    {r.actor_name || "System"}
-                  </span>{" "}
-                  <span className="font-normal">
-                    {VERB[r.action] ?? r.action}
-                  </span>
-                  {r.target_name && r.action === "feedback" ? (
-                    <>
-                      {" "}
-                      <Link
-                        href={feedbackHref(base, extra, r.target_name)}
-                        className="font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
-                      >
-                        {r.target_name}
-                      </Link>
-                    </>
-                  ) : r.target_name ? (
-                    <span className="font-semibold"> {r.target_name}</span>
-                  ) : null}
-                </>
-              ),
+              cell: (r) => {
+                const line = auditLine(r);
+                return (
+                  <>
+                    <span className="font-semibold">
+                      {r.actor_name || "System"}
+                    </span>{" "}
+                    <span className="font-normal">{line.verb}</span>
+                    {line.target && line.feedback ? (
+                      <>
+                        {" "}
+                        <Link
+                          href={feedbackHref(base, extra, line.target)}
+                          className="font-semibold underline decoration-rule-strong underline-offset-4 hover:decoration-ink"
+                        >
+                          {line.target}
+                        </Link>
+                      </>
+                    ) : line.target ? (
+                      <span className="font-semibold"> {line.target}</span>
+                    ) : null}
+                  </>
+                );
+              },
             },
             {
               key: "detail",
               header: "Detail",
-              when: (r) => detailText(r) !== "",
+              when: (r) => auditLine(r).detail !== "",
               cell: (r) => (
                 <span className="text-[15px] text-ink-2 [overflow-wrap:anywhere]">
-                  {detailText(r)}
+                  {auditLine(r).detail}
                 </span>
               ),
             },
