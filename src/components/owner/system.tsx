@@ -16,29 +16,37 @@ const FEATURE_LABEL: Record<
 
 // The site as it runs right now: which build, whether the database answers and how fast, what is on the database.
 // Nothing secret: the commit and branch are public on GitHub, and the database check uses the owner's own session.
+// There is no "database down" state: this page's own gate asks the database first, so with the database out of
+// reach the page doesn't open at all. What can show here is an answer that came back as an error.
 export function SystemSection({ info }: { info: SystemInfo }) {
   const { deployment: d, data } = info;
   const link = commitUrl(d);
   return (
     <>
-      <Sheet id="system-h" title="System" note="Checked when this page loaded.">
+      <Sheet
+        id="system-h"
+        title="System"
+        note="Checked when this page loaded. If the database were out of reach, this page wouldn't open at all."
+      >
         <Figures label="Health">
           <Figure
             label="Database"
-            value={info.db === "down" ? "No answer" : "Up"}
+            value={info.db === "error" ? "Error" : "Up"}
             note={
               info.latencyMs !== null
                 ? `Answered in ${info.latencyMs} ms`
-                : null
+                : info.db === "error"
+                  ? "It answered, with an error"
+                  : null
             }
           />
           <Figure
             label="Build"
-            value={d.commit ? d.commit.slice(0, 7) : "Local"}
+            value={d.commit ? d.commit.slice(0, 7) : "Unknown"}
             note={
               d.environment
                 ? `${d.environment}${d.branch ? `, ${d.branch}` : ""}`
-                : "Not a Vercel build"
+                : "No Vercel build details"
             }
           />
         </Figures>
@@ -67,7 +75,7 @@ export function SystemSection({ info }: { info: SystemInfo }) {
                 ),
               },
               { label: "Branch", value: d.branch ?? "Unknown" },
-              { label: "Environment", value: d.environment ?? "Local" },
+              { label: "Environment", value: d.environment ?? "Unknown" },
               {
                 label: "Database clock",
                 value: data ? stampText(data.db_time) : "Unknown",
@@ -75,8 +83,8 @@ export function SystemSection({ info }: { info: SystemInfo }) {
               },
               {
                 label: "Server errors",
-                value: "Vercel logs",
-                note: "They aren't stored in the database. Open the project's runtime logs in Vercel.",
+                value: "Not stored",
+                note: "Read them in the host's runtime logs. Build details here come from Vercel's variables.",
               },
             ]}
           />
@@ -114,7 +122,7 @@ export function SystemSection({ info }: { info: SystemInfo }) {
             <p className="text-[16px] text-ink-2">
               {info.db === "missing"
                 ? "The database answered, but the owner functions (0230 to 0232) aren't applied yet."
-                : "The database didn’t answer."}
+                : "The database answered with an error, so this list didn’t load. Reload to try again."}
             </p>
           )}
         </Sheet>

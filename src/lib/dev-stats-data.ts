@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Period } from "@/lib/activity";
 import type { DevStatsRow } from "@/lib/dev-stats";
+import { isStatsViewer } from "@/lib/owner-metrics";
 
 // Server reads for the developer stats page (migration 0105). The database decides who may see them: the
 // viewer check is private.stats_viewers, and anyone else gets 42501. Until 0105 is applied the RPCs don't exist,
@@ -68,7 +69,7 @@ export const canSeeDevStats = cache(async (): Promise<boolean> => {
       console.error(`Dev stats check failed: ${error.message}`);
     return false;
   }
-  return data === true;
+  return isStatsViewer(data);
 });
 
 // Null when the viewer may not see the stats, the period is unknown, or the function isn't there yet.

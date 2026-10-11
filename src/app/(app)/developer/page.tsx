@@ -43,7 +43,7 @@ export default async function DeveloperPage(props: PageProps<"/developer">) {
   const sp = await props.searchParams;
   const tab = parseTab(sp.tab);
   return (
-    <OwnerConsole base={BASE} tab={tab}>
+    <OwnerConsole base={BASE} tab={tab} wide={tab === "members"}>
       {await section(tab, sp)}
     </OwnerConsole>
   );
@@ -116,7 +116,11 @@ async function section(
         <SystemSection
           info={{
             deployment: deploymentFrom(process.env),
-            db: system.ok ? "up" : system.reason === "missing" ? "missing" : "down",
+            db: system.ok
+              ? "up"
+              : system.reason === "missing"
+                ? "missing"
+                : "error",
             latencyMs: system.latencyMs,
             data: system.ok ? system.data : null,
           }}
