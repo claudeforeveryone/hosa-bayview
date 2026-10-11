@@ -1,6 +1,7 @@
 -- Owner console checks (migrations 0230-0232): analytics_events + record_event, feedback + send_feedback, question
 -- reports on question_flags (report_question), and the owner_* functions behind /developer.
 -- Only accounts in private.stats_viewers get the owner functions; everyone else gets 42501, including executives.
+-- The audit log (admin_log) goes only to viewers who are also executives, as its own policy says (0052).
 -- Runs in one transaction and rolls back; raises on the first failure. Throwaway users only, plus a read-only check
 -- that every real stats viewer is let in and real trainees are not (picked from the data, no ids in this file).
 -- Section 9 expects the live database: it fails when no real stats viewer exists.
@@ -46,8 +47,8 @@ create function pg_temp.u(n integer) returns uuid language sql immutable as $$
   select ('00000000-0000-4000-8000-0000000002' || lpad(n::text, 2, '0'))::uuid
 $$;
 
--- u1 a stats viewer (a trainee by role), u2 an executive who runs the room, u3 a trainee member,
--- u4 a banned trainee member.
+-- u1 a stats viewer (a trainee by role), u2 an executive who runs the room (a stats viewer too from section 7),
+-- u3 a trainee member, u4 a banned trainee member.
 insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at, aud, role) values
   (pg_temp.u(1), 'oc.owner@example.com', '{"full_name":"Console Owner"}', now(), 'authenticated', 'authenticated'),
   (pg_temp.u(2), 'oc.exec@example.com', '{"full_name":"Console Exec"}', now(), 'authenticated', 'authenticated'),
@@ -189,6 +190,54 @@ begin
     raise exception using errcode = 'XX006', message = public.record_event('resource_opened', 'file')::text;
   exception when sqlstate 'XX006' then
     perform pg_temp.check('reports leave the hourly cap to browser events, got ' || sqlerrm, sqlerrm = 'true');
+  end;
+end $$;
+-- A day's ceiling as well: 300 browser events in 24 hours, however they are spread over the hours. Events from more
+-- than a day ago don't count. Undone at the end of the block.
+do $$
+declare
+  r text[] := '{}';
+begin
+  begin
+    perform pg_temp.as_admin();
+    insert into public.analytics_events (name, code, user_id, occurred_at)
+      select 'resource_opened', 'link', pg_temp.u(2), now() - interval '25 hours' - make_interval(mins => g)
+      from generate_series(1, 400) g;
+    insert into public.analytics_events (name, code, user_id, occurred_at)
+      select 'resource_opened', 'link', pg_temp.u(2), now() - interval '2 hours' - make_interval(mins => g)
+      from generate_series(1, 298) g;
+    perform pg_temp.as_user(pg_temp.u(2));
+    r := r || public.record_event('resource_opened', 'file')::text;
+    r := r || public.record_event('vocab_session_completed', 'deck')::text;
+    r := r || public.record_event('resource_opened', 'file')::text;
+    raise exception using errcode = 'XX007', message = array_to_string(r, ',');
+  exception when sqlstate 'XX007' then
+    perform pg_temp.check('the 299th and 300th events of a day go in, the 301st doesn''t, got ' || sqlerrm,
+      sqlerrm = 'true,true,false');
+  end;
+end $$;
+-- The three phone-app events count once a day per member, whatever the code; other events still go in. One from
+-- more than a day ago doesn't stop today's. Undone at the end of the block.
+do $$
+declare
+  r text[] := '{}';
+begin
+  begin
+    perform pg_temp.as_admin();
+    insert into public.analytics_events (name, code, user_id, occurred_at)
+      values ('push_enabled', 'other', pg_temp.u(2), now() - interval '25 hours');
+    perform pg_temp.as_user(pg_temp.u(2));
+    r := r || public.record_event('push_enabled', null)::text;
+    r := r || public.record_event('push_enabled', null)::text;
+    r := r || public.record_event('install_prompt_shown', 'ios')::text;
+    r := r || public.record_event('install_prompt_shown', 'android')::text;
+    r := r || public.record_event('app_installed', 'ios')::text;
+    r := r || public.record_event('app_installed', 'ios')::text;
+    r := r || public.record_event('resource_opened', 'file')::text;
+    raise exception using errcode = 'XX008', message = array_to_string(r, ',');
+  exception when sqlstate 'XX008' then
+    perform pg_temp.check('phone-app events once a day each, got ' || sqlerrm,
+      sqlerrm = 'true,false,true,false,true,false,true');
   end;
 end $$;
 select pg_temp.as_admin();
@@ -574,6 +623,21 @@ end $$;
 select pg_temp.as_user(pg_temp.u(1));
 
 -- 7. Feedback triage and the audit row --------------------------------------------------------------------------------
+-- The audit log is admin_log (0052), which only executives may read. A stats viewer who isn't an executive (u1) is
+-- refused it, whatever the search; the setup's ban of u4 is in the log with its reason, and only an executive viewer
+-- sees it. From here u2, an executive, is a stats viewer too and does the audit searches.
+select pg_temp.as_admin();
+insert into private.stats_viewers (user_id) values (pg_temp.u(2));
+select pg_temp.as_user(pg_temp.u(1));
+select pg_temp.expect('a viewer who isn''t an executive can''t read the audit log',
+  $q$select public.owner_audit('')$q$, '42501');
+select pg_temp.expect('nor search it', $q$select public.owner_audit('banned')$q$, '42501');
+select pg_temp.expect('nor page through it', $q$select public.owner_audit('', 50, 50)$q$, '42501');
+select pg_temp.as_user(pg_temp.u(2));
+select pg_temp.check('an executive viewer reads the ban and its reason',
+  exists (select 1 from jsonb_array_elements(public.owner_audit('Console Banned')) x
+          where x ->> 'action' = 'banned' and x ->> 'detail' = 'Console test'));
+select pg_temp.as_user(pg_temp.u(1));
 do $$
 declare
   q jsonb := public.owner_feedback('open');
@@ -594,7 +658,7 @@ begin
   perform pg_temp.check('triage audited without the feedback text',
     exists (select 1 from public.admin_log l where l.actor_id = pg_temp.u(1) and l.action = 'feedback'
             and l.target_name = 'feedback #' || left(fid::text, 8)
-            and l.detail = 'status new to planned, priority normal to high, note edited'
+            and l.detail = 'status New to Planned, priority Normal to High, note edited'
             and l.detail not like '%timer%'));
   select count(*) into logs from public.admin_log l where l.actor_id = pg_temp.u(1);
   perform pg_temp.as_user(pg_temp.u(1));
@@ -607,6 +671,15 @@ begin
     exists (select 1 from jsonb_array_elements(public.owner_feedback('open') -> 'rows') x where (x ->> 'id')::uuid = fid));
   perform pg_temp.check('done filter excludes it',
     not exists (select 1 from jsonb_array_elements(public.owner_feedback('done') -> 'rows') x where (x ->> 'id')::uuid = fid));
+  -- A status reads as the chips say it: "Won't fix", never the code wont_fix, so a search for the words finds it.
+  perform public.owner_triage_feedback(fid, 'wont_fix', 'high', 'Fixing the timer next week');
+  perform pg_temp.as_user(pg_temp.u(2));
+  perform pg_temp.check('the log says Won''t fix, not wont_fix',
+    exists (select 1 from jsonb_array_elements(public.owner_audit('won''t fix')) x
+            where x ->> 'target_name' = 'feedback #' || left(fid::text, 8) and x ->> 'detail' = 'status Planned to Won''t fix'));
+  perform pg_temp.as_user(pg_temp.u(1));
+  perform public.owner_triage_feedback(fid, 'planned', 'high', 'Fixing the timer next week');
+  perform pg_temp.as_user(pg_temp.u(2));
   perform pg_temp.check('audit search finds it',
     exists (select 1 from jsonb_array_elements(public.owner_audit('feedback #' || left(fid::text, 8))) x));
   -- The log reads "<name> triaged feedback #...": the word on screen finds the line, not only the action code.
@@ -626,7 +699,7 @@ begin
   perform pg_temp.as_admin();
   select least(count(*), 50) into expected from public.admin_log l
   where strpos(l.action || l.actor_name || l.target_name || l.detail, '%') > 0;
-  perform pg_temp.as_user(pg_temp.u(1));
+  perform pg_temp.as_user(pg_temp.u(2));
   perform pg_temp.check('a search for a literal percent sign is not a wildcard',
     (select count(*) from jsonb_array_elements(public.owner_audit('%'))) = expected);
 end $$;
@@ -636,7 +709,7 @@ declare
 begin
   perform pg_temp.as_admin();
   select count(*) into roles from public.admin_log l where l.action = 'role';
-  perform pg_temp.as_user(pg_temp.u(1));
+  perform pg_temp.as_user(pg_temp.u(2));
   -- Role lines read "changed the role of"; the stored action is just 'role'.
   perform pg_temp.check('a search for the words on a role line finds role changes',
     roles = 0 or exists (select 1 from jsonb_array_elements(public.owner_audit('changed the role')) x
@@ -667,12 +740,14 @@ select pg_temp.check('12-month event kept',
   exists (select 1 from public.analytics_events e where e.user_id = pg_temp.u(2) and e.occurred_at < now() - interval '11 months'));
 
 -- 9. Real accounts, read-only: every real stats viewer is let in to every owner function (the guard passes; a made-up
--- feedback id is then "gone", P0002, so nothing is written), and real trainees who aren't viewers are refused by every
--- one: the QA trainee (found by its display name while it exists) and the three oldest trainees. Picked from the data,
--- so no ids live in this file. The live database must have at least one of each.
+-- feedback id is then "gone", P0002, so nothing is written), except the audit log for a viewer who isn't an
+-- executive, and real trainees who aren't viewers are refused by every one: the QA trainee (found by its display name
+-- while it exists) and the three oldest trainees. Picked from the data, so no ids live in this file. The live database
+-- must have at least one of each.
 do $$
 declare
   who uuid;
+  exec boolean;
   stmt text;
   viewers integer := 0;
   refused integer := 0;
@@ -690,11 +765,16 @@ begin
     select v.user_id from private.stats_viewers v
     where v.user_id::text not like '00000000-0000-4000-8000-%' order by v.user_id
   loop
+    select p.role = 'executive' into exec from public.profiles p where p.id = who;
     perform pg_temp.as_user(who);
     perform pg_temp.check('a real viewer can see the stats', public.can_see_dev_stats());
     perform pg_temp.check('a real viewer''s overview has members', public.owner_overview() ? 'members');
     foreach stmt in array reads loop
-      execute stmt;
+      if stmt like '%owner_audit%' and not coalesce(exec, false) then
+        perform pg_temp.expect('a real viewer who isn''t an executive is refused the audit log', stmt, '42501');
+      else
+        execute stmt;
+      end if;
     end loop;
     perform pg_temp.expect('a real viewer passes the triage guard',
       $q$select public.owner_triage_feedback(gen_random_uuid(), 'done', 'low', '')$q$, 'P0002');

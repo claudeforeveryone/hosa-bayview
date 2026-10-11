@@ -15,7 +15,9 @@
 --
 -- Being a stats viewer is separate from role. Question wording (Content's reported and repeated lists) comes back
 -- only to a viewer who is also an executive, who can read every question anyway; any other viewer gets the counts and
--- links, never the text of a draft test or a mock competition that hasn't opened.
+-- links, never the text of a draft test or a mock competition that hasn't opened. The audit log is the same: it is
+-- admin_log (0052), which only executives may read (ban reasons, warnings sent to members, former roles), so
+-- owner_audit refuses any other viewer with 42501 and the page says the tab is for executives.
 --
 -- Ranges: 7d, 30d, 90d or all, in Toronto days (today counts as day one).
 
@@ -499,8 +501,28 @@ $$;
 revoke all on function public.owner_feedback(text, integer, integer) from public, anon;
 grant execute on function public.owner_feedback(text, integer, integer) to authenticated;
 
+-- The words the console shows for a feedback status or priority (STATUS_LABEL and PRIORITY_LABEL in
+-- src/lib/owner-metrics.ts; owner-audit.test.ts keeps them equal), so the audit line reads "status New to Won't fix"
+-- like the chips, and a search for those words finds it.
+create or replace function private.triage_label(p_code text)
+returns text
+language sql immutable set search_path = ''
+as $$
+  select case p_code
+    when 'new' then 'New'
+    when 'planned' then 'Planned'
+    when 'done' then 'Done'
+    when 'wont_fix' then 'Won''t fix'
+    when 'low' then 'Low'
+    when 'normal' then 'Normal'
+    when 'high' then 'High'
+    else p_code
+  end
+$$;
+revoke all on function private.triage_label(text) from public, anon, authenticated;
+
 -- Triage: status, priority and a resolution note (stats viewers only; the member never sees it). Writes one admin_log row
--- with the change and no feedback text.
+-- with the change in words and no feedback text.
 create or replace function public.owner_triage_feedback(p_id uuid, p_status text, p_priority text, p_resolution text)
 returns void
 language plpgsql volatile security definer set search_path = ''
@@ -527,10 +549,11 @@ begin
     raise exception 'That feedback is gone' using errcode = 'P0002';
   end if;
   if before_row.status <> p_status then
-    changes := changes || ('status ' || before_row.status || ' to ' || p_status);
+    changes := changes || ('status ' || private.triage_label(before_row.status) || ' to ' || private.triage_label(p_status));
   end if;
   if before_row.priority <> p_priority then
-    changes := changes || ('priority ' || before_row.priority || ' to ' || p_priority);
+    changes := changes || ('priority ' || private.triage_label(before_row.priority) || ' to '
+      || private.triage_label(p_priority));
   end if;
   if before_row.resolution <> clean then
     changes := changes || 'note edited'::text;
@@ -576,6 +599,7 @@ $$;
 revoke all on function private.audit_verb(text) from public, anon, authenticated;
 
 -- admin_log (0052) searched by who, what, target and detail, case-insensitive. Empty search lists everything.
+-- Executive viewers only: admin_log's own policy is executives read (see the header).
 create or replace function public.owner_audit(p_q text default '', p_limit integer default 50, p_offset integer default 0)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -586,6 +610,9 @@ declare
   out jsonb;
 begin
   perform private.require_stats_viewer();
+  if not private.is_executive() then
+    raise exception 'Only executives can read the audit log' using errcode = '42501';
+  end if;
   needle := '%' || replace(replace(replace(q, '\', '\\'), '%', '\%'), '_', '\_') || '%';
   select coalesce(jsonb_agg(to_jsonb(x) order by x.created_at desc, x.id desc), '[]'::jsonb) into out
   from (

@@ -63,9 +63,12 @@ alter table public.analytics_events enable row level security;
 revoke all on public.analytics_events from public, anon, authenticated;
 
 -- One call per tracked moment. True when stored. False, and nothing stored, for: no session, a banned member, a name
--- or code outside the browser's list (analytics_code_ok, so never feedback_submitted), or more than 120 of these
--- events from this member in the last hour. Never raises for those, so a client can fire and forget. The three
--- phone-app events may come without a code (platform unknown): 'other'.
+-- or code outside the browser's list (analytics_code_ok, so never feedback_submitted), or a member over a ceiling:
+-- 120 of these events in the last hour, 300 in the last 24 hours, or a second one of the three phone-app events
+-- (install prompt shown, app installed, push enabled) within 24 hours, whatever its code. Real use stays far below
+-- them (a finished flip round, an opened file); they keep one account's script from filling the table (13 months of
+-- rows) or the owner's counts. Never raises for those, so a client can fire and forget. The three phone-app events
+-- may come without a code (platform unknown): 'other'.
 create or replace function public.record_event(p_name text, p_code text)
 returns boolean
 language plpgsql volatile security definer set search_path = ''
@@ -75,6 +78,8 @@ declare
   ev_code text := case when p_name in ('install_prompt_shown', 'app_installed', 'push_enabled')
     then coalesce(p_code, 'other') else p_code end;
   recent integer;
+  day_total integer;
+  day_same integer;
 begin
   if uid is null or private.is_banned() then
     return false;
@@ -82,11 +87,19 @@ begin
   if not private.analytics_code_ok(p_name, ev_code) then
     return false;
   end if;
-  -- One member's calls queue here, so two at once can't both slip under the limit.
+  -- One member's calls queue here, so two at once can't both slip under a limit.
   perform pg_advisory_xact_lock(hashtextextended('analytics:' || uid::text, 0));
-  select count(*) into recent from public.analytics_events e
-  where e.user_id = uid and e.occurred_at > now() - interval '1 hour' and e.name <> 'feedback_submitted';
-  if recent >= 120 then
+  -- Report events (feedback_submitted, written by report_question) have their own daily cap and don't count here.
+  select count(*) filter (where e.occurred_at > now() - interval '1 hour'),
+         count(*),
+         count(*) filter (where e.name = p_name)
+    into recent, day_total, day_same
+  from public.analytics_events e
+  where e.user_id = uid and e.occurred_at > now() - interval '1 day' and e.name <> 'feedback_submitted';
+  if recent >= 120 or day_total >= 300 then
+    return false;
+  end if;
+  if p_name in ('install_prompt_shown', 'app_installed', 'push_enabled') and day_same >= 1 then
     return false;
   end if;
   insert into public.analytics_events (name, code, user_id) values (p_name, ev_code, uid);

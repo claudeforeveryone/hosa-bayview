@@ -42,14 +42,18 @@ const FEATURE: Record<FeatureId, { label: string; from: string }> = {
     label: "Question reports sent",
     from: "Each report sent from Report this question",
   },
+  // record_event (0230) keeps one of each phone-app event a day per member, so these count member-days.
   install_prompt_shown: {
     label: "Install prompt shown",
-    from: "Recorded by the install prompt",
+    from: "Recorded by the install prompt, once a day per member",
   },
-  app_installed: { label: "App installed", from: "Recorded on install" },
+  app_installed: {
+    label: "App installed",
+    from: "Recorded on install, once a day per member",
+  },
   push_enabled: {
     label: "Notifications turned on",
-    from: "Recorded when push is allowed",
+    from: "Recorded when push is allowed, once a day per member",
   },
 };
 

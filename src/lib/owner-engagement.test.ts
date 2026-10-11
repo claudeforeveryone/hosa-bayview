@@ -148,4 +148,17 @@ describe("engagementTable", () => {
       from: "Each report sent from Report this question",
     });
   });
+
+  // record_event (0230) stores each phone-app event at most once a day per member, so their counts are member-days,
+  // not every time the prompt opened; the source column says so.
+  it("says the phone-app rows count once a day per member", () => {
+    const rows = engagementTable(data({ available: false })).rows;
+    for (const key of ["install_prompt_shown", "app_installed", "push_enabled"])
+      expect(rows.find((r) => r.key === key)?.from).toMatch(
+        /once a day per member/,
+      );
+    expect(rows.find((r) => r.key === "resource_opened")?.from).not.toMatch(
+      /once a day/,
+    );
+  });
 });
