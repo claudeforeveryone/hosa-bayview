@@ -87,6 +87,8 @@ describe("private by default", () => {
       "/robots.txt",
       "/brand/x.png",
       "/a.svg",
+      // The offline page's self-hosted fonts load before sign-in and with no session.
+      "/fonts/barlow-latin-400-normal.woff2",
     ]) {
       expect(runsProxy(path), path).toBe(false);
     }

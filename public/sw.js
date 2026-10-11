@@ -3,7 +3,7 @@
 // It never stores member data. Pages always come from the network (network first); only when the network is gone
 // does the precached /offline page answer, at the address the member asked for. API routes, Supabase calls and
 // anything cross-origin are left alone. Bump VERSION when the precache list or the offline page changes.
-const VERSION = "hosa-v2";
+const VERSION = "hosa-v3";
 const SHELL = `${VERSION}-shell`;
 const STATIC = "hosa-static";
 const STATIC_LIMIT = 160;
@@ -13,11 +13,15 @@ const PRECACHE = [
   "/brand/classic.png",
   "/icons/icon-192.png",
   "/icons/badge-96.png",
+  // The offline page's type (src/lib/pwa/offline-html.ts).
+  "/fonts/barlow-latin-400-normal.woff2",
+  "/fonts/barlow-latin-600-normal.woff2",
+  "/fonts/barlow-condensed-latin-700-normal.woff2",
 ];
 // Content-hashed build files never change, so the cached copy is always right.
 const IMMUTABLE = "/_next/static/";
-// Icons and brand art keep their names across deploys: served from cache, refreshed in the background.
-const REFRESHED = ["/icons/", "/brand/"];
+// Icons, brand art and fonts keep their names across deploys: served from cache, refreshed in the background.
+const REFRESHED = ["/icons/", "/brand/", "/fonts/"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
