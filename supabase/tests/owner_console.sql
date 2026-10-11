@@ -77,6 +77,9 @@ insert into public.attempts (id, test_id, user_id, mode, total, counts, started_
   ('00000000-0000-4000-8000-0000000002a1', '00000000-0000-4000-8000-0000000002e1', pg_temp.u(3), 'practice', 2, true, now(), null);
 insert into public.attempt_answers (attempt_id, question_id, selected_index, is_correct) values
   ('00000000-0000-4000-8000-0000000002a1', '00000000-0000-4000-8000-0000000002f1', 1, false);
+-- Four more practice runs by u3, so the room has the 5 runs Busiest events needs (one person, so people is hidden).
+insert into public.attempts (test_id, user_id, mode, total, counts, started_at, submitted_at)
+  select '00000000-0000-4000-8000-0000000002e1', pg_temp.u(3), 'practice', 2, true, now(), null from generate_series(1, 4);
 update public.profiles set banned_until = now() + interval '1 day', ban_reason = 'Console test' where id = pg_temp.u(4);
 
 -- 1. Helpers ----------------------------------------------------------------------------------------------------
@@ -103,7 +106,10 @@ select pg_temp.expect('anon send_feedback', $q$select public.send_feedback('idea
 select pg_temp.expect('anon report_question',
   $q$select public.report_question('00000000-0000-4000-8000-0000000002f1', 'typo', '')$q$, '42501');
 
+select pg_temp.expect('anon feedback_enabled', $q$select public.feedback_enabled()$q$, '42501');
+
 select pg_temp.as_user(pg_temp.u(3));
+select pg_temp.check('members see feedback is on', public.feedback_enabled());
 select pg_temp.expect('trainee overview', $q$select public.owner_overview()$q$, '42501');
 select pg_temp.expect('trainee growth', $q$select public.owner_growth('7d')$q$, '42501');
 select pg_temp.expect('trainee engagement', $q$select public.owner_engagement('7d')$q$, '42501');
@@ -167,9 +173,11 @@ select pg_temp.expect('table refuses a stray code as admin too',
 -- 4. send_feedback ------------------------------------------------------------------------------------------------
 select pg_temp.as_user(pg_temp.u(3));
 select pg_temp.expect('empty feedback', $q$select public.send_feedback('idea', '   ')$q$, '22023');
+select pg_temp.expect('only line breaks and tabs', $q$select public.send_feedback('idea', E'\n\t\r\n')$q$, '22023');
+select pg_temp.expect('only no-break spaces', $q$select public.send_feedback('idea', E'\u00a0 \u00a0')$q$, '22023');
 select pg_temp.expect('bad category', $q$select public.send_feedback('rant', 'hello')$q$, '22023');
 select pg_temp.expect('too long', $q$select public.send_feedback('idea', repeat('a', 1001))$q$, '22023');
-select public.send_feedback('bug', '  The timer froze on question 4.  ', 'ABCDEF1');
+select public.send_feedback('bug', E'\n  The timer froze on question 4.\t\n', 'ABCDEF1');
 select public.send_feedback('idea', 'Dark mode for the calendar', 'not-a-commit');
 select pg_temp.as_admin();
 select pg_temp.check('feedback trimmed, build lowered',
@@ -177,6 +185,9 @@ select pg_temp.check('feedback trimmed, build lowered',
           and f.body = 'The timer froze on question 4.' and f.build = 'abcdef1' and f.status = 'new' and f.priority = 'normal'));
 select pg_temp.check('a junk build is dropped, not refused',
   exists (select 1 from public.feedback f where f.user_id = pg_temp.u(3) and f.body = 'Dark mode for the calendar' and f.build is null));
+select pg_temp.expect('the table refuses a whitespace-only body too',
+  $q$insert into public.feedback (user_id, category, body) values ('00000000-0000-4000-8000-000000000203', 'idea', E'\n\t')$q$,
+  '23514');
 insert into public.feedback (user_id, category, body) select pg_temp.u(3), 'other', 'filler ' || g from generate_series(1, 8) g;
 select pg_temp.as_user(pg_temp.u(3));
 select pg_temp.expect('eleventh in a day', $q$select public.send_feedback('idea', 'one more')$q$, '53400');
@@ -205,18 +216,41 @@ select pg_temp.check('one thread per question, reason updated',
   and exists (select 1 from public.question_flags f where f.user_id = pg_temp.u(3) and f.reason = 'typo'));
 select pg_temp.check('a reason change alone notifies again',
   exists (select 1 from public.notifications n where n.user_id = pg_temp.u(2) and n.body = 'Typo: Key says Ulna'));
--- Ask teacher after a report turns the thread back into a question, and the trainer hears it as one.
+-- Ask teacher on an open report adds the note and keeps the report; the trainer hears it as a report.
 select pg_temp.as_user(pg_temp.u(3));
-select public.flag_question('00000000-0000-4000-8000-0000000002f1', 'Still think it is wrong');
+select public.flag_question('00000000-0000-4000-8000-0000000002f1', E'Still think it is wrong\n\t');
 select pg_temp.expect('ask about an unanswered question',
   $q$select public.flag_question('00000000-0000-4000-8000-0000000002f2', '')$q$, '22023');
 select pg_temp.as_admin();
-select pg_temp.check('flag_question makes it an ask',
-  exists (select 1 from public.question_flags f where f.user_id = pg_temp.u(3) and f.reason = 'ask'
+select pg_temp.check('an ask keeps the open report and its note is trimmed',
+  exists (select 1 from public.question_flags f where f.user_id = pg_temp.u(3) and f.reason = 'typo'
           and f.note = 'Still think it is wrong' and f.status = 'open'));
-select pg_temp.check('room owner told it is a question',
+select pg_temp.check('room owner told it is still a report',
   exists (select 1 from public.notifications n where n.user_id = pg_temp.u(2)
-          and n.title = 'Console Member asked about Console test' and n.body = 'Still think it is wrong'));
+          and n.title = 'Console Member reported a question in Console test' and n.body = 'Typo: Still think it is wrong'));
+-- Once the trainer has answered, asking again is a plain question. The reply doesn't count toward the member's cap.
+do $$
+declare
+  fid uuid;
+  before_sends integer;
+begin
+  perform pg_temp.as_admin();
+  select f.id into fid from public.question_flags f where f.user_id = pg_temp.u(3);
+  select s.sends into before_sends from private.flag_sends s where s.user_id = pg_temp.u(3);
+  perform pg_temp.as_user(pg_temp.u(2));
+  perform public.answer_flag(fid, 'Fixed the key');
+  perform pg_temp.as_admin();
+  perform pg_temp.check('a trainer reply leaves the member''s send count alone',
+    (select s.sends from private.flag_sends s where s.user_id = pg_temp.u(3)) = before_sends);
+  perform pg_temp.as_user(pg_temp.u(3));
+  perform public.flag_question('00000000-0000-4000-8000-0000000002f1', 'Why is it the femur?');
+  perform pg_temp.as_admin();
+  perform pg_temp.check('an ask on an answered report is a question',
+    exists (select 1 from public.question_flags f where f.id = fid and f.reason = 'ask' and f.status = 'open'));
+  perform pg_temp.check('room owner told it is a question',
+    exists (select 1 from public.notifications n where n.user_id = pg_temp.u(2)
+            and n.title = 'Console Member asked about Console test' and n.body = 'Why is it the femur?'));
+end $$;
 -- And a report again, which the content checks below look for.
 select pg_temp.as_user(pg_temp.u(3));
 select public.report_question('00000000-0000-4000-8000-0000000002f1', 'typo', 'Key says Ulna');
@@ -226,6 +260,70 @@ select pg_temp.check('back to a report',
 select pg_temp.as_user(pg_temp.u(4));
 select pg_temp.expect('banned report',
   $q$select public.report_question('00000000-0000-4000-8000-0000000002f1', 'typo', '')$q$, '42501');
+
+-- The daily cap counts sends, not threads. Each block below is undone at its end, so later checks see the state above.
+-- (a) Threads a trainer touched today (answer_flag sets updated_at) don't count: a member with 45 of them can send.
+do $$
+begin
+  begin
+    perform pg_temp.as_admin();
+    insert into public.questions (id, test_id, position, prompt, options)
+      select ('00000000-0000-4000-8000-0000000003' || lpad(g::text, 2, '0'))::uuid,
+             '00000000-0000-4000-8000-0000000002e2', 10 + g, 'Cap filler ' || g, array['A', 'B']
+      from generate_series(1, 45) g;
+    insert into public.question_flags (test_id, question_id, user_id, note, status, reply, answered_at, answered_by, updated_at)
+      select '00000000-0000-4000-8000-0000000002e2', ('00000000-0000-4000-8000-0000000003' || lpad(g::text, 2, '0'))::uuid,
+             pg_temp.u(3), 'old', 'answered', 'replied today', now(), pg_temp.u(2), now()
+      from generate_series(1, 45) g;
+    perform pg_temp.as_user(pg_temp.u(3));
+    perform public.flag_question('00000000-0000-4000-8000-0000000002f1', 'Asked after 45 replies today');
+    raise exception using errcode = 'XX003', message = 'sent';
+  exception when sqlstate 'XX003' then
+    perform pg_temp.check('45 trainer replies today don''t block a send', sqlerrm = 'sent');
+  end;
+end $$;
+-- (b) Sending again and again on one thread stops at 40 sends for the day, and the 41st sends nothing to the trainer.
+do $$
+declare
+  ok integer := 0;
+  told_before integer;
+  told_after integer;
+  refusal text := '';
+  ask_refusal text := '';
+begin
+  begin
+    perform pg_temp.as_admin();
+    select count(*) into told_before from public.notifications n where n.user_id = pg_temp.u(2);
+    perform pg_temp.as_user(pg_temp.u(3));
+    for i in 1..60 loop
+      begin
+        perform public.report_question('00000000-0000-4000-8000-0000000002f1',
+          case when i % 2 = 0 then 'typo' else 'unclear' end, 'Flood ' || i);
+        ok := ok + 1;
+      exception when sqlstate '53400' then
+        refusal := sqlerrm;
+        exit;
+      end;
+    end loop;
+    begin
+      perform public.flag_question('00000000-0000-4000-8000-0000000002f1', 'One more');
+    exception when sqlstate '53400' then
+      ask_refusal := sqlerrm;
+    end;
+    perform pg_temp.as_admin();
+    select count(*) into told_after from public.notifications n where n.user_id = pg_temp.u(2);
+    raise exception using errcode = 'XX004', message = concat_ws('|', ok,
+      (select s.sends from private.flag_sends s where s.user_id = pg_temp.u(3)), told_after - told_before, refusal, ask_refusal);
+  exception when sqlstate 'XX004' then
+    -- Sends before this block: report, report, ask, ask, report = 5 today, so 35 more go through.
+    perform pg_temp.check('one thread is capped at 40 sends a day, got ' || sqlerrm,
+      split_part(sqlerrm, '|', 1) = '35' and split_part(sqlerrm, '|', 2) = '40');
+    perform pg_temp.check('the trainer got one notification per accepted send, got ' || sqlerrm,
+      split_part(sqlerrm, '|', 3) = '35');
+    perform pg_temp.check('a refused report says reports', split_part(sqlerrm, '|', 4) like 'That''s a lot of reports%');
+    perform pg_temp.check('a refused ask says questions', split_part(sqlerrm, '|', 5) like 'That''s a lot of questions%');
+  end;
+end $$;
 
 -- 6. The owner's reads ----------------------------------------------------------------------------------------------
 select pg_temp.as_user(pg_temp.u(1));
@@ -262,6 +360,26 @@ begin
   perform pg_temp.check('90d is weekly', g ->> 'step' = 'week' and jsonb_array_length(g -> 'buckets') between 13 and 14);
   g := public.owner_growth('all');
   perform pg_temp.check('all is weekly', g ->> 'step' = 'week' and jsonb_array_length(g -> 'buckets') >= 1);
+end $$;
+-- Each bucket is labelled with exactly the days it counts: the first starts on the range's first day (not the Monday
+-- before it), the last ends today, and they follow on without gaps or overlaps.
+do $$
+declare
+  r text;
+  g jsonb;
+begin
+  foreach r in array array['7d', '30d', '90d', 'all'] loop
+    g := public.owner_growth(r);
+    perform pg_temp.check('growth ' || r || ' first bucket starts on the first day',
+      g -> 'buckets' -> 0 ->> 'start' = g ->> 'from');
+    perform pg_temp.check('growth ' || r || ' last bucket ends today',
+      g -> 'buckets' -> (jsonb_array_length(g -> 'buckets') - 1) ->> 'end' = g ->> 'to');
+    perform pg_temp.check('growth ' || r || ' buckets follow on',
+      not exists (
+        select 1 from jsonb_array_elements(g -> 'buckets') with ordinality a(x, n)
+        join jsonb_array_elements(g -> 'buckets') with ordinality b(y, m) on m = n + 1
+        where (y ->> 'start')::date <> (x ->> 'end')::date + 1));
+  end loop;
 end $$;
 -- New members per bucket add up to new_total: either every bucket is 0 or 5 and up and they sum to the total, or the
 -- whole series is withheld. Never one hidden bucket next to shown ones.
@@ -316,6 +434,12 @@ begin
     not exists (select 1 from jsonb_array_elements(e -> 'events') x where x ? 'runs'));
   perform pg_temp.check('busiest events people suppressed',
     (select coalesce(bool_and(pg_temp.small_ok(x -> 'people')), true) from jsonb_array_elements(e -> 'events') x));
+  perform pg_temp.check('busiest events carry the room id (rooms can share a name and event)',
+    not exists (select 1 from jsonb_array_elements(e -> 'events') x where not (x ? 'id')));
+  perform pg_temp.check('the test room with 5 runs is ranked, its one person hidden',
+    exists (select 1 from jsonb_array_elements(e -> 'events') x
+            where x ->> 'id' = '00000000-0000-4000-8000-0000000002c1' and jsonb_typeof(x -> 'people') = 'null')
+    or jsonb_array_length(e -> 'events') = 10);
   perform pg_temp.check('practice funnel suppressed',
     pg_temp.small_ok(e -> 'practice' -> 'started') and pg_temp.small_ok(e -> 'practice' -> 'completed'));
 end $$;
@@ -335,12 +459,27 @@ begin
   perform pg_temp.check('top duplicates are real duplicates',
     jsonb_array_length(c -> 'duplicates') <= 20
     and not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x where (x ->> 'copies')::int < 2));
+  -- Compared with the questions as the admin: the owner role can't read every room's questions directly.
+  perform pg_temp.as_admin();
+  perform pg_temp.check('each duplicate shows one real copy and links to its test',
+    not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x
+                where x ->> 'example' is null or x ->> 'test_id' is null or x ->> 'classroom_id' is null
+                   or not exists (select 1 from public.questions qu join public.tests t on t.id = qu.test_id
+                                  where qu.test_id = (x ->> 'test_id')::uuid and t.classroom_id = (x ->> 'classroom_id')::uuid
+                                    and left(qu.prompt, 240) = x ->> 'example')));
+  perform pg_temp.check('the test stem shows its first copy as written',
+    not exists (select 1 from jsonb_array_elements(c -> 'duplicates') x where x ->> 'stem' = 'console stem: which bone is longest')
+    or exists (select 1 from jsonb_array_elements(c -> 'duplicates') x
+               where x ->> 'stem' = 'console stem: which bone is longest'
+                 and x ->> 'example' = 'Console stem: which bone is longest?'
+                 and x ->> 'test_id' = '00000000-0000-4000-8000-0000000002e1'));
   perform pg_temp.check('duplicate groups counted', (c ->> 'duplicate_groups')::int >= 1);
   select x into ev from jsonb_array_elements(c -> 'per_event') x where x ->> 'id' = '00000000-0000-4000-8000-0000000002c1';
   perform pg_temp.check('per-event content',
     (ev ->> 'questions')::int = 3 and (ev ->> 'tests')::int = 2 and (ev ->> 'missing_explanations')::int = 1
     and (ev ->> 'repeated')::int = 1 and (ev ->> 'open_reports')::int = 1);
   perform pg_temp.check('content totals present', (c ->> 'questions')::int >= 3 and (c ->> 'open_reports')::int >= 1);
+  perform pg_temp.as_user(pg_temp.u(1));
 end $$;
 
 -- 7. Feedback triage and the audit row --------------------------------------------------------------------------------

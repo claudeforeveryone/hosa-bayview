@@ -1,8 +1,9 @@
 -- Feedback and question reports (Omega 0231). Two student entry points, built on what already exists:
 --
---   Send feedback        Settings > Account (also linked from More). A bug, an idea or something else, in a few words.
---                        New table public.feedback, read and triaged only by the site owner through the 0232
---                        functions (status, priority, a resolution note). Members can't read the table back.
+--   Send feedback        Settings > Account, also listed under More (the sidebar's More group, the phone More sheet
+--                        and /more). A bug, an idea or something else, in a few words. New table public.feedback,
+--                        read and triaged only by the site owner through the 0232 functions (status, priority, a
+--                        resolution note). Members can't read the table back.
 --   Report this question  Practice feedback and test review. Not a new table: it extends Ask teacher (question_flags,
 --                        0031/0099). A flag now has a reason: 'ask' (the old Ask teacher, the default for every
 --                        existing row), or 'wrong_answer', 'unclear', 'typo', 'other'. The event's trainer gets the
@@ -10,6 +11,27 @@
 --                        can fix it; the owner sees the open reports under Content health.
 --
 -- Both write paths are definer functions with their own checks and per-member limits. Banned members are refused.
+-- The app calls public.feedback_enabled() first and shows neither entry point until it answers, so a deploy that
+-- reaches members before this migration hides them instead of offering buttons that fail on send.
+
+-- Trims every kind of whitespace at both ends (line breaks, tabs, no-break spaces), where btrim() only trims spaces.
+create or replace function private.trim_space(t text)
+returns text
+language sql immutable set search_path = ''
+as $$
+  select regexp_replace(coalesce(t, ''), '^[[:space:]]+|[[:space:]]+$', '', 'g')
+$$;
+revoke all on function private.trim_space(text) from public, anon, authenticated;
+
+-- True once this migration is on the database. Before that the function doesn't exist (PGRST202 through the API).
+create or replace function public.feedback_enabled()
+returns boolean
+language sql stable set search_path = ''
+as $$
+  select true
+$$;
+revoke all on function public.feedback_enabled() from public, anon;
+grant execute on function public.feedback_enabled() to authenticated;
 
 -- 1. General feedback ---------------------------------------------------------------------------------------------
 
@@ -17,7 +39,8 @@ create table if not exists public.feedback (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles (id) on delete cascade,
   category text not null check (category in ('bug', 'idea', 'other')),
-  body text not null check (char_length(btrim(body)) between 1 and 1000),
+  -- At least one character that isn't whitespace of any kind, and 1000 at most.
+  body text not null check (body ~ '[^[:space:]]' and char_length(body) <= 1000),
   -- The deployed commit the member was on (from the server, not the browser), so a bug report names its build.
   build text check (build is null or build ~ '^[0-9a-f]{7,40}$'),
   status text not null default 'new' check (status in ('new', 'planned', 'done', 'wont_fix')),
@@ -42,7 +65,7 @@ language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   uid uuid := (select auth.uid());
-  clean text := btrim(coalesce(p_body, ''));
+  clean text := private.trim_space(p_body);
   b text := nullif(lower(btrim(coalesce(p_build, ''))), '');
   sent integer;
   fid uuid;
@@ -102,9 +125,21 @@ as $$
 $$;
 revoke all on function private.flag_reason_label(text) from public, anon, authenticated;
 
+-- How many times each member sent Ask teacher or a report on the current Toronto day. Every send notifies the
+-- trainer, so the daily cap counts sends, not threads: sending again on one open thread counts every time, and a
+-- trainer's reply (answer_flag touches question_flags.updated_at) never counts against the member. One row per
+-- member, reset by their first send of a new day, so nothing needs purging.
+create table if not exists private.flag_sends (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  day date not null,
+  sends integer not null default 0 check (sends >= 0)
+);
+revoke all on private.flag_sends from public, anon, authenticated;
+
 -- Ask teacher with a reason. Same rules as flag_question (0031): only a question the member answered in practice or
 -- in a submitted attempt, one thread per member per question (sending again reopens it with the new reason and note).
 -- flag_question (below) now goes through here as a plain 'ask', so the ban check and the daily cap cover both.
+-- An 'ask' on a thread with an open report keeps the report: the member is adding words, not taking it back.
 create or replace function public.report_question(qid uuid, reason text, note text)
 returns uuid
 language plpgsql volatile security definer set search_path = ''
@@ -112,7 +147,7 @@ as $$
 declare
   uid uuid := (select auth.uid());
   tid uuid;
-  clean text := btrim(coalesce(report_question.note, ''));
+  clean text := private.trim_space(report_question.note);
   why text := report_question.reason;
   sent integer;
   fid uuid;
@@ -144,18 +179,29 @@ begin
     raise exception '% once you have answered it in practice or after you submit',
       case when why = 'ask' then 'Ask about a question' else 'Report a question' end using errcode = '22023';
   end if;
-  -- Each send notifies the trainer, so cap how many threads one member can open or reopen in a day.
-  perform pg_advisory_xact_lock(hashtextextended('flags:' || uid::text, 0));
-  select count(*) into sent from public.question_flags f
-  where f.user_id = uid and f.updated_at > now() - interval '1 day';
-  if sent >= 40 then
-    raise exception 'That''s a lot of reports for one day. Try again tomorrow' using errcode = '53400';
+  -- 40 sends a day. The upsert locks the member's row, so two sends at once queue. A refused send raises, which
+  -- undoes its own count.
+  insert into private.flag_sends as s (user_id, day, sends)
+  values (uid, private.local_day(now()), 1)
+  on conflict (user_id) do update
+    set sends = case when s.day = excluded.day then s.sends + 1 else 1 end, day = excluded.day
+  returning s.sends into sent;
+  if sent > 40 then
+    raise exception '%', case when why = 'ask'
+      then 'That''s a lot of questions for one day. Try again tomorrow'
+      else 'That''s a lot of reports for one day. Try again tomorrow' end
+      using errcode = '53400';
   end if;
   insert into public.question_flags (test_id, question_id, user_id, note, reason)
   values (tid, qid, uid, clean, why)
   on conflict (question_id, user_id) do update
-    set note = excluded.note, reason = excluded.reason, status = 'open', reply = '',
-        answered_at = null, answered_by = null, updated_at = now()
+    set note = excluded.note,
+        reason = case
+          when question_flags.status = 'open' and question_flags.reason <> 'ask' and excluded.reason = 'ask'
+            then question_flags.reason
+          else excluded.reason
+        end,
+        status = 'open', reply = '', answered_at = null, answered_by = null, updated_at = now()
   returning id into fid;
   return fid;
 end
@@ -163,8 +209,8 @@ $$;
 revoke all on function public.report_question(uuid, text, text) from public, anon;
 grant execute on function public.report_question(uuid, text, text) to authenticated;
 
--- Ask teacher (0031) is a report with the reason 'ask'. Asking again after a report turns the thread back into a
--- question instead of keeping the old reason, and the trainer's notification says so. Same grants as before.
+-- Ask teacher (0031) is a report with the reason 'ask'. On a thread with an open report it adds the note and keeps
+-- the reason; otherwise it is a plain question. Same grants as before.
 create or replace function public.flag_question(qid uuid, note text)
 returns uuid
 language sql volatile security invoker set search_path = ''
