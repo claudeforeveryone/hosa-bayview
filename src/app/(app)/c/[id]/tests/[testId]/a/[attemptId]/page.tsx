@@ -24,7 +24,13 @@ import {
 } from "@/lib/tests";
 import { serverNow } from "@/lib/time";
 
-export const metadata: Metadata = { title: "Test" };
+// The test's name, so the browser tab reads "Word parts · Medical Terminology · HOSA Bayview".
+export async function generateMetadata({
+  params,
+}: PageProps<"/c/[id]/tests/[testId]/a/[attemptId]">): Promise<Metadata> {
+  const test = await getTest((await params).testId);
+  return { title: test?.title ?? "Test" };
+}
 
 export default async function AttemptPage({
   params,
@@ -81,6 +87,9 @@ export default async function AttemptPage({
   if (!attempt.submitted_at) {
     return (
       <div className="grid grid-cols-1 gap-4">
+        {/* The event header is hidden while taking a test; the back link shows the name, so this is for
+            screen readers and the page outline. */}
+        <h1 className="sr-only">{test.title}</h1>
         {back}
         <TakeTest
           key={attempt.id}
@@ -111,6 +120,7 @@ export default async function AttemptPage({
   return (
     <div className="grid grid-cols-1 gap-10">
       <header className="grid gap-3">
+        <h1 className="sr-only">{test.title} results</h1>
         {back}
         <p className="caps text-[16px] text-ink-2">
           {attempt.mode === "timed" ? "Timed" : "Practice"} · Done
