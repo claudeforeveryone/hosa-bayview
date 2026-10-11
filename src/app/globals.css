@@ -130,14 +130,15 @@
   --on-you: #f7ecee;
 }
 
-/* A line or mark in the "you" colour that sits straight on the ground (the active tab rule, an unread dot, the
-   answered bar). Dark maroon on navy is too faint to see (1.3:1), so in dark mode it is lifted toward the ink,
-   which keeps the hue of whatever highlight the member picked and stays above 3:1. */
+/* The "you" colour where it sits straight on the ground: the active tab rule, an unread dot, the answered bar,
+   the Chapter label on events. Dark maroon on navy is too faint to read (1.3:1), so in dark mode it is lifted
+   toward the ink. That keeps the hue of whatever highlight the member picked and stays above 4.5:1 on every
+   theme's ground (lowest: forest, 4.9:1), so it works for small text as well as lines. */
 :root {
   --you-line: var(--you);
 }
 :root[data-theme="dark"] {
-  --you-line: color-mix(in oklab, var(--you) 55%, var(--ink));
+  --you-line: color-mix(in oklab, var(--you) 35%, var(--ink));
 }
 
 /* Typefaces. Settings > Look swaps these two via data-font ("dyslexic"); the Montserrat wordmark never changes. */
