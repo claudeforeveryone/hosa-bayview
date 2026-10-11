@@ -61,6 +61,15 @@ describe("checkAvatarFile", () => {
     ).toBeNull();
   });
 
+  it("accepts an iPhone photo that Windows gave no type, by its name", () => {
+    expect(
+      checkAvatarFile({ type: "", size: 1000, name: "IMG_0001.HEIC" }),
+    ).toBeNull();
+    expect(checkAvatarFile({ type: "", size: 1000, name: "notes.txt" })).toBe(
+      "Pick a picture file.",
+    );
+  });
+
   it("refuses non-images, empty files, and anything over 2 MB", () => {
     expect(checkAvatarFile({ type: "application/pdf", size: 1000 })).toBe(
       "Pick a picture file.",

@@ -54,17 +54,15 @@ export function AvatarForm({
     }
     setLocalError(null);
     setBusy("upload");
-    // Each step says what went wrong in its own words; they used to share "Couldn't read that picture".
-    let prepared: Awaited<ReturnType<typeof prepareAvatar>>;
     try {
-      prepared = await prepareAvatar(file, animated);
-    } catch (error) {
-      console.error("[picture] read:", error);
-      setLocalError("Couldn't read that picture. Try a JPEG or PNG, or a screenshot of it.");
-      setBusy(null);
-      return;
-    }
-    try {
+      let prepared;
+      try {
+        prepared = await prepareAvatar(file, animated);
+      } catch (err) {
+        console.error("[picture] decode:", file.type || file.name, err);
+        setLocalError("Couldn't read that picture. Try a different one.");
+        return;
+      }
       const objectPath = newAvatarPath(
         userId,
         crypto.randomUUID(),
@@ -78,13 +76,13 @@ export function AvatarForm({
           cacheControl: "3600",
         });
       if (error) {
-        console.error("[picture] upload:", error.message);
         setLocalError("Couldn't upload that. Try again.");
         return;
       }
       setResult(await savePicture(userId, objectPath));
-    } catch (error) {
-      console.error("[picture] upload:", error);
+    } catch (err) {
+      // The upload or the save failed (no connection, server error); the picture itself was fine.
+      console.error("[picture] upload:", err);
       setLocalError("Couldn't upload that. Check your connection and try again.");
     } finally {
       setBusy(null);
@@ -115,7 +113,7 @@ export function AvatarForm({
           <input
             id={inputId}
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             disabled={busy !== null}
             onChange={onPick}
             aria-describedby={`${inputId}-hint`}

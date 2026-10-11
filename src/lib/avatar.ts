@@ -46,11 +46,17 @@ export function checkAvatarFile(
   file: {
     type: string;
     size: number;
+    name?: string;
   },
   animated = true,
   gifMax = AVATAR_MAX_BYTES,
 ): string | null {
-  if (!file.type.startsWith("image/")) return "Pick a picture file.";
+  // Windows gives iPhone photos (.heic) no type, so go by the name when the type is blank.
+  const picture =
+    file.type.startsWith("image/") ||
+    (file.type === "" &&
+      /\.(heic|heif|jpe?g|png|webp|gif|avif|bmp)$/i.test(file.name ?? ""));
+  if (!picture) return "Pick a picture file.";
   if (file.size === 0) return "That file is empty.";
   if (file.type === "image/gif" && animated) {
     if (file.size > gifMax)
