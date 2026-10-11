@@ -246,10 +246,10 @@ export function EngagementSection({
       <Sheet
         id="busy-h"
         title="Busiest events"
-        note="Event rooms by practice and timed runs started in this range."
+        note="Event rooms with 5 or more practice and timed runs started in this range."
       >
         {data.events.length === 0 ? (
-          <Notice>No runs started in this range.</Notice>
+          <Notice>No event room had 5 or more runs in this range.</Notice>
         ) : (
           <DataTable<BusyEvent>
             caption="Event rooms ranked by runs started."

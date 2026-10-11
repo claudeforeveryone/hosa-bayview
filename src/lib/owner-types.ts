@@ -73,10 +73,11 @@ export type DuelFigures =
   | { available: false }
   | { available: true; started: Count; completed: Count; people: Count };
 
+// Only rooms with 5 or more runs are listed, so runs is always a number.
 export type BusyEvent = {
   name: string;
   event: string;
-  runs: Count;
+  runs: number;
   people: Count;
 };
 

@@ -16,9 +16,9 @@
 --   duel_started             battles.created_at, once battles (0095) are on the database
 --   duel_completed           battles with status 'done'
 --   feedback_submitted       feedback (0231) and question reports (question_flags with a reason other than 'ask', 0231)
---   install_prompt_shown     analytics_events code 'android', 'ios' or 'desktop'
+--   install_prompt_shown     analytics_events code 'android', 'ios' or 'other' (sent by the phone-app layer)
 --   app_installed            analytics_events, same codes
---   push_enabled             analytics_events, same codes
+--   push_enabled             analytics_events, same codes (sent without a code, it is stored as 'other')
 --
 -- So analytics_events stores only five names. Each row is the name, the time, the member's id (for distinct-people
 -- counts only) and one short code from a fixed list. Never question text, answers, free text, IP, user agent or
@@ -32,9 +32,9 @@ as $$
   select coalesce(case p_name
     when 'vocab_session_completed' then p_code in ('deck', 'career')
     when 'resource_opened' then p_code in ('file', 'link')
-    when 'install_prompt_shown' then p_code in ('android', 'ios', 'desktop')
-    when 'app_installed' then p_code in ('android', 'ios', 'desktop')
-    when 'push_enabled' then p_code in ('android', 'ios', 'desktop')
+    when 'install_prompt_shown' then p_code in ('android', 'ios', 'other')
+    when 'app_installed' then p_code in ('android', 'ios', 'other')
+    when 'push_enabled' then p_code in ('android', 'ios', 'other')
     else false
   end, false)
 $$;
@@ -58,19 +58,21 @@ revoke all on public.analytics_events from public, anon, authenticated;
 
 -- One call per tracked moment. True when stored. False, and nothing stored, for: no session, a banned member, a name
 -- or code outside the taxonomy, or more than 120 events from this member in the last hour. Never raises for those, so
--- a client can fire and forget.
+-- a client can fire and forget. The three phone-app events may come without a code (platform unknown): 'other'.
 create or replace function public.record_event(p_name text, p_code text)
 returns boolean
 language plpgsql volatile security definer set search_path = ''
 as $$
 declare
   uid uuid := (select auth.uid());
+  ev_code text := case when p_name in ('install_prompt_shown', 'app_installed', 'push_enabled')
+    then coalesce(p_code, 'other') else p_code end;
   recent integer;
 begin
   if uid is null or private.is_banned() then
     return false;
   end if;
-  if not private.analytics_code_ok(p_name, p_code) then
+  if not private.analytics_code_ok(p_name, ev_code) then
     return false;
   end if;
   -- One member's calls queue here, so two at once can't both slip under the limit.
@@ -80,7 +82,7 @@ begin
   if recent >= 120 then
     return false;
   end if;
-  insert into public.analytics_events (name, code, user_id) values (p_name, p_code, uid);
+  insert into public.analytics_events (name, code, user_id) values (p_name, ev_code, uid);
   return true;
 end
 $$;

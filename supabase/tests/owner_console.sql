@@ -131,7 +131,21 @@ select pg_temp.check('vocab round stored', public.record_event('vocab_session_co
 select pg_temp.check('unknown name refused', not public.record_event('page_view', 'file'));
 select pg_temp.check('table-sourced name refused', not public.record_event('practice_started', 'deck'));
 select pg_temp.check('unknown code refused', not public.record_event('resource_opened', 'pdf'));
-select pg_temp.check('missing code refused', not public.record_event('push_enabled', null));
+select pg_temp.check('missing code refused', not public.record_event('resource_opened', null));
+select pg_temp.check('a code from another list refused', not public.record_event('app_installed', 'desktop'));
+-- A phone-app event without a code is stored as 'other'. Checked inside a block that is undone, so the event counts
+-- and the "never recorded" checks further down are unchanged.
+do $$
+begin
+  begin
+    perform pg_temp.check('platform event without a code accepted', public.record_event('push_enabled', null));
+    perform pg_temp.as_admin();
+    raise exception using errcode = 'XX002', message = coalesce((select string_agg(e.code, ',') from public.analytics_events e
+      where e.user_id = pg_temp.u(3) and e.name = 'push_enabled'), '<none>');
+  exception when sqlstate 'XX002' then
+    perform pg_temp.check('stored as other, got ' || sqlerrm, sqlerrm = 'other');
+  end;
+end $$;
 select pg_temp.as_user(pg_temp.u(4));
 select pg_temp.check('banned member refused', not public.record_event('resource_opened', 'file'));
 select pg_temp.as_admin();
@@ -298,6 +312,11 @@ begin
     (select jsonb_typeof(x -> 'people') from jsonb_array_elements(e -> 'features') x where x ->> 'id' = 'resource_opened') = 'null'
     or (select (x ->> 'people')::bigint from jsonb_array_elements(e -> 'features') x where x ->> 'id' = 'resource_opened') >= 5);
   perform pg_temp.check('duels say whether they exist', e -> 'duels' ? 'available');
+  perform pg_temp.check('busiest events list only rooms with 5 or more runs',
+    not exists (select 1 from jsonb_array_elements(e -> 'events') x
+                where jsonb_typeof(x -> 'runs') <> 'number' or (x ->> 'runs')::int < 5));
+  perform pg_temp.check('busiest events people suppressed',
+    (select coalesce(bool_and(pg_temp.small_ok(x -> 'people')), true) from jsonb_array_elements(e -> 'events') x));
   perform pg_temp.check('practice funnel suppressed',
     pg_temp.small_ok(e -> 'practice' -> 'started') and pg_temp.small_ok(e -> 'practice' -> 'completed'));
 end $$;

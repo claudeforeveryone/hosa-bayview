@@ -209,7 +209,7 @@ revoke all on function private.owner_duels(timestamptz) from public, anon, authe
 
 -- One row per taxonomy event (0230), counted from its source, plus flashcard reviews. 'tracked_since' is set only for
 -- rows that come from analytics_events: null there means the site has never recorded one, so the page says "not
--- tracked yet" instead of a zero. Then practice and exam funnels, and the busiest events by runs started.
+-- tracked yet" instead of a zero. Then practice and exam funnels, and the busiest events by runs started (5 or more).
 create or replace function public.owner_engagement(p_range text)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -321,9 +321,10 @@ begin
         'count', private.small_cell(r.n), 'people', private.small_cell(r.people),
         'tracked_since', r.since
       ) order by r.ord), '[]'::jsonb) from feat r),
+    -- Only rooms with 5 or more runs: a hidden run count would still show through where its row sorts.
     'events', (select coalesce(jsonb_agg(jsonb_build_object(
         'name', e.name, 'event', e.event,
-        'runs', private.small_cell(e.runs), 'people', private.small_cell(e.people)
+        'runs', e.runs, 'people', private.small_cell(e.people)
       ) order by e.runs desc, e.name), '[]'::jsonb)
       from (
         select c.name, c.event, count(a.id) as runs, count(distinct a.user_id) as people
@@ -332,6 +333,7 @@ begin
         join public.classrooms c on c.id = t.classroom_id
         where a.started_at >= since_at and c.kind = 'class'
         group by c.id, c.name, c.event
+        having count(a.id) >= 5
         order by count(a.id) desc, c.name
         limit 10
       ) e)

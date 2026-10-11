@@ -8,10 +8,14 @@ describe("isTracked", () => {
     expect(isTracked("resource_opened", "file")).toBe(true);
     expect(isTracked("vocab_session_completed", "career")).toBe(true);
     expect(isTracked("push_enabled", "ios")).toBe(true);
+    // The phone-app track sends "other" for anything that isn't Android or iOS.
+    expect(isTracked("install_prompt_shown", "other")).toBe(true);
+    expect(isTracked("app_installed", "other")).toBe(true);
   });
 
   it("refuses codes off the list, missing codes and names a table already records", () => {
     expect(isTracked("resource_opened", "video")).toBe(false);
+    expect(isTracked("app_installed", "desktop")).toBe(false);
     expect(isTracked("push_enabled", null)).toBe(false);
     expect(isTracked("practice_started", "deck")).toBe(false);
     expect(isTracked("page_view", "file")).toBe(false);

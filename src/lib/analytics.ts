@@ -6,9 +6,10 @@
 export const TRACKED_EVENTS = {
   vocab_session_completed: ["deck", "career"],
   resource_opened: ["file", "link"],
-  install_prompt_shown: ["android", "ios", "desktop"],
-  app_installed: ["android", "ios", "desktop"],
-  push_enabled: ["android", "ios", "desktop"],
+  // The phone-app layer sends "other" for anything that isn't Android or iOS.
+  install_prompt_shown: ["android", "ios", "other"],
+  app_installed: ["android", "ios", "other"],
+  push_enabled: ["android", "ios", "other"],
 } as const;
 
 export type TrackedEvent = keyof typeof TRACKED_EVENTS;
