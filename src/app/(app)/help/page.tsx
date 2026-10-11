@@ -131,9 +131,10 @@ export default function HelpPage() {
                   className="shrink-0 transition-transform group-open:rotate-180"
                 />
               </summary>
-              <p className="max-w-[65ch] border-t border-rule bg-band px-4 py-4 text-[17px] leading-relaxed sm:px-5">
-                {t.a}
-              </p>
+              {/* The band spans the whole box and the text starts on the same inset as the question above it. */}
+              <div className="border-t border-rule bg-band px-4 py-4 sm:px-5">
+                <p className="max-w-[75ch] text-[17px] leading-relaxed">{t.a}</p>
+              </div>
             </details>
           ))}
         </div>
@@ -152,7 +153,7 @@ export default function HelpPage() {
             Still stuck?
           </h2>
           <p className="max-w-[60ch] text-[17px] text-on-field-2">
-            Ask the chapter executives: catch one at a chapter meeting.
+            Ask the chapter executives: Catch one at a chapter meeting.
             For a question about a test or an event,
             your event&apos;s trainer is the fastest answer (use Ask teacher).
           </p>

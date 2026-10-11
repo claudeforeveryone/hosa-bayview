@@ -22,7 +22,24 @@ function shuffled<T>(items: T[]): T[] {
 
 // Flip a card, then mark it known or still learning. Each mark writes one private review row.
 // The first order comes from a seed the server sent, so the server render and the first client render match.
-export function StudySession({ deckId, cards, label, seed }: { deckId: string; cards: StudyCard[]; label: string; seed: string }) {
+// persist false (career flashcards) keeps the marks on this screen only: nothing is written to a deck.
+export function StudySession({
+  deckId,
+  cards,
+  label,
+  seed,
+  persist = true,
+  backHref = `/flashcards/${deckId}`,
+  backLabel = "Back to deck",
+}: {
+  deckId: string;
+  cards: StudyCard[];
+  label: string;
+  seed: string;
+  persist?: boolean;
+  backHref?: string;
+  backLabel?: string;
+}) {
   const [order, setOrder] = useState<StudyCard[]>(() => permutation(cards.length, seed).map((i) => cards[i]));
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -58,6 +75,7 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
     setTally((t) => ({ known: t.known + (known ? 1 : 0), learning: t.learning + (known ? 0 : 1) }));
     setFlipped(false);
     setIndex((i) => i + 1);
+    if (!persist) return;
     start(async () => {
       const result = await recordReview(id, known);
       if (result.error) setError("That mark didn't save. Check your connection.");
@@ -85,8 +103,8 @@ export function StudySession({ deckId, cards, label, seed }: { deckId: string; c
         </p>
         <div className="flex flex-wrap gap-3">
           <Button onClick={() => restart(cards)}>Go again</Button>
-          <Link href={`/flashcards/${deckId}`} className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band">
-            Back to deck
+          <Link href={backHref} className="caps step inline-flex h-12 items-center border border-ink px-6 text-[17px] hover:bg-band">
+            {backLabel}
           </Link>
         </div>
       </div>
