@@ -12,6 +12,7 @@ import {
   subscriptionBody,
 } from "@/lib/push/browser";
 import { sameServerKey, urlBase64ToUint8Array } from "@/lib/push/client";
+import { watchPushFacts } from "@/lib/push/rereads";
 import { isShortSession, NEEDS_STAY_SIGNED_IN } from "@/lib/push/short-session";
 import {
   pushUiState,
@@ -92,30 +93,33 @@ export function usePushControl(vapidPublicKey: string | null): PushControl {
     if (next) setFacts(next);
   }, [vapidPublicKey]);
 
-  // Reads the browser after mount, and again whenever this device changes (here, in another view, or when the
-  // layer drops a dead subscription). The guard drops a late answer if the view has gone.
+  // Reads the browser after mount, and again whenever the facts may have changed (watchPushFacts): back in view after
+  // allowing notifications in the phone's Settings, restored from the back/forward cache, a permission change, or this
+  // device turned on or off elsewhere. Only the newest read lands, and none once the view has gone.
   useEffect(() => {
     let current = true;
+    let latest = 0;
     const read = () => {
+      const mine = ++latest;
+      const land = (next: PushFacts) => {
+        if (current && mine === latest) setFacts(next);
+      };
       readFacts(vapidPublicKey)
-        .then((next) => {
-          if (current) setFacts(next);
-        })
-        .catch(() => {
-          if (current)
-            setFacts({
-              configured: vapidPublicKey !== null,
-              iosNeedsHomeScreen: false,
-              shortSession: false,
-              ...UNSUPPORTED,
-            });
-        });
+        .then(land)
+        .catch(() =>
+          land({
+            configured: vapidPublicKey !== null,
+            iosNeedsHomeScreen: false,
+            shortSession: false,
+            ...UNSUPPORTED,
+          }),
+        );
     };
     read();
-    window.addEventListener(PUSH_DEVICE_EVENT, read);
+    const stop = watchPushFacts(read);
     return () => {
       current = false;
-      window.removeEventListener(PUSH_DEVICE_EVENT, read);
+      stop();
     };
   }, [vapidPublicKey]);
 
