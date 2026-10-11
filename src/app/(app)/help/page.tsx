@@ -16,12 +16,11 @@ const TOPICS: Topic[] = [
     q: "Join an event",
     a: (
       <>
-        Your trainer gives you a join code. Enter it on{" "}
+        Get the code from your trainer and enter it on{" "}
         <Link href="/join" className="underline underline-offset-4">
-          Join with a code
-        </Link>{" "}
-        (or Settings, Events tab, once you&apos;re in one already). The event
-        then shows under Events and in the menu.
+          Join an event
+        </Link>
+        . The event then shows under Events.
       </>
     ),
   },
@@ -30,11 +29,11 @@ const TOPICS: Topic[] = [
     q: "Practice vs timed tests",
     a: (
       <>
-        Practice has no clock: you see if each answer is right as you go, and
-        you can redo it as often as you like. Timed runs like the real
-        competition: the clock counts down, answers are graded when you submit,
-        and some tests limit how many tries you get. Every attempt counts toward
-        your stats, Career and the leaderboards.
+        Practice has no clock. You see right or wrong as you go (unless the
+        trainer hides answers) and can redo it as often as you like. Timed runs
+        like the real competition: the clock counts down, you&apos;re graded
+        when you submit, and some tests limit your tries. Every attempt counts
+        toward your stats, Career and the leaderboard.
       </>
     ),
   },
@@ -43,9 +42,9 @@ const TOPICS: Topic[] = [
     q: "Ask teacher",
     a: (
       <>
-        Stuck on a question? After answering, tap Ask teacher under it and add a
-        short note. Your event&apos;s trainer sees it and replies; you get a
-        notification when they do, and the reply shows under the question.
+        Stuck on a question? After you answer it, tap Ask teacher and add a
+        short note. You get a notification when your trainer replies, and the
+        reply shows under the question.
       </>
     ),
   },
@@ -54,10 +53,9 @@ const TOPICS: Topic[] = [
     q: "Flashcards",
     a: (
       <>
-        Open an event&apos;s Cards tab. Tap a card to flip it, then mark Know it
-        or Still learning; the ones you still need come back. You can make your
-        own decks and paste many cards at once as term and definition pairs. Try
-        Match for a quick game.
+        Open an event&apos;s Cards tab, tap a card to flip it, then mark Know it
+        or Still learning. Make your own decks by pasting term and definition
+        pairs, and try Match for a quick game.
       </>
     ),
   },
@@ -77,9 +75,9 @@ const TOPICS: Topic[] = [
     q: "Notifications",
     a: (
       <>
-        The bell shows how many things are new: announcements, events, new tests
-        and replies to your questions. Tap it to read them. A soft chime plays
-        when something new arrives while you&apos;re here; switch it off in{" "}
+        The bell counts what&apos;s new: announcements, events, tests and
+        replies to your questions. A soft chime plays when something arrives
+        while you&apos;re here; turn it off in{" "}
         <Link
           href="/settings?tab=sound"
           className="underline underline-offset-4"
@@ -139,7 +137,9 @@ export default function HelpPage() {
               </summary>
               {/* The band spans the whole box and the text starts on the same inset as the question above it. */}
               <div className="border-t border-rule bg-band px-4 py-4 sm:px-5">
-                <p className="max-w-[75ch] text-[17px] leading-relaxed">{t.a}</p>
+                <p className="max-w-[75ch] text-[17px] leading-relaxed">
+                  {t.a}
+                </p>
               </div>
             </details>
           ))}
@@ -159,9 +159,8 @@ export default function HelpPage() {
             Still stuck?
           </h2>
           <p className="max-w-[60ch] text-[17px] text-on-field-2">
-            Ask the chapter executives: Catch one at a chapter meeting.
-            For a question about a test or an event,
-            your event&apos;s trainer is the fastest answer (use Ask teacher).
+            For a test question, Ask teacher reaches your trainer fastest. For
+            anything else, catch an executive at a chapter meeting.
           </p>
           {/* The chapter's own channels. The Members page has them too, but only executives can open it. */}
           <SocialLinks tone="field" labelled />

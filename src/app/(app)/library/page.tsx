@@ -28,7 +28,7 @@ export default async function LibraryPage() {
         <MaterialList
           rows={rows}
           canManage={isExec}
-          empty="Nothing here yet"
+          empty="No files or links yet"
         />
       </div>
 

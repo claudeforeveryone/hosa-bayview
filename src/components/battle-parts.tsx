@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { LogOut } from "lucide-react";
 import { teamName, type BattlePlayer, type BattleState } from "@/lib/battle";
+import { prefersCalm } from "@/lib/motion";
 
 // Pieces shared by the battle screens (battle-lobby, -question, -reveal, -results, -ended). Pure views:
 // battle-room.tsx holds the state, the clock and the server calls.
@@ -114,9 +115,7 @@ export function Countdown({
   useLayoutEffect(() => {
     const el = bar.current;
     if (!el) return;
-    const still =
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
-      document.documentElement.dataset.motion === "calm";
+    const still = prefersCalm();
     const left = Math.max(0, endsAt - clock());
     const timers: number[] = [];
     const mark = (ms: number) => {

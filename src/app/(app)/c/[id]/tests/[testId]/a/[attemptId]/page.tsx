@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { ReviewItem } from "@/components/review-item";
+import { ScoreRing } from "@/components/score-ring";
 import { StartTest } from "@/components/start-test";
 import { TakeTest } from "@/components/take-test";
 import type { DeckOption } from "@/components/selection-cards";
@@ -10,7 +11,11 @@ import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { listDecks } from "@/lib/decks";
 import { feedbackEnabled } from "@/lib/feedback-enabled";
-import { attemptsLeft, HIDDEN_SCORE_NOTE, scoredMode } from "@/lib/test-settings";
+import {
+  attemptsLeft,
+  HIDDEN_SCORE_NOTE,
+  scoredMode,
+} from "@/lib/test-settings";
 import {
   countAttempts,
   getAttempt,
@@ -20,7 +25,13 @@ import {
 } from "@/lib/tests";
 import { serverNow } from "@/lib/time";
 
-export const metadata: Metadata = { title: "Test" };
+// The test's name, so the browser tab reads "Word parts · Medical Terminology · HOSA Bayview".
+export async function generateMetadata({
+  params,
+}: PageProps<"/c/[id]/tests/[testId]/a/[attemptId]">): Promise<Metadata> {
+  const test = await getTest((await params).testId);
+  return { title: test?.title ?? "Test" };
+}
 
 export default async function AttemptPage({
   params,
@@ -85,6 +96,9 @@ export default async function AttemptPage({
   if (!attempt.submitted_at) {
     return (
       <div className="grid grid-cols-1 gap-4">
+        {/* The event header is hidden while taking a test; the back link shows the name, so this is for
+            screen readers and the page outline. */}
+        <h1 className="sr-only">{test.title}</h1>
         {back}
         <TakeTest
           key={attempt.id}
@@ -116,6 +130,7 @@ export default async function AttemptPage({
   return (
     <div className="grid grid-cols-1 gap-10">
       <header className="grid gap-3">
+        <h1 className="sr-only">{test.title} results</h1>
         {back}
         <p className="caps text-[16px] text-ink-2">
           {attempt.mode === "timed" ? "Timed" : "Practice"} · Done
@@ -130,12 +145,12 @@ export default async function AttemptPage({
             </p>
           </>
         ) : (
-          <>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <p className="num font-display text-[clamp(4rem,18vw,8rem)] leading-[0.85] font-bold">
               {score}/{attempt.total}
             </p>
-            <p className="num caps text-[20px]">{pct}%</p>
-          </>
+            <ScoreRing pct={pct} />
+          </div>
         )}
         {mine ? (
           <div className="pt-2">

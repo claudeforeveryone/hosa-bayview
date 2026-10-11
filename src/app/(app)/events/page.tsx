@@ -90,7 +90,9 @@ export default async function EventsPage(props: PageProps<"/events">) {
     cookies(),
   ]);
   const seesAll = profile.role === "executive";
-  const memberIds = seesAll ? await getMyMemberIds(profile.id) : new Set<string>();
+  const memberIds = seesAll
+    ? await getMyMemberIds(profile.id)
+    : new Set<string>();
   const mineIds = new Set([
     ...memberIds,
     ...rooms.filter((r) => r.is_owner).map((r) => r.id),
@@ -126,7 +128,11 @@ export default async function EventsPage(props: PageProps<"/events">) {
       {mine.length ? (
         <section aria-labelledby="events-mine" className="grid gap-4">
           <h2 id="events-mine" className={sectionHeading}>
-            {seesAll ? "Yours" : mine.length === 1 ? "Your event" : "Your events"}
+            {seesAll
+              ? "Yours"
+              : mine.length === 1
+                ? "Your event"
+                : "Your events"}
           </h2>
           <ul className="grid gap-4 sm:grid-cols-2">
             {mine.map((room) => (
@@ -162,6 +168,14 @@ export default async function EventsPage(props: PageProps<"/events">) {
             </div>
           ))}
         </section>
+      ) : null}
+
+      {!mine.length && !groups.length ? (
+        <p className="max-w-[60ch] text-[17px] text-ink-2">
+          {canTeach(profile)
+            ? "No events yet. Make one above, or enter a code below."
+            : "You're not in an event yet. Get the code from your trainer and enter it below."}
+        </p>
       ) : null}
 
       <section

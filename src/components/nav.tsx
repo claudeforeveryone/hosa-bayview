@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronDown, LogOut, Menu, Plus, X } from "lucide-react";
-import { ClassicLogo } from "@/components/classic-logo";
+import { ClassicLogo, SEASON } from "@/components/classic-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Credit } from "@/components/credit";
@@ -115,7 +115,9 @@ function PanelBody({
   return (
     <>
       <nav aria-label="Main">
-        <ul>{items.filter((i) => !i.chapter && i.href !== "/more").map(link)}</ul>
+        <ul>
+          {items.filter((i) => !i.chapter && i.href !== "/more").map(link)}
+        </ul>
         {/* Chapter pages are everyday stops, so the group always starts open. */}
         <Group title="Chapter" open>
           <ul className="mt-1">{chapter.map(link)}</ul>
@@ -169,7 +171,7 @@ function PanelBody({
                   className={`${row} ${rowState(path === "/c/new")}`}
                 >
                   <Plus size={20} strokeWidth={1.75} aria-hidden />
-                  <span className="text-[17px] font-medium">New classroom</span>
+                  <span className="text-[17px] font-medium">New event</span>
                 </Link>
               </li>
             ) : null}
@@ -182,7 +184,10 @@ function PanelBody({
           {more.map(link)}
           <li>
             <form action={logout}>
-              <button type="submit" className={`${row} w-full ${rowState(false)}`}>
+              <button
+                type="submit"
+                className={`${row} w-full ${rowState(false)}`}
+              >
                 <LogOut size={22} strokeWidth={1.75} aria-hidden />
                 <span className="caps nav-label text-[19px]">Log out</span>
               </button>
@@ -199,7 +204,11 @@ export function Sidebar(props: Props) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-[18rem] shrink-0 flex-col overflow-y-auto bg-field text-on-field lg:flex">
       <div className="flex items-start justify-between gap-2 pt-6 pr-3 pb-8 pl-6">
-        <Link href="/" aria-label="HOSA Bayview home" className="block">
+        <Link
+          href="/"
+          aria-label={`HOSA Bayview ${SEASON}, home`}
+          className="block"
+        >
           <ClassicLogo className="h-[136px]" />
         </Link>
         <NotificationBell
@@ -240,7 +249,11 @@ export function MobileBar(props: Props) {
       className={`flex items-start gap-4 px-4 lg:hidden ${home ? "justify-end py-1" : "justify-between pt-3"}`}
     >
       {home ? null : (
-        <Link href="/" aria-label="HOSA Bayview home" className="text-ink">
+        <Link
+          href="/"
+          aria-label={`HOSA Bayview ${SEASON}, home`}
+          className="text-ink"
+        >
           <ClassicLogo className="h-[96px]" />
         </Link>
       )}
@@ -311,7 +324,9 @@ export function BottomNav({
 
   const tab = (active: boolean) =>
     `step flex h-16 w-full flex-col items-center justify-center gap-1 border-t-[3px] ${
-      active ? "border-you text-on-field" : "border-transparent text-on-field-2"
+      active
+        ? "border-on-field text-on-field"
+        : "border-transparent text-on-field-2"
     }`;
   const glyph = (active: boolean) => ({
     size: 24,
@@ -341,7 +356,11 @@ export function BottomNav({
                 <span className="caps text-[13px] leading-none">{short}</span>
               </button>
             ) : (
-              <Link href={href} aria-current={active ? "page" : undefined} className={tab(active)}>
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={tab(active)}
+              >
                 <Icon {...glyph(active)} />
                 <span className="caps text-[13px] leading-none">{short}</span>
               </Link>
@@ -355,7 +374,8 @@ export function BottomNav({
         onClick={(e) => {
           // Backdrop taps and link taps both close it.
           const target = e.target as HTMLElement;
-          if (target === sheetRef.current || target.closest("a")) sheetRef.current?.close();
+          if (target === sheetRef.current || target.closest("a"))
+            sheetRef.current?.close();
         }}
         className="sheet m-0 mt-auto max-h-[80dvh] w-full max-w-none overflow-y-auto border-0 border-t-[3px] border-on-field bg-field p-0 text-on-field backdrop:bg-[#0f2440]/60"
       >
@@ -385,7 +405,10 @@ export function BottomNav({
           ))}
           <li className="mt-1 border-t border-on-field-2/40">
             <form action={logout}>
-              <button type="submit" className={`${row} h-14 w-full text-on-field-danger hover:bg-field-2`}>
+              <button
+                type="submit"
+                className={`${row} h-14 w-full text-on-field-danger hover:bg-field-2`}
+              >
                 <LogOut size={22} strokeWidth={1.75} aria-hidden />
                 <span className="caps nav-label text-[19px]">Log out</span>
               </button>

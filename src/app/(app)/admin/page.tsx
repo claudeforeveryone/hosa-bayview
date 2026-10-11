@@ -109,9 +109,11 @@ export default async function AdminPage() {
     supabase.rpc("my_powers"),
     supabase.rpc("can_grant_gif"),
   ]);
-  const gifIds = new Set(((gifRes.data ?? []) as string[]));
+  const gifIds = new Set((gifRes.data ?? []) as string[]);
   // Only the chapter leads can give or take executive (0101); everyone else gets the switch without it.
-  const canGrantExec = Boolean((powersRes.data as { grant_exec: boolean }[] | null)?.[0]?.grant_exec);
+  const canGrantExec = Boolean(
+    (powersRes.data as { grant_exec: boolean }[] | null)?.[0]?.grant_exec,
+  );
   // A few named executives can turn GIF pictures on or off for people (0108). Missing RPC = no switch.
   const canGrantGif = gifGrantRes.data === true;
   if (exemptRes.error)
@@ -164,7 +166,7 @@ export default async function AdminPage() {
     ["Members", people.length],
     ["Trainers", count("trainer")],
     ["Executives", count("executive")],
-    ["Classrooms", rooms.count ?? 0],
+    ["Events", rooms.count ?? 0],
     ["Tests", tests.count ?? 0],
   ] as const;
 

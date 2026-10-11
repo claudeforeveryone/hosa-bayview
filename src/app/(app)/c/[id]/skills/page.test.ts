@@ -46,13 +46,13 @@ beforeEach(() => {
 describe("Skills tab", () => {
   it("shows members a calm empty state and no edit controls", async () => {
     const out = text(await render());
-    expect(out).toBe("No skills yet.");
+    expect(out).toBe("No skills yet");
   });
 
   it("shows managers the empty state with the Add skill editor", async () => {
     canManage = true;
     const out = await render();
-    expect(text(out)).toContain("No skills yet.");
+    expect(text(out)).toContain("No skills yet");
     expect(text(out)).toContain("Add skill");
     expect(out).toContain('name="steps"');
   });

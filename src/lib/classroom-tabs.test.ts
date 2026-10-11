@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { eventsLanding, groupByCategory, parseRecentRooms, pushRecentRoom, tabsFor } from "./classroom-tabs";
+import {
+  eventsLanding,
+  groupByCategory,
+  parseRecentRooms,
+  pushRecentRoom,
+  tabClearScroll,
+  tabFocusScroll,
+  tabsFor,
+} from "./classroom-tabs";
 
 const slugs = (tabs: { slug: string }[]) => tabs.map((t) => t.slug);
 
@@ -110,5 +118,66 @@ describe("recent rooms cookie", () => {
 describe("tab labels", () => {
   it("the first tab is Overview", () => {
     expect(tabsFor(null, false)[0]).toEqual({ slug: "", label: "Overview" });
+  });
+});
+
+// Measured on a 390px phone: chevrons are 40px wide, so a tab needs 48px clear of each edge.
+describe("tabClearScroll", () => {
+  const strip = { width: 390, edge: 48 };
+
+  it("leaves the strip alone when the tab is already clear of both chevrons", () => {
+    expect(tabClearScroll({ ...strip, scrollLeft: 0, left: 100, right: 180 })).toBeNull();
+  });
+
+  it("scrolls just far enough to bring a tab out from under the right chevron", () => {
+    // People at 316-385: 35px of it sat under the right chevron (350-390).
+    expect(tabClearScroll({ ...strip, scrollLeft: 0, left: 316, right: 385 })).toBe(43);
+  });
+
+  it("brings a tab that is almost fully off screen into view", () => {
+    // Attendance at 385-487 was hidden entirely behind the chevron.
+    expect(tabClearScroll({ ...strip, scrollLeft: 0, left: 385, right: 487 })).toBe(145);
+  });
+
+  it("scrolls back for a tab under the left chevron", () => {
+    expect(tabClearScroll({ ...strip, scrollLeft: 200, left: 220, right: 300 })).toBe(172);
+  });
+
+  it("never asks for a negative scroll, and skips a no-op", () => {
+    // The first tab sits at 16 (the strip's padding); there's no left chevron at scroll 0.
+    expect(tabClearScroll({ ...strip, scrollLeft: 0, left: 16, right: 110 })).toBeNull();
+    expect(tabClearScroll({ ...strip, scrollLeft: 30, left: 16, right: 110 })).toBe(0);
+  });
+
+  it("keeps the start of a tab wider than the clear space in view", () => {
+    expect(tabClearScroll({ ...strip, scrollLeft: 0, left: 400, right: 800 })).toBe(352);
+  });
+});
+
+// Chrome and Firefox focus a link on mousedown and on a touch tap too. Scrolling the strip then slides the next
+// tab under the finger before mouseup, the click lands on the strip and the tap is lost, so only keyboard focus
+// (the browser's :focus-visible) moves it.
+describe("tabFocusScroll", () => {
+  const scroller = { scrollLeft: 0, clientWidth: 390 };
+  // People at 316-385, partly under the right chevron.
+  const people = (focusVisible: boolean | "unsupported") => ({
+    offsetLeft: 316,
+    offsetWidth: 69,
+    matches: (selector: string) => {
+      if (focusVisible === "unsupported") throw new SyntaxError(selector);
+      return selector === ":focus-visible" && focusVisible;
+    },
+  });
+
+  it("scrolls a keyboard-focused tab clear of the chevron", () => {
+    expect(tabFocusScroll(people(true), scroller, 48)).toBe(43);
+  });
+
+  it("leaves the strip alone when a mouse click or touch tap focuses the tab", () => {
+    expect(tabFocusScroll(people(false), scroller, 48)).toBeNull();
+  });
+
+  it("leaves the strip alone in a browser without :focus-visible", () => {
+    expect(tabFocusScroll(people("unsupported"), scroller, 48)).toBeNull();
   });
 });

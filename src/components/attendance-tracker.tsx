@@ -109,9 +109,13 @@ function useMarks(initial: readonly string[]) {
   return { present, error, toggle, markAll };
 }
 
+// Takes its colour from the row (ink-2 on the sheet, the button's own text on the board). No opacity on top:
+// faded ink-2 fell under AA (3.98:1 light). One line, so a long name truncates instead of "Gr" over "11".
 function Grade({ grade }: { grade: number | null }) {
   return grade ? (
-    <span className="num shrink-0 text-[14px] opacity-75">Gr {grade}</span>
+    <span className="num shrink-0 text-[14px] whitespace-nowrap">
+      Gr {grade}
+    </span>
   ) : null;
 }
 
@@ -148,9 +152,11 @@ export function WeekBoard({
           const here = columnTotal(present, ids, week.id);
           const all = here === ids.length;
           return (
+            // One fixed column (grid-cols-1), here and on the name list: an auto column grew to the widest name's
+            // unwrapped width and pushed the card's contents past a phone's edge instead of truncating the name.
             <li
               key={c.id}
-              className="grid content-start border-[3px] border-ink"
+              className="grid grid-cols-1 content-start border-[3px] border-ink"
             >
               <div className="flex items-baseline justify-between gap-3 border-b-[3px] border-ink px-3 py-2.5">
                 <Link
@@ -167,7 +173,7 @@ export function WeekBoard({
                 </span>
               </div>
               <ul
-                className="grid gap-1.5 p-2"
+                className="grid grid-cols-1 gap-1.5 p-2"
                 aria-label={`${c.label} attendance`}
               >
                 {c.members.map((m) => {

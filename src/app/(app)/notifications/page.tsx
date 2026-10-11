@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
+import { EmptyState } from "@/components/empty-state";
 import { PushHint } from "@/components/pwa/push-hint";
 import { pushConfig } from "@/lib/push/config";
 import { requireProfile } from "@/lib/auth";
@@ -63,13 +64,13 @@ function Item({ n, now }: { n: Row; now: number }) {
           size={22}
           strokeWidth={1.75}
           aria-hidden
-          className={`mt-0.5 ${fresh ? "text-you" : "text-ink-2"}`}
+          className={`mt-0.5 ${fresh ? "text-you-line" : "text-ink-2"}`}
         />
         <span className="min-w-0">
           <span className="caps flex items-center gap-2 text-[13px] text-ink-2">
             {fresh ? (
               <span
-                className="inline-block size-2 shrink-0 bg-you"
+                className="inline-block size-2 shrink-0 bg-you-line"
                 aria-label="New"
                 role="img"
               />
@@ -115,8 +116,15 @@ export default async function NotificationsPage() {
 
   return (
     <div className="grid grid-cols-1 gap-10">
+      {/* With nothing at all, the empty state below says so; the meta would only repeat it. */}
       <PageTitle
-        meta={fresh.length ? `${fresh.length} new` : "You're all caught up"}
+        meta={
+          fresh.length
+            ? `${fresh.length} new`
+            : rows.length
+              ? "You're all caught up"
+              : undefined
+        }
       >
         Notifications
       </PageTitle>
@@ -155,15 +163,9 @@ export default async function NotificationsPage() {
           ) : null}
         </>
       ) : (
-        <div className="grid justify-items-start gap-3 border-2 border-ink bg-band px-5 py-8">
-          <p className="font-display text-[clamp(1.75rem,6vw,2.5rem)] leading-[1.05] font-semibold uppercase">
-            Nothing yet
-          </p>
-          <p className="max-w-[60ch] text-[17px] text-ink-2">
-            New tests, announcements, events, BLC runs and trainer replies land
-            here.
-          </p>
-        </div>
+        <EmptyState title="Nothing yet">
+          New tests, announcements, events and trainer replies land here.
+        </EmptyState>
       )}
       {/* Last on the page: it can only be decided in the browser, after the list has drawn, and nothing below it
           can move when it appears. */}

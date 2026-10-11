@@ -10,22 +10,26 @@ import {
 import { AskTeacher, type FlagState } from "@/components/ask-teacher";
 import { Button, FormMessage } from "@/components/form";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
+import { SubmitBar } from "@/components/submit-bar";
 import { answerKeysLabel, keysLine } from "@/lib/answer-keys";
+import {
+  createAnswerSaves,
+  type AnswerSaves,
+  type Settled,
+} from "@/lib/answer-saves";
+import {
+  pickErrorText,
+  settleAnswer,
+  showAnswer,
+  type Answer,
+  type SubmitProblem,
+} from "@/lib/attempt-answers";
+import { createSubmitter, type Submitter } from "@/lib/attempt-submit";
 import { feedback, primeFeedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import type { AttemptQuestion } from "@/lib/tests";
 import { KeyHint, KeyLine } from "@/components/key-hint";
 import { useAnswerKeys } from "@/hooks/use-answer-keys";
-
-type Answer = {
-  selected: number;
-  // Null while the answer is saving, and when the trainer has answers off (no verdict to show).
-  is_correct: boolean | null;
-  correct_index: number | null;
-  explanation: string | null;
-  // True once the server has stored the pick (rows from the page always are).
-  saved: boolean;
-};
 
 const LETTERS = "ABCDE";
 
@@ -61,7 +65,8 @@ export function TakeTest({
   const router = useRouter();
   const practice = mode === "practice";
 
-  const [answers, setAnswers] = useState<Record<string, Answer>>(() => {
+  // What the server had stored when the page loaded (an attempt picks up where it left off).
+  const [stored] = useState<Record<string, Answer>>(() => {
     const out: Record<string, Answer> = {};
     for (const r of rows) {
       if (r.selected_index !== null) {
@@ -76,21 +81,31 @@ export function TakeTest({
     }
     return out;
   });
+  const [answers, setAnswers] = useState<Record<string, Answer>>(stored);
   const [current, setCurrent] = useState(() => {
-    const firstOpen = rows.findIndex((q) => !(q.question_id in answers));
+    const firstOpen = rows.findIndex((q) => !(q.question_id in stored));
     return firstOpen === -1 ? 0 : firstOpen;
   });
-  const [error, setError] = useState<string | null>(null);
+  // A pick that didn't save, kept with its question: it shows by the question, worded for the one on screen.
+  const [pickError, setPickError] = useState<{
+    qid: string;
+    message: string;
+  } | null>(null);
+  // Why the last submit stopped. It shows by the submit buttons (SubmitBar).
+  const [problem, setProblem] = useState<SubmitProblem | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [submitting, startSubmit] = useTransition();
-  const [saving, setSaving] = useState<string | null>(null);
   // The practice question whose verdict just came back, so only a fresh verdict animates (not one you go back to).
   const [fresh, setFresh] = useState<string | null>(null);
-  const submitted = useRef(false);
-  const autoTried = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null);
   // The question on screen, read when a verdict comes back after a server round trip.
   const onScreen = useRef(current);
+  // The last answer the server confirmed per question: where a failed save goes back to.
+  const confirmed = useRef(stored);
+  // Picks save in the background, one at a time per question (lib/answer-saves). Made on first use, in a handler.
+  const saves = useRef<AnswerSaves | null>(null);
+  // Hands the attempt in (lib/attempt-submit). Made on first use too, by a tap or the timer.
+  const submitter = useRef<Submitter | null>(null);
 
   const answered = Object.keys(answers).length;
   const left = rows.length - answered;
@@ -98,30 +113,57 @@ export function TakeTest({
   const mine = answers[q.question_id];
   const locked = practice && mine !== undefined;
 
-  // byTap is false when the timer submits: no tap, so no tone (the browser would refuse it anyway).
-  const submit = useCallback(
-    (byTap = true) => {
-      if (submitted.current) return;
-      submitted.current = true;
-      setError(null);
-      if (byTap) primeFeedback();
-      startSubmit(async () => {
-        const r = await submitAttempt(attemptId);
-        if (r.error) {
-          submitted.current = false;
-          setError(r.error);
-        } else {
+  // A save's reply (rules in lib/attempt-answers): only the newest pick for a question changes the screen, and a
+  // failed one goes back to what the server last confirmed.
+  const settle = (s: Settled) => {
+    const out = settleAnswer(confirmed.current, s, {
+      practice,
+      onScreen: rows[onScreen.current]?.question_id,
+    });
+    confirmed.current = out.confirmed;
+    const { show } = out;
+    if (show !== undefined) setAnswers((a) => showAnswer(a, s.qid, show));
+    if (out.error) setPickError({ qid: s.qid, message: out.error });
+    if (out.verdict !== undefined) {
+      setFresh(s.qid);
+      feedback(out.verdict ? "correct" : "wrong");
+    }
+  };
+  const savesNow = () =>
+    (saves.current ??= createAnswerSaves(
+      (qid, selected) => answerQuestion(attemptId, qid, selected),
+      (s) => settle(s),
+    ));
+
+  // The server's clock, so the countdown and "time is up" don't depend on the device's clock.
+  const [offset] = useState(() => serverNow - Date.now());
+
+  // Handing the attempt in, by a tap or by the timer at 0:00 (the rules and their order: lib/attempt-submit).
+  // A pick still on its way is waited for; one that never reached the server stops a tap once.
+  const submitterNow = useCallback(
+    () =>
+      (submitter.current ??= createSubmitter({
+        rows,
+        timeUp: () =>
+          deadline !== null && Date.now() + offset >= Date.parse(deadline),
+        idle: async (within) => (await saves.current?.idle(within)) ?? [],
+        send: () => submitAttempt(attemptId),
+        run: startSubmit,
+        onProblem: setProblem,
+        onSent: (byTap) => {
           feedback("submit", { sound: byTap });
           void rollLuckyBonus("test");
           router.refresh();
-        }
-      });
-    },
-    [attemptId, router],
+        },
+      })),
+    [attemptId, deadline, offset, router, rows],
   );
+  // A tap wakes audio for the submit sound, inside the tap. `confirmedBlank`: see Submitter.tap.
+  const submit = (confirmedBlank?: string[]) => {
+    if (submitterNow().tap(confirmedBlank)) primeFeedback();
+  };
 
   // Countdown against the server's clock; submits itself at zero.
-  const [offset] = useState(() => serverNow - Date.now());
   const [remaining, setRemaining] = useState(() =>
     deadline ? Date.parse(deadline) - serverNow : 0,
   );
@@ -131,16 +173,13 @@ export function TakeTest({
     const tick = () => {
       const ms = end - (Date.now() + offset);
       setRemaining(ms);
-      // Auto-submit once; if that fails the Submit button stays for a manual retry.
-      if (ms <= 0 && !autoTried.current) {
-        autoTried.current = true;
-        submit(false);
-      }
+      // At 0:00 it hands itself in, once; if that fails the Submit button stays for a manual retry.
+      submitterNow().tick(ms);
     };
     tick();
     const t = setInterval(tick, 500);
     return () => clearInterval(t);
-  }, [deadline, offset, submit]);
+  }, [deadline, offset, submitterNow]);
 
   const go = (i: number) => {
     setCurrent(i);
@@ -150,11 +189,15 @@ export function TakeTest({
     requestAnimationFrame(() => heading.current?.focus());
   };
 
-  const pick = async (original: number) => {
-    if (locked || submitting || saving === q.question_id) return;
+  // Each tap shows at once and saves in the background. A change made while an earlier save is on its way is
+  // sent after it rather than dropped, and a save that fails puts back the last answer the server stored.
+  const pick = (original: number) => {
+    if (locked || submitting) return;
     const qid = q.question_id;
-    const before = answers[qid];
-    setError(null);
+    // A new pick answers this question's error, and makes the last submit warning stale (it warns afresh).
+    setPickError((e) => (e?.qid === qid ? null : e));
+    setProblem(null);
+    submitterNow().picked();
     // Practice: the verdict sound comes after the server answers, so wake audio now, inside the tap.
     // Timed: no verdict until the end, so the tap itself gets a soft tick.
     if (practice) primeFeedback();
@@ -169,47 +212,14 @@ export function TakeTest({
         saved: false,
       },
     }));
-    setSaving(qid);
-    const r = await answerQuestion(attemptId, qid, original);
-    setSaving(null);
-    if (r.error) {
-      setAnswers((a) => {
-        const next = { ...a };
-        if (before) next[qid] = before;
-        else delete next[qid];
-        return next;
-      });
-      setError(r.error);
-      return;
-    }
-    setAnswers((a) => ({
-      ...a,
-      [qid]: {
-        // The server's stored pick wins (a stale second tab can't change a locked practice answer).
-        selected: r.selected_index ?? original,
-        is_correct: r.is_correct ?? null,
-        correct_index: r.correct_index ?? null,
-        explanation: r.explanation ?? null,
-        saved: true,
-      },
-    }));
-    // Only for the question still on screen: a verdict that lands after you moved on is just stored, and
-    // shows quietly, without the reveal, when you go back.
-    if (
-      practice &&
-      typeof r.is_correct === "boolean" &&
-      rows[onScreen.current]?.question_id === qid
-    ) {
-      setFresh(qid);
-      feedback(r.is_correct ? "correct" : "wrong");
-    }
+    void savesNow().save(qid, original);
   };
 
   // 1-4 (or A-D) pick the choice on screen, as a click would; Left and Right move; Enter goes on once answered.
   useAnswerKeys({
     enabled: !confirming,
     options: locked ? 0 : q.choice_order.length,
-    onPick: (shown) => void pick(q.choice_order[shown]),
+    onPick: (shown) => pick(q.choice_order[shown]),
     onPrev: current > 0 ? () => go(current - 1) : undefined,
     onNext: current < rows.length - 1 ? () => go(current + 1) : undefined,
     onEnter:
@@ -252,7 +262,7 @@ export function TakeTest({
           className="absolute inset-x-0 bottom-0 block h-[3px] overflow-hidden bg-rule"
         >
           <span
-            className="progress-fill block h-full bg-you"
+            className="progress-fill block h-full bg-you-line"
             style={{ transform: `scaleX(${answered / rows.length})` }}
           />
         </span>
@@ -272,7 +282,7 @@ export function TakeTest({
           text={keysLine(answerKeysLabel(q.choice_order.length), "← → move")}
         />
         <SelectionCards
-          key={q.question_id}
+          key={`cards-${q.question_id}`}
           decks={decks}
           answer={rightText}
           enabled={locked}
@@ -361,14 +371,18 @@ export function TakeTest({
         </div>
         {locked && mine?.saved ? (
           <AskTeacher
-            key={q.question_id}
+            key={`ask-${q.question_id}`}
             testId={testId}
             questionId={q.question_id}
             flag={flags[q.question_id] ?? null}
             canReport={canReport}
           />
         ) : null}
-        {error ? <FormMessage tone="error">{error}</FormMessage> : null}
+        {pickError ? (
+          <FormMessage tone="error">
+            {pickErrorText(pickError, q.question_id, rows)}
+          </FormMessage>
+        ) : null}
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -422,46 +436,23 @@ export function TakeTest({
         </ol>
       </nav>
 
-      <div className="grid justify-items-start gap-3 border-t border-rule pt-6">
-        {confirming ? (
-          <div
-            className="grid gap-3"
-            role="group"
-            aria-label="Submit with questions left"
-          >
-            <p>
-              {left} question{left === 1 ? "" : "s"} still blank. Submit anyway?
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="you"
-                onClick={() => submit()}
-                disabled={submitting}
-              >
-                {submitting ? "Submitting" : "Submit now"}
-              </Button>
-              <Button
-                type="button"
-                variant="line"
-                onClick={() => setConfirming(false)}
-                disabled={submitting}
-                autoFocus
-              >
-                Keep going
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Button
-            type="button"
-            onClick={() => (left ? setConfirming(true) : submit())}
-            disabled={submitting}
-          >
-            {submitting ? "Submitting" : practice ? "Finish" : "Submit"}
-          </Button>
-        )}
-      </div>
+      <SubmitBar
+        practice={practice}
+        confirming={confirming}
+        left={left}
+        submitting={submitting}
+        problem={problem}
+        onFinish={() => (left ? setConfirming(true) : submit())}
+        // The blanks the step just counted: a lost pick among them isn't warned about again.
+        onSubmitNow={() =>
+          submit(
+            rows
+              .filter((r) => !(r.question_id in answers))
+              .map((r) => r.question_id),
+          )
+        }
+        onKeepGoing={() => setConfirming(false)}
+      />
     </div>
   );
 }

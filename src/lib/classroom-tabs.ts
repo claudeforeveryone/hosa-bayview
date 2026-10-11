@@ -99,3 +99,52 @@ export function pushRecentRoom(value: string | undefined | null, id: string): st
   if (!UUID.test(key)) return kept.join(",");
   return [key, ...kept.filter((x) => x !== key)].slice(0, RECENT_MAX).join(",");
 }
+
+// On phones the event tabs scroll sideways under solid edge chevrons. Where to scroll the strip so a tab (its
+// left and right edge in strip pixels) sits `edge` px clear of both sides, moving as little as possible and
+// keeping the start of a too-wide tab in view. Null when it is already clear.
+export function tabClearScroll({
+  scrollLeft,
+  width,
+  left,
+  right,
+  edge,
+}: {
+  scrollLeft: number;
+  width: number;
+  left: number;
+  right: number;
+  edge: number;
+}): number | null {
+  let target = scrollLeft;
+  if (left < scrollLeft + edge) target = left - edge;
+  else if (right > scrollLeft + width - edge)
+    target = Math.min(right - width + edge, left - edge);
+  target = Math.max(0, target);
+  return target === scrollLeft ? null : target;
+}
+
+// Where a tab that just took focus scrolls the strip to: clear of the chevrons, but only for keyboard focus.
+// Chrome and Firefox also focus a link on mousedown and on a touch tap; moving the strip then would slide the
+// next tab under the finger before mouseup, and the tap would follow no link. Null means leave it alone (also
+// in a browser that doesn't know :focus-visible).
+export function tabFocusScroll(
+  tab: { matches(selector: string): boolean; offsetLeft: number; offsetWidth: number },
+  strip: { scrollLeft: number; clientWidth: number },
+  edge: number,
+): number | null {
+  let keyboard = false;
+  try {
+    keyboard = tab.matches(":focus-visible");
+  } catch {
+    // An older browser throws on the selector: no scroll, so taps always work.
+  }
+  if (!keyboard) return null;
+  return tabClearScroll({
+    scrollLeft: strip.scrollLeft,
+    width: strip.clientWidth,
+    left: tab.offsetLeft,
+    right: tab.offsetLeft + tab.offsetWidth,
+    edge,
+  });
+}

@@ -86,7 +86,7 @@ export default async function BlcPage() {
                       <StateMark state={c.state} />
                       <span
                         className={
-                          c.state === "open" ? "text-you" : "text-ink-2"
+                          c.state === "open" ? "text-you-line" : "text-ink-2"
                         }
                       >
                         {stateLabel(c.state)}

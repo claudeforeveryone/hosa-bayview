@@ -130,6 +130,17 @@
   --on-you: #f7ecee;
 }
 
+/* The "you" colour where it sits straight on the ground: the active tab rule, an unread dot, the answered bar,
+   the Chapter label on events. Dark maroon on navy is too faint to read (1.3:1), so in dark mode it is lifted
+   toward the ink. That keeps the hue of whatever highlight the member picked and stays above 4.5:1 on every
+   theme's ground (lowest: forest, 4.9:1), so it works for small text as well as lines. */
+:root {
+  --you-line: var(--you);
+}
+:root[data-theme="dark"] {
+  --you-line: color-mix(in oklab, var(--you) 35%, var(--ink));
+}
+
 /* Typefaces. Settings > Look swaps these two via data-font ("dyslexic"); the Montserrat wordmark never changes. */
 :root {
   --face-sans: var(--font-barlow), system-ui, sans-serif;
@@ -154,6 +165,7 @@
   --color-on-field-danger: var(--on-field-danger);
   --color-you: var(--you);
   --color-on-you: var(--on-you);
+  --color-you-line: var(--you-line);
   --color-danger: var(--danger);
   --color-ok: var(--ok);
   --font-sans: var(--face-sans);
@@ -1043,9 +1055,9 @@ html[data-intro] .intro-right {
   transition: transform 300ms var(--ease-out);
 }
 
-/* The tab underline (classroom tabs) glides to the active tab. Its size and place are set inline. */
+/* The tab underline (classroom tabs) glides to the active tab. Its place and stretch are one inline transform. */
 .tab-slide {
-  transition: transform 250ms var(--ease-out), width 250ms var(--ease-out);
+  transition: transform 250ms var(--ease-out);
 }
 
 /* A verdict mark (right or wrong) pops in as the answer lands. Fade only under Reduce Motion. */
@@ -1057,4 +1069,24 @@ html[data-intro] .intro-right {
 }
 @keyframes verdict-pop {
   from { opacity: 0; transform: scale(0.4); }
+}
+
+/* A finished attempt's score ring fills once to the percent (a rare moment, so it gets a little longer than UI
+   motion). Reduce Motion and calm land it at once through the rules above. */
+@media (prefers-reduced-motion: no-preference) {
+  .score-ring {
+    animation: score-ring 500ms var(--ease-out) 120ms both;
+  }
+}
+@keyframes score-ring {
+  from { stroke-dasharray: 0 100; }
+}
+
+/* Switching an event's tab: the new tab's content fades in as it arrives, while the rule glides over. It runs
+   when the page's root is put in (not the loading placeholder, which has its own timing). Opacity only and
+   short, since members flip tabs often. */
+@media (prefers-reduced-motion: no-preference) {
+  .tab-content > :not(.route-loading) {
+    animation: fade-in 150ms var(--ease-out) both;
+  }
 }

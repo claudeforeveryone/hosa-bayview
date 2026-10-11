@@ -10,6 +10,7 @@ import {
 } from "@/lib/attendance";
 import {
   meetingDateLabel,
+  splitSchedule,
   STATE_LABEL,
   type MeetingState,
 } from "@/lib/meetings";
@@ -46,7 +47,8 @@ const STATUS_TONE: Record<Status, string> = {
 };
 
 // The schedule, oldest first. Managers' rows open to show the roster with pictures and marks; members see
-// their own status on each row.
+// their own status on each row. The last two meetings, today and the next three show; older weeks and the rest
+// of the season fold away so a phone isn't a wall of weeks, early or late in the season.
 export function MeetingList({
   items,
   classroomId,
@@ -56,18 +58,66 @@ export function MeetingList({
   classroomId: string;
   manage: boolean;
 }) {
+  const { earlier, shown, later } = splitSchedule(items);
+  const row = (item: MeetingItem) => (
+    <li key={item.key} className="border-b border-rule">
+      {item.none || !manage || !item.members ? (
+        <MeetingRowStatic item={item} />
+      ) : (
+        <MeetingRowOpen item={item} classroomId={classroomId} />
+      )}
+    </li>
+  );
   return (
     <ul className="border-t border-rule">
-      {items.map((item) => (
-        <li key={item.key} className="border-b border-rule">
-          {item.none || !manage || !item.members ? (
-            <MeetingRowStatic item={item} />
-          ) : (
-            <MeetingRowOpen item={item} classroomId={classroomId} />
-          )}
-        </li>
-      ))}
+      {earlier.length ? (
+        <Fold
+          closed={`${earlier.length} earlier this season`}
+          open="Earlier this season"
+        >
+          {earlier.map(row)}
+        </Fold>
+      ) : null}
+      {shown.map(row)}
+      {later.length ? (
+        <Fold
+          closed={`${later.length} more later in the season`}
+          open="Later in the season"
+        >
+          {later.map(row)}
+        </Fold>
+      ) : null}
     </ul>
+  );
+}
+
+// A folded run of weeks. Its group is named (group/fold) so opening it doesn't turn the chevrons of the meeting
+// rows inside, which are groups of their own.
+function Fold({
+  closed,
+  open,
+  children,
+}: {
+  closed: string;
+  open: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="border-b border-rule">
+      <details className="group/fold">
+        <summary className="caps step flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-1 py-3 text-[15px] text-ink-2 hover:bg-band hover:text-ink sm:px-3 [&::-webkit-details-marker]:hidden">
+          <span className="group-open/fold:hidden">{closed}</span>
+          <span className="hidden group-open/fold:inline">{open}</span>
+          <ChevronDown
+            size={18}
+            strokeWidth={2}
+            aria-hidden
+            className="motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out group-open/fold:rotate-180"
+          />
+        </summary>
+        <ul className="border-t border-rule">{children}</ul>
+      </details>
+    </li>
   );
 }
 
@@ -105,17 +155,16 @@ function stateText(item: MeetingItem): string | null {
 
 function MeetingRowStatic({ item }: { item: MeetingItem }) {
   const own = item.ownStatus ?? null;
-  const right = item.none ? null : (
-    <span
-      className={`caps text-[15px] ${own ? STATUS_TONE[own] : "text-ink-2"}`}
-    >
-      {own
-        ? STATUS_LABEL[own]
-        : item.state === "upcoming" || item.state === "today"
-          ? "Not yet"
-          : "Not marked"}
-    </span>
-  );
+  // A meeting still to come already says so in its date line, so it carries no mark.
+  const waiting = item.state === "upcoming" || item.state === "today";
+  const right =
+    item.none || (waiting && !own) ? null : (
+      <span
+        className={`caps text-[15px] ${own ? STATUS_TONE[own] : "text-ink-2"}`}
+      >
+        {own ? STATUS_LABEL[own] : "Not marked"}
+      </span>
+    );
   return (
     <div className="px-1 py-4 sm:px-3">
       <RowHead item={item} right={right} />

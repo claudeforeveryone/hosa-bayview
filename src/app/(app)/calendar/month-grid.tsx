@@ -15,7 +15,9 @@ const SHOWN = 3;
 
 // "Wednesday, October 14" for a day key, without a time zone shift (noon Toronto is the same day everywhere).
 const dayTitle = (key: string) =>
-  new Date(torontoToIso(`${key}T12:00`) ?? `${key}T16:00:00Z`).toLocaleDateString("en-CA", {
+  new Date(
+    torontoToIso(`${key}T12:00`) ?? `${key}T16:00:00Z`,
+  ).toLocaleDateString("en-CA", {
     timeZone: "America/Toronto",
     weekday: "long",
     month: "long",
@@ -38,9 +40,13 @@ function Chip({ e, onOpen }: { e: EventRow; onOpen: () => void }) {
     >
       {/* Time on its own line and the title wrapping to two lines, so both stay inside a narrow day box. */}
       {!e.all_day ? (
-        <span className="num truncate text-[11px] text-ink-2 lg:text-[12px]">{formatTime(e.starts_at)}</span>
+        <span className="num truncate text-[11px] text-ink-2 lg:text-[12px]">
+          {formatTime(e.starts_at)}
+        </span>
       ) : null}
-      <span className="line-clamp-2 font-medium [overflow-wrap:anywhere]">{e.title}</span>
+      <span className="line-clamp-2 font-medium [overflow-wrap:anywhere]">
+        {e.title}
+      </span>
     </button>
   );
 }
@@ -60,7 +66,10 @@ export function MonthGrid({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLElement | null>(null);
-  const [open, setOpen] = useState<{ key: string; focus: string | null } | null>(null);
+  const [open, setOpen] = useState<{
+    key: string;
+    focus: string | null;
+  } | null>(null);
   const canEdit = new Set(editable);
   const rows = days.length / 7;
 
@@ -73,7 +82,9 @@ export function MonthGrid({
     const d = dialog.current;
     if (!d || !open) return;
     if (!d.open) d.showModal();
-    const target = open.focus ? d.querySelector<HTMLElement>(`[data-event="${open.focus}"]`) : null;
+    const target = open.focus
+      ? d.querySelector<HTMLElement>(`[data-event="${open.focus}"]`)
+      : null;
     if (target) {
       target.scrollIntoView({ block: "nearest" });
       target.focus({ preventScroll: true });
@@ -138,7 +149,7 @@ export function MonthGrid({
                     <span
                       aria-label={label}
                       className={`num grid size-7 place-items-center font-display text-[15px] font-semibold sm:text-[16px] ${
-                        today ? "bg-you text-on-you" : d.inMonth ? "" : "opacity-70"
+                        today ? "bg-you text-on-you" : ""
                       }`}
                     >
                       {d.day}
@@ -146,7 +157,10 @@ export function MonthGrid({
                   )}
                   {/* Phones: too narrow for titles, so a count. */}
                   {items.length ? (
-                    <span aria-hidden className="num mt-1 mr-0.5 text-[12px] font-semibold text-you sm:hidden">
+                    <span
+                      aria-hidden
+                      className="num mt-1 mr-0.5 text-[12px] font-semibold text-you-line sm:hidden"
+                    >
                       {items.length}
                     </span>
                   ) : null}
@@ -158,7 +172,9 @@ export function MonthGrid({
                     </li>
                   ))}
                   {items.length > SHOWN ? (
-                    <li className="caps px-1.5 text-[12px] text-ink-2">+{items.length - SHOWN} more</li>
+                    <li className="caps px-1.5 text-[12px] text-ink-2">
+                      +{items.length - SHOWN} more
+                    </li>
                   ) : null}
                 </ul>
 
@@ -170,21 +186,32 @@ export function MonthGrid({
                       col < 4 ? "left-full -ml-px" : "right-full -mr-px"
                     } ${row >= rows - 2 ? "bottom-0" : "top-0"}`}
                   >
-                    <p className="caps mb-3 border-b border-rule pb-2 text-[13px] text-ink-2">{dayTitle(d.key)}</p>
+                    <p className="caps mb-3 border-b border-rule pb-2 text-[13px] text-ink-2">
+                      {dayTitle(d.key)}
+                    </p>
                     <ul className="grid gap-4">
                       {items.slice(0, 4).map((e) => (
-                        <li key={e.id} className="[&_.font-display]:text-[1.25rem]">
+                        <li
+                          key={e.id}
+                          className="[&_.font-display]:text-[1.25rem]"
+                        >
                           <EventSummary e={e} compact />
                           {e.details ? (
-                            <p className="mt-1 line-clamp-3 text-[15px] whitespace-pre-line">{e.details}</p>
+                            <p className="mt-1 line-clamp-3 text-[15px] whitespace-pre-line">
+                              {e.details}
+                            </p>
                           ) : null}
                         </li>
                       ))}
                     </ul>
                     {items.length > 4 ? (
-                      <p className="caps mt-3 text-[12px] text-ink-2">+{items.length - 4} more. Click for all.</p>
+                      <p className="caps mt-3 text-[12px] text-ink-2">
+                        +{items.length - 4} more. Click for all.
+                      </p>
                     ) : (
-                      <p className="caps mt-3 text-[12px] text-ink-2">Click for details</p>
+                      <p className="caps mt-3 text-[12px] text-ink-2">
+                        Click for details
+                      </p>
                     )}
                   </div>
                 ) : null}
@@ -198,8 +225,13 @@ export function MonthGrid({
       {monthEvents.length ? (
         <ol className="grid sm:hidden" aria-label="This month">
           {monthEvents.map((d) => (
-            <li key={d.key} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-t border-rule py-4">
-              <DateStub iso={torontoToIso(`${d.key}T12:00`) ?? d.items[0].starts_at} />
+            <li
+              key={d.key}
+              className="grid grid-cols-[4rem_minmax(0,1fr)] gap-4 border-t border-rule py-4"
+            >
+              <DateStub
+                iso={torontoToIso(`${d.key}T12:00`) ?? d.items[0].starts_at}
+              />
               <ul className="grid gap-3">
                 {d.items.map((e) => (
                   <li key={e.id}>
