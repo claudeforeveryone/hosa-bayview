@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mockSupabase } from "@/test/supabase-mock";
 
+// The push sign-out helpers are server-only; tests run them directly.
+vi.mock("server-only", () => ({}));
+
 let client = mockSupabase();
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => client }));
 // The code check runs with the secret key; the same mock answers it. Null: the key isn't set.
@@ -20,6 +23,10 @@ let requestHeaders = new Headers({ origin: "null" });
 vi.mock("next/headers", () => ({
   headers: async () => requestHeaders,
   cookies: async () => ({
+    get: (name: string) => {
+      const c = jar.get(name);
+      return c ? { name, value: c.value } : undefined;
+    },
     set: (name: string, value: string, options?: Record<string, unknown>) =>
       jar.set(name, { value, options }),
     delete: (name: string) => jar.delete(name),
@@ -415,9 +422,47 @@ describe("requestReset", () => {
 });
 
 describe("logout", () => {
+  const DEVICE = "2b1c6f0e-7a0d-4c4f-9f43-3f1f8d2a9c11";
+  beforeEach(() => jar.clear());
+
   it("signs out this device only and goes to login", async () => {
     expect(await redirectOf(logout())).toBe("/login");
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("first stops this browser's phone notifications, so the next person on the phone doesn't see them", async () => {
+    jar.set("hosa-push-device", { value: DEVICE });
+    const order: string[] = [];
+    client.query.delete.mockImplementation(() => {
+      order.push("delete");
+      return client.query;
+    });
+    client.auth.signOut.mockImplementation(async () => {
+      order.push("signOut");
+      return { error: null };
+    });
+    expect(await redirectOf(logout())).toBe("/login");
+    expect(client.from).toHaveBeenCalledWith("push_subscriptions");
+    expect(client.query.eq).toHaveBeenCalledWith("id", DEVICE);
+    // Removed while the session still exists, so RLS lets the member delete their own row.
+    expect(order).toEqual(["delete", "signOut"]);
+    expect(jar.has("hosa-push-device")).toBe(false);
+  });
+
+  it("doesn't touch push rows when this browser never turned notifications on", async () => {
+    expect(await redirectOf(logout())).toBe("/login");
+    expect(client.query.delete).not.toHaveBeenCalled();
+  });
+
+  it("still signs out when removing the device fails", async () => {
+    jar.set("hosa-push-device", { value: DEVICE });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    client.from.mockImplementation(() => {
+      throw new Error("network down");
+    });
+    expect(await redirectOf(logout())).toBe("/login");
+    expect(client.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
+    log.mockRestore();
   });
 });
 
@@ -448,6 +493,24 @@ describe("updatePassword", () => {
       password: "longenough",
     });
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: "others" });
+  });
+
+  it("stops phone notifications on the member's other devices, keeping this one", async () => {
+    client = mockSupabase({ userId: "u-1" });
+    jar.set("hosa-push-device", {
+      value: "2b1c6f0e-7a0d-4c4f-9f43-3f1f8d2a9c11",
+    });
+    await redirectOf(
+      updatePassword({}, form({ password: "longenough", confirm: "longenough" })),
+    );
+    expect(client.from).toHaveBeenCalledWith("push_subscriptions");
+    expect(client.query.delete).toHaveBeenCalled();
+    expect(client.query.eq).toHaveBeenCalledWith("user_id", "u-1");
+    expect(client.query.neq).toHaveBeenCalledWith(
+      "id",
+      "2b1c6f0e-7a0d-4c4f-9f43-3f1f8d2a9c11",
+    );
+    jar.clear();
   });
 
   it("requires both fields to match", async () => {

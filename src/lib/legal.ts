@@ -17,7 +17,7 @@ export type PolicyCovers = {
   feedback: boolean;
 };
 export const POLICY_COVERS: PolicyCovers = {
-  phoneApp: false,
+  phoneApp: true,
   usageCounts: true,
   feedback: true,
 };

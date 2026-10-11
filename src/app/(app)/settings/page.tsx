@@ -7,12 +7,14 @@ import { Button } from "@/components/form";
 import { JoinForm } from "@/components/join-form";
 import { PageTitle } from "@/components/page-title";
 import { SendFeedback } from "@/components/send-feedback";
+import { PhoneAppTab } from "@/components/pwa/phone-app-section";
 import { SettingsSection } from "@/components/settings-section";
 import { requireProfile } from "@/lib/auth";
 import { feedbackEnabled } from "@/lib/feedback-enabled";
 import { AVATAR_MAX_BYTES, gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
 import { FEEDBACK_DESCRIPTION } from "@/lib/owner-metrics";
+import { pushConfig } from "@/lib/push/config";
 import { SETTINGS_TABS, resolveSettingsTab } from "@/lib/settings-tabs";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -34,7 +36,7 @@ export default async function SettingsPage({
     <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
       <PageTitle meta={profile.email}>Settings</PageTitle>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12">
-        {/* Phones: one row of tabs that scrolls sideways when it runs out of width. Desktop: a rail on the left. */}
+        {/* Phones: one row of tabs sharing the width (all five fit from 360 px, each at least 44 px wide; narrower, it scrolls sideways). Desktop: a rail on the left. */}
         <nav
           aria-label="Settings sections"
           className="min-w-0 lg:sticky lg:top-6 lg:self-start"
@@ -45,16 +47,33 @@ export default async function SettingsPage({
               return (
                 <li
                   key={t.id}
-                  className="shrink-0 border-r border-ink last:border-r-0 lg:border-r-0 lg:border-b lg:last:border-b-0"
+                  className="shrink-0 grow border-r border-ink last:border-r-0 lg:grow-0 lg:border-r-0 lg:border-b lg:last:border-b-0"
                 >
                   <Link
                     href={`/settings?tab=${t.id}`}
                     aria-current={on ? "page" : undefined}
-                    className={`caps step flex min-h-12 items-center px-3 text-[15px] sm:px-5 sm:text-[18px] lg:min-h-14 ${
+                    className={`caps step flex min-h-12 min-w-11 items-center justify-center px-1 text-[15px] sm:px-5 lg:min-h-14 lg:flex-col lg:items-start lg:justify-center sm:text-[18px] ${
                       on ? "bg-ink text-ground" : "text-ink hover:bg-band"
                     }`}
                   >
-                    {t.label}
+                    {t.short ? (
+                      <>
+                        <span aria-hidden className="sm:hidden">
+                          {t.short}
+                        </span>
+                        <span className="sr-only sm:not-sr-only">
+                          {t.label}
+                        </span>
+                      </>
+                    ) : (
+                      t.label
+                    )}
+                    {t.more ? (
+                      <span className="sr-only lg:not-sr-only lg:font-sans lg:text-[15px] lg:leading-snug lg:font-normal lg:tracking-normal lg:normal-case">
+                        {" "}
+                        {t.more}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               );
@@ -64,6 +83,9 @@ export default async function SettingsPage({
         <div className="min-w-0">
           {tab === "appearance" ? <AppearanceSection /> : null}
           {tab === "sound" ? <SoundSection /> : null}
+          {tab === "app" ? (
+            <PhoneAppTab vapidPublicKey={pushConfig()?.publicKey ?? null} />
+          ) : null}
           {tab === "account" ? <AccountTab /> : null}
           {tab === "events" ? (
             <EventsTab isExec={profile.role === "executive"} />

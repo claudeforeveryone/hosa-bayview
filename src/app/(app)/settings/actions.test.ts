@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeClient } from "@/test/chain-client";
 
+// The push sign-out helpers are server-only; tests run them directly.
+vi.mock("server-only", () => ({}));
+
 let client = makeClient({ data: null, error: null });
 const refresh = vi.fn();
 const ME = "11111111-1111-4111-8111-111111111111";
@@ -9,6 +12,16 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => client }));
 vi.mock("next/cache", () => ({ refresh: () => refresh() }));
 let role = "trainee";
 vi.mock("@/lib/auth", () => ({ requireProfile: async () => ({ id: ME, email: "me@example.com", role }) }));
+// This browser's push device (the HttpOnly cookie the subscribe route sets).
+const DEVICE = "2b1c6f0e-7a0d-4c4f-9f43-3f1f8d2a9c11";
+let deviceCookie: string | undefined = DEVICE;
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      name === "hosa-push-device" && deviceCookie ? { name, value: deviceCookie } : undefined,
+    delete: () => {},
+  }),
+}));
 
 const { updateName, setAdminPasscode, changePassword } = await import("./actions");
 
@@ -67,6 +80,15 @@ describe("changePassword", () => {
     expect(state.ok).toBe("Password changed.");
     expect(client.auth.signInWithPassword).toHaveBeenCalledWith({ email: "me@example.com", password: "old-password" });
     expect(client.auth.signOut).toHaveBeenCalledWith({ scope: "others" });
+  });
+
+  it("stops phone notifications on the member's other devices, keeping this one", async () => {
+    deviceCookie = DEVICE;
+    await changePassword({}, form({ current: "old-password", password: "new-password", confirm: "new-password" }));
+    expect(client.calls).toContainEqual({ op: "from", args: ["push_subscriptions"] });
+    expect(client.calls).toContainEqual({ op: "delete", args: [] });
+    expect(client.calls).toContainEqual({ op: "eq", args: ["user_id", ME] });
+    expect(client.calls).toContainEqual({ op: "neq", args: ["id", DEVICE] });
   });
 
   it("checks the two match", async () => {

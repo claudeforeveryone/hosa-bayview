@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
         source: "/:file(icon\\.png|apple-icon\\.png|opengraph-image\\.png|twitter-image\\.png)",
         headers: [{ key: "X-Robots-Tag", value: "index, follow" }],
       },
+      // Browsers re-check the service worker for updates; no HTTP cache may hand them an old copy.
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }] },
     ];
   },
 };

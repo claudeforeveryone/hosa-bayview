@@ -2,9 +2,18 @@
 // with a session (the recovery link signs the browser in first; a banned member is signed in).
 // The terms and privacy pages are for everyone: sign-up links to them, and a signed-in member can reread them.
 export const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/auth", "/terms", "/privacy"];
-// Matched exactly, never as a prefix. The keepalive handler checks its own CRON_SECRET bearer token. Search engines
-// fetch the sitemap signed out (robots.txt and the .png social cards never reach the proxy; see its matcher).
-export const EXACT_PUBLIC_PATHS = ["/api/keepalive", "/sitemap.xml"];
+// Matched exactly, never as a prefix. Each handler checks its own secret: keepalive the CRON_SECRET bearer token,
+// push delivery the database's shared secret (the database has no session). Search engines fetch the sitemap signed
+// out (robots.txt and the .png social cards never reach the proxy; see its matcher). The manifest, service worker and
+// offline page must load before anyone signs in, so a phone can install the app from the sign-in page.
+export const EXACT_PUBLIC_PATHS = [
+  "/api/keepalive",
+  "/sitemap.xml",
+  "/api/push/deliver",
+  "/manifest.webmanifest",
+  "/sw.js",
+  "/offline",
+];
 const GUEST_ONLY = ["/login", "/signup"];
 
 export type Gate = { redirect: string } | null;

@@ -15,6 +15,7 @@ import { requireProfile } from "@/lib/auth";
 import { canSeeDevStats } from "@/lib/dev-stats-data";
 import { feedbackEnabled } from "@/lib/feedback-enabled";
 import { bottomItemsFor, navItemsFor } from "@/lib/nav-items";
+import { SETTINGS_TABS } from "@/lib/settings-tabs";
 
 export const metadata: Metadata = { title: "More" };
 
@@ -54,12 +55,11 @@ function Row({
   );
 }
 
-const SETTINGS_TABS = [
-  { tab: "appearance", label: "Appearance" },
-  { tab: "sound", label: "Sound" },
-  { tab: "account", label: "Account" },
-  { tab: "events", label: "Join an event" },
-];
+// Settings' own tab list (src/lib/settings-tabs.ts), so a new tab shows up here too. Events reads as the task here.
+const SHORTCUTS = SETTINGS_TABS.map((t) => ({
+  tab: t.id,
+  label: t.id === "events" ? "Join an event" : t.label,
+}));
 
 export default async function MorePage() {
   const profile = await requireProfile();
@@ -91,11 +91,11 @@ export default async function MorePage() {
             href="/settings"
             Icon={Settings}
             label="Settings"
-            hint="Appearance, sound, your account, joining events"
+            hint="Appearance, sound, phone app and notifications, your account, joining events"
           />
           <li className="border-t border-rule px-4 pt-1 pb-4 sm:px-5">
             <ul className="flex flex-wrap gap-2" aria-label="Settings tabs">
-              {SETTINGS_TABS.map((t) => (
+              {SHORTCUTS.map((t) => (
                 <li key={t.tab}>
                   <Link
                     href={`/settings?tab=${t.tab}`}

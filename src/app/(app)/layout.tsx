@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import { BottomNav, MobileBar, Sidebar } from "@/components/nav";
 import { LuckyBonus } from "@/components/lucky-bonus";
 import { OnlineHeartbeat } from "@/components/online-heartbeat";
 import { SiteFooter } from "@/components/site-footer";
+import { PwaLayer } from "@/components/pwa/pwa-layer";
+import { pushConfig } from "@/lib/push/config";
 import { WarningBanner } from "@/components/warning-banner";
 import { canTeach, getUserId, requireProfile } from "@/lib/auth";
+import { APPLE_WEB_APP } from "@/lib/pwa/metadata";
 import { getMyClassrooms } from "@/lib/classrooms";
 import { canSeeDevStats } from "@/lib/dev-stats-data";
 import { feedbackEnabled } from "@/lib/feedback-enabled";
@@ -30,6 +34,9 @@ async function unreadCount() {
   const { data } = await supabase.rpc("unread_notifications");
   return typeof data === "number" ? data : 0;
 }
+
+// Home-screen settings for iPhone, as segment metadata so the root layout's own metadata is left alone.
+export const metadata: Metadata = { appleWebApp: APPLE_WEB_APP };
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   // The sidebar list is a convenience; a failed lookup shouldn't take every page down with it.
@@ -91,6 +98,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         canSendFeedback={nav.canSendFeedback}
       />
       <OnlineHeartbeat />
+      <PwaLayer
+        card
+        signedIn
+        pushKey={pushConfig()?.publicKey ?? null}
+        userId={profile.id}
+      />
       <LuckyBonus />
     </div>
   );

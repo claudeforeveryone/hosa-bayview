@@ -20,7 +20,7 @@ function walk(dir: string): string[] {
 }
 
 describe("private by default", () => {
-  it("only the auth routes, the legal pages and the exact keepalive and sitemap paths are public", () => {
+  it("only the auth routes, the legal pages and a few exact paths are public", () => {
     expect([...PUBLIC_PATHS].sort()).toEqual([
       "/auth",
       "/forgot-password",
@@ -29,7 +29,16 @@ describe("private by default", () => {
       "/signup",
       "/terms",
     ]);
-    expect(EXACT_PUBLIC_PATHS).toEqual(["/api/keepalive", "/sitemap.xml"]);
+    // Each exact path is public for a stated reason: keepalive (cron), the sitemap (search engines), push delivery
+    // (database, secret checked in the route), and the install/offline files that must load before sign-in.
+    expect(EXACT_PUBLIC_PATHS).toEqual([
+      "/api/keepalive",
+      "/sitemap.xml",
+      "/api/push/deliver",
+      "/manifest.webmanifest",
+      "/sw.js",
+      "/offline",
+    ]);
   });
 
   it("every other page route redirects a guest to login", () => {
@@ -81,21 +90,27 @@ describe("private by default", () => {
       "/robots.txt",
       "/brand/x.png",
       "/a.svg",
+      // The offline page's self-hosted fonts load before sign-in and with no session.
+      "/fonts/barlow-latin-400-normal.woff2",
     ]) {
       expect(runsProxy(path), path).toBe(false);
     }
   });
 
-  it("route handlers are only /auth, /api/keepalive and the session-checked /files/[id]", () => {
+  it("route handlers are only /auth, /api/keepalive, the push routes (deliver is secret-checked; subscribe and test are session-checked), the static /offline page and the session-checked /files/[id]", () => {
     const handlers = walk("src/app")
       .map((f) => f.replaceAll(String.fromCharCode(92), "/"))
       .filter((f) => /\/route\.ts$/.test(f));
     expect(handlers.sort()).toEqual([
       "src/app/api/keepalive/route.ts",
+      "src/app/api/push/deliver/route.ts",
+      "src/app/api/push/subscribe/route.ts",
+      "src/app/api/push/test/route.ts",
       "src/app/auth/callback/route.ts",
       "src/app/auth/confirm/route.ts",
       "src/app/auth/signout/route.ts",
       "src/app/files/[id]/route.ts",
+      "src/app/offline/route.ts",
     ]);
   });
 

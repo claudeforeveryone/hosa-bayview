@@ -33,6 +33,10 @@ export function buildCsp(
     "style-src 'self' 'unsafe-inline'",
     `img-src ${list("'self'", "blob:", "data:", supabase)}`,
     "font-src 'self'",
+    // The service worker and manifest are same-origin files. Stated outright: script-src's 'strict-dynamic'
+    // would otherwise decide whether the browser may start the worker.
+    "worker-src 'self'",
+    "manifest-src 'self'",
     `connect-src ${list("'self'", supabase, realtime)}`,
     `media-src ${list("'self'", supabase)}`,
     "object-src 'none'",

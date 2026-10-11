@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Pipette, RotateCcw } from "lucide-react";
+import { usePathname } from "next/navigation";
 import {
   useEffect,
   useState,
@@ -58,6 +59,7 @@ import {
   type Toggle,
 } from "@/lib/appearance";
 import { feedback } from "@/lib/feedback";
+import { syncThemeColor, watchThemeColor } from "@/lib/pwa/theme-color";
 import { SettingsSection } from "@/components/settings-section";
 
 const TOGGLES: { id: Toggle; label: string }[] = [
@@ -75,8 +77,12 @@ function subscribe(onChange: () => void) {
 }
 
 // In the root layout. On Device, follows the device when it switches between light and dark, and picks up a
-// change made in another tab.
+// change made in another tab. Keeps the status bar's theme-color on the colour at the top of the screen as the look
+// and the page change (signing in moves from the field band of /login to a page on the ground).
 export function AppearanceSync() {
+  const path = usePathname();
+  useEffect(() => watchThemeColor(), []);
+  useEffect(() => syncThemeColor(), [path]);
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onScheme = () => {
@@ -118,7 +124,7 @@ function Choice({
 }: {
   name: string;
   label: string;
-  hint?: string;
+  hint?: ReactNode;
   children: ReactNode;
 }) {
   const hintId = hint ? `${name}-hint` : undefined;
@@ -135,14 +141,18 @@ function Choice({
   );
 }
 
-// A row of square segments backed by native radios.
-function Segments<T extends string>({
+// A row of square segments backed by native radios. Also the on/off for notifications in Settings > Phone app.
+// busy: dimmed and ignoring picks while a change is in flight; the radios stay focusable, so focus isn't lost.
+// The focus ring is ink on an open segment and ground on the filled one: an async pick (notifications) can leave
+// focus on a segment that isn't checked, so both need a ring that shows.
+export function Segments<T extends string>({
   name,
   label,
   options,
   value,
   onPick,
   hint,
+  busy = false,
 }: {
   name: string;
   label: string;
@@ -154,7 +164,8 @@ function Segments<T extends string>({
   }[];
   value: T;
   onPick: (v: T) => void;
-  hint?: string;
+  hint?: ReactNode;
+  busy?: boolean;
 }) {
   return (
     <Choice name={name} label={label} hint={hint}>
@@ -169,11 +180,14 @@ function Segments<T extends string>({
               name={name}
               value={o.id}
               checked={o.id === value}
-              onChange={() => onPick(o.id)}
+              onChange={() => {
+                if (!busy) onPick(o.id);
+              }}
+              aria-disabled={busy || undefined}
               className="peer sr-only"
             />
             <span
-              className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink ${o.className ?? ""}`}
+              className={`caps step flex h-12 cursor-pointer items-center justify-center text-[16px] text-ink peer-checked:bg-ink peer-checked:text-ground peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-4 peer-focus-visible:outline-ink peer-checked:peer-focus-visible:outline-ground hover:bg-band peer-checked:hover:bg-ink peer-aria-disabled:cursor-wait peer-aria-disabled:opacity-60 ${o.className ?? ""}`}
               style={o.style}
             >
               {o.label}

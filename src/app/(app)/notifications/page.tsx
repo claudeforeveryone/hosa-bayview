@@ -11,6 +11,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
+import { PushHint } from "@/components/pwa/push-hint";
+import { pushConfig } from "@/lib/push/config";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/when";
@@ -20,7 +22,14 @@ export const metadata: Metadata = { title: "Notifications" };
 
 type Row = {
   id: string;
-  kind: "announcement" | "test" | "reply" | "event" | "competition" | "role" | "question";
+  kind:
+    | "announcement"
+    | "test"
+    | "reply"
+    | "event"
+    | "competition"
+    | "role"
+    | "question";
   title: string;
   body: string;
   link: string;
@@ -116,7 +125,10 @@ export default async function NotificationsPage() {
         <>
           {fresh.length ? (
             <section aria-labelledby="new-h" className="grid gap-3">
-              <h2 id="new-h" className="caps border-b-[3px] border-ink pb-2 text-[16px]">
+              <h2
+                id="new-h"
+                className="caps border-b-[3px] border-ink pb-2 text-[16px]"
+              >
                 New
               </h2>
               <ul>
@@ -128,7 +140,10 @@ export default async function NotificationsPage() {
           ) : null}
           {earlier.length ? (
             <section aria-labelledby="earlier-h" className="grid gap-3">
-              <h2 id="earlier-h" className="caps border-b-[3px] border-ink pb-2 text-[16px]">
+              <h2
+                id="earlier-h"
+                className="caps border-b-[3px] border-ink pb-2 text-[16px]"
+              >
                 Earlier
               </h2>
               <ul>
@@ -150,6 +165,9 @@ export default async function NotificationsPage() {
           </p>
         </div>
       )}
+      {/* Last on the page: it can only be decided in the browser, after the list has drawn, and nothing below it
+          can move when it appears. */}
+      <PushHint vapidPublicKey={pushConfig()?.publicKey ?? null} />
     </div>
   );
 }
