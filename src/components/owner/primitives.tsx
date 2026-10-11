@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 // tabular numerals, square corners. Nothing here fetches; sections pass data in.
 
 // One section: a 3px ink rule, a condensed heading, one plain line under it, optional controls on the right.
+// The section is a size container: its figures and tables lay out by the width the section really has, not by the
+// window. Beside the app sidebar and the console rail a wide window can still leave a narrow column.
 export function Sheet({
   id,
   title,
@@ -21,7 +23,7 @@ export function Sheet({
   return (
     <section
       aria-labelledby={id}
-      className="grid grid-cols-[minmax(0,1fr)] content-start gap-5 border-t-[3px] border-ink pt-4"
+      className="@container grid grid-cols-[minmax(0,1fr)] content-start gap-5 border-t-[3px] border-ink pt-4"
     >
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="grid min-w-0 gap-1.5">
@@ -42,7 +44,9 @@ export function Sheet({
   );
 }
 
-// The handful of numbers a section leads with, on one ruled band. Two across on phones, up to four on wide screens.
+// The handful of numbers a section leads with, on one ruled band. Two across, four once the section is 40rem wide.
+// The numerals scale with the section (6cqi, 32 to 44px), so a seven-character value such as a build id still
+// clears its cell's padding at 40rem and neighbouring figures never run together.
 export function Figures({
   label,
   children,
@@ -53,7 +57,7 @@ export function Figures({
   return (
     <dl
       aria-label={label}
-      className="grid grid-cols-2 border-b border-rule sm:grid-cols-4"
+      className="grid grid-cols-2 border-b border-rule @min-[40rem]:grid-cols-4"
     >
       {children}
     </dl>
@@ -70,9 +74,9 @@ export function Figure({
   note?: string | null;
 }) {
   return (
-    <div className="grid min-w-0 content-start gap-1 border-t border-rule px-1 py-3 sm:px-3 [&:nth-child(-n+2)]:border-t-0 sm:[&:nth-child(-n+4)]:border-t-0">
+    <div className="grid min-w-0 content-start gap-1 border-t border-rule px-1 py-3 @min-[30rem]:px-3 [&:nth-child(-n+2)]:border-t-0 @min-[40rem]:[&:nth-child(-n+4)]:border-t-0">
       <dt className="caps text-[13px] leading-tight text-ink-2">{label}</dt>
-      <dd className="num font-display text-[clamp(2rem,6vw,2.75rem)] leading-none font-bold">
+      <dd className="num font-display text-[clamp(2rem,6cqi,2.75rem)] leading-none font-bold">
         {value}
       </dd>
       {note ? <dd className="text-[14px] text-ink-2">{note}</dd> : null}
@@ -216,9 +220,10 @@ export type Column<T> = {
   when?: (row: T) => boolean;
 };
 
-// A table on wide screens; on phones each row becomes a short block (first column as its title, the rest as
-// label and value pairs), so nothing scrolls sideways at 390px. A narrow table (two or three short columns) passes
-// stackOnPhone={false} and stays a real table at every width: one line per row instead of a block per row.
+// A table once its section is 36rem wide; narrower (a phone, or a laptop column squeezed by the sidebar and rail)
+// each row becomes a short block (first column as its title, the rest as label and value pairs), so nothing scrolls
+// sideways. A narrow table (two or three short columns) passes stackOnPhone={false} and stays a real table at every
+// width: one line per row instead of a block per row, with its phone-only columns left out below 36rem.
 export function DataTable<T>({
   caption,
   columns,
@@ -233,22 +238,22 @@ export function DataTable<T>({
   stackOnPhone?: boolean;
 }) {
   const [first, ...rest] = columns;
-  // Columns a phone leaves out, when the table shows there too. The last column a phone does show ends flush.
+  // Columns a narrow section leaves out, when the table shows there too. The last one it does show ends flush.
   const lastOnPhone = columns.findLastIndex((c) => !c.hideOnPhone);
   const phoneHidden = (c: Column<T>, i: number) =>
     stackOnPhone
       ? ""
       : c.hideOnPhone
-        ? "hidden sm:table-cell"
+        ? "hidden @min-[36rem]:table-cell"
         : i === lastOnPhone
-          ? "max-sm:pr-0"
+          ? "@max-[36rem]:pr-0"
           : "";
   return (
     <>
       {stackOnPhone ? (
         <ul
           aria-label={caption}
-          className="border-t-[3px] border-ink sm:hidden"
+          className="border-t-[3px] border-ink @min-[36rem]:hidden"
         >
           {rows.map((row) => {
             const pairs = rest.filter(
@@ -283,7 +288,9 @@ export function DataTable<T>({
       ) : null}
       <div
         className={
-          stackOnPhone ? "hidden overflow-x-auto sm:block" : "overflow-x-auto"
+          stackOnPhone
+            ? "hidden overflow-x-auto @min-[36rem]:block"
+            : "overflow-x-auto"
         }
       >
         <table className="w-full border-collapse">
@@ -320,8 +327,8 @@ export function DataTable<T>({
                       key={c.key}
                       className={`py-2.5 pr-4 text-[16px] last:pr-0 ${
                         c.numeric
-                          ? // A table that stays on phones lets a worded value ("Not recorded yet") wrap there.
-                            `num text-right ${stackOnPhone ? "whitespace-nowrap" : "sm:whitespace-nowrap"}`
+                          ? // A table that stays narrow lets a worded value ("Not recorded yet") wrap there.
+                            `num text-right ${stackOnPhone ? "whitespace-nowrap" : "@min-[36rem]:whitespace-nowrap"}`
                           : ""
                       } ${phoneHidden(c, i)}`}
                     >

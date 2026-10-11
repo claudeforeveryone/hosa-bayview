@@ -279,12 +279,13 @@ export function DevStatsView({
         aria-label="Chapter summary"
         className="grid grid-cols-3 border-t-[3px] border-ink"
       >
+        {/* Numerals follow the width of the section around them (cqi), not the window's. */}
         {stats.map((s) => (
           <div key={s.label} className="border-b border-rule px-1 py-3 sm:px-3">
             <p className="caps text-[13px] leading-tight text-ink-2">
               {s.label}
             </p>
-            <p className="num font-display mt-1 text-[clamp(2rem,6vw,2.75rem)] leading-none font-bold">
+            <p className="num font-display mt-1 text-[clamp(2rem,6cqi,2.75rem)] leading-none font-bold">
               {s.value}
             </p>
           </div>
