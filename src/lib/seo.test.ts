@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { isPublicPath } from "./route-gate";
 import {
@@ -156,6 +157,26 @@ describe("publicPage", () => {
   it("uses the same alt text as the card files", () => {
     for (const f of ["src/app/opengraph-image.alt.txt", "src/app/twitter-image.alt.txt"]) {
       expect(readFileSync(f, "utf8").trim(), f).toBe(SOCIAL_IMAGE_ALT);
+    }
+  });
+
+  it("is what every indexed page uses, with its own path", () => {
+    const walk = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)],
+      );
+    const pages = new Map(
+      walk("src/app")
+        .map((f) => f.replaceAll(String.fromCharCode(92), "/"))
+        .filter((f) => f.endsWith("/page.tsx"))
+        .map((f) => [f.replace("src/app", "").replace("/page.tsx", "").replace(/[/][(][^/]+[)]/g, ""), f] as const),
+    );
+    for (const path of INDEXED_PATHS) {
+      const file = pages.get(path);
+      expect(file, path).toBeDefined();
+      const source = readFileSync(file!, "utf8").replace(/\s+/g, " ");
+      expect(source, path).toContain("publicPage(");
+      expect(source, path).toContain(`path: "${path}"`);
     }
   });
 

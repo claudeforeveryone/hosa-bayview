@@ -84,7 +84,13 @@ Web app for HOSA Bayview, the HOSA chapter at Bayview Secondary School. HOSA is 
 - Mobile first; students mostly use phones.
 - Navigation: desktop navy sidebar (logo with the notification bell; Home, Events, Career, Profile; collapsible Chapter group with Announcements, Calendar, Leaderboard, BLC, Resources; collapsible Your events; a More dropdown holds Settings, Attendance (execs), Help and Log out; Admin and Members for execs). "Join with a code" shows only to a non-exec in no event (otherwise it lives in Settings > Events). Phones get a logo bar (bell, theme, menu), the same panel in a drawer, and a bottom bar: Home, Events, Calendar, Profile, More (opens a sheet with every other page, the More items and Log out; /more still works as a page). Events opens a member's only event directly. Every section is reachable from day one, never gated behind setup.
 - Settings has tabs (`?tab=appearance|sound|account|events`; the old `?tab=look` still opens Appearance; tab list in `src/lib/settings-tabs.ts`, rail on desktop, scrolling tab row on phones). Appearance (saved per device in localStorage, applied before first paint by `appearanceScript`): mode (Light/Dark/Device), colour theme or a custom hex, highlight colour or a custom hex (validated hex only; readable text colour picked by luminance), text size (`data-text` zooms `#main` but media is counter-zoomed), font (Default or Dyslexia-friendly), sidebar text case, and a reset. Sound tab: sound (default on), volume, notification sound, haptics. Motion follows the OS reduced-motion setting (a stored `data-motion="calm"` still works).
-- Footer credit: "Joseph & Kaden" with one small heart, low contrast (sidebar bottom on desktop, page foot on phones, auth pages).
+- Footer (`SiteFooter`): Terms and Privacy links plus the credit "Built with (lucide heart) by Joseph & Kaden", low contrast. App: content foot at every size, credit there on phones only (the desktop sidebar ends with it). Also on the auth and legal pages. Settings ends with a short About block (`settings/layout.tsx`).
+
+## Legal and SEO
+
+- `/terms` and `/privacy` (route group `(legal)`) describe what the site really collects. When a feature starts storing something new about members, add it to the privacy page and bump `LEGAL_EFFECTIVE` in `src/lib/legal.ts`. Contact and independence wording live there too.
+- Private by default: the root metadata and the `X-Robots-Tag` header in `next.config.ts` are noindex. A page is indexable only if it is in all four places: public in `src/lib/route-gate.ts`, `INDEXED_PATHS` in `src/lib/seo.ts` (robots.txt allow list, sitemap), the `X-Robots-Tag` override in `next.config.ts`, and `publicPage()` metadata (canonical, card). Tests check they agree.
+- The link-preview card is `src/app/opengraph-image.png` / `twitter-image.png`, made by `scripts/make-og-image.py`.
 
 ## Admins
 
