@@ -178,10 +178,11 @@ function PanelBody({ isExec, canSeeStats, canTeach, rooms }: Props) {
   );
 }
 
-// Desktop: the navy column that holds the logo, navigation and your rooms.
+// Desktop: the navy column that holds the logo, navigation and your rooms. Its foot (credit and theme) sticks to the
+// bottom, so the page footer leaves the credit to it; the scroll padding keeps a focused link clear of that foot.
 export function Sidebar(props: Props) {
   return (
-    <aside className="sticky top-0 hidden h-dvh w-[18rem] shrink-0 flex-col overflow-y-auto bg-field text-on-field lg:flex">
+    <aside className="sticky top-0 hidden h-dvh w-[18rem] shrink-0 scroll-pb-20 flex-col overflow-y-auto bg-field text-on-field lg:flex">
       <div className="flex items-start justify-between gap-2 pt-6 pr-3 pb-8 pl-6">
         <Link href="/" aria-label="HOSA Bayview home" className="block">
           <ClassicLogo className="h-[136px]" />
@@ -192,7 +193,7 @@ export function Sidebar(props: Props) {
         />
       </div>
       <PanelBody {...props} />
-      <div className="mt-auto flex items-end justify-between gap-3 border-t border-on-field-2/40 px-6 pt-4 pb-5">
+      <div className="sticky bottom-0 mt-auto flex items-end justify-between gap-3 border-t border-on-field-2/40 bg-field px-6 pt-4 pb-5">
         <Credit className="text-on-field-2" />
         <ThemeToggle className="-mr-3 -mb-2 text-on-field-2 hover:text-on-field" />
       </div>

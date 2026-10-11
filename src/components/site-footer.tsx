@@ -23,8 +23,15 @@ export function LegalLinks({ className = "" }: { className?: string }) {
   );
 }
 
-// The quiet foot of every page: Terms and Privacy, then the credit.
-export function SiteFooter({ className = "" }: { className?: string }) {
+// The quiet foot of every page: Terms and Privacy, then the credit. In the app, the desktop sidebar's foot holds the
+// credit (sticky, always in view), so creditInSidebar hides this one from lg up and the line never shows twice.
+export function SiteFooter({
+  className = "",
+  creditInSidebar = false,
+}: {
+  className?: string;
+  creditInSidebar?: boolean;
+}) {
   return (
     <footer
       className={`flex flex-wrap items-center gap-x-6 text-[14px] ${className}`}
@@ -32,7 +39,7 @@ export function SiteFooter({ className = "" }: { className?: string }) {
       <nav aria-label="Legal">
         <LegalLinks />
       </nav>
-      <Credit />
+      <Credit className={creditInSidebar ? "lg:hidden" : ""} />
     </footer>
   );
 }
