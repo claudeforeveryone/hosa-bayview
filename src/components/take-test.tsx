@@ -11,6 +11,11 @@ import { AskTeacher, type FlagState } from "@/components/ask-teacher";
 import { Button, FormMessage } from "@/components/form";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
 import { answerKeysLabel, keysLine } from "@/lib/answer-keys";
+import {
+  createAnswerSaves,
+  type AnswerSaves,
+  type Settled,
+} from "@/lib/answer-saves";
 import { feedback, primeFeedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import type { AttemptQuestion } from "@/lib/tests";
@@ -58,7 +63,8 @@ export function TakeTest({
   const router = useRouter();
   const practice = mode === "practice";
 
-  const [answers, setAnswers] = useState<Record<string, Answer>>(() => {
+  // What the server had stored when the page loaded (an attempt picks up where it left off).
+  const [stored] = useState<Record<string, Answer>>(() => {
     const out: Record<string, Answer> = {};
     for (const r of rows) {
       if (r.selected_index !== null) {
@@ -73,14 +79,14 @@ export function TakeTest({
     }
     return out;
   });
+  const [answers, setAnswers] = useState<Record<string, Answer>>(stored);
   const [current, setCurrent] = useState(() => {
-    const firstOpen = rows.findIndex((q) => !(q.question_id in answers));
+    const firstOpen = rows.findIndex((q) => !(q.question_id in stored));
     return firstOpen === -1 ? 0 : firstOpen;
   });
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [submitting, startSubmit] = useTransition();
-  const [saving, setSaving] = useState<string | null>(null);
   // The practice question whose verdict just came back, so only a fresh verdict animates (not one you go back to).
   const [fresh, setFresh] = useState<string | null>(null);
   const submitted = useRef(false);
@@ -88,12 +94,59 @@ export function TakeTest({
   const heading = useRef<HTMLHeadingElement>(null);
   // The question on screen, read when a verdict comes back after a server round trip.
   const onScreen = useRef(current);
+  // The last answer the server confirmed per question: where a failed save goes back to.
+  const confirmed = useRef(stored);
+  // Picks save in the background, one at a time per question (lib/answer-saves). Made on first use, in a handler.
+  const saves = useRef<AnswerSaves | null>(null);
 
   const answered = Object.keys(answers).length;
   const left = rows.length - answered;
   const q = rows[current];
   const mine = answers[q.question_id];
   const locked = practice && mine !== undefined;
+
+  // A save's reply. Only the newest pick for a question changes the screen; an older reply just records what the
+  // server stored, so a slow reply never puts back an answer the taker has already changed.
+  const settle = ({ qid, sent, reply, latest }: Settled) => {
+    if (reply.error) {
+      if (!latest) return;
+      const prior = confirmed.current[qid];
+      setAnswers((a) => {
+        const next = { ...a };
+        if (prior) next[qid] = prior;
+        else delete next[qid];
+        return next;
+      });
+      setError(reply.error);
+      return;
+    }
+    const got: Answer = {
+      // The server's stored pick wins (a stale second tab can't change a locked practice answer).
+      selected: reply.selected_index ?? sent,
+      is_correct: reply.is_correct ?? null,
+      correct_index: reply.correct_index ?? null,
+      explanation: reply.explanation ?? null,
+      saved: true,
+    };
+    confirmed.current = { ...confirmed.current, [qid]: got };
+    if (!latest) return;
+    setAnswers((a) => ({ ...a, [qid]: got }));
+    // Only for the question still on screen: a verdict that lands after you moved on is just stored, and
+    // shows quietly, without the reveal, when you go back.
+    if (
+      practice &&
+      typeof reply.is_correct === "boolean" &&
+      rows[onScreen.current]?.question_id === qid
+    ) {
+      setFresh(qid);
+      feedback(reply.is_correct ? "correct" : "wrong");
+    }
+  };
+  const savesNow = () =>
+    (saves.current ??= createAnswerSaves(
+      (qid, selected) => answerQuestion(attemptId, qid, selected),
+      (s) => settle(s),
+    ));
 
   // byTap is false when the timer submits: no tap, so no tone (the browser would refuse it anyway).
   const submit = useCallback(
@@ -103,7 +156,20 @@ export function TakeTest({
       setError(null);
       if (byTap) primeFeedback();
       startSubmit(async () => {
-        const r = await submitAttempt(attemptId);
+        // A pick still on its way counts, so wait for it. If one didn't save, a tapped submit stops so the taker
+        // can tap it again; when time runs out the attempt closes with what the server has.
+        const unsaved = (await saves.current?.idle()) ?? [];
+        if (byTap && unsaved.length) {
+          submitted.current = false;
+          const n = rows.findIndex((r) => r.question_id === unsaved[0]) + 1;
+          setError(
+            `Question ${n} didn't save. Pick it again, then tap ${practice ? "Finish" : "Submit"}.`,
+          );
+          return;
+        }
+        const r = await submitAttempt(attemptId).catch(() => ({
+          error: `That didn't go through. Check your connection and tap ${practice ? "Finish" : "Submit"} again.`,
+        }));
         if (r.error) {
           submitted.current = false;
           setError(r.error);
@@ -114,7 +180,7 @@ export function TakeTest({
         }
       });
     },
-    [attemptId, router],
+    [attemptId, practice, router, rows],
   );
 
   // Countdown against the server's clock; submits itself at zero.
@@ -147,10 +213,11 @@ export function TakeTest({
     requestAnimationFrame(() => heading.current?.focus());
   };
 
-  const pick = async (original: number) => {
-    if (locked || submitting || saving === q.question_id) return;
+  // Each tap shows at once and saves in the background. A change made while an earlier save is on its way is
+  // sent after it rather than dropped, and a save that fails puts back the last answer the server stored.
+  const pick = (original: number) => {
+    if (locked || submitting) return;
     const qid = q.question_id;
-    const before = answers[qid];
     setError(null);
     // Practice: the verdict sound comes after the server answers, so wake audio now, inside the tap.
     // Timed: no verdict until the end, so the tap itself gets a soft tick.
@@ -166,47 +233,14 @@ export function TakeTest({
         saved: false,
       },
     }));
-    setSaving(qid);
-    const r = await answerQuestion(attemptId, qid, original);
-    setSaving(null);
-    if (r.error) {
-      setAnswers((a) => {
-        const next = { ...a };
-        if (before) next[qid] = before;
-        else delete next[qid];
-        return next;
-      });
-      setError(r.error);
-      return;
-    }
-    setAnswers((a) => ({
-      ...a,
-      [qid]: {
-        // The server's stored pick wins (a stale second tab can't change a locked practice answer).
-        selected: r.selected_index ?? original,
-        is_correct: r.is_correct ?? null,
-        correct_index: r.correct_index ?? null,
-        explanation: r.explanation ?? null,
-        saved: true,
-      },
-    }));
-    // Only for the question still on screen: a verdict that lands after you moved on is just stored, and
-    // shows quietly, without the reveal, when you go back.
-    if (
-      practice &&
-      typeof r.is_correct === "boolean" &&
-      rows[onScreen.current]?.question_id === qid
-    ) {
-      setFresh(qid);
-      feedback(r.is_correct ? "correct" : "wrong");
-    }
+    void savesNow().save(qid, original);
   };
 
   // 1-4 (or A-D) pick the choice on screen, as a click would; Left and Right move; Enter goes on once answered.
   useAnswerKeys({
     enabled: !confirming,
     options: locked ? 0 : q.choice_order.length,
-    onPick: (shown) => void pick(q.choice_order[shown]),
+    onPick: (shown) => pick(q.choice_order[shown]),
     onPrev: current > 0 ? () => go(current - 1) : undefined,
     onNext: current < rows.length - 1 ? () => go(current + 1) : undefined,
     onEnter:
@@ -249,7 +283,7 @@ export function TakeTest({
           className="absolute inset-x-0 bottom-0 block h-[3px] overflow-hidden bg-rule"
         >
           <span
-            className="progress-fill block h-full bg-you"
+            className="progress-fill block h-full bg-you-line"
             style={{ transform: `scaleX(${answered / rows.length})` }}
           />
         </span>
@@ -269,7 +303,7 @@ export function TakeTest({
           text={keysLine(answerKeysLabel(q.choice_order.length), "← → move")}
         />
         <SelectionCards
-          key={q.question_id}
+          key={`cards-${q.question_id}`}
           decks={decks}
           answer={rightText}
           enabled={locked}
@@ -358,7 +392,7 @@ export function TakeTest({
         </div>
         {locked && mine?.saved ? (
           <AskTeacher
-            key={q.question_id}
+            key={`ask-${q.question_id}`}
             testId={testId}
             questionId={q.question_id}
             flag={flags[q.question_id] ?? null}
