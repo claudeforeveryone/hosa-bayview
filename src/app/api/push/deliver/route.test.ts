@@ -59,7 +59,7 @@ describe("POST /api/push/deliver", () => {
       {},
       { "x-push-secret": "wrong" },
       { "x-push-secret": `${SECRET}x` },
-    ]) {
+    ] as Record<string, string>[]) {
       const res = await POST(request(headers));
       expect(res.status).toBe(401);
     }

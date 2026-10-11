@@ -80,7 +80,7 @@ describe("POST /api/push/subscribe", () => {
     for (const headers of [
       { origin: "https://evil.example" },
       { origin: SITE, "sec-fetch-site": "cross-site" },
-    ]) {
+    ] as Record<string, string>[]) {
       const res = await POST(call("POST", SUB, headers));
       expect(res.status).toBe(403);
     }

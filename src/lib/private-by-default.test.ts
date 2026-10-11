@@ -92,7 +92,7 @@ describe("private by default", () => {
     }
   });
 
-  it("route handlers are only /auth, /api/keepalive, the push pair (deliver is secret-checked, subscribe is session-checked) and the session-checked /files/[id]", () => {
+  it("route handlers are only /auth, /api/keepalive, the push routes (deliver is secret-checked; subscribe and test are session-checked), the static /offline page and the session-checked /files/[id]", () => {
     const handlers = walk("src/app")
       .map((f) => f.replaceAll(String.fromCharCode(92), "/"))
       .filter((f) => /\/route\.ts$/.test(f));
@@ -100,10 +100,12 @@ describe("private by default", () => {
       "src/app/api/keepalive/route.ts",
       "src/app/api/push/deliver/route.ts",
       "src/app/api/push/subscribe/route.ts",
+      "src/app/api/push/test/route.ts",
       "src/app/auth/callback/route.ts",
       "src/app/auth/confirm/route.ts",
       "src/app/auth/signout/route.ts",
       "src/app/files/[id]/route.ts",
+      "src/app/offline/route.ts",
     ]);
   });
 
