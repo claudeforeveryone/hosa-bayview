@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BoardView } from "@/components/board-view";
 import { HonorRoll } from "@/components/honor-roll";
 import { PageTitle } from "@/components/page-title";
-import { parseMetric, parsePeriod, rankBoard } from "@/lib/activity";
+import { parseMetric, parsePeriod } from "@/lib/activity";
 import { getBoard, getHonorRoll } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
 
@@ -23,10 +23,11 @@ export default async function LeaderboardPage(
     <div className="grid max-w-3xl grid-cols-1 gap-10">
       <PageTitle meta="All of HOSA Bayview">Leaderboard</PageTitle>
       <BoardView
-        base="/leaderboard"
+        classroomId={null}
         metric={metric}
         period={period}
-        rows={rankBoard(board, metric, period)}
+        rows={board}
+        page={Number(sp.page) || 1}
         meId={me.id}
         empty="Nothing ranked yet"
         elo

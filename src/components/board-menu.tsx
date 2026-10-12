@@ -1,42 +1,30 @@
 "use client";
 
 import { Check, ChevronDown } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useDisclosureClose } from "@/hooks/use-disclosure-close";
 
-const SCROLL_KEY = "hosa-board-scroll";
-
-// A board choice ("Ranked by Elo", "All time") with the alternatives one tap away. A native disclosure of
-// plain links, so it opens and navigates before any script loads; the script closes it on a pick, an outside
-// tap, Escape, or focus moving elsewhere.
+// A board choice ("Ranked by Elo", "All time") with the alternatives one tap away. A native disclosure; the
+// script closes it on a pick, an outside tap, Escape, or focus moving elsewhere. A pick changes the board in
+// place (no page load), so the reader stays where they were on the page.
 export function BoardMenu({
   label,
   lead,
   current,
   items,
+  onPick,
   align = "start",
 }: {
   label: string; // names the menu for screen readers
   lead?: string; // quiet words before the choice, e.g. "Ranked by"
   current: string;
-  items: { value: string; text: string; href: string }[];
+  items: { value: string; text: string }[];
+  onPick: (value: string) => void;
   align?: "start" | "end";
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
 
   useDisclosureClose(ref);
-
-  // A pick reloads the board below the menu; if a loading screen swaps the page out meanwhile, the browser
-  // drops back to the top. Put the reader back where they were once the new board is in.
-  useEffect(() => {
-    let saved: { y: number; at: number } | null = null;
-    try {
-      saved = JSON.parse(sessionStorage.getItem(SCROLL_KEY) ?? "null");
-      sessionStorage.removeItem(SCROLL_KEY);
-    } catch {}
-    if (saved && Date.now() - saved.at < 10_000) window.scrollTo({ top: saved.y });
-  }, [current]);
 
   const on = items.find((i) => i.value === current) ?? items[0];
   return (
@@ -65,22 +53,19 @@ export function BoardMenu({
             const active = item.value === current;
             return (
               <li key={item.value}>
-                <Link
-                  href={item.href}
-                  scroll={false}
+                <button
+                  type="button"
                   aria-current={active ? "true" : undefined}
-                  onClick={(e) => {
-                    // Close and hand focus back to the toggle, so keyboard users aren't dropped to the page top.
-                    // Leave it open for a new-tab click.
+                  onClick={() => {
+                    // Close and hand focus back to the toggle, so keyboard users stay on the menu.
                     const el = ref.current;
-                    if (!el || e.metaKey || e.ctrlKey || e.shiftKey) return;
-                    try {
-                      sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ y: window.scrollY, at: Date.now() }));
-                    } catch {}
-                    el.open = false;
-                    el.querySelector("summary")?.focus();
+                    if (el) {
+                      el.open = false;
+                      el.querySelector("summary")?.focus();
+                    }
+                    if (!active) onPick(item.value);
                   }}
-                  className={`caps flex min-h-11 items-center justify-between gap-6 px-4 text-14 transition-colors duration-100 hover:bg-band focus-visible:-outline-offset-2 ${
+                  className={`caps flex min-h-11 w-full items-center justify-between gap-6 px-4 text-left text-14 transition-colors duration-100 hover:bg-band focus-visible:-outline-offset-2 ${
                     active ? "text-ink" : "text-ink-2 hover:text-ink"
                   }`}
                 >
@@ -88,7 +73,7 @@ export function BoardMenu({
                   {active ? (
                     <Check size={16} strokeWidth={2.25} aria-hidden />
                   ) : null}
-                </Link>
+                </button>
               </li>
             );
           })}

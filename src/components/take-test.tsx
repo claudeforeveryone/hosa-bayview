@@ -2,11 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Timer, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Timer } from "lucide-react";
 import {
   answerQuestion,
   submitAttempt,
 } from "@/app/(app)/c/[id]/tests/actions";
+import {
+  AnswerChoice,
+  choiceState,
+  LETTERS,
+  VerdictPanel,
+} from "@/components/answer-choice";
 import { AskTeacher, type FlagState } from "@/components/ask-teacher";
 import { Button, FormMessage } from "@/components/form";
 import { SelectionCards, type DeckOption } from "@/components/selection-cards";
@@ -28,10 +34,8 @@ import { createSubmitter, type Submitter } from "@/lib/attempt-submit";
 import { feedback, primeFeedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 import type { AttemptQuestion } from "@/lib/tests";
-import { KeyHint, KeyLine } from "@/components/key-hint";
+import { KeyLine } from "@/components/key-hint";
 import { useAnswerKeys } from "@/hooks/use-answer-keys";
-
-const LETTERS = "ABCDE";
 
 function clock(ms: number) {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -236,30 +240,40 @@ export function TakeTest({
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div className="sticky top-0 z-20 -mx-4 flex items-center justify-between gap-4 border-b border-rule bg-ground px-4 py-3 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
-        <p className="caps num text-16 text-ink-2">
-          {answered}/{rows.length} answered
-        </p>
-        {deadline ? (
-          <p
-            className={`num flex items-center gap-2 font-display text-28 leading-none font-bold ${low ? "text-danger" : ""}`}
-            role="timer"
-            aria-label={`Time left ${clock(remaining)}`}
-          >
-            <Timer size={22} strokeWidth={1.75} aria-hidden />
-            {clock(remaining)}
+      <div className="sticky top-0 z-20 -mx-4 grid gap-3 bg-ground px-4 pt-3 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
+        <div className="flex min-h-11 items-center justify-between gap-4">
+          <p className="caps num text-15 text-ink-2">
+            <span className="font-display text-28 leading-none font-bold text-ink">
+              {answered}
+            </span>
+            /{rows.length} answered
           </p>
-        ) : (
-          <p className="caps text-16 text-ink-2">Practice</p>
-        )}
-        {/* How far through the paper you are, filling left to right as each question is answered. */}
+          {deadline ? (
+            <p
+              className={`num flex h-11 items-center gap-2 border-2 px-3 font-display text-28 leading-none font-bold ${
+                low ? "border-danger bg-danger text-ground" : "border-ink"
+              }`}
+              role="timer"
+              aria-label={`Time left ${clock(remaining)}`}
+            >
+              <Timer size={22} strokeWidth={2} aria-hidden />
+              {clock(remaining)}
+            </p>
+          ) : (
+            <p className="caps border-2 border-rule-strong px-2.5 py-1 text-15 text-ink-2">
+              Practice
+            </p>
+          )}
+        </div>
+        {/* How far through the paper you are, filling left to right as each question is answered. It is the
+            header's bottom edge, so the bar is the rule between the header and the page. */}
         <span
           role="progressbar"
           aria-label="Questions answered"
           aria-valuemin={0}
           aria-valuemax={rows.length}
           aria-valuenow={answered}
-          className="absolute inset-x-0 bottom-0 block h-[3px] overflow-hidden bg-rule"
+          className="-mx-4 block h-1.5 overflow-hidden bg-rule sm:-mx-8 lg:-mx-12"
         >
           <span
             className="progress-fill block h-full bg-you-line"
@@ -268,105 +282,82 @@ export function TakeTest({
         </span>
       </div>
 
-      <section aria-labelledby="q-h" className="grid gap-5">
-        <h2
-          id="q-h"
-          ref={heading}
-          tabIndex={-1}
-          className="caps num scroll-mt-24 text-16 text-ink-2 outline-none"
-        >
-          Question {current + 1} of {rows.length}
-        </h2>
-        <KeyLine
-          className="-mt-3"
-          text={keysLine(answerKeysLabel(q.choice_order.length), "← → move")}
-        />
-        <SelectionCards
-          key={`cards-${q.question_id}`}
-          decks={decks}
-          answer={rightText}
-          enabled={locked}
-        >
-          <p className="max-w-[65ch] text-[clamp(1.25rem,4vw,1.6rem)] leading-snug font-medium whitespace-pre-line">
-            {q.prompt}
-          </p>
-        </SelectionCards>
-        <ul className="grid max-w-2xl gap-2">
+      <section aria-labelledby="q-h" className="grid max-w-3xl gap-5">
+        <div className="grid gap-3 border-t-[3px] border-ink pt-4">
+          <h2
+            id="q-h"
+            ref={heading}
+            tabIndex={-1}
+            className="caps num scroll-mt-28 text-16 text-ink-2 outline-none"
+          >
+            Question{" "}
+            <span className="font-display text-40 leading-none font-bold text-ink">
+              {current + 1}
+            </span>{" "}
+            of {rows.length}
+          </h2>
+          <KeyLine
+            className="-mt-1"
+            text={keysLine(answerKeysLabel(q.choice_order.length), "← → move")}
+          />
+          <SelectionCards
+            key={`cards-${q.question_id}`}
+            decks={decks}
+            answer={rightText}
+            enabled={locked}
+          >
+            <p className="q-prompt whitespace-pre-line">{q.prompt}</p>
+          </SelectionCards>
+        </div>
+        <ul className="grid gap-2.5">
           {q.choice_order.map((original, shown) => {
             const chosen = mine?.selected === original;
             const right = locked && mine?.correct_index === original;
             const wrong = locked && chosen && mine?.is_correct === false;
-            const tone = right
-              ? "border-ok bg-ok/15"
-              : wrong
-                ? "border-danger bg-danger/10"
-                : chosen
-                  ? "border-ink bg-ink text-ground"
-                  : "border-rule-strong hover:border-ink";
             return (
               <li key={original}>
-                <button
-                  type="button"
+                <AnswerChoice
+                  letter={LETTERS[shown]}
+                  state={choiceState({ chosen, right, wrong, settled: locked })}
+                  picked={chosen}
+                  fresh={fresh === q.question_id}
+                  hint={shown + 1}
                   onClick={() => pick(original)}
                   aria-pressed={chosen}
                   aria-keyshortcuts={`${shown + 1} ${LETTERS[shown]}`}
                   disabled={locked || submitting}
-                  className={`press step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-17 disabled:cursor-default ${tone}`}
                 >
-                  <span className="num w-5 shrink-0 font-display text-18 font-bold">
-                    {LETTERS[shown]}
-                  </span>
-                  <span className="min-w-0 flex-1">{q.options[original]}</span>
-                  <KeyHint n={shown + 1} />
-                  {right ? (
-                    <Check
-                      size={22}
-                      strokeWidth={2.25}
-                      className={`shrink-0 text-ok ${fresh === q.question_id ? "verdict-pop" : ""}`}
-                      aria-label="Right answer"
-                    />
-                  ) : null}
-                  {wrong ? (
-                    <X
-                      size={22}
-                      strokeWidth={2.25}
-                      className={`shrink-0 text-danger ${fresh === q.question_id ? "verdict-pop" : ""}`}
-                      aria-label="Your answer, wrong"
-                    />
-                  ) : null}
-                </button>
+                  {q.options[original]}
+                </AnswerChoice>
               </li>
             );
           })}
         </ul>
         {/* Always mounted so screen readers announce the verdict when it arrives. */}
-        <div className="grid max-w-2xl gap-2" aria-live="polite">
+        <div aria-live="polite">
           {locked ? (
-            <>
-              <p
-                key={mine?.saved ? "verdict" : "checking"}
-                className={`caps text-18 ${
-                  mine?.saved && fresh === q.question_id ? "reveal" : ""
-                } ${
-                  mine?.saved && mine.is_correct
-                    ? "text-ok"
-                    : mine?.saved && mine.is_correct === false
-                      ? "text-danger"
-                      : "text-ink-2"
-                }`}
-              >
-                {!mine?.saved
+            <VerdictPanel
+              key={mine?.saved ? "verdict" : "checking"}
+              tone={
+                mine?.saved && mine.is_correct
+                  ? "ok"
+                  : mine?.saved && mine.is_correct === false
+                    ? "danger"
+                    : "wait"
+              }
+              label={
+                !mine?.saved
                   ? "Checking"
                   : mine.is_correct
                     ? "Right"
                     : mine.is_correct === false
                       ? "Not quite"
-                      : "Saved"}
-              </p>
-              {mine?.explanation ? (
-                <p className="text-ink-2">{mine.explanation}</p>
-              ) : null}
-            </>
+                      : "Saved"
+              }
+              animate={mine?.saved === true && fresh === q.question_id}
+            >
+              {mine?.explanation ? <p>{mine.explanation}</p> : null}
+            </VerdictPanel>
           ) : null}
         </div>
         {locked && mine?.saved ? (
@@ -385,18 +376,25 @@ export function TakeTest({
         ) : null}
       </section>
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Back and Next sit by the thumb on a phone: pinned just above the bottom bar until the page reaches
+          them. From lg (no bottom bar) they sit in the flow under the question. */}
+      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 -mx-4 grid grid-cols-2 gap-3 border-t-[3px] border-ink bg-ground px-4 py-3 sm:-mx-8 sm:px-8 lg:static lg:mx-0 lg:flex lg:flex-wrap lg:items-center lg:border-t-0 lg:p-0">
         <Button
           type="button"
           variant="line"
           onClick={() => go(current - 1)}
           disabled={current === 0}
+          className="w-full lg:w-auto"
         >
           <ArrowLeft size={20} strokeWidth={1.75} aria-hidden />
           Back
         </Button>
         {current < rows.length - 1 ? (
-          <Button type="button" onClick={() => go(current + 1)}>
+          <Button
+            type="button"
+            onClick={() => go(current + 1)}
+            className="w-full lg:w-auto"
+          >
             Next
             <ArrowRight size={20} strokeWidth={1.75} aria-hidden />
           </Button>

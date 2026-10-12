@@ -116,7 +116,7 @@ export default async function MorePage() {
           ) : null}
           {canSendFeedback ? (
             <Row
-              href="/settings?tab=account#feedback-h"
+              href="/feedback"
               Icon={MessageSquareText}
               label="Send feedback"
               hint="A bug, an idea, or something that could be clearer"

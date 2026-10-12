@@ -22,10 +22,9 @@ import { getAnnouncementStates, getAnnouncements, type AnnouncementRow } from "@
 import {
   formatCount,
   parsePeriod,
-  rankBoard,
   type Metric,
   type Period,
-  type RankedRow,
+  type BoardRow,
 } from "@/lib/activity";
 import { ClassroomRow } from "@/components/classroom-row";
 import { getMyClassrooms, type ClassroomSummary } from "@/lib/classrooms";
@@ -75,35 +74,28 @@ function Header({
 function ClubBoard({
   metric,
   period,
-  ranked,
+  board,
   meId,
 }: {
   metric: Metric;
   period: Period;
-  ranked: RankedRow[];
+  board: BoardRow[];
   meId: string;
 }) {
-  const place = ranked.find((r) => r.user_id === meId)?.place;
   return (
-    <HomeBox
-      id="board-h"
-      title="Leaderboard"
-      link={{
-        href: `/leaderboard?metric=${metric}&period=${period}`,
-        text: "Full board",
-      }}
-    >
+    <HomeBox id="board-h" title="Leaderboard">
       <div className="grid gap-2 py-3">
         <BoardView
-          lead={place ? `You're #${place} of ${ranked.length}` : undefined}
-          base="/"
+          showPlace
+          classroomId={null}
           metric={metric}
           period={period}
-          rows={ranked}
+          rows={board}
           meId={meId}
           empty="Nothing ranked yet"
           limit={5}
           metrics={["elo"]}
+          more={{ href: "/leaderboard", text: "Full board" }}
         />
       </div>
     </HomeBox>
@@ -285,7 +277,6 @@ export default async function HomePage(props: PageProps<"/">) {
   ]);
   const teach = canTeach(profile);
   const first = profile.full_name.split(" ")[0] || profile.full_name;
-  const ranked = rankBoard(board, metric, period);
 
   const owned = rooms.filter((r) => r.is_owner);
   const firstOwned = owned[0];
@@ -348,7 +339,7 @@ export default async function HomePage(props: PageProps<"/">) {
       <ClubBoard
         metric={metric}
         period={period}
-        ranked={ranked}
+        board={board}
         meId={profile.id}
       />
     </div>

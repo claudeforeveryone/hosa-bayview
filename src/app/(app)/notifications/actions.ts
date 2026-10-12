@@ -28,3 +28,29 @@ export async function markRead(list: string[]): Promise<{ error?: string }> {
   if (!parsed.success) return { error: "Couldn't mark that read." };
   return mark(parsed.data);
 }
+
+// Deletes notifications from your own inbox (0281): the ones given. The database function only ever touches your
+// own rows.
+async function dismiss(ids: string[]): Promise<{ error?: string }> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("dismiss_notifications", { ids });
+  if (error) {
+    console.error("[notifications:dismiss]", error.message);
+    return { error: "Couldn't delete that. Try again." };
+  }
+  return {};
+}
+
+export async function deleteNotification(id: string): Promise<{ error?: string }> {
+  const parsed = ids.safeParse([id]);
+  if (!parsed.success) return { error: "Couldn't delete that." };
+  return dismiss(parsed.data);
+}
+
+// "Clear read": the read ones the page showed, by id, so it deletes exactly what the button counted.
+export async function clearRead(list: string[]): Promise<{ error?: string }> {
+  const parsed = ids.safeParse(list);
+  if (!parsed.success) return { error: "Couldn't delete those." };
+  return dismiss(parsed.data);
+}

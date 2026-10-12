@@ -2,12 +2,17 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { Check, X } from "lucide-react";
 import {
   answerCareerQuestion,
   finishCareerQuiz,
   type CareerAnswer,
 } from "@/app/(app)/career/actions";
+import {
+  AnswerChoice,
+  choiceState,
+  LETTERS,
+  VerdictPanel,
+} from "@/components/answer-choice";
 import { Button } from "@/components/form";
 import { feedback } from "@/lib/feedback";
 
@@ -24,8 +29,6 @@ type Result = {
   correct_index: number | null;
   explanation: string | null;
 };
-
-const LETTERS = "ABCDE";
 
 // One question at a time, like a test: pick an option, the server checks it and the key comes back, then Next.
 // Each answer is a practice answer on the question's own test (see answerCareerQuestion). When the run ends,
@@ -46,6 +49,8 @@ export function CareerQuiz({
   const [results, setResults] = useState<Record<string, Result>>({});
   const [skipped, setSkipped] = useState<Record<string, true>>({});
   const [saving, setSaving] = useState(false);
+  // The option tapped while its answer is on the way, so the card shows as picked straight away.
+  const [pending, setPending] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [finished, setFinished] = useState(false);
   const testIds = useRef(new Set<string>());
@@ -66,15 +71,19 @@ export function CareerQuiz({
   async function pick(shown: number) {
     if (!item || saving || answered) return;
     setSaving(true);
+    setPending(shown);
     setError(null);
     const r: CareerAnswer = await answerCareerQuestion(
       item.question_id,
       shown,
       since,
-    ).catch((): CareerAnswer => ({
-      error: "That answer didn't save. Check your connection and try again.",
-    }));
+    ).catch(
+      (): CareerAnswer => ({
+        error: "That answer didn't save. Check your connection and try again.",
+      }),
+    );
     setSaving(false);
+    setPending(null);
     if (r.error) {
       setError(r.error);
       return;
@@ -138,105 +147,111 @@ export function CareerQuiz({
 
   if (!item) return null;
 
+  const done = Object.keys(results).length + skips;
+  const settled = answered || pending !== null;
+
   return (
     <div className="grid gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="caps num text-16 text-ink-2" aria-live="polite">
-          Question {index + 1} of {total}
-        </p>
-        <p className="caps num text-16 text-ink-2">
-          Right {rightCount} · Wrong {wrongCount}
-        </p>
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="caps num text-16 text-ink-2" aria-live="polite">
+            Question{" "}
+            <span className="font-display text-40 leading-none font-bold text-ink">
+              {index + 1}
+            </span>{" "}
+            of {total}
+          </p>
+          <p className="caps num flex items-center gap-3 text-16">
+            <span className="text-ok">Right {rightCount}</span>
+            <span aria-hidden className="h-4 w-px bg-rule-strong" />
+            <span className="text-danger">Wrong {wrongCount}</span>
+          </p>
+        </div>
+        <span
+          role="progressbar"
+          aria-label="Questions done"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={done}
+          className="block h-1.5 overflow-hidden bg-rule"
+        >
+          <span
+            className="progress-fill block h-full bg-you-line"
+            style={{ transform: `scaleX(${total ? done / total : 0})` }}
+          />
+        </span>
       </div>
 
-      <section aria-labelledby="quiz-q" className="grid gap-5">
-        <p
-          id="quiz-q"
-          className="max-w-[65ch] text-[clamp(1.25rem,4vw,1.6rem)] leading-snug font-medium whitespace-pre-line"
-        >
-          {item.prompt}
-        </p>
-        <ul className="grid max-w-2xl gap-2">
+      <section aria-labelledby="quiz-q" className="grid max-w-3xl gap-5">
+        <div className="border-t-[3px] border-ink pt-4">
+          <p id="quiz-q" className="q-prompt whitespace-pre-line">
+            {item.prompt}
+          </p>
+        </div>
+        <ul className="grid gap-2.5">
           {item.options.map((option, shown) => {
-            const chosen = mine?.selected === shown;
+            const chosen = mine ? mine.selected === shown : pending === shown;
             const isKey = mine !== undefined && mine.correct_index === shown;
             const wrongPick =
               mine !== undefined && chosen && mine.is_correct === false;
-            const tone = isKey
-              ? "border-ok bg-ok/15"
-              : wrongPick
-                ? "border-danger bg-danger/10"
-                : chosen
-                  ? "border-ink bg-ink text-ground"
-                  : "border-rule-strong hover:border-ink";
             return (
               <li key={shown}>
-                <button
-                  type="button"
+                <AnswerChoice
+                  letter={LETTERS[shown]}
+                  state={choiceState({
+                    chosen,
+                    right: isKey,
+                    wrong: wrongPick,
+                    settled,
+                  })}
+                  picked={chosen}
+                  // A quiz never goes back, so every verdict on screen is a fresh one.
+                  fresh={mine !== undefined}
                   onClick={() => pick(shown)}
                   aria-pressed={chosen}
                   disabled={answered || saving}
-                  className={`step flex min-h-14 w-full items-start gap-3 border px-4 py-3 text-left text-17 disabled:cursor-default ${tone}`}
                 >
-                  <span className="num w-5 shrink-0 font-display text-18 font-bold">
-                    {LETTERS[shown]}
-                  </span>
-                  <span className="min-w-0 flex-1">{option}</span>
-                  {isKey ? (
-                    <Check
-                      size={22}
-                      strokeWidth={2.25}
-                      className="shrink-0 text-ok"
-                      aria-label="Right answer"
-                    />
-                  ) : null}
-                  {wrongPick ? (
-                    <X
-                      size={22}
-                      strokeWidth={2.25}
-                      className="shrink-0 text-danger"
-                      aria-label="Your answer, wrong"
-                    />
-                  ) : null}
-                </button>
+                  {option}
+                </AnswerChoice>
               </li>
             );
           })}
         </ul>
 
-        <div className="grid max-w-2xl gap-3" aria-live="polite">
+        <div className="grid gap-3" aria-live="polite">
           {mine ? (
-            <>
-              <p
-                className={`caps text-18 ${
-                  mine.is_correct === true
-                    ? "text-ok"
-                    : mine.is_correct === false
-                      ? "text-danger"
-                      : "text-ink-2"
-                }`}
-              >
-                {mine.is_correct === true
+            <VerdictPanel
+              tone={
+                mine.is_correct === true
+                  ? "ok"
+                  : mine.is_correct === false
+                    ? "danger"
+                    : "wait"
+              }
+              label={
+                mine.is_correct === true
                   ? "Right"
                   : mine.is_correct === false
                     ? "Wrong"
-                    : "Saved"}
-              </p>
+                    : "Saved"
+              }
+              animate
+            >
               {mine.is_correct === false && mine.correct_index !== null ? (
-                <p className="text-16">
+                <p>
                   <span className="text-ink-2">Right answer: </span>
-                  {item.options[mine.correct_index]}
+                  <span className="font-semibold">
+                    {item.options[mine.correct_index]}
+                  </span>
                 </p>
               ) : null}
-              {mine.explanation ? (
-                <p className="text-16 text-ink-2">{mine.explanation}</p>
-              ) : null}
-            </>
+              {mine.explanation ? <p>{mine.explanation}</p> : null}
+            </VerdictPanel>
           ) : isSkipped ? (
-            <p className="caps text-18 text-ink-2">Skipped</p>
+            <VerdictPanel tone="wait" label="Skipped" />
           ) : (
             <p className="flex min-h-12 items-center text-15 text-ink-2">
-              Pick an answer.
+              {saving ? "Checking" : "Pick an answer."}
             </p>
           )}
           {error ? (
@@ -246,17 +261,24 @@ export function CareerQuiz({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          {answered ? (
-            <Button onClick={next}>
-              {index + 1 < total ? "Next" : "See results"}
-            </Button>
-          ) : error ? (
-            <Button variant="line" onClick={skip}>
-              Skip this one
-            </Button>
-          ) : null}
-        </div>
+        {/* Next sits by the thumb on a phone: pinned just above the bottom bar until the page reaches it. */}
+        {answered || error ? (
+          <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 -mx-4 grid border-t-[3px] border-ink bg-ground px-4 py-3 sm:mx-0 sm:px-0 lg:static lg:mx-0 lg:flex lg:flex-wrap lg:gap-3 lg:border-t-0 lg:p-0">
+            {answered ? (
+              <Button onClick={next} className="w-full lg:w-auto">
+                {index + 1 < total ? "Next" : "See results"}
+              </Button>
+            ) : (
+              <Button
+                variant="line"
+                onClick={skip}
+                className="w-full lg:w-auto"
+              >
+                Skip this one
+              </Button>
+            )}
+          </div>
+        ) : null}
       </section>
     </div>
   );

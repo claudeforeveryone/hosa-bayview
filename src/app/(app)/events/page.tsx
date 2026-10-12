@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ArrowRight, Plus } from "lucide-react";
 import { OpenBattleRows } from "@/components/battle-entry";
 import { BattleJoinForm } from "@/components/battle-join-form";
+import { ChapterShelfLink } from "@/components/chapter-shelf-link";
 import { ClassroomRow } from "@/components/classroom-row";
 import { JoinForm } from "@/components/join-form";
 import { PageTitle } from "@/components/page-title";
@@ -177,6 +178,8 @@ export default async function EventsPage(props: PageProps<"/events">) {
             : "You're not in an event yet. Get the code from your trainer and enter it below."}
         </p>
       ) : null}
+
+      <ChapterShelfLink />
 
       <section
         aria-label="Join with a code"

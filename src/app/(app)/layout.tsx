@@ -96,6 +96,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         isExec={nav.isExec}
         canSeeStats={nav.canSeeStats}
         canSendFeedback={nav.canSendFeedback}
+        roomCount={nav.rooms.length}
       />
       <OnlineHeartbeat />
       <PwaLayer

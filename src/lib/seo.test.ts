@@ -124,7 +124,7 @@ describe("sitemap", () => {
   it("dates the legal pages by their effective date", () => {
     const entries = sitemap("https://hosa.example.ca");
     const terms = entries.find((e) => e.url.endsWith("/terms"));
-    expect(terms?.lastModified).toEqual(new Date("2026-10-11T00:00:00-04:00"));
+    expect(terms?.lastModified).toEqual(new Date("2026-10-12T00:00:00-04:00"));
   });
 });
 
