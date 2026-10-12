@@ -29,7 +29,8 @@ const TOPICS: Topic[] = [
         trainer hides answers) and can redo it as often as you like. Timed runs
         like the real competition: the clock counts down, you&apos;re graded
         when you submit, and some tests limit your tries. Every attempt counts
-        toward your stats, Career and the leaderboard.
+        toward your stats, Career and the leaderboard. Answers save as you go:
+        leave mid-test and Questions shows it under Pick up where you left off.
       </>
     ),
   },
@@ -49,7 +50,7 @@ const TOPICS: Topic[] = [
     q: "Flashcards",
     a: (
       <>
-        In an event, open Questions, then Cards. Tap a card to flip it, then mark Know it
+        Open Questions (it unlocks once you&apos;re in an event) and pick a deck. Tap a card to flip it, then mark Know it
         or Still learning. Make your own decks by pasting term and definition
         pairs, and try Match for a quick game.
       </>
@@ -72,8 +73,9 @@ const TOPICS: Topic[] = [
     a: (
       <>
         The bell counts what&apos;s new: announcements, events, tests and
-        replies to your questions. A soft chime plays when something arrives
-        while you&apos;re here; turn it off in{" "}
+        replies to your questions. Tap the bin on one to delete it, or Clear
+        read to delete every one you&apos;ve read. A chime plays when something
+        arrives while you&apos;re here; turn it off in{" "}
         <Link
           href="/settings?tab=sound"
           className="underline underline-offset-4"

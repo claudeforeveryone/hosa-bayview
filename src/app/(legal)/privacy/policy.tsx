@@ -113,7 +113,9 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               ban changes.
             </>,
             <>
-              <Term>Notifications.</Term> The notices the site sends you.
+              <Term>Notifications.</Term> The notices the site sends you. One
+              you delete leaves your inbox for good, but we keep the notice
+              itself until your account is deleted.
               {phoneApp ? (
                 <>
                   {" "}

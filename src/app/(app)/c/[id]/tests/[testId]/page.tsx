@@ -58,6 +58,8 @@ export default async function TestPage({
   ]);
   const left = attemptsLeft(test.attempts_allowed, used);
   const openFlags = flags.filter((f) => f.status === "open");
+  // eslint-disable-next-line react-hooks/purity -- server render time, once per request
+  const now = Date.now();
 
   return (
     <div className="grid grid-cols-1 gap-10">
@@ -108,6 +110,9 @@ export default async function TestPage({
         hasQuestions={questions.length > 0}
         allowPractice={test.allow_practice}
         attemptsLeft={left}
+        openModes={attempts
+          .filter((a) => !a.submitted_at && (!a.deadline || Date.parse(a.deadline) > now))
+          .map((a) => a.mode)}
       />
 
       {attempts.length ? (

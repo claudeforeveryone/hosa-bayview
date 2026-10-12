@@ -389,7 +389,7 @@ function OwnerNav({ banner }: { banner: ReactNode }) {
         />
       </div>
       <div className="relative z-50 lg:hidden">
-        <BottomNav {...owner} />
+        <BottomNav {...owner} roomCount={2} />
       </div>
     </div>
   );

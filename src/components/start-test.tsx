@@ -12,6 +12,7 @@ export function StartTest({
   hasQuestions,
   allowPractice = true,
   attemptsLeft = null,
+  openModes = [],
 }: {
   classroomId: string;
   testId: string;
@@ -20,6 +21,8 @@ export function StartTest({
   allowPractice?: boolean;
   // Null means unlimited; otherwise scored attempts still open to you.
   attemptsLeft?: number | null;
+  // Runs you started and didn't hand in: the button picks them back up (the server resumes the open run).
+  openModes?: ("timed" | "practice")[];
 }) {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"timed" | "practice" | null>(null);
@@ -57,7 +60,9 @@ export function StartTest({
             <Timer size={20} strokeWidth={1.75} aria-hidden />
             {pending && mode === "timed"
               ? "Starting"
-              : `Timed · ${timeLimit} min`}
+              : openModes.includes("timed")
+                ? "Resume timed"
+                : `Timed · ${timeLimit} min`}
           </Button>
         ) : null}
         {allowPractice ? (
@@ -68,7 +73,11 @@ export function StartTest({
             disabled={pending || practiceOut || practiceLocked}
           >
             <Play size={20} strokeWidth={1.75} aria-hidden />
-            {pending && mode === "practice" ? "Starting" : "Practice"}
+            {pending && mode === "practice"
+              ? "Starting"
+              : openModes.includes("practice")
+                ? "Resume practice"
+                : "Practice"}
           </Button>
         ) : null}
       </div>

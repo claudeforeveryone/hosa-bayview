@@ -16,7 +16,7 @@ import { pushConfig } from "@/lib/push/config";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/when";
-import { MarkAllRead, NotificationLink } from "./mark-read";
+import { ClearRead, DeleteNotification, MarkAllRead, NotificationLink } from "./mark-read";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -54,12 +54,12 @@ function Item({ n, now }: { n: Row; now: number }) {
   const { Icon, label } = KIND[n.kind] ?? KIND.announcement;
   const fresh = !n.read_at;
   return (
-    <li className="border-b border-rule">
+    <li className="flex items-stretch border-b border-rule">
       <NotificationLink
         id={n.id}
         fresh={fresh}
         href={safeLink(n.link)}
-        className="step grid grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 gap-y-1 px-1 py-4 hover:bg-band sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:px-3"
+        className="step grid min-w-0 flex-1 grid-cols-[1.75rem_minmax(0,1fr)] gap-x-3 gap-y-1 px-1 py-4 hover:bg-band sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:px-3"
       >
         <Icon
           size={22}
@@ -96,6 +96,7 @@ function Item({ n, now }: { n: Row; now: number }) {
           {timeAgo(n.created_at, now)}
         </span>
       </NotificationLink>
+      <DeleteNotification id={n.id} title={n.title} />
     </li>
   );
 }
@@ -106,6 +107,7 @@ export default async function NotificationsPage() {
   const { data, error } = await supabase
     .from("notifications")
     .select("id, kind, title, body, link, created_at, read_at")
+    .is("dismissed_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) throw new Error(`Notifications lookup failed: ${error.message}`);
@@ -129,8 +131,14 @@ export default async function NotificationsPage() {
       >
         Notifications
       </PageTitle>
-      {/* Nothing is marked read just by opening the page: tap one to read it, or mark them all here. */}
-      {fresh.length ? <MarkAllRead /> : null}
+      {/* Nothing is marked read just by opening the page: tap one to read it, or mark them all here. The bin on a
+          row deletes it from your inbox; Clear read deletes every one you've read. */}
+      {fresh.length || earlier.length ? (
+        <div className="flex flex-wrap items-start gap-3">
+          {fresh.length ? <MarkAllRead /> : null}
+          {earlier.length ? <ClearRead count={earlier.length} /> : null}
+        </div>
+      ) : null}
       {rows.length ? (
         <>
           {fresh.length ? (

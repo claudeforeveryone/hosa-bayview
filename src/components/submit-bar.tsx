@@ -41,17 +41,17 @@ export function SubmitBar({
   }, [problem]);
 
   return (
-    <div className="grid justify-items-start gap-3 border-t border-rule pt-6">
+    <div className="grid justify-items-start gap-3 border-t-[3px] border-ink pt-6">
       {confirming ? (
         <div
-          className="grid gap-3"
+          className="grid w-full gap-3 sm:w-auto"
           role="group"
           aria-label="Submit with questions left"
         >
           <p>
             {left} question{left === 1 ? "" : "s"} still blank. Submit anyway?
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <Button
               type="button"
               variant="you"
@@ -72,7 +72,12 @@ export function SubmitBar({
           </div>
         </div>
       ) : (
-        <Button type="button" onClick={onFinish} disabled={submitting}>
+        <Button
+          type="button"
+          onClick={onFinish}
+          disabled={submitting}
+          className="w-full sm:w-auto"
+        >
           {submitting ? "Submitting" : button}
         </Button>
       )}

@@ -16,6 +16,7 @@ import {
   parseLuckyEvent,
   particleCount,
 } from "@/lib/lucky";
+import { feedback } from "@/lib/feedback";
 import { rollLuckyBonus } from "@/lib/lucky-client";
 
 type Bonus = { id: number; amount: number; reason: LuckyReason };
@@ -76,6 +77,8 @@ export function LuckyBonus() {
 
   useEffect(() => {
     if (!current) return;
+    // The win fanfare as each bonus lands (sound and haptics follow the member's settings).
+    feedback("win");
     const timer = window.setTimeout(dismiss, luckyDuration(current.amount));
     return () => window.clearTimeout(timer);
   }, [current, dismiss]);

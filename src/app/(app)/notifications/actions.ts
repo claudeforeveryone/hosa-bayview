@@ -28,3 +28,26 @@ export async function markRead(list: string[]): Promise<{ error?: string }> {
   if (!parsed.success) return { error: "Couldn't mark that read." };
   return mark(parsed.data);
 }
+
+// Deletes notifications from your own inbox (0281): the ones given, or every one you've already read when `ids`
+// is null. Unread ones are only ever removed by name, so "Clear read" can't swallow something you haven't seen.
+async function dismiss(ids: string[] | null): Promise<{ error?: string }> {
+  await requireProfile();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("dismiss_notifications", { ids });
+  if (error) {
+    console.error("[notifications:dismiss]", error.message);
+    return { error: "Couldn't delete that. Try again." };
+  }
+  return {};
+}
+
+export async function deleteNotification(id: string): Promise<{ error?: string }> {
+  const parsed = ids.safeParse([id]);
+  if (!parsed.success) return { error: "Couldn't delete that." };
+  return dismiss(parsed.data);
+}
+
+export async function clearRead(): Promise<{ error?: string }> {
+  return dismiss(null);
+}

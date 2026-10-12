@@ -21,7 +21,7 @@ describe("phone More sheet and the owner console", () => {
 // Send feedback (0231) sits in the More group, the phone More sheet and /more, but only once the database has it:
 // before that it would be a link to a form that can't send.
 describe("Send feedback in More", () => {
-  const FEEDBACK = "/settings?tab=account#feedback-h";
+  const FEEDBACK = "/feedback";
 
   it("is listed for every member once feedback is on", () => {
     expect(hrefs(moreItemsFor(false, true))).toContain(FEEDBACK);
@@ -35,8 +35,9 @@ describe("Send feedback in More", () => {
     expect(hrefs(sheetItemsFor(false, true))).not.toContain(FEEDBACK);
   });
 
-  it("never lights up as the current page next to Settings", () => {
+  it("is its own page, apart from Settings", () => {
     const item = moreItemsFor(false, true).find((i) => i.href === FEEDBACK);
+    expect(item?.match("/feedback")).toBe(true);
     expect(item?.match("/settings")).toBe(false);
   });
 });

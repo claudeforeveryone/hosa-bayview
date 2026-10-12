@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ChevronDown, LogOut, Menu, Plus, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Lock, LogOut, Menu, Plus, X } from "lucide-react";
 import { ClassicLogo, SEASON } from "@/components/classic-logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -14,9 +14,13 @@ import {
   bottomItemsFor,
   moreItemsFor,
   navItemsFor,
+  questionsLocked,
   sheetItemsFor,
   showJoinLink,
 } from "@/lib/nav-items";
+
+// What a screen reader hears after a locked item's name.
+const LOCKED_NOTE = " (locked until you join an event)";
 
 export type NavRoom = { id: string; num: number; name: string };
 type Props = {
@@ -91,7 +95,8 @@ function PanelBody({
     canSeeStats,
     canSendFeedback,
   );
-  const link = ({ href, label, Icon, active }: (typeof items)[number]) => (
+  const locked = questionsLocked(rooms.length);
+  const link = ({ href, label, Icon, active, needsEvent }: (typeof items)[number]) => (
     <li key={href}>
       <Link
         href={href}
@@ -100,6 +105,12 @@ function PanelBody({
       >
         <Icon size={22} strokeWidth={1.75} aria-hidden />
         <span className="caps nav-label text-19">{label}</span>
+        {needsEvent && locked ? (
+          <>
+            <Lock size={16} strokeWidth={2} aria-hidden className="ml-auto opacity-80" />
+            <span className="sr-only">{LOCKED_NOTE}</span>
+          </>
+        ) : null}
       </Link>
     </li>
   );
@@ -301,11 +312,14 @@ export function BottomNav({
   isExec,
   canSeeStats,
   canSendFeedback,
+  roomCount,
 }: {
   isExec: boolean;
   canSeeStats: boolean;
   canSendFeedback: boolean;
+  roomCount: number;
 }) {
+  const locked = questionsLocked(roomCount);
   const { path, bottom, sheet } = useItems(
     isExec,
     canSeeStats,
@@ -338,7 +352,7 @@ export function BottomNav({
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="grid auto-cols-fr grid-flow-col">
-        {bottom.map(({ href, short, Icon, active }) => (
+        {bottom.map(({ href, short, Icon, active, needsEvent }) => (
           <li key={href}>
             {href === "/more" ? (
               <button
@@ -356,8 +370,21 @@ export function BottomNav({
                 aria-current={active ? "page" : undefined}
                 className={tab(active)}
               >
-                <Icon {...glyph(active)} />
-                <span className="caps text-13 leading-none">{short}</span>
+                <span className="relative">
+                  <Icon {...glyph(active)} />
+                  {needsEvent && locked ? (
+                    <Lock
+                      size={13}
+                      strokeWidth={2.5}
+                      aria-hidden
+                      className="absolute -right-2 -bottom-1 bg-field"
+                    />
+                  ) : null}
+                </span>
+                <span className="caps text-13 leading-none">
+                  {short}
+                  {needsEvent && locked ? <span className="sr-only">{LOCKED_NOTE}</span> : null}
+                </span>
               </Link>
             )}
           </li>

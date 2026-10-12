@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_VOLUME, parseHaptics, parseSound, parseVolume, volumeGain } from "./appearance";
-import { BUZZ, TONES, type FeedbackKind } from "./feedback";
+import {
+  BUZZ,
+  HEADROOM,
+  TONES,
+  clipCurve,
+  envelopeAt,
+  peakLevel,
+  softClip,
+  toneLength,
+  type FeedbackKind,
+  type Note,
+} from "./feedback";
 
 // matchMedia for a touch screen (coarse pointer) or a mouse.
 const touch = (coarse: boolean) => (q: string) => ({ matches: q === "(pointer: coarse)" ? coarse : false });
@@ -42,15 +53,91 @@ describe("sound and haptics settings", () => {
 });
 
 describe("tones and patterns", () => {
-  it("every kind has a short, quiet tone; only the ding rings past 150 ms", () => {
+  // Lively but short: a ding-ding, a bwomp, a pop, and fanfares that stop well before the next tap.
+  const LONGEST: Record<FeedbackKind, number> = {
+    correct: 0.35,
+    wrong: 0.3,
+    flip: 0.08,
+    notify: 0.4,
+    submit: 0.8,
+    win: 1.2,
+  };
+
+  it("every kind has a tone that ends in time", () => {
     for (const kind of KINDS) {
       const notes = TONES[kind];
       expect(notes.length).toBeGreaterThan(0);
-      expect(Math.max(...notes.map((n) => n.at + n.dur))).toBeLessThanOrEqual(
-        kind === "correct" ? 0.6 : 0.15,
-      );
-      for (const n of notes) expect(n.gain).toBeLessThanOrEqual(0.1);
+      expect(toneLength(notes)).toBeLessThanOrEqual(LONGEST[kind]);
+      for (const n of notes) {
+        expect(n.gain).toBeGreaterThan(0);
+        expect(n.gain).toBeLessThanOrEqual(0.2);
+        expect(n.at).toBeGreaterThanOrEqual(0);
+        expect((n.attack ?? 0.004) + (n.hold ?? 0)).toBeLessThan(n.dur);
+      }
     }
+  });
+
+  it("bigger moments sound bigger: the win outlasts a finished test, which outlasts a ding", () => {
+    expect(toneLength(TONES.win)).toBeGreaterThan(toneLength(TONES.submit));
+    expect(toneLength(TONES.submit)).toBeGreaterThan(toneLength(TONES.correct));
+    expect(TONES.win.length).toBeGreaterThan(TONES.submit.length);
+    expect(peakLevel(TONES.win)).toBeGreaterThanOrEqual(peakLevel(TONES.submit));
+  });
+
+  // The main voices (triangles), in the order they start.
+  const voices = (notes: Note[]) => notes.filter((n) => n.type === "triangle").sort((a, b) => a.at - b.at);
+
+  it("right climbs and wrong falls", () => {
+    const up = voices(TONES.correct).map((n) => n.freq);
+    expect(up.length).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < up.length; i++) expect(up[i]).toBeGreaterThan(up[i - 1]);
+    const down = voices(TONES.wrong);
+    expect(down.length).toBe(2);
+    expect(down[1].freq).toBeLessThan(down[0].freq);
+    for (const n of down) {
+      expect(n.to).toBeLessThan(n.freq); // each note droops
+      expect(n.lowpass).toBeLessThanOrEqual(1500); // muffled, not a buzzer
+    }
+  });
+
+  it("fanfares run up before the final chord", () => {
+    for (const kind of ["submit", "win"] as const) {
+      const run = voices(TONES[kind]).filter((n) => !n.hold);
+      for (let i = 1; i < run.length; i++) expect(run[i].freq).toBeGreaterThan(run[i - 1].freq);
+      expect(TONES[kind].some((n) => n.hold)).toBe(true);
+    }
+  });
+
+  it("no cue gets loud enough to crack, even at volume 100 (x4)", () => {
+    for (const kind of KINDS) {
+      const peak = peakLevel(TONES[kind]);
+      expect(peak).toBeGreaterThan(0.1); // not bland: clearly audible at the default
+      expect(peak * volumeGain(100)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("a note's envelope rises fast, holds, and dies away", () => {
+    const n: Note = { at: 0.1, dur: 0.5, freq: 440, type: "sine", gain: 0.1, hold: 0.2 };
+    expect(envelopeAt(n, 0.05)).toBe(0);
+    expect(envelopeAt(n, 0.104)).toBeCloseTo(0.1, 5);
+    expect(envelopeAt(n, 0.2)).toBeGreaterThan(0.06);
+    expect(envelopeAt(n, 0.2)).toBeLessThan(0.1);
+    expect(envelopeAt(n, 0.59)).toBeLessThan(0.001);
+    expect(envelopeAt(n, 0.7)).toBe(0);
+  });
+
+  it("the soft clipper is transparent at normal levels and never passes 1", () => {
+    expect(softClip(0)).toBe(0);
+    expect(softClip(0.5)).toBe(0.5);
+    expect(softClip(-0.8)).toBe(-0.8);
+    expect(softClip(0.9)).toBeLessThan(0.9);
+    expect(softClip(0.9)).toBeGreaterThan(0.8);
+    expect(softClip(HEADROOM)).toBeLessThanOrEqual(1);
+    expect(softClip(-HEADROOM)).toBeGreaterThanOrEqual(-1);
+    const curve = clipCurve(5); // inputs -2, -1, 0, 1, 2
+    expect(curve[2]).toBe(0);
+    expect(curve[4]).toBeCloseTo(softClip(HEADROOM), 5);
+    for (let i = 1; i < curve.length; i++) expect(curve[i]).toBeGreaterThan(curve[i - 1]);
   });
 
   it("every kind has a short vibration", () => {
@@ -64,11 +151,14 @@ describe("tones and patterns", () => {
 
 // A stand-in AudioContext that records what was scheduled.
 function fakeAudio() {
-  const made: { started: number; type: string }[] = [];
+  const made: { started: number; type: string; onended: (() => void) | null; disconnect: () => void }[] = [];
+  const shapers: { curve: Float32Array | null; connect: ReturnType<typeof vi.fn> }[] = [];
   const param = () => ({
+    value: 0,
     setValueAtTime: vi.fn(),
     exponentialRampToValueAtTime: vi.fn(),
   });
+  const node = () => ({ connect: vi.fn(), disconnect: vi.fn() });
   class FakeContext {
     static instances = 0;
     static all: FakeContext[] = [];
@@ -86,19 +176,28 @@ function fakeAudio() {
     }
     createOscillator() {
       const osc = {
+        ...node(),
         type: "sine",
         frequency: param(),
-        connect: vi.fn(),
-        start: vi.fn((t: number) => made.push({ started: t, type: osc.type })),
+        onended: null as (() => void) | null,
+        start: vi.fn((t: number) => made.push(Object.assign(osc, { started: t }))),
         stop: vi.fn(),
       };
       return osc;
     }
     createGain() {
-      return { gain: param(), connect: vi.fn() };
+      return { ...node(), gain: param() };
+    }
+    createBiquadFilter() {
+      return { ...node(), type: "lowpass", frequency: param(), Q: param() };
+    }
+    createWaveShaper() {
+      const shaper = { ...node(), curve: null as Float32Array | null, oversample: "none" };
+      shapers.push(shaper);
+      return shaper;
     }
   }
-  return { FakeContext, made };
+  return { FakeContext, made, shapers };
 }
 
 describe("feedback()", () => {
@@ -244,6 +343,26 @@ describe("feedback()", () => {
       expect(vibrate).toHaveBeenLastCalledWith(BUZZ.win);
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it("routes every note through one soft-clipping bus, built once", async () => {
+    const { feedback } = await load();
+    feedback("win");
+    feedback("correct");
+    expect(audio.shapers).toHaveLength(1);
+    expect(audio.shapers[0].curve).toBeInstanceOf(Float32Array);
+    expect(audio.shapers[0].connect).toHaveBeenCalledWith(audio.FakeContext.all[0].destination);
+  });
+
+  it("lets go of each note's nodes when it ends", async () => {
+    const { feedback } = await load();
+    feedback("wrong");
+    expect(audio.made).toHaveLength(TONES.wrong.length);
+    for (const osc of audio.made) {
+      expect(osc.onended).toBeTypeOf("function");
+      osc.onended?.();
+      expect(osc.disconnect).toHaveBeenCalled();
     }
   });
 });

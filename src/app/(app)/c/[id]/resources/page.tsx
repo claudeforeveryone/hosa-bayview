@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ChapterShelfLink } from "@/components/chapter-shelf-link";
 import { EmptyState } from "@/components/empty-state";
 import { TopicList } from "@/components/topic-breakdown";
 import { TopicEditor } from "@/components/topic-editor";
@@ -55,6 +56,7 @@ export default async function ResourcesTab({
             />
           </div>
         ) : null}
+        <ChapterShelfLink />
       </section>
 
       <section aria-labelledby="topics-h" className="grid gap-6">

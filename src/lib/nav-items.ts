@@ -7,7 +7,7 @@ import {
   Ellipsis,
   Grid2x2,
   House,
-  LibraryBig,
+  ListChecks,
   Medal,
   Megaphone,
   MessageSquareText,
@@ -21,8 +21,9 @@ import {
 import { BLC_ENABLED } from "@/lib/features";
 
 // `chapter`: listed in the Chapter group (a dropdown in the sidebar). `bottom`: one of the phone shortcut bar's five.
-// Settings (Help is one of its tabs) and Log out live in the More dropdown (MORE_ITEMS), so the panel stays short. Tests and Flashcards have no entry:
-// their routes still work (deep links, classroom tabs).
+// Settings (Help is one of its tabs) and Log out live in the More dropdown (MORE_ITEMS), so the panel stays short.
+// Questions gathers every test and deck from your events (and lights while you take one); /tests and /flashcards
+// have no entry of their own. Resources (the chapter shelf, /library) is reached from Events.
 export type NavItem = {
   href: string;
   label: string;
@@ -34,9 +35,23 @@ export type NavItem = {
   stats?: boolean;
   // Only once the database has Send feedback (0231).
   feedback?: boolean;
+  // Locked (shown with a lock, the page explains how to open it) until you're in an event.
+  needsEvent?: boolean;
   chapter?: boolean;
   bottom?: boolean;
 };
+
+// Where you study: the Questions page, a room's tests and cards (taking a test included), and the old /tests and
+// /flashcards lists.
+const ROOM_QUESTIONS = /^\/c\/[^/]+\/(tests|flashcards)(\/|$)/;
+export function isQuestionPath(p: string): boolean {
+  return (
+    p.startsWith("/questions") ||
+    p.startsWith("/tests") ||
+    p.startsWith("/flashcards") ||
+    ROOM_QUESTIONS.test(p)
+  );
+}
 
 const ITEMS: NavItem[] = [
   {
@@ -53,11 +68,22 @@ const ITEMS: NavItem[] = [
     short: "Events",
     Icon: Grid2x2,
     match: (p) =>
-      p.startsWith("/events") ||
-      p === "/c" ||
-      p.startsWith("/c/") ||
-      p.startsWith("/battle/"),
+      !isQuestionPath(p) &&
+      (p.startsWith("/events") ||
+        p === "/c" ||
+        p.startsWith("/c/") ||
+        p.startsWith("/battle/") ||
+        p.startsWith("/library")),
     bottom: true,
+  },
+  {
+    href: "/questions",
+    label: "Questions",
+    short: "Questions",
+    Icon: ListChecks,
+    match: isQuestionPath,
+    bottom: true,
+    needsEvent: true,
   },
   {
     href: "/career",
@@ -81,7 +107,6 @@ const ITEMS: NavItem[] = [
     Icon: CalendarDays,
     match: (p) => p.startsWith("/calendar"),
     chapter: true,
-    bottom: true,
   },
   {
     href: "/leaderboard",
@@ -97,14 +122,6 @@ const ITEMS: NavItem[] = [
     short: "BLC",
     Icon: Medal,
     match: (p) => p.startsWith("/blc"),
-    chapter: true,
-  },
-  {
-    href: "/library",
-    label: "Resources",
-    short: "Resources",
-    Icon: LibraryBig,
-    match: (p) => p.startsWith("/library"),
     chapter: true,
   },
   {
@@ -149,6 +166,7 @@ const ITEMS: NavItem[] = [
       p.startsWith("/more") ||
       p.startsWith("/settings") ||
       p.startsWith("/help") ||
+      p.startsWith("/feedback") ||
       p.startsWith("/admin/attendance"),
     bottom: true,
   },
@@ -170,6 +188,11 @@ export function bottomItemsFor(
   canSeeStats = false,
 ): NavItem[] {
   return navItemsFor(isExec, canSeeStats).filter((i) => i.bottom);
+}
+
+// Questions opens once you're in an event (as a member, a trainer or an executive with a room).
+export function questionsLocked(roomCount: number): boolean {
+  return roomCount === 0;
 }
 
 // "Join with a code" is for people who aren't in any event yet; after that, Settings > Events has it.
@@ -196,12 +219,12 @@ const MORE_ITEMS: NavItem[] = [
     exec: true,
   },
   {
-    // A section of Settings > Account, so it never shows as the current page (Settings does).
-    href: "/settings?tab=account#feedback-h",
+    // Its own page, so the More link no longer drops members into Settings.
+    href: "/feedback",
     label: "Send feedback",
     short: "Feedback",
     Icon: MessageSquareText,
-    match: () => false,
+    match: (p) => p.startsWith("/feedback"),
     feedback: true,
   },
 ];

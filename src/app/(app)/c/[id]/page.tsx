@@ -10,7 +10,7 @@ import {
   hubHeading,
   type PracticeCell,
 } from "@/components/event-hub";
-import { parseMetric, parsePeriod, rankBoard } from "@/lib/activity";
+import { parseMetric, parsePeriod } from "@/lib/activity";
 import { getBoard } from "@/lib/activity-data";
 import { getAnnouncements } from "@/lib/announcements";
 import { getOpenBattles } from "@/lib/battles";
@@ -152,10 +152,11 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
           Leaderboard
         </h2>
         <BoardView
-          base={base}
+          classroomId={id}
           metric={metric}
           period={period}
-          rows={rankBoard(board, metric, period)}
+          rows={board}
+          page={Number(sp.page) || 1}
           meId={me.id}
           empty="No one's on the board yet"
           scope="room"
