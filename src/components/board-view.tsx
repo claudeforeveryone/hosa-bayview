@@ -65,9 +65,21 @@ function writeUrl(metric: Metric, period: Period, page: number) {
     url.searchParams.set("period", period);
     if (page > 1) url.searchParams.set("page", String(page));
     else url.searchParams.delete("page");
-    window.history.replaceState(window.history.state, "", url);
+    // null state, as the Next docs show: Next then carries its own state over and updates the router's URL too
+    // (passing the old state on would mark the call as Next's own and leave the router on the old address).
+    window.history.replaceState(null, "", url);
   } catch {
     // An odd address just isn't updated; the board itself still changes.
+  }
+}
+
+// The measure the address holds right now (set by the last pick), falling back to the one given.
+function currentMetric(fallback: Metric): Metric {
+  try {
+    const m = new URL(window.location.href).searchParams.get("metric");
+    return m && (METRICS as readonly string[]).includes(m) ? (m as Metric) : fallback;
+  } catch {
+    return fallback;
   }
 }
 
@@ -249,12 +261,12 @@ export function BoardView({
   const pickPeriod = (value: string) => {
     const p = value as Period;
     setError(null);
-    setPage(1);
     const known = cache.current.get(p);
     if (known) {
       latest.current += 1;
       setPeriod(p);
       setRows(known);
+      setPage(1);
       writeUrl(metric, p, 1);
       return;
     }
@@ -270,7 +282,9 @@ export function BoardView({
       cache.current.set(p, result.rows);
       setPeriod(p);
       setRows(result.rows);
-      writeUrl(metric, p, 1);
+      setPage(1);
+      // The measure may have changed while this loaded; the address already holds the current one.
+      writeUrl(currentMetric(metric), p, 1);
     });
   };
 

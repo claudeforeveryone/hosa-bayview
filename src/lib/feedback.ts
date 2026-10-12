@@ -271,9 +271,17 @@ function buzz(pattern: number[]) {
   } catch {}
 }
 
+// When the last big cue (a win or a hand-in) went off, played or not, so a cue that follows soon after (the
+// lucky bonus band) can stay quiet instead of stacking a second fanfare or sounding after a timer ran out.
+let lastBigCue = 0;
+export function msSinceBigCue(now = Date.now()): number {
+  return now - lastBigCue;
+}
+
 // `sound: false` for moments that aren't a tap (a timer running out): no tone, the buzz still comes.
 export function feedback(kind: FeedbackKind, { sound = true }: { sound?: boolean } = {}) {
   if (typeof window === "undefined") return;
+  if (kind === "win" || kind === "submit") lastBigCue = Date.now();
   if (readHaptics() === "on") buzz(BUZZ[kind]);
   if (sound && readSound() === "on") {
     try {
@@ -291,5 +299,7 @@ export const WIN_DELAY_MS = 300;
 export function feedbackThenWin(kind: FeedbackKind) {
   feedback(kind);
   if (typeof window === "undefined") return;
+  // Counts as a big cue from now, so a bonus band that lands before the fanfare doesn't play its own on top.
+  lastBigCue = Date.now() + WIN_DELAY_MS;
   setTimeout(() => feedback("win"), WIN_DELAY_MS);
 }

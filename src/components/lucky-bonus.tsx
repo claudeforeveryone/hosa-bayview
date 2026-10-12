@@ -16,7 +16,9 @@ import {
   parseLuckyEvent,
   particleCount,
 } from "@/lib/lucky";
-import { feedback } from "@/lib/feedback";
+import { feedback, msSinceBigCue } from "@/lib/feedback";
+
+const QUIET_AFTER_CUE_MS = 2500;
 import { rollLuckyBonus } from "@/lib/lucky-client";
 
 type Bonus = { id: number; amount: number; reason: LuckyReason };
@@ -77,8 +79,9 @@ export function LuckyBonus() {
 
   useEffect(() => {
     if (!current) return;
-    // The win fanfare as each bonus lands (sound and haptics follow the member's settings).
-    feedback("win");
+    // The win fanfare as each bonus lands (sound and haptics follow the member's settings), unless a fanfare or a
+    // hand-in cue just went off: then it would stack on that one, or sound after a timer ran out with no tap.
+    if (msSinceBigCue() > QUIET_AFTER_CUE_MS) feedback("win");
     const timer = window.setTimeout(dismiss, luckyDuration(current.amount));
     return () => window.clearTimeout(timer);
   }, [current, dismiss]);

@@ -12,7 +12,7 @@ import type { FeedbackQueue } from "@/lib/owner-types";
 import { FeedbackList } from "./feedback-list";
 import { Choices, Pager, Sheet } from "./primitives";
 
-// The feedback queue from Settings > Send feedback. Question reports go to the event's trainer instead (Content
+// The feedback queue from the Send feedback page (/feedback). Question reports go to the event's trainer instead (Content
 // lists the open ones).
 export function FeedbackSection({
   base,
@@ -45,7 +45,7 @@ export function FeedbackSection({
     <Sheet
       id="feedback-h"
       title="Feedback"
-      note="Sent from Settings. Set a status and priority as you go. Members never see your notes."
+      note="Sent from the Send feedback page. Set a status and priority as you go. Members never see your notes."
     >
       <Choices
         label="Status"
