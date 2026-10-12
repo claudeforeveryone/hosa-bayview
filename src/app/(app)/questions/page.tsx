@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import {
   ArrowRight,
+  ChevronDown,
   ChevronRight,
   Layers,
   Lock,
@@ -34,6 +35,7 @@ export const metadata: Metadata = { title: "Questions" };
 // An executive can list every room; the hub keeps to the ones they work in, and caps the rest.
 const EXEC_ROOM_CAP = 12;
 const DECKS_SHOWN = 4;
+const RESUME_SHOWN = 3;
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -334,6 +336,21 @@ export default async function QuestionsPage() {
   const now = Date.now();
   const open = unfinished(attempts, new Set(testInfo.keys()), now);
   const openTests = new Set(open.map((a) => a.test_id));
+  const resumeRow = (a: HubAttempt) => {
+    const info = testInfo.get(a.test_id)!;
+    return (
+      <ResumeRow
+        key={a.id}
+        href={`/c/${info.room.id}/tests/${a.test_id}/a/${a.id}`}
+        test={info.title}
+        room={info.room.name}
+        mode={a.mode}
+        deadline={a.deadline}
+        startedAt={a.started_at}
+        now={now}
+      />
+    );
+  };
   const ownDecks = decks.filter((d) => d.classroom_id === null && d.owner_id === profile.id);
 
   return (
@@ -351,23 +368,17 @@ export default async function QuestionsPage() {
             </h2>
             <p className="mt-1 text-15 opacity-80">Your answers are saved. You&apos;ll land on the next one.</p>
           </div>
-          <ul>
-            {open.map((a) => {
-              const info = testInfo.get(a.test_id)!;
-              return (
-                <ResumeRow
-                  key={a.id}
-                  href={`/c/${info.room.id}/tests/${a.test_id}/a/${a.id}`}
-                  test={info.title}
-                  room={info.room.name}
-                  mode={a.mode}
-                  deadline={a.deadline}
-                  startedAt={a.started_at}
-                  now={now}
-                />
-              );
-            })}
-          </ul>
+          <ul>{open.slice(0, RESUME_SHOWN).map(resumeRow)}</ul>
+          {open.length > RESUME_SHOWN ? (
+            // A Career quiz opens a practice run on each test it draws from, so older open runs can pile up.
+            <details className="group border-t-2 border-ink">
+              <summary className="caps step flex min-h-12 cursor-pointer list-none items-center justify-between px-3 text-15 hover:bg-band sm:px-4 [&::-webkit-details-marker]:hidden">
+                {open.length - RESUME_SHOWN} more started
+                <ChevronDown size={18} strokeWidth={2} aria-hidden className="group-open:rotate-180" />
+              </summary>
+              <ul className="border-t-2 border-ink">{open.slice(RESUME_SHOWN).map(resumeRow)}</ul>
+            </details>
+          ) : null}
         </section>
       ) : null}
 

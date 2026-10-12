@@ -50,7 +50,7 @@ const KIND: Record<Row["kind"], { Icon: LucideIcon; label: string }> = {
 // Links are written by the database: one leading slash, no backslashes (browsers read "/\host" as another site).
 const safeLink = (l: string) => (/^\/(?![/\\])[^\\]*$/.test(l) ? l : "/");
 
-function Item({ n, now }: { n: Row; now: number }) {
+function Item({ n, now, canDelete }: { n: Row; now: number; canDelete: boolean }) {
   const { Icon, label } = KIND[n.kind] ?? KIND.announcement;
   const fresh = !n.read_at;
   return (
@@ -96,7 +96,7 @@ function Item({ n, now }: { n: Row; now: number }) {
           {timeAgo(n.created_at, now)}
         </span>
       </NotificationLink>
-      <DeleteNotification id={n.id} title={n.title} />
+      {canDelete ? <DeleteNotification id={n.id} title={n.title} /> : null}
     </li>
   );
 }
@@ -104,12 +104,18 @@ function Item({ n, now }: { n: Row; now: number }) {
 export default async function NotificationsPage() {
   await requireProfile();
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("id, kind, title, body, link, created_at, read_at")
-    .is("dismissed_at", null)
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const list = (inbox: boolean) => {
+    const q = supabase
+      .from("notifications")
+      .select("id, kind, title, body, link, created_at, read_at");
+    return (inbox ? q.is("dismissed_at", null) : q)
+      .order("created_at", { ascending: false })
+      .limit(100);
+  };
+  let { data, error } = await list(true);
+  // 42703: the database doesn't have 0281 yet. List everything, with nothing to delete with.
+  const canDelete = error?.code !== "42703";
+  if (!canDelete) ({ data, error } = await list(false));
   if (error) throw new Error(`Notifications lookup failed: ${error.message}`);
   const rows = (data ?? []) as Row[];
   const fresh = rows.filter((r) => !r.read_at);
@@ -129,14 +135,18 @@ export default async function NotificationsPage() {
               : undefined
         }
       >
-        Notifications
+        <span id="notifications-title" tabIndex={-1} className="outline-none">
+          Notifications
+        </span>
       </PageTitle>
       {/* Nothing is marked read just by opening the page: tap one to read it, or mark them all here. The bin on a
           row deletes it from your inbox; Clear read deletes every one you've read. */}
       {fresh.length || earlier.length ? (
         <div className="flex flex-wrap items-start gap-3">
           {fresh.length ? <MarkAllRead /> : null}
-          {earlier.length ? <ClearRead count={earlier.length} /> : null}
+          {canDelete && earlier.length ? (
+            <ClearRead ids={earlier.map((n) => n.id)} />
+          ) : null}
         </div>
       ) : null}
       {rows.length ? (
@@ -151,7 +161,7 @@ export default async function NotificationsPage() {
               </h2>
               <ul>
                 {fresh.map((n) => (
-                  <Item key={n.id} n={n} now={now} />
+                  <Item key={n.id} n={n} now={now} canDelete={canDelete} />
                 ))}
               </ul>
             </section>
@@ -166,7 +176,7 @@ export default async function NotificationsPage() {
               </h2>
               <ul>
                 {earlier.map((n) => (
-                  <Item key={n.id} n={n} now={now} />
+                  <Item key={n.id} n={n} now={now} canDelete={canDelete} />
                 ))}
               </ul>
             </section>

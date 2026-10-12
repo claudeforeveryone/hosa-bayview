@@ -11,6 +11,10 @@ create temp table who on commit drop as
 grant select on who to authenticated;
 create temp table n (id uuid, k text) on commit drop;
 grant select on n to authenticated;
+-- The member's unread count before this test adds anything.
+create temp table before on commit drop as
+  select count(*)::int as unread from public.notifications x, who where x.user_id = who.a and x.read_at is null;
+grant select on before to authenticated;
 
 with x as (
   insert into public.notifications (user_id, kind, title, body, link, read_at)
@@ -44,6 +48,8 @@ begin
      or (select v::int from r where k = 'clear read') < 2
      or (select v from r where k = 'kept for b') <> '1'
      or (select v from r where k = 'dismissed a') <> '3'
+     -- The unread one made here was deleted, so the bell is back where it started.
+     or (select v::int from r where k = 'unread left') <> (select unread from before)
   then raise exception 'FAIL: %', got; end if;
   raise exception 'PASS: %', got;
 end $$;

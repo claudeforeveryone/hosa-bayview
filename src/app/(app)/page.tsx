@@ -83,14 +83,7 @@ function ClubBoard({
   meId: string;
 }) {
   return (
-    <HomeBox
-      id="board-h"
-      title="Leaderboard"
-      link={{
-        href: "/leaderboard",
-        text: "Full board",
-      }}
-    >
+    <HomeBox id="board-h" title="Leaderboard">
       <div className="grid gap-2 py-3">
         <BoardView
           showPlace
@@ -102,6 +95,7 @@ function ClubBoard({
           empty="Nothing ranked yet"
           limit={5}
           metrics={["elo"]}
+          more={{ href: "/leaderboard", text: "Full board" }}
         />
       </div>
     </HomeBox>

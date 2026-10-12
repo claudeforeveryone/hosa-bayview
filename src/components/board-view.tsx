@@ -47,7 +47,7 @@ type Props = {
   meId: string;
   empty: string;
   limit?: number; // a short board (Home's top five): no pages
-  more?: { href: string; text: string }; // link to the full board when the list is cut short
+  more?: { href: string; text: string }; // link to the full board, carrying the measure and period on show
   elo?: boolean; // show the Elo footnote
   metrics?: readonly Metric[]; // measures to offer; a single one hides the measure switch
   scope?: BoardScope; // a room board calls its score Points, the chapter board Elo
@@ -187,6 +187,28 @@ export function BoardView({
   // Boards already fetched, by period, so switching back is instant.
   const cache = useRef(new Map<Period, BoardRow[]>([[initialPeriod, initialRows]]));
   const latest = useRef(0);
+
+  // A new server render (a link back to this page without ?period, router.refresh, a revalidation) brings new
+  // props; start over from them. Adjusting state during render, as React recommends, rather than in an effect.
+  const [from, setFrom] = useState({ initialMetric, initialPeriod, initialRows, initialPage });
+  if (
+    from.initialRows !== initialRows ||
+    from.initialMetric !== initialMetric ||
+    from.initialPeriod !== initialPeriod ||
+    from.initialPage !== initialPage
+  ) {
+    setFrom({ initialMetric, initialPeriod, initialRows, initialPage });
+    setMetric(initialMetric);
+    setPeriod(initialPeriod);
+    setRows(initialRows);
+    setPage(initialPage);
+    setError(null);
+  }
+  // The fetched boards belong to the old render; drop them, and let any fetch still in flight lose.
+  useEffect(() => {
+    latest.current += 1;
+    cache.current = new Map([[initialPeriod, initialRows]]);
+  }, [initialPeriod, initialRows]);
   const top = useRef<HTMLDivElement>(null);
   const turned = useRef(false);
 
@@ -330,10 +352,10 @@ export function BoardView({
           onGo={goTo}
         />
       ) : null}
-      {more && ranked.length > shown.length ? (
+      {more ? (
         <Link
-          href={more.href}
-          className="caps step justify-self-start text-17 underline underline-offset-4"
+          href={`${more.href}?metric=${metric}&period=${period}`}
+          className="caps step mx-2 inline-flex min-h-11 items-center justify-self-start text-17 underline underline-offset-4 sm:mx-3"
         >
           {more.text}
         </Link>

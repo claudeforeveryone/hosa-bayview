@@ -87,9 +87,16 @@ export function DeleteNotification({ id, title }: { id: string; title: string })
           const result = await deleteNotification(id);
           setError(Boolean(result.error));
           if (result.error) return;
-          // Focus moves to the next row's bin (or the page title) so keyboard users aren't dropped at the top.
+          // Focus moves to the next row's bin, else any other bin, else the page title, so keyboard users aren't
+          // dropped at the top.
           const next = row?.nextElementSibling ?? row?.previousElementSibling;
-          (next?.querySelector("button[data-bin]") as HTMLButtonElement | null)?.focus();
+          const target =
+            (next?.querySelector("button[data-bin]") as HTMLElement | null) ??
+            Array.from(document.querySelectorAll<HTMLElement>("button[data-bin]")).find(
+              (b) => !row?.contains(b),
+            ) ??
+            document.getElementById("notifications-title");
+          target?.focus();
           tellBell();
           router.refresh();
         });
@@ -104,8 +111,9 @@ export function DeleteNotification({ id, title }: { id: string; title: string })
   );
 }
 
-// "Clear read": deletes every notification you've already read. Two taps, since it takes a lot at once.
-export function ClearRead({ count }: { count: number }) {
+// "Clear read": deletes the read notifications on the page. Two taps, since it takes a lot at once.
+export function ClearRead({ ids }: { ids: string[] }) {
+  const count = ids.length;
   const router = useRouter();
   const [armed, setArmed] = useState(false);
   const [pending, start] = useTransition();
@@ -121,7 +129,7 @@ export function ClearRead({ count }: { count: number }) {
           onClick={() => {
             if (!armed) return setArmed(true);
             start(async () => {
-              const result = await clearRead();
+              const result = await clearRead(ids);
               setError(result.error ?? null);
               setArmed(false);
               if (!result.error) router.refresh();
