@@ -208,8 +208,8 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
                 {[
                   <>Your name, picture, grade, role, title and flair</>,
                   <>
-                    On the leaderboards, your name&apos;s colour, which shows
-                    whether you&apos;re a trainer, an executive or one of the
+                    On the leaderboards, a light blue tint on your name if
+                    you&apos;re a trainer, an executive or one of the
                     site&apos;s developers
                   </>,
                   <>

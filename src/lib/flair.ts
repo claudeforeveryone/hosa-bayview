@@ -1,6 +1,6 @@
-// Board name colours and flair (0294). Pure helpers, no server imports.
+// Board name tint and flair (0294). Pure helpers, no server imports.
 
-// What someone is in the chapter, for the colour of their name on a board. Developer wins over executive.
+// What someone is in the chapter, for the tint of their name on a board. Developer wins over executive.
 export const BOARD_KINDS = ["developer", "executive", "trainer", "member"] as const;
 export type BoardKind = (typeof BOARD_KINDS)[number];
 
@@ -11,11 +11,12 @@ export const BOARD_KIND_LABEL: Record<BoardKind, string> = {
   member: "Member",
 };
 
-// The text colour class for each kind. Members keep the plain ink.
+// The text colour class for each kind: one faint blue for everyone who runs something, so no role outranks
+// another on the board. Members keep the plain ink.
 export const BOARD_KIND_TEXT: Record<BoardKind, string> = {
-  developer: "text-role-dev",
-  executive: "text-role-exec",
-  trainer: "text-role-trainer",
+  developer: "text-role-staff",
+  executive: "text-role-staff",
+  trainer: "text-role-staff",
   member: "",
 };
 

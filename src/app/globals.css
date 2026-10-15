@@ -171,11 +171,9 @@
   --color-silver: #c3ccd6;
   --color-bronze: #c97c43;
   --color-on-medal: #1a1406;
-  /* Board name colours (0294): a hue mixed 60/40 with the ink, so each stays readable (4.3:1 or better) on every
-     palette's ground and band, light and dark. Members keep the plain ink. */
-  --color-role-trainer: color-mix(in oklab, #0f9a78 60%, var(--ink));
-  --color-role-exec: color-mix(in oklab, #c98a00 60%, var(--ink));
-  --color-role-dev: color-mix(in oklab, #8a5cf6 60%, var(--ink));
+  /* Board names of trainers, executives and developers (0294): one faint blue, mixed 45/55 with the ink so it's only
+     just noticeable and stays readable (5:1 or better) on every palette's ground and band. Members keep the ink. */
+  --color-role-staff: color-mix(in oklab, #2f7be0 45%, var(--ink));
   --color-danger: var(--danger);
   --color-ok: var(--ok);
   --font-sans: var(--face-sans);

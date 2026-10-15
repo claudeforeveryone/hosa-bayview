@@ -56,7 +56,7 @@ export type BoardRow = {
   gain: number; // earned inside the chosen period
   streak: number;
   avatar_url?: string | null;
-  kind?: BoardKind; // name colour (0294); member until the migration is in
+  kind?: BoardKind; // name tint (0294); member until the migration is in
   flair?: string | null;
 };
 

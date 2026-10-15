@@ -1,5 +1,5 @@
--- Leaderboard name colours and flair. Every board colours a name by what the person is in the chapter (developer,
--- executive, trainer, or plain member) and can show a short flair they picked beside it.
+-- Leaderboard name tint and flair. Every board gives trainers, executives and developers one faint blue name (the
+-- same for all three, so no role outranks another) and can show a short flair each member picked beside it.
 --   profiles.flair     up to 20 characters: letters, numbers, spaces and a little punctuation (no emoji, the design
 --                      has none). Members set their own in Settings > Account; executives can change or clear anyone's
 --                      from the /admin person panel. The usual "update own or exec" policy covers both.

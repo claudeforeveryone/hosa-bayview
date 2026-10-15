@@ -12,11 +12,7 @@ import {
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
 import { BoardMenu } from "@/components/board-menu";
-import {
-  BOARD_KIND_LABEL,
-  BOARD_KIND_TEXT,
-  type BoardKind,
-} from "@/lib/flair";
+import { BOARD_KIND_LABEL, BOARD_KIND_TEXT } from "@/lib/flair";
 import { loadBoard } from "@/app/(app)/leaderboard/actions";
 import {
   ELO_SUMMARY,
@@ -164,7 +160,7 @@ function BoardLine({
             {row.full_name || "Member"}
           </Link>
           {kind !== "member" ? (
-            // The colour says it to sighted readers; this says it aloud.
+            // The tint hints at it; this says it aloud.
             <span className="sr-only">({BOARD_KIND_LABEL[kind]})</span>
           ) : null}
           {row.flair ? (
@@ -341,7 +337,6 @@ export function BoardView({
       {since ? (
         <p className="caps -mt-2 px-2 text-15 text-ink-2 sm:px-3">Since {since}</p>
       ) : null}
-      {!limit ? <KindKey rows={shown} /> : null}
       {error ? (
         <p role="alert" className="px-2 text-15 text-danger sm:px-3">
           {error}
@@ -413,23 +408,6 @@ export function BoardView({
         </details>
       ) : null}
     </div>
-  );
-}
-
-// A one-line key for the name colours, only for the kinds on this page. Hidden from screen readers: each row says
-// its own kind aloud.
-const KEY_ORDER: BoardKind[] = ["trainer", "executive", "developer"];
-function KindKey({ rows }: { rows: RankedRow[] }) {
-  const present = KEY_ORDER.filter((k) => rows.some((r) => r.kind === k));
-  if (!present.length) return null;
-  return (
-    <p aria-hidden className="caps -mt-1 flex flex-wrap gap-x-4 gap-y-1 px-2 text-13 sm:px-3">
-      {present.map((k) => (
-        <span key={k} className={BOARD_KIND_TEXT[k]}>
-          {BOARD_KIND_LABEL[k]}
-        </span>
-      ))}
-    </p>
   );
 }
 
