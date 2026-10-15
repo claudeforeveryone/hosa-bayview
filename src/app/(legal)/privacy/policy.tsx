@@ -241,7 +241,8 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               <Term>The people who run the site</Term> (Joseph &amp; Kaden) can
               see the database when looking after it, plus a usage page with
               member activity: time on site, clicks, questions answered and when
-              people were last active.
+              people were last active. They can also open every event room and
+              see what its members see there.
             </>,
             <>
               <Term>Our service providers.</Term> Supabase stores the database
