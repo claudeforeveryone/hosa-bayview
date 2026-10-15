@@ -12,6 +12,7 @@ import {
 import { Avatar } from "@/components/avatar";
 import { EmptyState } from "@/components/empty-state";
 import { BoardMenu } from "@/components/board-menu";
+import { BOARD_KIND_LABEL, BOARD_KIND_TEXT } from "@/lib/flair";
 import { loadBoard } from "@/app/(app)/leaderboard/actions";
 import {
   ELO_SUMMARY,
@@ -123,6 +124,7 @@ function BoardLine({
     .filter(Boolean)
     .join(" · ");
   const medal = row.place === 1 || row.place === 2 || row.place === 3 ? MEDALS[row.place] : null;
+  const kind = row.kind ?? "member";
   return (
     <li
       className={`grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule px-2 py-2.5 sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:px-3 ${
@@ -153,17 +155,34 @@ function BoardLine({
           />
           <Link
             href={`/members/${row.user_id}`}
-            className="step -my-1.5 min-w-0 truncate py-1.5 font-display text-18 leading-tight font-semibold uppercase hover:underline sm:text-20"
+            className={`step -my-1.5 min-w-0 truncate py-1.5 font-display text-18 leading-tight font-semibold uppercase hover:underline sm:text-20 ${BOARD_KIND_TEXT[kind]}`}
           >
             {row.full_name || "Member"}
           </Link>
+          {kind !== "member" ? (
+            // The tint hints at it; this says it aloud.
+            <span className="sr-only">({BOARD_KIND_LABEL[kind]})</span>
+          ) : null}
+          {row.flair ? (
+            // Beside the name from sm up; on phones it leads the caption line instead, so the name keeps its room.
+            <span className="hidden min-w-0 max-w-[45%] shrink-[2] truncate border border-rule px-1.5 py-0.5 text-13 leading-none text-ink-2 sm:inline">
+              {row.flair}
+            </span>
+          ) : null}
           {you ? (
             <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-13 leading-none text-on-you">
               You
             </span>
           ) : null}
         </span>
-        <span className="block truncate text-13 text-ink-2">{caption}</span>
+        <span className="block truncate text-13 text-ink-2">
+          {row.flair ? (
+            <span className="font-semibold text-ink sm:hidden">
+              {row.flair} ·{" "}
+            </span>
+          ) : null}
+          {caption}
+        </span>
       </span>
       <span className="num min-w-12 text-right font-display text-22 leading-none font-bold">
         {formatValue(row.value, metric, period)}

@@ -11,6 +11,7 @@ import {
 import type { Role } from "@/lib/auth";
 import { uuid } from "@/lib/classrooms";
 import { avatarSources } from "@/lib/avatar-urls";
+import { asBoardKind, type BoardKind } from "@/lib/flair";
 import type { LuckyReason } from "@/lib/lucky";
 
 export type BonusRow = {
@@ -126,6 +127,25 @@ export async function getMemberDetail(
   };
 }
 
+export type BoardTag = { kind: BoardKind; flair: string | null };
+
+// Everyone's name colour and flair (0294), once per request. Decoration like the pictures: before 0294 is in the
+// database (PGRST202) or on any failure, boards show plain names.
+export const getBoardTags = cache(async (): Promise<Map<string, BoardTag>> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("board_tags");
+  if (error) {
+    if (error.code !== "PGRST202") console.error("[activity] board tags:", error.message);
+    return new Map();
+  }
+  return new Map(
+    ((data ?? []) as { user_id: string; kind: string; flair: string | null }[]).map((r) => [
+      r.user_id,
+      { kind: asBoardKind(r.kind), flair: r.flair?.trim() || null },
+    ]),
+  );
+});
+
 // Club board when classroomId is null, otherwise that classroom's board.
 export async function getBoard(
   period: Period,
@@ -134,9 +154,10 @@ export async function getBoard(
   if (classroomId !== null && !uuid.safeParse(classroomId).success) return [];
   const supabase = await createClient();
   // Pictures load alongside the board rather than after it.
-  const [{ data, error }, details] = await Promise.all([
+  const [{ data, error }, details, tags] = await Promise.all([
     supabase.rpc("leaderboard", { period, cid: classroomId }),
     getMemberDetails(),
+    getBoardTags(),
   ]);
   // 42501: a room you can't view. Read as an empty board, not an error page.
   if (error?.code === "42501") return [];
@@ -152,6 +173,8 @@ export async function getBoard(
     gain: Number(r.gain),
     streak: Number(r.streak),
     avatar_url: details.get(r.user_id)?.avatar_url ?? null,
+    kind: tags.get(r.user_id)?.kind ?? "member",
+    flair: tags.get(r.user_id)?.flair ?? null,
   }));
 }
 

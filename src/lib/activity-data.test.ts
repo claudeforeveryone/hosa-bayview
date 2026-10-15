@@ -45,14 +45,31 @@ describe("getBoard", () => {
     const board = getBoard("week", null);
     await flush();
     // Both requests are out before either has answered.
-    expect(calls.sort()).toEqual(["leaderboard", "member_details"]);
+    expect(calls.sort()).toEqual(["board_tags", "leaderboard", "member_details"]);
     pending.member_details.resolve({
       data: [{ user_id: "u1", avatar_path: "u1.png", grade: 11 }],
+      error: null,
+    });
+    pending.board_tags.resolve({
+      data: [{ user_id: "u1", kind: "trainer", flair: "Med Term" }],
       error: null,
     });
     pending.leaderboard.resolve({ data: [row], error: null });
     const rows = await board;
     expect(rows[0].avatar_url).toBe("https://signed/u1");
+    expect(rows[0].kind).toBe("trainer");
+    expect(rows[0].flair).toBe("Med Term");
+  });
+
+  it("shows plain names before 0294 is in the database", async () => {
+    const board = getBoard("all", null);
+    await flush();
+    pending.member_details.resolve({ data: [], error: null });
+    pending.board_tags.resolve({ data: null, error: { code: "PGRST202", message: "missing" } });
+    pending.leaderboard.resolve({ data: [row], error: null });
+    const rows = await board;
+    expect(rows[0].kind).toBe("member");
+    expect(rows[0].flair).toBeNull();
   });
 
   it("reads a room you can't view as an empty board", async () => {
@@ -63,6 +80,7 @@ describe("getBoard", () => {
       error: { code: "42501", message: "no" },
     });
     pending.member_details.resolve({ data: [], error: null });
+    pending.board_tags.resolve({ data: [], error: null });
     expect(await board).toEqual([]);
   });
 });

@@ -2,6 +2,8 @@
 // The numbers themselves come from the database (elo_events, migrations 0080-0082); this file only ranks, filters
 // and formats them.
 
+import type { BoardKind } from "@/lib/flair";
+
 // All time leads: it is the default and the first choice in the period menu.
 export const PERIODS = ["all", "today", "week", "month"] as const;
 export type Period = (typeof PERIODS)[number];
@@ -54,6 +56,8 @@ export type BoardRow = {
   gain: number; // earned inside the chosen period
   streak: number;
   avatar_url?: string | null;
+  kind?: BoardKind; // name tint (0294); member until the migration is in
+  flair?: string | null;
 };
 
 export type RankedRow = BoardRow & {

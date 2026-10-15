@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import type { AuthState } from "@/app/(auth)/actions";
 import { requireProfile } from "@/lib/auth";
+import { parseFlair } from "@/lib/flair";
 import { parseGrade } from "@/lib/profile";
 import { forgetOtherDevices } from "@/lib/push/forget";
 import { createClient } from "@/lib/supabase/server";
@@ -65,6 +66,46 @@ export async function updateName(
   }
   refresh();
   return { ok: "Saved.", values: { full_name: parsed.data } };
+}
+
+// The short tag beside your name on the boards (0294). Blank clears it. Executives can set or clear anyone's from
+// /admin (the form sends userId); RLS lets only you or an executive update the row, and the check constraint
+// repeats parseFlair's rule.
+export async function updateFlair(
+  _: AuthState,
+  form: FormData,
+): Promise<AuthState> {
+  const profile = await requireProfile();
+  const raw = String(form.get("flair") ?? "");
+  const values = { flair: raw };
+  const target = String(form.get("userId") ?? "") || profile.id;
+  if (target !== profile.id && profile.role !== "executive")
+    return { error: "Only executives can change someone else's flair.", values };
+  const parsed = parseFlair(raw);
+  if ("error" in parsed)
+    return { fieldErrors: { flair: parsed.error }, values };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ flair: parsed.flair })
+    .eq("id", target)
+    .select("id");
+  if (error) {
+    // 42703 / PGRST204: the column isn't in the database yet (0294).
+    if (error.code === "42703" || error.code === "PGRST204")
+      return { error: "Flair isn't switched on yet.", values };
+    if (error.code === "23514")
+      return { fieldErrors: { flair: "That flair has characters we can't show." }, values };
+    console.error("[settings] flair:", error.message);
+    return { error: "Couldn't save that. Try again.", values };
+  }
+  if (!data?.length) return { error: "Couldn't save that. Try again.", values };
+  refresh();
+  return {
+    ok: parsed.flair ? "Saved." : "Flair cleared.",
+    values: { flair: parsed.flair ?? "" },
+  };
 }
 
 export async function setAdminPasscode(

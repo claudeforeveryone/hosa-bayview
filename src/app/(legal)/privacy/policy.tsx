@@ -67,7 +67,8 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               <Term>Your account.</Term> Your name, email address and password.
               The password is stored scrambled (hashed) by our sign-in provider,
               so nobody can read it, us included. You can add a grade and a
-              profile picture. You also have a role in the chapter (like member,
+              profile picture, and a short flair shown beside your name on the
+              leaderboards. You also have a role in the chapter (like member,
               trainer or executive) and sometimes a title.
             </>,
             <>
@@ -205,7 +206,12 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               <Term>Every signed-in member</Term> can see:
               <SubList>
                 {[
-                  <>Your name, picture, grade, role and title</>,
+                  <>Your name, picture, grade, role, title and flair</>,
+                  <>
+                    On the leaderboards, a light blue tint on your name if
+                    you&apos;re a trainer, an executive or one of the
+                    site&apos;s developers
+                  </>,
                   <>
                     Your leaderboard and profile stats: time on site, flashcards
                     reviewed, questions answered, accuracy, points, streaks,
@@ -234,8 +240,9 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               (including email address), test results and the answers they
               picked, flashcard progress, flagged questions, warnings, every
               classroom and its attendance, the moderation log, and every test,
-              deck and file, including what&apos;s inside private decks. They
-              need this to run the chapter and moderate.
+              deck and file, including what&apos;s inside private decks, and
+              they can change or clear anyone&apos;s flair. They need this to run
+              the chapter and moderate.
             </>,
             <>
               <Term>The people who run the site</Term> (Joseph &amp; Kaden) can
@@ -325,8 +332,8 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
         <List>
           {[
             <>
-              Change your name, grade, picture and password in Settings,
-              Account.
+              Change your name, grade, flair, picture and password in
+              Settings, Account.
             </>,
             phoneApp ? (
               <>

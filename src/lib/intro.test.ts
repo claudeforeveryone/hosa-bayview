@@ -1,34 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  INTRO_EVERY_MS,
-  INTRO_KEY,
-  introScript,
-  shouldPlayIntro,
-} from "./intro";
+import { introScript, shouldPlayIntro } from "./intro";
 
 describe("shouldPlayIntro", () => {
-  const now = 1_800_000_000_000;
-
-  it("plays on a first visit", () => {
-    expect(shouldPlayIntro(null, now, false)).toBe(true);
+  it("plays every time the site is opened, refreshes included", () => {
+    expect(shouldPlayIntro("navigate", false)).toBe(true);
+    expect(shouldPlayIntro("reload", false)).toBe(true);
+    expect(shouldPlayIntro(null, false)).toBe(true);
   });
 
-  it("stays quiet on a refresh soon after", () => {
-    expect(shouldPlayIntro(now - 60_000, now, false)).toBe(false);
-    expect(shouldPlayIntro(now - INTRO_EVERY_MS + 1, now, false)).toBe(false);
-  });
-
-  it("plays again once enough time has passed", () => {
-    expect(shouldPlayIntro(now - INTRO_EVERY_MS, now, false)).toBe(true);
+  it("stays quiet coming back with the Back button", () => {
+    expect(shouldPlayIntro("back_forward", false)).toBe(false);
   });
 
   it("never plays for reduced motion", () => {
-    expect(shouldPlayIntro(null, now, true)).toBe(false);
-  });
-
-  it("treats a bad or future stamp as stale", () => {
-    expect(shouldPlayIntro(Number.NaN, now, false)).toBe(true);
-    expect(shouldPlayIntro(now + 10_000, now, false)).toBe(true);
+    expect(shouldPlayIntro("navigate", true)).toBe(false);
   });
 });
 
@@ -41,21 +26,21 @@ type FakeEvent = {
 
 // Runs the real inline script against a stand-in page, so it can't drift from shouldPlayIntro.
 function runScript({
-  stored,
+  navigation = "navigate",
   reduced = false,
+  calm = false,
   webdriver = false,
-  now = 1_800_000_000_000,
   pathname = "/login",
 }: {
-  stored: string | null;
+  navigation?: string | null;
   reduced?: boolean;
+  calm?: boolean;
   webdriver?: boolean;
-  now?: number;
   pathname?: string;
-}) {
+} = {}) {
   const attrs = new Set<string>();
   const store = new Map<string, string>();
-  if (stored !== null) store.set(INTRO_KEY, stored);
+  if (calm) store.set("motion", "calm");
   const listeners: Record<string, (e: FakeEvent) => void> = {};
   const timers: (() => void)[] = [];
   const env = {
@@ -73,7 +58,9 @@ function runScript({
     matchMedia: () => ({ matches: reduced }),
     navigator: { webdriver },
     location: { pathname },
-    Date: { now: () => now },
+    performance: {
+      getEntriesByType: () => (navigation === null ? [] : [{ type: navigation }]),
+    },
     addEventListener: (t: string, f: (e: FakeEvent) => void) => {
       listeners[t] = f;
     },
@@ -94,49 +81,42 @@ const event = (type: string, key?: string): FakeEvent => ({
 });
 
 describe("introScript", () => {
-  const now = 1_800_000_000_000;
-
-  it("marks the page and stamps the visit on a first load", () => {
-    const { attrs, store } = runScript({ stored: null, now });
-    expect(attrs.has("data-intro")).toBe(true);
-    expect(attrs.has("data-intro-played")).toBe(true);
-    expect(store.get(INTRO_KEY)).toBe(String(now));
+  it("marks the page on a fresh visit and on a refresh", () => {
+    for (const navigation of ["navigate", "reload", null]) {
+      const { attrs } = runScript({ navigation });
+      expect(attrs.has("data-intro"), String(navigation)).toBe(true);
+      expect(attrs.has("data-intro-played"), String(navigation)).toBe(true);
+    }
   });
 
-  it("agrees with shouldPlayIntro on recent, stale and odd stamps", () => {
-    for (const stored of [
-      String(now - 60_000),
-      String(now - INTRO_EVERY_MS),
-      "junk",
-      String(now + 5),
-    ]) {
-      expect(runScript({ stored, now }).attrs.has("data-intro")).toBe(
-        shouldPlayIntro(Number(stored), now, false),
+  it("agrees with shouldPlayIntro on every navigation type", () => {
+    for (const navigation of ["navigate", "reload", "back_forward", "prerender"]) {
+      expect(runScript({ navigation }).attrs.has("data-intro"), navigation).toBe(
+        shouldPlayIntro(navigation, false),
       );
     }
   });
 
-  it("stays off for reduced motion and automated browsers", () => {
-    expect(runScript({ stored: null, reduced: true }).attrs.size).toBe(0);
-    expect(runScript({ stored: null, webdriver: true }).attrs.size).toBe(0);
+  it("stays off for reduced motion, a stored calm and automated browsers", () => {
+    expect(runScript({ reduced: true }).attrs.size).toBe(0);
+    expect(runScript({ calm: true }).attrs.size).toBe(0);
+    expect(runScript({ webdriver: true }).attrs.size).toBe(0);
   });
 
-  it("stays off on the terms and privacy pages, and doesn't use up the first visit", () => {
+  it("stays off on the terms and privacy pages", () => {
     for (const pathname of ["/terms", "/privacy", "/privacy/", "/terms/x"]) {
-      const page = runScript({ stored: null, pathname });
-      expect(page.attrs.size, pathname).toBe(0);
-      expect(page.store.has(INTRO_KEY), pathname).toBe(false);
+      expect(runScript({ pathname }).attrs.size, pathname).toBe(0);
     }
   });
 
   it("still plays on lookalike paths and the sign-in pages", () => {
     for (const pathname of ["/", "/login", "/signup", "/termsx", "/privacy-old", "/c/terms"]) {
-      expect(runScript({ stored: null, pathname }).attrs.has("data-intro"), pathname).toBe(true);
+      expect(runScript({ pathname }).attrs.has("data-intro"), pathname).toBe(true);
     }
   });
 
   it("a tap skips it, keeps the banner still and swallows its click", () => {
-    const page = runScript({ stored: null });
+    const page = runScript();
     page.listeners.pointerup(event("pointerup"));
     expect([...page.attrs.keys()]).toEqual(["data-intro-played"]);
     expect(page.listeners.pointerup).toBeUndefined();
@@ -148,7 +128,7 @@ describe("introScript", () => {
   });
 
   it("a key skips it without touching clicks", () => {
-    const page = runScript({ stored: null });
+    const page = runScript();
     page.listeners.keydown(event("keydown", "Shift"));
     expect(page.attrs.has("data-intro")).toBe(true);
     page.listeners.keydown(event("keydown", "Enter"));
@@ -157,7 +137,7 @@ describe("introScript", () => {
   });
 
   it("the timer ends the opener; the banner stays still for this page load", () => {
-    const page = runScript({ stored: null });
+    const page = runScript();
     page.timers.forEach((f) => f());
     expect([...page.attrs.keys()]).toEqual(["data-intro-played"]);
   });

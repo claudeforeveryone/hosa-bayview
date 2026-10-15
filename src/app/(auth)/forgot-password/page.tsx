@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ForgotForm } from "./form";
 
-export const metadata: Metadata = { title: "Reset password" };
+export const metadata: Metadata = { title: "Forgot password" };
 
 export default function Page() {
   return <ForgotForm />;

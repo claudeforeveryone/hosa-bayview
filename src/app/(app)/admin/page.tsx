@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClipboardCheck } from "lucide-react";
 import { PageTitle } from "@/components/page-title";
+import { getBoardTags } from "@/lib/activity-data";
 import { requireRole, type Role } from "@/lib/auth";
 import { gifLimitBytes } from "@/lib/avatar";
 import { avatarSources } from "@/lib/avatar-urls";
@@ -104,11 +105,14 @@ export default async function AdminPage() {
     supabase.rpc("am_demo"),
     supabase.rpc("gif_exempt_ids"),
   ]);
-  const [gifRes, powersRes, gifGrantRes] = await Promise.all([
+  const [gifRes, powersRes, gifGrantRes, tags] = await Promise.all([
     supabase.rpc("gif_user_ids"),
     supabase.rpc("my_powers"),
     supabase.rpc("can_grant_gif"),
+    getBoardTags(),
   ]);
+  // Flair (0294): empty until the migration is in, and then every profile has a row, so empty means off.
+  const flairOn = tags.size > 0;
   const gifIds = new Set((gifRes.data ?? []) as string[]);
   // Only the chapter leads can give or take executive (0101); everyone else gets the switch without it.
   const canGrantExec = Boolean(
@@ -137,6 +141,8 @@ export default async function AdminPage() {
     gif: gifIds.has(p.id),
     can_grant_exec: canGrantExec,
     can_grant_gif: canGrantGif,
+    flair: tags.get(p.id)?.flair ?? null,
+    flair_on: flairOn,
   }));
   const count = (r: Role) => people.filter((p) => p.role === r).length;
 
