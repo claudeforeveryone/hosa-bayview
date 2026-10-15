@@ -146,3 +146,25 @@ export async function leaveClassroom(classroomId: string): Promise<FormState> {
   if (!data?.length) return { error: "You're not in this event." };
   redirect("/");
 }
+
+// Who runs the event (0291): an executive picks the leads, in order. The database checks the role, that each person
+// is a trainer or executive and not banned, and logs the change.
+export async function setLeads(classroomId: string, _: FormState, form: FormData): Promise<FormState> {
+  await requireProfile();
+  if (!id.safeParse(classroomId).success) return { error: "That event doesn't exist." };
+  const people = form.getAll("lead").map(String);
+  if (people.length > 6) return { error: "Pick at most 6 people." };
+  if (!people.every((p) => id.safeParse(p).success)) return { error: "Someone you picked is gone. Reload the page." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_classroom_leads", { cid: classroomId, people });
+  if (error) {
+    if (error.code === "42501") return { error: "Only executives can change who runs an event." };
+    if (error.code === "PGRST202") return { error: "This needs the latest database update. Ask the developer to apply it." };
+    if (error.code === "P0001" || error.code === "P0002" || error.code === "22023")
+      return { error: /[.!?]$/.test(error.message) ? error.message : `${error.message}.` };
+    return failed("leads", error.message);
+  }
+  refresh();
+  return { ok: people.length ? "Saved. They run it now." : "Saved. Nobody is listed as running it." };
+}

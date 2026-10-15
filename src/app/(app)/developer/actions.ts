@@ -46,3 +46,31 @@ export async function triageFeedback(
   refresh();
   return { ok: true };
 }
+
+export type EloResult = { error?: string; ok?: string };
+
+// Developers set a member's Elo (0292). dev_set_elo checks the viewer itself (stats viewers only, 42501 for anyone
+// else, executives included), adds the difference to the ledger and logs it; these checks only give a clear message
+// before the round trip.
+export async function setElo(userId: string, elo: number): Promise<EloResult> {
+  if (!UUID.test(userId)) return { error: "Pick a member from the list." };
+  if (!Number.isInteger(elo) || elo < 0 || elo > 1_000_000)
+    return { error: "Pick a whole number from 0 to 1,000,000." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("dev_set_elo", {
+    p_user: userId,
+    p_elo: elo,
+  });
+  if (error) {
+    if (error.code === "42501") return { error: "Only developers can change Elo." };
+    if (error.code === "P0002") return { error: "That person is gone. Reload the page." };
+    if (error.code === "22023") return { error: `${error.message}.` };
+    if (error.code === "PGRST202")
+      return { error: "This needs the latest database update (0292)." };
+    console.error(`Set Elo failed: ${error.message}`);
+    return { error: "That didn't save. Try again." };
+  }
+  refresh();
+  return { ok: `Elo is now ${Number(data ?? elo).toLocaleString("en-CA")}.` };
+}

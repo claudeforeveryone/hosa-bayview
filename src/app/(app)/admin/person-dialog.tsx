@@ -23,6 +23,7 @@ import { gradeLabel } from "@/lib/profile";
 import {
   banMember,
   removeMember,
+  removeWarning,
   unbanMember,
   warnMember,
   type ModState,
@@ -267,6 +268,72 @@ function UnbanForm({ userId, name }: { userId: string; name: string }) {
   );
 }
 
+// Takes one warning back. Two steps, each with its own key so the clicked "Remove" button is never reused as the
+// submit button (see BanButtons).
+function RemoveWarningForm({ warningId }: { warningId: string }) {
+  const [confirming, setConfirming] = useState(false);
+  const [state, action, pending] = useActionState<ModState, FormData>(
+    async (prev, form) => {
+      const result = await removeWarning(prev, form);
+      if (result.error) setConfirming(false);
+      return result;
+    },
+    {},
+  );
+  return (
+    <form action={action} className="grid gap-2" noValidate>
+      <input type="hidden" name="warningId" value={warningId} />
+      {confirming ? (
+        <div key="confirm" className="flex flex-wrap items-center gap-3">
+          <Button type="submit" disabled={pending} className="h-11 px-4">
+            {pending ? "Removing" : "Yes, remove"}
+          </Button>
+          <Button
+            variant="line"
+            type="button"
+            onClick={() => setConfirming(false)}
+            disabled={pending}
+            className="h-11 px-4"
+          >
+            Cancel
+          </Button>
+        </div>
+      ) : (
+        <div key="arm">
+          <Button
+            variant="line"
+            type="button"
+            onClick={() => setConfirming(true)}
+            className="h-11 px-4"
+          >
+            Remove warning
+          </Button>
+        </div>
+      )}
+      <Result state={state} />
+    </form>
+  );
+}
+
+function WarningHistory({ warnings }: { warnings: WarningRow[] }) {
+  return warnings.length ? (
+    <ol className="border-t border-rule">
+      {warnings.map((w) => (
+        <li key={w.id} className="grid gap-2 border-b border-rule py-3">
+          <p className="flex flex-wrap gap-x-3 text-14 text-ink-2">
+            <span className="num">{WHEN.format(new Date(w.created_at))}</span>
+            <span>{w.seen_at ? "Seen" : "Not seen yet"}</span>
+          </p>
+          <p className="text-16 [overflow-wrap:anywhere]">{w.message}</p>
+          <RemoveWarningForm warningId={w.id} />
+        </li>
+      ))}
+    </ol>
+  ) : (
+    <p className="text-16 text-ink-2">No warnings.</p>
+  );
+}
+
 function RemoveForm({
   userId,
   name,
@@ -401,28 +468,7 @@ function PersonBody({
           </Section>
 
           <Section id={`${id}-history`} title="Warnings">
-            {warnings.length ? (
-              <ol className="border-t border-rule">
-                {warnings.map((w) => (
-                  <li
-                    key={w.id}
-                    className="grid gap-1 border-b border-rule py-3"
-                  >
-                    <p className="flex flex-wrap gap-x-3 text-14 text-ink-2">
-                      <span className="num">
-                        {WHEN.format(new Date(w.created_at))}
-                      </span>
-                      <span>{w.seen_at ? "Seen" : "Not seen yet"}</span>
-                    </p>
-                    <p className="text-16 [overflow-wrap:anywhere]">
-                      {w.message}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="text-16 text-ink-2">No warnings.</p>
-            )}
+            <WarningHistory warnings={warnings} />
           </Section>
 
           <Section id={`${id}-remove`} title="Remove">
@@ -434,11 +480,19 @@ function PersonBody({
           </Section>
         </>
       ) : (
-        <p className="border-t border-rule pt-5 text-16 text-ink-2">
-          {isMe
-            ? "You can't warn, ban or remove your own account."
-            : "Executives can't be warned, banned or removed. Demote them first."}
-        </p>
+        <>
+          <p className="border-t border-rule pt-5 text-16 text-ink-2">
+            {isMe
+              ? "You can't warn, ban or remove your own account."
+              : "Executives can't be warned, banned or removed. Demote them first."}
+          </p>
+          {/* Warnings from before they were an executive can still be taken back. */}
+          {!isMe && warnings.length ? (
+            <Section id={`${id}-history`} title="Warnings">
+              <WarningHistory warnings={warnings} />
+            </Section>
+          ) : null}
+        </>
       )}
     </div>
   );

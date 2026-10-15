@@ -1,8 +1,8 @@
 // Facts the terms, the privacy policy, the sign-up line, Settings and the sitemap share. When either document
 // changes, change the date here and say what changed at the top of that page.
-export const LEGAL_EFFECTIVE = "October 12, 2026";
+export const LEGAL_EFFECTIVE = "October 15, 2026";
 // Midnight in Toronto on that day (EDT), for the sitemap.
-export const LEGAL_EFFECTIVE_AT = "2026-10-12T00:00:00-04:00";
+export const LEGAL_EFFECTIVE_AT = "2026-10-15T00:00:00-04:00";
 export const CONTACT_EMAIL = "josephislockedin@gmail.com";
 
 // Privacy policy lines for features other work adds. Each flag must match this tree: src/app/(legal)/privacy's test

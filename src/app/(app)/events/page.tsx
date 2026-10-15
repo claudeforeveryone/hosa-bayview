@@ -18,6 +18,7 @@ import {
 } from "@/lib/classroom-tabs";
 import { getMyClassrooms, type ClassroomSummary } from "@/lib/classrooms";
 import { getOpenBattles } from "@/lib/battles";
+import { canSeeDevStats } from "@/lib/dev-stats-data";
 import { formNumber } from "@/lib/join-code";
 import { createClient } from "@/lib/supabase/server";
 
@@ -83,14 +84,16 @@ function RoomBox({ room }: { room: ClassroomSummary }) {
 // sees every room: their own and recently opened ones first, then the rest by category.
 export default async function EventsPage(props: PageProps<"/events">) {
   const sp = await props.searchParams;
-  const [profile, rooms, battles, jar] = await Promise.all([
+  const [profile, rooms, battles, jar, developer] = await Promise.all([
     requireProfile(),
     getMyClassrooms(),
     // Null until the battle migrations are applied: then no battle code field either.
     getOpenBattles(null),
     cookies(),
+    canSeeDevStats(),
   ]);
-  const seesAll = profile.role === "executive";
+  // Developers see every room too (0293), so their own split out the same way an executive's are.
+  const seesAll = profile.role === "executive" || developer;
   const memberIds = seesAll
     ? await getMyMemberIds(profile.id)
     : new Set<string>();

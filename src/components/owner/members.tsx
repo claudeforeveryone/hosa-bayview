@@ -1,6 +1,7 @@
 import { DevStatsView } from "@/components/dev-stats";
 import { PERIODS, PERIOD_LABEL, type Period } from "@/lib/activity";
 import type { DevStatsRow } from "@/lib/dev-stats";
+import { EloSetter } from "./elo-setter";
 import { Choices, Sheet } from "./primitives";
 
 // The per-member table that was the whole developer page before the console (0105), kept as it was built:
@@ -40,6 +41,7 @@ export function MembersSection({
         />
       }
     >
+      <EloSetter members={rows} />
       <DevStatsView rows={rows} period={period} battles={battles} />
     </Sheet>
   );

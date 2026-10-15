@@ -72,3 +72,18 @@ export async function getRoster(id: string): Promise<RosterRow[]> {
   if (error) throw new Error(`Roster lookup failed: ${error.message}`);
   return (data ?? []) as RosterRow[];
 }
+
+export type Runner = { user_id: string; full_name: string; lead: boolean };
+
+// Who runs the room (0291): its leads in order, or the account that made it when it has none (lead false).
+// Null when the database doesn't have classroom_runners yet, so callers fall back to the owner.
+export async function getRunners(id: string): Promise<Runner[] | null> {
+  if (!uuid.safeParse(id).success) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("classroom_runners", { cid: id });
+  if (error) {
+    if (error.code !== "PGRST202") console.error("[classrooms] runners:", error.message);
+    return null;
+  }
+  return (data ?? []) as Runner[];
+}

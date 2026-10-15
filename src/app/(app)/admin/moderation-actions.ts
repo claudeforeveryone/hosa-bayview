@@ -15,6 +15,9 @@ const GONE = "That person is gone. Reload the page.";
 // The database writes its refusals as plain sentences for P0001, P0002 and 22023. Permission refusals (42501)
 // and anything unexpected get a short line here, and the detail goes to the server log.
 function explain(error: { code?: string; message: string }): string {
+  // The function isn't on the database yet (a deploy ahead of its migration).
+  if (error.code === "PGRST202")
+    return "This needs the latest database update. Ask the developer to apply it.";
   if (error.code === "42501")
     return "Only executives can do that here. Demo accounts can't.";
   if (
@@ -52,6 +55,22 @@ export async function warnMember(
   return {
     ok: "Warning sent. It stays at the top of their screen until they click Got it.",
   };
+}
+
+// Takes a warning back: it leaves their screen and this list, and the admin log keeps a line for it.
+export async function removeWarning(
+  _: ModState,
+  form: FormData,
+): Promise<ModState> {
+  await requireRole("executive");
+  const parsed = uuid.safeParse(form.get("warningId"));
+  if (!parsed.success) return { error: "That warning is already gone. Reload the page." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_warning", { p_id: parsed.data });
+  if (error) return { error: explain(error) };
+  refresh();
+  return { ok: "Warning removed." };
 }
 
 export async function banMember(

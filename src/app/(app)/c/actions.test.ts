@@ -231,3 +231,56 @@ describe("members", () => {
     expect(eqs).toContainEqual(["user_id", "11111111-1111-4111-8111-111111111111"]);
   });
 });
+
+describe("setLeads", () => {
+  const leads = (...ids: string[]) => {
+    const f = new FormData();
+    for (const i of ids) f.append("lead", i);
+    return f;
+  };
+  const OTHER = "44444444-4444-4444-8444-444444444444";
+
+  beforeEach(() => {
+    client = makeClient({ data: null, error: null });
+    refresh.mockClear();
+  });
+
+  it("sends the leads in the order picked and refreshes", async () => {
+    expect(await actions.setLeads(ROOM, {}, leads(USER, OTHER))).toEqual({ ok: "Saved. They run it now." });
+    expect(client.rpc).toHaveBeenCalledWith("set_classroom_leads", { cid: ROOM, people: [USER, OTHER] });
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("can clear them", async () => {
+    expect(await actions.setLeads(ROOM, {}, leads())).toEqual({ ok: "Saved. Nobody is listed as running it." });
+    expect(client.rpc).toHaveBeenCalledWith("set_classroom_leads", { cid: ROOM, people: [] });
+  });
+
+  it("checks the room, the ids and the count before the database", async () => {
+    expect(await actions.setLeads("nope", {}, leads(USER))).toEqual({ error: "That event doesn't exist." });
+    expect(await actions.setLeads(ROOM, {}, leads("nope"))).toEqual({
+      error: "Someone you picked is gone. Reload the page.",
+    });
+    expect(await actions.setLeads(ROOM, {}, leads(...Array(7).fill(USER)))).toEqual({ error: "Pick at most 6 people." });
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+
+  it("explains the database's refusals", async () => {
+    client = makeClient({ data: null, error: { code: "42501", message: "no" } });
+    expect(await actions.setLeads(ROOM, {}, leads(USER))).toEqual({
+      error: "Only executives can change who runs an event.",
+    });
+    client = makeClient({ data: null, error: { code: "P0001", message: "Tad Trainee is a trainee. Make them a trainer first" } });
+    expect(await actions.setLeads(ROOM, {}, leads(USER))).toEqual({
+      error: "Tad Trainee is a trainee. Make them a trainer first.",
+    });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("setLeads messages", () => {
+  it("doesn't double a full stop the database already wrote", async () => {
+    client = makeClient({ data: null, error: { code: "P0002", message: "That event is gone. Reload the page." } });
+    expect(await actions.setLeads(ROOM, {}, new FormData())).toEqual({ error: "That event is gone. Reload the page." });
+  });
+});
