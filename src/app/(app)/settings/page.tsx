@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 import { AppearanceSection, SoundSection } from "@/components/appearance";
+import { FlairForm } from "@/components/flair-form";
 import { Button } from "@/components/form";
 import { HelpContent } from "@/components/help-content";
 import { JoinForm } from "@/components/join-form";
@@ -104,10 +105,14 @@ async function AccountTab() {
   );
   // GIF pictures are for a few named accounts (0101), not every executive.
   const supabase = await createClient();
-  const [powers, exempt] = await Promise.all([
+  const [powers, exempt, flairRes] = await Promise.all([
     supabase.rpc("my_powers"),
     supabase.rpc("gif_exempt_ids"),
+    supabase.from("profiles").select("flair").eq("id", profile.id).maybeSingle(),
   ]);
+  // Flair (0294): the section hides until the column is in the database.
+  const flairOn = !flairRes.error;
+  const flair = (flairRes.data as { flair: string | null } | null)?.flair ?? null;
   if (exempt.error)
     throw new Error(`GIF limits lookup failed: ${exempt.error.message}`);
   const canGif = Boolean((powers.data as { gif: boolean }[] | null)?.[0]?.gif);
@@ -119,6 +124,15 @@ async function AccountTab() {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-12">
       <NameSection name={profile.full_name} />
       <GradeSection grade={profile.grade} />
+      {flairOn ? (
+        <SettingsSection
+          id="flair-h"
+          title="Flair"
+          description="A short tag beside your name on the leaderboards."
+        >
+          <FlairForm flair={flair} />
+        </SettingsSection>
+      ) : null}
       <PictureSection
         userId={profile.id}
         name={profile.full_name}

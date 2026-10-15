@@ -33,6 +33,7 @@ import { GifSwitch } from "./gif-switch";
 import { RoleSwitch } from "./role-switch";
 import { roleLabel } from "@/lib/role-label";
 import { useBackdropClose } from "@/hooks/use-backdrop-close";
+import { FlairForm } from "@/components/flair-form";
 
 export type PersonRow = {
   id: string;
@@ -55,6 +56,9 @@ export type PersonRow = {
   banned_until: string | null;
   ban_reason: string | null;
   title: string | null;
+  // The board flair (0294) and whether the column is in the database yet.
+  flair: string | null;
+  flair_on: boolean;
 };
 
 export type WarningRow = {
@@ -446,6 +450,12 @@ function PersonBody({
           gifLimit={person.gif_limit}
         />
       </Section>
+
+      {person.flair_on ? (
+        <Section id={`${id}-flair`} title="Flair">
+          <FlairForm flair={person.flair} userId={person.id} />
+        </Section>
+      ) : null}
 
       {canModerate ? (
         <>

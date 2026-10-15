@@ -49,7 +49,7 @@ export function LoginForm({ next, notice }: { next: string; notice: string | nul
           New here? Make an account
         </Link>
         <Link href="/forgot-password" className="text-ink-2 underline">
-          Forgot password
+          Forgot password?
         </Link>
       </div>
     </form>
