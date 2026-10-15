@@ -27,12 +27,15 @@ const VERB: Record<string, string> = {
   unbanned: "unbanned",
   title: "set the title of",
   warned: "warned",
+  unwarned: "removed a warning from",
   removed: "removed",
   passcode: "changed the admin passcode",
   passcode_used: "used the admin passcode, which then cleared",
   chapter_code: "updated the chapter code",
   gif: "changed GIF pictures for",
   feedback: "triaged",
+  leads: "changed who runs",
+  elo: "set the Elo of",
 };
 
 // Who did what to whom: roles, bans, titles, warnings, removals, passcode changes. Filled by triggers.

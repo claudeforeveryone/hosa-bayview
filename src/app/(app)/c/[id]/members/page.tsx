@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ConfirmAction } from "@/components/confirm-action";
 import { getOnline } from "@/lib/activity-data";
 import { requireProfile } from "@/lib/auth";
-import { getClassroom, getRoster } from "@/lib/classrooms";
+import { getClassroom, getRoster, getRunners, type Runner } from "@/lib/classrooms";
 import { leaveClassroom, removeMember } from "../../actions";
 
 const joined = (iso: string) =>
@@ -19,32 +19,45 @@ function YouTag() {
 
 export default async function MembersTab({ params }: PageProps<"/c/[id]/members">) {
   const { id } = await params;
-  const [profile, room, roster, online] = await Promise.all([
+  const [profile, room, roster, online, found] = await Promise.all([
     requireProfile(),
     getClassroom(id),
     getRoster(id),
     getOnline(id).catch(() => []),
+    getRunners(id).catch(() => null),
   ]);
   if (!room) notFound();
   const here = new Set(online.map((o) => o.user_id));
+  // The leads (0291), or the owner alone on a database without them. A lead who also joined with the code is
+  // listed once, at the top.
+  const runners: Runner[] =
+    found ??
+    (room.owner_id && room.owner_name
+      ? [{ user_id: room.owner_id, full_name: room.owner_name, lead: false }]
+      : []);
+  const runnerIds = new Set(runners.map((r) => r.user_id));
+  const members = roster.filter((m) => !runnerIds.has(m.user_id));
 
   return (
     <div className="grid grid-cols-1 gap-8">
       <p className="caps num text-15 text-ink-2">
-        {roster.length + (room.owner_id ? 1 : 0)} people · {online.length} online now
+        {members.length + runners.length} people · {online.length} online now
       </p>
       <ul id="members" tabIndex={-1} aria-label="Members" className="border-t border-rule outline-none">
-        {room.owner_id ? (
-          <li className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule px-1 py-4 sm:px-3">
+        {runners.map((r) => (
+          <li
+            key={r.user_id}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4 border-b border-rule px-1 py-4 sm:px-3"
+          >
             <span className="min-w-0 truncate text-19 font-semibold">
-              {room.owner_name}
-              {room.is_owner ? <YouTag /> : null}
-              {room.owner_id && here.has(room.owner_id) ? <OnlineTag /> : null}
+              {r.full_name}
+              {r.user_id === profile.id ? <YouTag /> : null}
+              {here.has(r.user_id) ? <OnlineTag /> : null}
             </span>
-            <span className="caps text-15 text-ink-2">Trainer</span>
+            <span className="caps text-15 text-ink-2">{r.lead ? "Lead" : "Trainer"}</span>
           </li>
-        ) : null}
-        {roster.map((m) => (
+        ))}
+        {members.map((m) => (
           <li
             key={m.user_id}
             className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-b border-rule px-1 py-4 sm:px-3"
@@ -73,8 +86,16 @@ export default async function MembersTab({ params }: PageProps<"/c/[id]/members"
           </li>
         ))}
       </ul>
-      {roster.length === 0 ? (
-        <EmptyState title={room.owner_id ? "Just the trainer so far" : "No members yet"}>
+      {members.length === 0 ? (
+        <EmptyState
+          title={
+            runners.some((r) => r.lead)
+              ? "Just the leads so far"
+              : runners.length
+                ? "Just the trainer so far"
+                : "No members yet"
+          }
+        >
           {room.can_manage ? "Share the join code to fill it." : null}
         </EmptyState>
       ) : null}

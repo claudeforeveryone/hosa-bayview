@@ -74,7 +74,9 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               <Term>Your studying.</Term> The tests and practice runs you start
               and finish, the answers you pick and your scores, flashcards you
               mark known or still learning, match-game times, questions you
-              favourite or flag, and the points (Elo) you earn and why.
+              favourite or flag, and the points (Elo) you earn and why. The
+              site&apos;s developers can set someone&apos;s Elo by hand; that
+              change is kept with who made it.
             </>,
             <>
               <Term>Battles.</Term> The live quiz battles you join: your team,
@@ -110,7 +112,8 @@ export function PrivacyPolicy({ covers }: { covers: PolicyCovers }) {
               each meeting) and attendance lists with names and grades. An
               executive may add your name to a list before you have an account.
               Warnings and bans, with the reason, and a log of role, title and
-              ban changes.
+              ban changes. A warning an executive takes back stops showing to
+              anyone but is kept until the account is deleted.
             </>,
             <>
               <Term>Notifications.</Term> The notices the site sends you. One
