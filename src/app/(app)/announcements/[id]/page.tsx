@@ -7,7 +7,9 @@ import { AnnouncementReadToggle } from "@/components/announcement-read-toggle";
 import { ConfirmAction } from "@/components/confirm-action";
 import { PinButton } from "@/components/pin-button";
 import { getAnnouncement, getAnnouncementStates } from "@/lib/announcements";
+import { channelHref } from "@/lib/announcement-channels";
 import { requireProfile } from "@/lib/auth";
+import { getClassroom } from "@/lib/classrooms";
 import { formatWhen } from "@/lib/when";
 import {
   deleteAnnouncementAndLeave,
@@ -19,19 +21,23 @@ import {
 export const metadata: Metadata = { title: "Announcement" };
 
 // One announcement, opened from the inbox like an email. It stays here until you delete it from your list;
-// Mark as read only changes how it looks there. Executives also get pin, edit and delete for everyone.
+// Mark as read only changes how it looks there. Whoever can post in its channel (executives for the chapter, a
+// room's trainers, leads and the executives for room news) also gets pin, edit and delete for everyone.
 export default async function AnnouncementPage({ params }: PageProps<"/announcements/[id]">) {
   const { id } = await params;
   const [me, a] = await Promise.all([requireProfile(), getAnnouncement(id)]);
   if (!a) notFound();
   const state = (await getAnnouncementStates([a.id])).get(a.id);
-  const exec = me.role === "executive";
+  const room = a.classroom_id ? await getClassroom(a.classroom_id) : null;
+  const canManage = a.classroom_id === null ? me.role === "executive" : Boolean(room?.can_manage);
+  const channelName = a.classroom_id === null ? "Chapter" : (room?.name ?? "Event room");
+  const back = a.classroom_id === null ? channelHref("chapter") : room ? channelHref(room.id) : "/announcements";
   const edited = Date.parse(a.updated_at) - Date.parse(a.created_at) > 60_000;
 
   return (
     <div className="grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-8">
       <Link
-        href="/announcements"
+        href={back}
         className="caps step inline-flex h-11 items-center gap-2 justify-self-start text-15 text-ink-2 hover:text-ink"
       >
         <ArrowLeft size={18} strokeWidth={2} aria-hidden />
@@ -50,6 +56,16 @@ export default async function AnnouncementPage({ params }: PageProps<"/announcem
             {a.title}
           </h1>
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-15">
+            <dt className="caps text-ink-2">Channel</dt>
+            <dd>
+              {room ? (
+                <Link href={`/c/${room.id}`} className="underline underline-offset-4 hover:text-ink-2">
+                  {channelName}
+                </Link>
+              ) : (
+                channelName
+              )}
+            </dd>
             <dt className="caps text-ink-2">From</dt>
             <dd>{a.author?.full_name ?? "An executive"}</dd>
             <dt className="caps text-ink-2">Sent</dt>
@@ -77,10 +93,10 @@ export default async function AnnouncementPage({ params }: PageProps<"/announcem
         />
       </div>
 
-      {exec && a.classroom_id === null ? (
+      {canManage ? (
         <section aria-labelledby="manage-h" className="grid gap-4 border-t-[3px] border-ink pt-6">
           <h2 id="manage-h" className="caps text-17">
-            For executives
+            {a.classroom_id === null ? "For executives" : "For this room's trainers"}
           </h2>
           <div className="flex flex-wrap items-start gap-3">
             <PinButton pinned={a.pinned} action={setPinned.bind(null, a.id, !a.pinned)} />
@@ -90,7 +106,7 @@ export default async function AnnouncementPage({ params }: PageProps<"/announcem
               </summary>
               <div className="pt-5">
                 <AnnouncementForm
-                  action={saveAnnouncement.bind(null, null, a.id)}
+                  action={saveAnnouncement.bind(null, a.classroom_id, a.id)}
                   initial={{ title: a.title, body: a.body, pinned: a.pinned }}
                   submitLabel="Save"
                   pendingLabel="Saving"
@@ -102,7 +118,7 @@ export default async function AnnouncementPage({ params }: PageProps<"/announcem
               label="Delete for everyone"
               confirmLabel="Delete for everyone"
               pendingLabel="Deleting"
-              question={`Delete "${a.title}" for the whole chapter?`}
+              question={`Delete "${a.title}" for ${a.classroom_id === null ? "the whole chapter" : `everyone in ${channelName}`}?`}
               compact
             />
           </div>

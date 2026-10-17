@@ -36,6 +36,29 @@ export async function getAnnouncements(
   return (data ?? []) as unknown as AnnouncementRow[];
 }
 
+// The inbox (/announcements): the chapter's announcements plus the news of every room in roomIds, pinned first,
+// then newest. Rows carry classroom_id so the page can label and filter them by channel.
+export type InboxRow = AnnouncementRow & { classroom_id: string | null };
+
+export async function getAnnouncementInbox(roomIds: string[], limit = 200): Promise<InboxRow[]> {
+  const rooms = roomIds.filter((r) => uuid.safeParse(r).success);
+  const supabase = await createClient();
+  let query = supabase
+    .from("announcements")
+    .select(
+      "id, classroom_id, title, body, pinned, created_at, updated_at, author:profiles!announcements_author_id_fkey(full_name)",
+    )
+    .order("pinned", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  query = rooms.length
+    ? query.or(`classroom_id.is.null,classroom_id.in.(${rooms.join(",")})`)
+    : query.is("classroom_id", null);
+  const { data, error } = await query;
+  if (error) throw new Error(`Announcements lookup failed: ${error.message}`);
+  return (data ?? []) as unknown as InboxRow[];
+}
+
 // Your own read and deleted marks (0280). Nobody else can see them. Empty while the table isn't there yet.
 export type AnnouncementState = { read: boolean; deleted: boolean };
 

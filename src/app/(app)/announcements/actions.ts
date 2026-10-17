@@ -86,6 +86,18 @@ export async function saveAnnouncement(
   return { ok: "Saved.", values };
 }
 
+// From the inbox, where the form picks the channel: "chapter" or one of your rooms. RLS still decides.
+export async function postAnnouncement(_: FormState, form: FormData): Promise<FormState> {
+  const channel = String(form.get("channel") ?? "");
+  if (channel !== "chapter" && !id.safeParse(channel).success) {
+    const { values } = read(form);
+    return { error: "Pick where to post it.", values };
+  }
+  const result = await saveAnnouncement(channel === "chapter" ? null : channel, null, _, form);
+  // Keep the picked channel when the form comes back with an error.
+  return result.ok ? result : { ...result, values: { ...result.values, channel } };
+}
+
 export async function setPinned(
   announcementId: string,
   pinned: boolean,
