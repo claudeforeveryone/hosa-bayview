@@ -219,7 +219,6 @@ function QuestionsTab({
     (t) => path === hrefOf(t.slug) || path.startsWith(`${hrefOf(t.slug)}/`),
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => hide(), [path]);
 
   // A fixed menu would drift from its tab when anything scrolls, so it closes instead.
