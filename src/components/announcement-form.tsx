@@ -2,23 +2,27 @@
 
 import { useActionState, useEffect, useId, useRef } from "react";
 import type { FormState } from "@/app/(app)/c/actions";
-import { Button, Field, FormMessage, TextArea } from "@/components/form";
+import { Button, Field, FormMessage, Select, TextArea } from "@/components/form";
+import type { ChannelOption } from "@/lib/announcement-channels";
 
 type Values = { title: string; body: string; pinned: boolean };
 
-// Post or edit one announcement. Posting clears the form; editing keeps what was typed.
+// Post or edit one announcement. Posting clears the form; editing keeps what was typed. With channels, the form
+// starts with a "Post to" picker (the inbox: the chapter or one of your rooms), sent as `channel`.
 export function AnnouncementForm({
   action,
   initial,
   submitLabel,
   pendingLabel,
   resetOnSave = false,
+  channels,
 }: {
   action: (state: FormState, form: FormData) => Promise<FormState>;
   initial?: Values;
   submitLabel: string;
   pendingLabel: string;
   resetOnSave?: boolean;
+  channels?: ChannelOption[];
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     action,
@@ -47,6 +51,23 @@ export function AnnouncementForm({
     >
       {state.error ? (
         <FormMessage tone="error">{state.error}</FormMessage>
+      ) : null}
+      {channels?.length ? (
+        <Select
+          id={`${uid}-channel`}
+          label="Post to"
+          name="channel"
+          // Keyed on the value so a failed post comes back on the channel it was aimed at.
+          key={state.values?.channel ?? channels[0].value}
+          defaultValue={state.values?.channel ?? channels[0].value}
+          hint="Only the people in that channel are notified."
+        >
+          {channels.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </Select>
       ) : null}
       <Field
         id={`${uid}-title`}

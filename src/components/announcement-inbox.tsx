@@ -3,7 +3,8 @@ import { Pin } from "lucide-react";
 import type { AnnouncementRow, AnnouncementState } from "@/lib/announcements";
 import { formatWhen, timeAgo } from "@/lib/when";
 
-// The chapter announcements as an inbox: one line per announcement, its headline as the subject. Unread ones
+// The announcements as an inbox: one line per announcement, its headline as the subject, and its channel (the
+// chapter or an event room) as a tag when the list mixes channels. Unread ones
 // are bold on the highlight colour with a "New" tag; read ones sit on the quiet band in ink-2. Opening one
 // shows the whole thing; marking it read or deleting it from your list happens there.
 export function AnnouncementInbox({
@@ -11,7 +12,7 @@ export function AnnouncementInbox({
   states,
   now,
 }: {
-  rows: AnnouncementRow[];
+  rows: (AnnouncementRow & { channel?: string })[];
   states: Map<string, AnnouncementState>;
   now: number;
 }) {
@@ -33,6 +34,11 @@ export function AnnouncementInbox({
                   {read ? null : (
                     <span className="caps shrink-0 bg-you px-1.5 py-0.5 text-12 leading-none text-on-you">New</span>
                   )}
+                  {a.channel ? (
+                    <span className="caps max-w-[40%] shrink-0 truncate border border-rule-strong px-1.5 py-0.5 text-12 leading-none text-ink-2">
+                      {a.channel}
+                    </span>
+                  ) : null}
                   {a.pinned ? (
                     <Pin size={14} strokeWidth={2.25} aria-label="Pinned" role="img" className="shrink-0" />
                   ) : null}

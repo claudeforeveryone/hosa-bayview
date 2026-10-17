@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Plus } from "lucide-react";
 import { AnnouncementForm } from "@/components/announcement-form";
 import { AnnouncementList } from "@/components/announcement-list";
@@ -12,6 +13,7 @@ import {
 } from "@/components/event-hub";
 import { parseMetric, parsePeriod } from "@/lib/activity";
 import { getBoard } from "@/lib/activity-data";
+import { channelHref } from "@/lib/announcement-channels";
 import { getAnnouncements } from "@/lib/announcements";
 import { getOpenBattles } from "@/lib/battles";
 import { requireProfile } from "@/lib/auth";
@@ -93,9 +95,17 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
     <div className="grid grid-cols-1 gap-12">
       {news.length || canPost ? (
         <section aria-labelledby="news-h" className="grid gap-4">
-          <h2 id="news-h" className={hubHeading}>
-            News
-          </h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 id="news-h" className={hubHeading}>
+              News
+            </h2>
+            <Link
+              href={channelHref(id)}
+              className="caps step text-15 text-ink-2 underline underline-offset-4 hover:text-ink"
+            >
+              All of this room&apos;s news
+            </Link>
+          </div>
           {news.length ? (
             <AnnouncementList
               rows={news}
@@ -107,7 +117,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
           {canPost ? (
             <details className="group border-y border-rule" open={false}>
               <summary className="caps step flex h-14 cursor-pointer items-center justify-between px-1 text-17 hover:bg-band sm:px-3">
-                Post
+                Post an announcement
                 <Plus
                   size={22}
                   strokeWidth={1.75}
