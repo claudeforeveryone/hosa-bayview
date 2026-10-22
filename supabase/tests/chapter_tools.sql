@@ -307,9 +307,10 @@ select pg_temp.check('upcoming: classroom_tests lists nothing for a member',
   not exists (select 1 from public.classroom_tests(pg_temp.comp())));
 select pg_temp.check('outsider can see the competition room row', exists (select 1 from public.classrooms where id = pg_temp.comp()));
 select pg_temp.as_user(pg_temp.u(1));
-select pg_temp.check('exec my classes list has the classes, not the competition', exists (
+select pg_temp.check('exec lists only rooms they are in (0297), never the competition', not exists (
   select 1 from public.my_classrooms() where id = pg_temp.r(1))
-  and not exists (select 1 from public.my_classrooms() where id = pg_temp.comp()));
+  and not exists (select 1 from public.my_classrooms() where id = pg_temp.comp())
+  and exists (select 1 from public.classroom_detail(pg_temp.r(1))));
 
 -- G. Boards and the daily flashcard cap ----------------------------------------------------------------------------
 select pg_temp.as_user(pg_temp.u(3));

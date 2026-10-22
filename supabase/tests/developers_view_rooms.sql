@@ -51,8 +51,8 @@ select pg_temp.as_user('00000000-0000-4000-8000-000000000dd1');
 select pg_temp.check('developer sees it, read-only',
   (select not can_manage and not is_owner and not is_member and join_code is null
    from public.classroom_detail('00000000-0000-4000-8000-0000000d1a55')));
-select pg_temp.check('developer lists it',
-  exists (select 1 from public.my_classrooms() where id = '00000000-0000-4000-8000-0000000d1a55'));
+select pg_temp.check('developer does not list it (0297: lists are rooms you are in)',
+  not exists (select 1 from public.my_classrooms() where id = '00000000-0000-4000-8000-0000000d1a55'));
 select pg_temp.check('developer reads the row',
   exists (select 1 from public.classrooms where id = '00000000-0000-4000-8000-0000000d1a55'));
 update public.classrooms set description = 'Changed' where id = '00000000-0000-4000-8000-0000000d1a55';
