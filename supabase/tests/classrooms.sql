@@ -115,8 +115,8 @@ select pg_temp.rows('member cannot remove another member',
   $q$delete from public.classroom_members where user_id = 'bbbbbbbb-0000-0000-0000-0000000000b1'$q$, 0);
 select public.join_classroom('AAAAA' || g) from generate_series(2, 9) g;
 select public.join_classroom('BBBBBB'), public.join_classroom('CCCCCC');
-select pg_temp.expect('ten misses in ten minutes locks joining',
-  $q$select public.join_classroom('DDDDDD')$q$, '54000');
+insert into _r select 'misses never lock joining (0295)', 'ok',
+  public.join_classroom((select v from _c where k = 'code')) is not null;
 reset role;
 
 -- R2, another trainer, can't touch R1's room.

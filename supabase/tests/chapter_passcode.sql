@@ -186,29 +186,13 @@ select pg_temp.expect('an expired ticket is refused',
   format($q$select pg_temp.signup('00000000-0000-4000-8000-0000000000d5', jsonb_build_object('full_name', 'Late', 'chapter_ticket', %L))$q$,
          (select ticket from t)), '28000');
 
--- Per-IP limit: 30 misses in 10 minutes locks that IP out, even with the right code. Other IPs still work.
-select pg_temp.as_admin();
-update private.chapter_code_attempts set at = now() - interval '11 minutes' where at > now() - interval '10 minutes';
+-- No limit (0295): any number of misses from one IP, or none, never locks anyone out.
 select pg_temp.as_service();
-select public.check_chapter_code('wrong-' || g, '10.0.0.9') from generate_series(1, 29) g;
-select pg_temp.check('29 misses: the right code still works', public.check_chapter_code('bayview-2026', '10.0.0.9') is not null);
-select public.check_chapter_code('wrong-30', '10.0.0.9');
-select pg_temp.expect('31st try from the same IP is throttled',
-  $q$select public.check_chapter_code('bayview-2026', '10.0.0.9')$q$, '54000');
-select pg_temp.check('another IP still works', public.check_chapter_code('bayview-2026', '10.0.0.10') is not null);
--- Missing IPs share one bucket.
-select public.check_chapter_code('wrong-' || g, null) from generate_series(1, 30) g;
-select pg_temp.expect('no IP shares one bucket', $q$select public.check_chapter_code('bayview-2026', '')$q$, '54000');
+select public.check_chapter_code('wrong-' || g, '10.0.0.9') from generate_series(1, 40) g;
+select pg_temp.check('40 misses: the right code still works', public.check_chapter_code('bayview-2026', '10.0.0.9') is not null);
+select public.check_chapter_code('wrong-' || g, null) from generate_series(1, 40) g;
+select pg_temp.check('no IP still works', public.check_chapter_code('bayview-2026', '') is not null);
 select pg_temp.as_admin();
-
--- Overall cap: 300 misses in 10 minutes from any mix of IPs locks everyone out.
-update private.chapter_code_attempts set at = now() - interval '11 minutes' where at > now() - interval '10 minutes';
-select pg_temp.as_service();
-select public.check_chapter_code('wrong', '172.16.' || (g / 256) || '.' || (g % 256)) from generate_series(1, 300) g;
-select pg_temp.expect('the 301st miss locks out a fresh IP',
-  $q$select public.check_chapter_code('bayview-2026', '192.168.1.1')$q$, '54000');
-select pg_temp.as_admin();
-update private.chapter_code_attempts set at = now() - interval '11 minutes' where at > now() - interval '10 minutes';
 
 -- Changing the code kills the old one and any tickets minted for it.
 select pg_temp.as_service();
