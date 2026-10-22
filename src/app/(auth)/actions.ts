@@ -43,7 +43,7 @@ function friendly(message: string) {
   const m = message.toLowerCase();
   if (m.includes("invalid login"))
     return "That email and password don't match.";
-  if (m.includes("already registered"))
+  if (m.includes("already registered") || m.includes("already been registered"))
     return "There's already an account with that email. Try logging in.";
   if (m.includes("banned")) return "This account is banned.";
   if (m.includes("rate limit"))
@@ -56,6 +56,16 @@ function friendly(message: string) {
     return "We couldn't send the email. Try again in a few minutes.";
   console.error("[auth]", message);
   return "Something went wrong. Try again.";
+}
+
+// The auth server caps sign-ups per IP, and every sign-up reaches it from the host's one server address (a whole
+// school network is one IP too), so a meeting signing up at once hits the cap. The admin API has no such cap.
+function rateLimited(error: { message: string; status?: number; code?: string }) {
+  return (
+    error.status === 429 ||
+    error.code === "over_request_rate_limit" ||
+    error.message.toLowerCase().includes("rate limit")
+  );
 }
 
 function fieldErrors(error: z.ZodError) {
@@ -210,18 +220,51 @@ export async function signup(_: AuthState, form: FormData): Promise<AuthState> {
     ticket = check.data;
   }
 
+  const metadata = {
+    full_name: parsed.data.full_name,
+    ...(grade ? { grade: String(grade) } : {}),
+    ...(ticket ? { chapter_ticket: ticket } : {}),
+  };
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: {
-        full_name: parsed.data.full_name,
-        ...(grade ? { grade: String(grade) } : {}),
-        ...(ticket ? { chapter_ticket: ticket } : {}),
-      },
+      data: metadata,
       emailRedirectTo: `${await origin()}/auth/callback`,
     },
   });
+  // Over the auth server's per-IP cap: make the account through the admin API instead (no cap there, and email
+  // confirmation is off anyway), then sign in as usual. Without the secret key this falls through to the error.
+  if (error && rateLimited(error) && process.env.SUPABASE_SECRET_KEY) {
+    const created = await createAdminClient().auth.admin.createUser({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      email_confirm: true,
+      user_metadata: metadata,
+    });
+    if (created.error) {
+      if (
+        ticket &&
+        created.error.message.toLowerCase().includes("database error")
+      )
+        return wrongCode;
+      return {
+        error: friendly(created.error.message),
+        values,
+        ...chapterGate,
+      };
+    }
+    const signedIn = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+    if (signedIn.error)
+      return {
+        ok: "Your account is made. Log in with it in a minute.",
+        values,
+      };
+    redirect("/");
+  }
   if (error) {
     // The trigger refused the ticket (it expired, or the code changed in between). The auth server reports any
     // trigger failure this way.

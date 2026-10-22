@@ -11,6 +11,10 @@ import { createClient } from "@/lib/supabase/client";
 // Shared by every bell on the page, so the sidebar and the phone bar always agree.
 const listeners = new Set<(n: number) => void>();
 let current: number | null = null;
+// When the count was last asked for. The layout's server count counts as the first ask, so a page load doesn't
+// ask again, and quick taps between pages share one ask instead of one each.
+let lastAsked = Date.now();
+const MIN_GAP_MS = 30_000;
 
 // A chime when the count goes up between polls. The first poll only sets the baseline, so a page load
 // never chimes, and both bells share `current`, so one rise chimes once.
@@ -36,20 +40,26 @@ function useUnread(initial: number) {
 
   useEffect(() => {
     let alive = true;
-    const check = async () => {
+    const ask = async () => {
       if (document.visibilityState !== "visible") return;
+      lastAsked = Date.now();
       const { data, error } = await createClient().rpc("unread_notifications");
       if (alive && !error && typeof data === "number") publish(data);
     };
+    const check = () => {
+      if (Date.now() - lastAsked >= MIN_GAP_MS) void ask();
+    };
+    // Opening or clearing notifications always re-asks.
+    const now = () => void ask();
     check();
     const timer = window.setInterval(check, 60_000);
     document.addEventListener("visibilitychange", check);
-    window.addEventListener("hosa:notifications", check);
+    window.addEventListener("hosa:notifications", now);
     return () => {
       alive = false;
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", check);
-      window.removeEventListener("hosa:notifications", check);
+      window.removeEventListener("hosa:notifications", now);
     };
   }, [path]);
 
