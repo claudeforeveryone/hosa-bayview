@@ -113,7 +113,7 @@ export default async function TestsPage() {
                       t.time_limit_minutes
                         ? `${t.time_limit_minutes} min`
                         : "Untimed",
-                      t.is_published ? null : "Draft",
+                      t.is_published ? null : "Hidden",
                       best.has(t.id) ? "Done" : null,
                     ]
                       .filter(Boolean)

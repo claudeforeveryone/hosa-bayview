@@ -57,17 +57,17 @@ describe("HubResources", () => {
 });
 
 describe("PracticeStrip", () => {
-  it("links each count to its tab and shows the drafts note when given", () => {
+  it("links each count to its tab and shows the hidden note when given", () => {
     const out = html(
       createElement(PracticeStrip, {
         base: "/c/room",
         cells: [
-          { slug: "tests", label: "Tests", count: 0, extra: "3 drafts" },
+          { slug: "tests", label: "Tests", count: 0, extra: "3 hidden" },
           { slug: "flashcards", label: "Decks", count: 4 },
         ],
       }),
     );
-    expect(text(out)).toBe("Practice 0 Tests 3 drafts 4 Decks");
+    expect(text(out)).toBe("Practice 0 Tests 3 hidden 4 Decks");
     expect(out).toContain('href="/c/room/flashcards"');
     expect(out).toContain("grid-cols-2");
   });

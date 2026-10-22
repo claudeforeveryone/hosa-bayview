@@ -165,7 +165,7 @@ function TestRow({
   const meta = [
     plural(t.question_count, "question"),
     t.time_limit_minutes ? `${t.time_limit_minutes} min` : "Practice",
-    manager && !t.is_published ? "Draft" : null,
+    manager && !t.is_published ? "Hidden" : null,
   ]
     .filter(Boolean)
     .join(" · ");

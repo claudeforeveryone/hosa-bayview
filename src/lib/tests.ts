@@ -134,6 +134,47 @@ export const getTest = cache(async (testId: string): Promise<Test | null> => {
   return (data as Test | null) ?? null;
 });
 
+// When a hidden test is set to post (0298), for its managers; members never see a hidden test at all. Read on its
+// own, not in getTest, so the test pages keep working on a database without the column (42703): nothing is scheduled.
+// Any other failure is logged and also reads as nothing scheduled, rather than breaking a manager's page.
+export async function getPublishAt(testId: string): Promise<string | null> {
+  if (!uuid.safeParse(testId).success) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tests")
+    .select("publish_at")
+    .eq("id", testId)
+    .maybeSingle<{ publish_at: string | null }>();
+  if (error) {
+    if (error.code !== "42703")
+      console.error(`Schedule lookup failed: ${error.message}`);
+    return null;
+  }
+  return data?.publish_at ?? null;
+}
+
+// The same for every scheduled test in a room, by test id, for the Tests tab.
+export async function getPublishTimes(
+  classroomId: string,
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (!uuid.safeParse(classroomId).success) return out;
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("tests")
+    .select("id, publish_at")
+    .eq("classroom_id", classroomId)
+    .not("publish_at", "is", null);
+  if (error) {
+    if (error.code !== "42703")
+      console.error(`Schedule lookup failed: ${error.message}`);
+    return out;
+  }
+  for (const r of (data ?? []) as { id: string; publish_at: string }[])
+    out.set(r.id, r.publish_at);
+  return out;
+}
+
 export async function getQuestions(
   testId: string,
 ): Promise<EditableQuestion[]> {
