@@ -185,7 +185,7 @@ export default async function CompetitionPage({
                         t.time_limit_minutes
                           ? `${t.time_limit_minutes} min`
                           : null,
-                        isExec && !t.is_published ? "Draft" : null,
+                        isExec && !t.is_published ? "Hidden" : null,
                         status,
                       ]
                         .filter(Boolean)

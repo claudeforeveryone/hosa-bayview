@@ -77,7 +77,7 @@ export type PracticeCell = {
   slug: string;
   label: string;
   count: number;
-  extra?: string | null; // for managers: "3 drafts"
+  extra?: string | null; // for managers: "3 hidden"
 };
 
 // Counts at poster scale, one cell per kind of practice, each a door to its tab, in one heavy frame.

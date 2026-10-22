@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronRight, Pencil } from "lucide-react";
 import { TestFlagsSection } from "@/components/flag-list";
 import { StartTest } from "@/components/start-test";
+import { TestVisibility } from "@/components/test-visibility";
 import { requireProfile } from "@/lib/auth";
 import { getClassroom } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
@@ -12,6 +13,7 @@ import {
   closeExpired,
   countAttempts,
   getMyAttempts,
+  getPublishAt,
   getQuestions,
   getResults,
   getTest,
@@ -49,13 +51,15 @@ export default async function TestPage({
 
   await closeExpired(test.id);
   const scored = scoredMode(test.time_limit_minutes);
-  const [questions, attempts, results, used, flags] = await Promise.all([
-    getQuestions(test.id),
-    getMyAttempts(test.id, profile.id),
-    room.can_manage ? getResults(test.id) : Promise.resolve([]),
-    countAttempts(test.id, profile.id, scored),
-    room.can_manage ? getTestFlags(test.id) : Promise.resolve([]),
-  ]);
+  const [questions, attempts, results, used, flags, publishAt] =
+    await Promise.all([
+      getQuestions(test.id),
+      getMyAttempts(test.id, profile.id),
+      room.can_manage ? getResults(test.id) : Promise.resolve([]),
+      countAttempts(test.id, profile.id, scored),
+      room.can_manage ? getTestFlags(test.id) : Promise.resolve([]),
+      room.can_manage ? getPublishAt(test.id) : Promise.resolve(null),
+    ]);
   const left = attemptsLeft(test.attempts_allowed, used);
   const openFlags = flags.filter((f) => f.status === "open");
   // eslint-disable-next-line react-hooks/purity -- server render time, once per request
@@ -90,7 +94,7 @@ export default async function TestPage({
               : "Practice off",
             test.show_answers ? null : "Answers hidden",
             room.can_manage && !test.is_published
-              ? "Draft, members can't see it"
+              ? "Hidden, members can't see it"
               : null,
           ]
             .filter(Boolean)
@@ -100,6 +104,15 @@ export default async function TestPage({
           <p className="max-w-[65ch] whitespace-pre-line text-ink-2">
             {test.description}
           </p>
+        ) : null}
+        {room.can_manage ? (
+          <div className="mt-2">
+            <TestVisibility
+              testId={test.id}
+              published={test.is_published}
+              publishAt={publishAt}
+            />
+          </div>
         ) : null}
       </header>
 

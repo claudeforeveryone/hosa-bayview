@@ -5,10 +5,10 @@ import { ArrowLeft } from "lucide-react";
 import { ConfirmAction } from "@/components/confirm-action";
 import { QuestionsEditor } from "@/components/questions-editor";
 import { TestForm } from "@/components/test-form";
-import { TestPublish } from "@/components/test-publish";
+import { TestVisibility } from "@/components/test-visibility";
 import { getClassroom } from "@/lib/classrooms";
 import { formNumber } from "@/lib/join-code";
-import { getQuestions, getTest } from "@/lib/tests";
+import { getPublishAt, getQuestions, getTest } from "@/lib/tests";
 import { UNTITLED_TEST, isUntitled } from "@/lib/untitled";
 import { deleteTest, updateTest } from "../../actions";
 
@@ -21,7 +21,10 @@ export default async function EditTestPage({
   const [room, test] = await Promise.all([getClassroom(id), getTest(testId)]);
   if (!room || !test || test.classroom_id !== room.id) notFound();
   if (!room.can_manage) redirect(`/c/${id}/tests/${testId}`);
-  const questions = await getQuestions(test.id);
+  const [questions, publishAt] = await Promise.all([
+    getQuestions(test.id),
+    getPublishAt(test.id),
+  ]);
 
   return (
     <div className="grid grid-cols-1 gap-12">
@@ -39,9 +42,15 @@ export default async function EditTestPage({
         <p className="caps text-16 text-ink-2">
           {formNumber("T", test.num)} · {questions.length} question
           {questions.length === 1 ? "" : "s"} ·{" "}
-          {test.is_published ? "Posted" : "Draft"}
+          {test.is_published ? "Posted" : "Hidden"}
         </p>
-        <TestPublish testId={test.id} published={test.is_published} />
+        <div className="mt-2">
+          <TestVisibility
+            testId={test.id}
+            published={test.is_published}
+            publishAt={publishAt}
+          />
+        </div>
       </header>
 
       <QuestionsEditor testId={test.id} questions={questions} />

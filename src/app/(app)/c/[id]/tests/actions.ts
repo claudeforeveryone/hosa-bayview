@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkReport } from "@/lib/flag-reasons";
 import { IMPORT_MAX, checkQuestion } from "@/lib/question-rules";
 import { parseAttemptsAllowed, practiceRuleOk } from "@/lib/test-settings";
+import { formatWhen, torontoToIso } from "@/lib/when";
 
 const id = z.string().uuid();
 
@@ -173,6 +174,21 @@ export async function updateTest(
   return { ok: "Saved.", values };
 }
 
+// Null when the test has at least one question; otherwise what to tell the trainer.
+async function needsQuestions(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  testId: string,
+  where: string,
+): Promise<FormState | null> {
+  const { count, error } = await supabase
+    .from("questions")
+    .select("id", { count: "exact", head: true })
+    .eq("test_id", testId);
+  if (error) return failed(where, error.message);
+  return count ? null : { error: "Add at least one question first." };
+}
+
+// Posting or hiding by hand drops any schedule, so a hidden test never posts itself later by surprise.
 export async function setPublished(
   testId: string,
   published: boolean,
@@ -182,23 +198,67 @@ export async function setPublished(
     return { error: "That test doesn't exist." };
   const supabase = await createClient();
   if (published) {
-    const { count, error } = await supabase
-      .from("questions")
-      .select("id", { count: "exact", head: true })
-      .eq("test_id", testId);
-    if (error) return failed("publish", error.message);
-    if (!count) return { error: "Add at least one question first." };
+    const empty = await needsQuestions(supabase, testId, "publish");
+    if (empty) return empty;
   }
-  const { data, error } = await supabase
-    .from("tests")
-    .update({ is_published: published })
-    .eq("id", testId)
-    .select("id");
+  const write = (row: { is_published: boolean; publish_at?: null }) =>
+    supabase.from("tests").update(row).eq("id", testId).select("id");
+  let { data, error } = await write({
+    is_published: published,
+    publish_at: null,
+  });
+  // 42703 / PGRST204: the database doesn't have 0298 yet, so there's no schedule to drop.
+  if (error?.code === "42703" || error?.code === "PGRST204")
+    ({ data, error } = await write({ is_published: published }));
   if (error) return failed("publish", error.message);
   if (!data?.length) return { error: "You can't edit this test." };
   refresh();
   return {
     ok: published ? "Posted. Members can take it now." : "Hidden from members.",
+  };
+}
+
+const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+// Keeps the test hidden until a Toronto date and time, then 0298's job posts it (it runs every minute) and the
+// room gets the usual new-test notification. local is a datetime-local value, "2026-10-14T18:30".
+export async function schedulePublish(
+  testId: string,
+  local: string,
+): Promise<FormState> {
+  await requireProfile();
+  if (!id.safeParse(testId).success)
+    return { error: "That test doesn't exist." };
+  if (typeof local !== "string" || !local.trim())
+    return { error: "Pick a day and a time." };
+  // Null for a day that doesn't exist (Feb 30) or the hour skipped when clocks spring forward.
+  const at = torontoToIso(local);
+  if (!at) return { error: "That day and time doesn't exist. Pick another." };
+  const ms = Date.parse(at);
+  const now = Date.now();
+  if (ms <= now) return { error: "Pick a time that hasn't passed yet." };
+  if (ms > now + YEAR_MS) return { error: "Pick a time within the next year." };
+
+  const supabase = await createClient();
+  const empty = await needsQuestions(supabase, testId, "schedule");
+  if (empty) return empty;
+  const { data, error } = await supabase
+    .from("tests")
+    .update({ is_published: false, publish_at: at })
+    .eq("id", testId)
+    .select("id");
+  if (error) {
+    // 42703 / PGRST204: the database doesn't have 0298 yet.
+    if (error.code === "42703" || error.code === "PGRST204")
+      return {
+        error: "Scheduling isn't switched on yet. Post it by hand for now.",
+      };
+    return failed("schedule", error.message);
+  }
+  if (!data?.length) return { error: "You can't edit this test." };
+  refresh();
+  return {
+    ok: `Scheduled. It posts ${formatWhen(at)} and members get a notification then.`,
   };
 }
 
@@ -486,7 +546,9 @@ export async function reportQuestion(
     if (error.code === "42501")
       return { error: "You can't report questions on this test." };
     if (error.code === "PGRST202" || error.code === "42883")
-      return { error: "Reports aren't switched on yet. Use Ask teacher for now." };
+      return {
+        error: "Reports aren't switched on yet. Use Ask teacher for now.",
+      };
     return failed("report question", error.message);
   }
   return { id: String(data) };

@@ -70,9 +70,9 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
   // eslint-disable-next-line react-hooks/purity -- server render time, once per request
   const now = Date.now();
 
-  // Members only ever get published tests back; managers also see drafts, counted on their own.
+  // Members only ever get posted tests back; managers also see hidden ones, counted on their own.
   const published = tests.filter((t) => t.is_published).length;
-  const drafts = tests.length - published;
+  const hidden = tests.length - published;
   const cells: PracticeCell[] = [];
   if (category !== "showcase") {
     cells.push({
@@ -80,9 +80,7 @@ export default async function BoardTab(props: PageProps<"/c/[id]">) {
       label: plural(published, "Test"),
       count: published,
       extra:
-        canPost && drafts
-          ? `${drafts} ${drafts === 1 ? "draft" : "drafts"}`
-          : null,
+        canPost && hidden ? `${hidden} hidden` : null,
     });
   }
   cells.push({

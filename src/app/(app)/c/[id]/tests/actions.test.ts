@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeClient } from "@/test/chain-client";
 
 let client = makeClient({ data: null, error: null });
@@ -25,6 +25,8 @@ const {
   importQuestions,
   reportQuestion,
   saveQuestion,
+  schedulePublish,
+  setPublished,
 } = await import("./actions");
 
 const ROOM = "22222222-2222-4222-8222-222222222222";
@@ -374,6 +376,157 @@ describe("reportQuestion and askTeacher", () => {
     );
     expect((await askTeacher(TEST, Q, "")).error).toBe(
       "That's a lot of questions for one day. Try again tomorrow.",
+    );
+  });
+});
+
+// Hidden, Scheduled and Posted (0298). Toronto noon on 2026-10-22 is 16:00 UTC (daylight time).
+describe("setPublished and schedulePublish", () => {
+  const ok = { data: [{ id: TEST }], error: null, count: 2 };
+  const updates = () => client.calls.filter((c) => c.op === "update");
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-22T16:00:00Z"));
+    client = makeClient(ok);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("hiding by hand also drops any schedule", async () => {
+    expect(await setPublished(TEST, false)).toEqual({
+      ok: "Hidden from members.",
+    });
+    expect(updates()).toEqual([
+      { op: "update", args: [{ is_published: false, publish_at: null }] },
+    ]);
+  });
+
+  it("posting by hand drops the schedule, and needs a question first", async () => {
+    expect((await setPublished(TEST, true)).ok).toMatch(/Posted/);
+    expect(updates()).toEqual([
+      { op: "update", args: [{ is_published: true, publish_at: null }] },
+    ]);
+    client = makeClient({ ...ok, count: 0 });
+    expect((await setPublished(TEST, true)).error).toBe(
+      "Add at least one question first.",
+    );
+    expect(updates()).toEqual([]);
+  });
+
+  it("says so when the test isn't yours, and doesn't retry a plain write error", async () => {
+    client = makeClient({ data: [], error: null, count: 1 });
+    expect((await setPublished(TEST, false)).error).toBe(
+      "You can't edit this test.",
+    );
+    client = makeClient({
+      data: null,
+      error: { code: "57014", message: "timeout" },
+      count: 1,
+    });
+    expect((await setPublished(TEST, false)).error).toBe(
+      "That didn't save. Try again.",
+    );
+    expect(updates()).toHaveLength(1);
+  });
+
+  it("still hides and posts on a database without 0298", async () => {
+    // The first write to tests meets no publish_at column; the retry without it saves.
+    const fine = makeClient(ok);
+    const refused = makeClient({
+      data: null,
+      error: { code: "PGRST204", message: "no publish_at column" },
+    });
+    let testWrites = 0;
+    client = {
+      ...fine,
+      from: vi.fn((table: string) =>
+        table === "tests" && testWrites++ === 0
+          ? refused.from(table)
+          : fine.from(table),
+      ),
+    } as typeof client;
+    expect(await setPublished(TEST, false)).toEqual({
+      ok: "Hidden from members.",
+    });
+    expect(refused.calls.filter((c) => c.op === "update")).toEqual([
+      { op: "update", args: [{ is_published: false, publish_at: null }] },
+    ]);
+    expect(fine.calls.filter((c) => c.op === "update")).toEqual([
+      { op: "update", args: [{ is_published: false }] },
+    ]);
+  });
+
+  it("keeps the test hidden and stores the Toronto time as an instant", async () => {
+    const result = await schedulePublish(TEST, "2026-10-23T09:00");
+    expect(result.ok).toMatch(/^Scheduled\. It posts .*9:00/);
+    expect(updates()).toEqual([
+      {
+        op: "update",
+        args: [{ is_published: false, publish_at: "2026-10-23T13:00:00.000Z" }],
+      },
+    ]);
+    expect(client.calls).toContainEqual({ op: "eq", args: ["id", TEST] });
+  });
+
+  it("refuses a bad, past or far-off time without touching the database", async () => {
+    for (const [local, error] of [
+      ["", "Pick a day and a time."],
+      ["  ", "Pick a day and a time."],
+      ["tomorrow", "That day and time doesn't exist. Pick another."],
+      ["2026-02-30T09:00", "That day and time doesn't exist. Pick another."],
+      // Clocks spring forward at 2 a.m. on 2027-03-14 in Toronto, so 2:30 never happens.
+      ["2027-03-14T02:30", "That day and time doesn't exist. Pick another."],
+      ["2026-10-22T11:59", "Pick a time that hasn't passed yet."],
+      ["2026-10-22T12:00", "Pick a time that hasn't passed yet."],
+      ["2027-10-22T13:00", "Pick a time within the next year."],
+    ]) {
+      expect((await schedulePublish(TEST, local)).error).toBe(error);
+    }
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("takes a time up to a year out", async () => {
+    expect((await schedulePublish(TEST, "2027-10-22T11:00")).ok).toMatch(
+      /Scheduled/,
+    );
+  });
+
+  it("refuses a malformed test id without touching the database", async () => {
+    expect((await schedulePublish("nope", "2026-10-23T09:00")).error).toBe(
+      "That test doesn't exist.",
+    );
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("won't schedule a test with no questions", async () => {
+    client = makeClient({ ...ok, count: 0 });
+    expect((await schedulePublish(TEST, "2026-10-23T09:00")).error).toBe(
+      "Add at least one question first.",
+    );
+    expect(updates()).toEqual([]);
+  });
+
+  it("says so when the test isn't yours or the database has no 0298", async () => {
+    client = makeClient({ data: [], error: null, count: 1 });
+    expect((await schedulePublish(TEST, "2026-10-23T09:00")).error).toBe(
+      "You can't edit this test.",
+    );
+    // The question count answers; the update hits a database without the column.
+    const counted = makeClient({ data: null, error: null, count: 1 });
+    const refused = makeClient({
+      data: null,
+      error: { code: "PGRST204", message: "no publish_at column" },
+    });
+    client = {
+      ...refused,
+      from: vi.fn((table: string) =>
+        table === "questions" ? counted.from(table) : refused.from(table),
+      ),
+    } as typeof client;
+    expect((await schedulePublish(TEST, "2026-10-23T09:00")).error).toMatch(
+      /isn't switched on yet/,
     );
   });
 });
